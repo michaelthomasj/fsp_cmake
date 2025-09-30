@@ -103,5 +103,12 @@
             <slot name="P712.CM33" secure="true"/>
             <slot name="P713.CM33" secure="true"/>
         </peripheral>
+        <peripheral name="SCI0.CM33" group="SCI" security="s"/>
+        <peripheral name="ICU.CM33">
+            <slot name="IRQ0.CM33" secure="true"/>
+            <slot name="IRQ1.CM33" secure="true"/>
+            <slot name="IRQ2.CM33" secure="true"/>
+            <slot name="IRQ3.CM33" secure="true"/>
+        </peripheral>
     </partition>
 </azone>
