@@ -1,46 +1,51 @@
 # FSP BSP (Board Support Package) Library
 # This library contains core BSP functionality required by all modules
 
+# Set base directory for FSP if not already set
+if(NOT DEFINED FSP_MODULE_BASE_DIR)
+    set(FSP_MODULE_BASE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
+endif()
+
 add_library(fsp_bsp STATIC)
 
 # BSP source files
 target_sources(fsp_bsp
     PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}/ra/fsp/src/bsp/mcu/all/bsp_common.c
-        ${CMAKE_CURRENT_SOURCE_DIR}/ra/fsp/src/bsp/mcu/all/bsp_clocks.c
-        ${CMAKE_CURRENT_SOURCE_DIR}/ra/fsp/src/bsp/mcu/all/bsp_delay.c
-        ${CMAKE_CURRENT_SOURCE_DIR}/ra/fsp/src/bsp/mcu/all/bsp_group_irq.c
-        ${CMAKE_CURRENT_SOURCE_DIR}/ra/fsp/src/bsp/mcu/all/bsp_guard.c
-        ${CMAKE_CURRENT_SOURCE_DIR}/ra/fsp/src/bsp/mcu/all/bsp_io.c
-        ${CMAKE_CURRENT_SOURCE_DIR}/ra/fsp/src/bsp/mcu/all/bsp_ipc.c
-        ${CMAKE_CURRENT_SOURCE_DIR}/ra/fsp/src/bsp/mcu/all/bsp_irq.c
-        ${CMAKE_CURRENT_SOURCE_DIR}/ra/fsp/src/bsp/mcu/all/bsp_macl.c
-        ${CMAKE_CURRENT_SOURCE_DIR}/ra/fsp/src/bsp/mcu/all/bsp_register_protection.c
-        ${CMAKE_CURRENT_SOURCE_DIR}/ra/fsp/src/bsp/mcu/all/bsp_sbrk.c
-        ${CMAKE_CURRENT_SOURCE_DIR}/ra/fsp/src/bsp/mcu/all/bsp_sdram.c
-        ${CMAKE_CURRENT_SOURCE_DIR}/ra/fsp/src/bsp/mcu/all/bsp_security.c
-        ${CMAKE_CURRENT_SOURCE_DIR}/ra/fsp/src/bsp/mcu/ra6m4/bsp_linker.c
-        ${CMAKE_CURRENT_SOURCE_DIR}/ra/fsp/src/bsp/cmsis/Device/RENESAS/Source/startup.c
-        ${CMAKE_CURRENT_SOURCE_DIR}/ra/fsp/src/bsp/cmsis/Device/RENESAS/Source/system.c
-        ${CMAKE_CURRENT_SOURCE_DIR}/ra/board/ra6m4_ek/board_init.c
-        ${CMAKE_CURRENT_SOURCE_DIR}/ra/board/ra6m4_ek/board_leds.c
+        ${FSP_MODULE_BASE_DIR}/ra/fsp/src/bsp/mcu/all/bsp_common.c
+        ${FSP_MODULE_BASE_DIR}/ra/fsp/src/bsp/mcu/all/bsp_clocks.c
+        ${FSP_MODULE_BASE_DIR}/ra/fsp/src/bsp/mcu/all/bsp_delay.c
+        ${FSP_MODULE_BASE_DIR}/ra/fsp/src/bsp/mcu/all/bsp_group_irq.c
+        ${FSP_MODULE_BASE_DIR}/ra/fsp/src/bsp/mcu/all/bsp_guard.c
+        ${FSP_MODULE_BASE_DIR}/ra/fsp/src/bsp/mcu/all/bsp_io.c
+        ${FSP_MODULE_BASE_DIR}/ra/fsp/src/bsp/mcu/all/bsp_ipc.c
+        ${FSP_MODULE_BASE_DIR}/ra/fsp/src/bsp/mcu/all/bsp_irq.c
+        ${FSP_MODULE_BASE_DIR}/ra/fsp/src/bsp/mcu/all/bsp_macl.c
+        ${FSP_MODULE_BASE_DIR}/ra/fsp/src/bsp/mcu/all/bsp_register_protection.c
+        ${FSP_MODULE_BASE_DIR}/ra/fsp/src/bsp/mcu/all/bsp_sbrk.c
+        ${FSP_MODULE_BASE_DIR}/ra/fsp/src/bsp/mcu/all/bsp_sdram.c
+        ${FSP_MODULE_BASE_DIR}/ra/fsp/src/bsp/mcu/all/bsp_security.c
+        ${FSP_MODULE_BASE_DIR}/ra/fsp/src/bsp/mcu/ra6m4/bsp_linker.c
+        ${FSP_MODULE_BASE_DIR}/ra/fsp/src/bsp/cmsis/Device/RENESAS/Source/startup.c
+        ${FSP_MODULE_BASE_DIR}/ra/fsp/src/bsp/cmsis/Device/RENESAS/Source/system.c
+        ${FSP_MODULE_BASE_DIR}/ra/board/ra6m4_ek/board_init.c
+        ${FSP_MODULE_BASE_DIR}/ra/board/ra6m4_ek/board_leds.c
         # Generated files
-        ${CMAKE_CURRENT_SOURCE_DIR}/ra_gen/common_data.c
-        ${CMAKE_CURRENT_SOURCE_DIR}/ra_gen/pin_data.c
-        ${CMAKE_CURRENT_SOURCE_DIR}/ra_gen/vector_data.c
+        ${FSP_MODULE_BASE_DIR}/ra_gen/common_data.c
+        ${FSP_MODULE_BASE_DIR}/ra_gen/pin_data.c
+        ${FSP_MODULE_BASE_DIR}/ra_gen/vector_data.c
 )
 
 # BSP include directories (PUBLIC so dependent modules can use them)
 target_include_directories(fsp_bsp
     PUBLIC
-        ${CMAKE_CURRENT_SOURCE_DIR}/ra/arm/CMSIS_6/CMSIS/Core/Include
-        ${CMAKE_CURRENT_SOURCE_DIR}/ra/fsp/inc
-        ${CMAKE_CURRENT_SOURCE_DIR}/ra/fsp/inc/api
-        ${CMAKE_CURRENT_SOURCE_DIR}/ra/fsp/inc/instances
-        ${CMAKE_CURRENT_SOURCE_DIR}/ra_cfg/fsp_cfg
-        ${CMAKE_CURRENT_SOURCE_DIR}/ra_cfg/fsp_cfg/bsp
-        ${CMAKE_CURRENT_SOURCE_DIR}/ra_gen
-        ${CMAKE_CURRENT_SOURCE_DIR}
+        ${FSP_MODULE_BASE_DIR}/ra/arm/CMSIS_6/CMSIS/Core/Include
+        ${FSP_MODULE_BASE_DIR}/ra/fsp/inc
+        ${FSP_MODULE_BASE_DIR}/ra/fsp/inc/api
+        ${FSP_MODULE_BASE_DIR}/ra/fsp/inc/instances
+        ${FSP_MODULE_BASE_DIR}/ra_cfg/fsp_cfg
+        ${FSP_MODULE_BASE_DIR}/ra_cfg/fsp_cfg/bsp
+        ${FSP_MODULE_BASE_DIR}/ra_gen
+        ${FSP_MODULE_BASE_DIR}
 )
 
 # BSP compile definitions
@@ -63,5 +68,5 @@ target_compile_options(fsp_bsp
 # I/O Port driver (required by most peripherals)
 target_sources(fsp_bsp
     PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}/ra/fsp/src/r_ioport/r_ioport.c
+        ${FSP_MODULE_BASE_DIR}/ra/fsp/src/r_ioport/r_ioport.c
 )

@@ -1,12 +1,17 @@
-# FSP Flash Module (Flash HP - High Performance)
-# Provides internal flash read/write/erase functionality
+# FSP Flash Module Library
+# This library provides Flash HP driver functionality
+
+# Use FSP_MODULE_BASE_DIR set by fsp_bsp.cmake
+if(NOT DEFINED FSP_MODULE_BASE_DIR)
+    message(FATAL_ERROR "FSP_MODULE_BASE_DIR not defined. Include fsp_bsp.cmake first.")
+endif()
 
 add_library(fsp_flash STATIC)
 
 # Flash source files
 target_sources(fsp_flash
     PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}/ra/fsp/src/r_flash_hp/r_flash_hp.c
+        ${FSP_MODULE_BASE_DIR}/ra/fsp/src/r_flash_hp/r_flash_hp.c
 )
 
 # Flash requires BSP

@@ -1,12 +1,17 @@
-# FSP UART Module (SCI UART)
-# Provides UART functionality via the SCI (Serial Communications Interface)
+# FSP UART Module Library
+# This library provides SCI UART driver functionality
+
+# Use FSP_MODULE_BASE_DIR set by fsp_bsp.cmake
+if(NOT DEFINED FSP_MODULE_BASE_DIR)
+    message(FATAL_ERROR "FSP_MODULE_BASE_DIR not defined. Include fsp_bsp.cmake first.")
+endif()
 
 add_library(fsp_uart STATIC)
 
 # UART source files
 target_sources(fsp_uart
     PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}/ra/fsp/src/r_sci_uart/r_sci_uart.c
+        ${FSP_MODULE_BASE_DIR}/ra/fsp/src/r_sci_uart/r_sci_uart.c
 )
 
 # UART requires BSP
