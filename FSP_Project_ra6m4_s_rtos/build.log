@@ -1,0 +1,45 @@
+[1/36] Building C object CMakeFiles/fsp_bsp.dir/ra/fsp/src/bsp/mcu/all/bsp_io.c.obj
+[2/36] Building C object CMakeFiles/fsp_bsp.dir/ra/fsp/src/bsp/mcu/all/bsp_common.c.obj
+[3/36] Building C object CMakeFiles/fsp_bsp.dir/ra/fsp/src/bsp/mcu/all/bsp_ipc.c.obj
+[4/36] Building C object CMakeFiles/fsp_bsp.dir/ra/fsp/src/bsp/mcu/all/bsp_delay.c.obj
+[5/36] Building C object CMakeFiles/fsp_bsp.dir/ra/fsp/src/bsp/mcu/all/bsp_irq.c.obj
+[6/36] Building C object CMakeFiles/fsp_bsp.dir/ra/fsp/src/bsp/mcu/all/bsp_group_irq.c.obj
+[7/36] Building C object CMakeFiles/fsp_bsp.dir/ra/fsp/src/bsp/mcu/all/bsp_guard.c.obj
+[8/36] Building C object CMakeFiles/fsp_bsp.dir/ra/fsp/src/bsp/mcu/all/bsp_sdram.c.obj
+[9/36] Building C object CMakeFiles/fsp_bsp.dir/ra/fsp/src/bsp/mcu/all/bsp_macl.c.obj
+[10/36] Building C object CMakeFiles/fsp_bsp.dir/ra/fsp/src/bsp/mcu/all/bsp_clocks.c.obj
+[11/36] Building C object CMakeFiles/fsp_bsp.dir/ra/fsp/src/bsp/mcu/all/bsp_sbrk.c.obj
+[12/36] Building C object CMakeFiles/fsp_bsp.dir/ra/fsp/src/bsp/mcu/ra6m4/bsp_linker.c.obj
+[13/36] Building C object CMakeFiles/fsp_bsp.dir/ra/fsp/src/bsp/mcu/all/bsp_register_protection.c.obj
+[14/36] Building C object CMakeFiles/fsp_bsp.dir/ra/board/ra6m4_ek/board_leds.c.obj
+[15/36] Building C object CMakeFiles/fsp_bsp.dir/ra/board/ra6m4_ek/board_init.c.obj
+[16/36] Building C object CMakeFiles/fsp_bsp.dir/ra/fsp/src/bsp/mcu/all/bsp_security.c.obj
+[17/36] Building C object CMakeFiles/fsp_bsp.dir/ra/fsp/src/bsp/cmsis/Device/RENESAS/Source/system.c.obj
+[18/36] Building C object CMakeFiles/fsp_bsp.dir/ra/fsp/src/bsp/cmsis/Device/RENESAS/Source/startup.c.obj
+[19/36] Building C object CMakeFiles/fsp_bsp.dir/ra_gen/common_data.c.obj
+[20/36] Building C object CMakeFiles/fsp_bsp.dir/ra_gen/vector_data.c.obj
+[21/36] Building C object CMakeFiles/fsp_bsp.dir/ra_gen/hal_data.c.obj
+[22/36] Building C object CMakeFiles/fsp_bsp.dir/ra_gen/pin_data.c.obj
+[23/36] Building C object CMakeFiles/fsp_tz_context.dir/ra/fsp/src/rm_tz_context/tz_context.c.obj
+[24/36] Building C object CMakeFiles/fsp_bsp.dir/ra/fsp/src/r_ioport/r_ioport.c.obj
+[25/36] Building C object CMakeFiles/fsp_uart.dir/ra/fsp/src/r_sci_uart/r_sci_uart.c.obj
+[26/36] Linking C static library libfsp_bsp.a
+[27/36] Building C object CMakeFiles/fsp_flash.dir/ra/fsp/src/r_flash_hp/r_flash_hp.c.obj
+[28/36] Linking C static library libfsp_uart.a
+[29/36] Linking C static library libfsp_tz_context.a
+[30/36] Linking C static library libfsp_flash.a
+[31/36] RASC pre-build to generate project content for FSP_Project_ra6m4_s_rtos
+"Running RASC for generating project FSP_Project_ra6m4_s_rtos content since modification is detected in configuration.xml:" 
+C:/Renesas/RA/sc_v2025-07_fsp_v6.1.0/eclipse/rasc.exe -nosplash --launcher.suppressErrors --generate --devicefamily ra --compiler GCC --toolchainversion 13.2.1 C:/Users/Michael/Documents/GitHub/fsp_cmake/FSP_Project_ra6m4_s_rtos/configuration.xml 
+Generating Project Content.Generating Project Content...........
+..
+[32/36] Building C object CMakeFiles/FSP_Project_ra6m4_s_rtos.elf.dir/src/hal_entry.c.obj
+[33/36] Building C object CMakeFiles/FSP_Project_ra6m4_s_rtos.elf.dir/ra_gen/main.c.obj
+[34/36] Building C object CMakeFiles/FSP_Project_ra6m4_s_rtos.elf.dir/src/hal_warmstart.c.obj
+[35/36] Linking C executable FSP_Project_ra6m4_s_rtos.elf; Creating S-record file in C:/Users/Michael/Documents/GitHub/fsp_cmake/FSP_Project_ra6m4_s_rtos/build
+C:/Renesas/RA/sc_v2025-07_fsp_v6.1.0/eclipse/rasc.exe -nosplash --launcher.suppressErrors --gensmartbundle --devicefamily ra --compiler GCC --toolchainversion 13.2.1 C:/Users/Michael/Documents/GitHub/fsp_cmake/FSP_Project_ra6m4_s_rtos/configuration.xml C:/Users/Michael/Documents/GitHub/fsp_cmake/FSP_Project_ra6m4_s_rtos/build/FSP_Project_ra6m4_s_rtos.elf 
+Generating Smart Bundle..
+[36/36] Generating FSP_Project_ra6m4_s_rtos.sbd
+"Running RASC post-build to generate Smart Bundle file for FSP_Project_ra6m4_s_rtos:" 
+C:/Renesas/RA/sc_v2025-07_fsp_v6.1.0/eclipse/rasc.exe -nosplash --launcher.suppressErrors --gensmartbundle --devicefamily ra --compiler GCC --toolchainversion 13.2.1 C:/Users/Michael/Documents/GitHub/fsp_cmake/FSP_Project_ra6m4_s_rtos/configuration.xml C:/Users/Michael/Documents/GitHub/fsp_cmake/FSP_Project_ra6m4_s_rtos/build/FSP_Project_ra6m4_s_rtos.elf 
+Generating Smart Bundle..
