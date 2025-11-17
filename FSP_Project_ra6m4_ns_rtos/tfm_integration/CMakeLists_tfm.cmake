@@ -24,6 +24,7 @@ include(${FSP_NS_PROJECT_DIR}/cmake/modules/fsp_freertos.cmake)
 set(FSP_App_Source_Files
     ${FSP_NS_PROJECT_DIR}/src/hal_warmstart.c
     ${FSP_NS_PROJECT_DIR}/src/new_thread0_entry.c
+    ${FSP_NS_PROJECT_DIR}/src/tfm_service_tests.c
 )
 
 # RASC-generated files

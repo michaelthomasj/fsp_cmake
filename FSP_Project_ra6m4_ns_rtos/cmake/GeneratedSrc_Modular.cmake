@@ -9,6 +9,7 @@ include(${CMAKE_CURRENT_LIST_DIR}/modules/fsp_freertos.cmake)
 set(App_Source_Files
     ${CMAKE_CURRENT_SOURCE_DIR}/src/hal_warmstart.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/new_thread0_entry.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/tfm_service_tests.c
 )
 
 # RASC-generated files (note: common_data.c, hal_data.c, pin_data.c, vector_data.c
