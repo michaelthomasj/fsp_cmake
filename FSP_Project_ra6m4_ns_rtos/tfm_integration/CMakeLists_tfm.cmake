@@ -83,12 +83,18 @@ set(FSP_Startup_File
     ${FSP_NS_PROJECT_DIR}/ra/fsp/src/bsp/cmsis/Device/RENESAS/Source/startup.c
 )
 
+# FSP linker initialization (provides real g_init_info for C runtime init)
+set(FSP_Linker_Init_File
+    ${FSP_NS_PROJECT_DIR}/ra/fsp/src/bsp/mcu/ra6m4/bsp_linker.c
+)
+
 # TF-M non-secure application target
 # Note: TF-M expects the target to be named 'tfm_ns'
 add_executable(tfm_ns
     ${FSP_App_Source_Files}
     ${FSP_HAL_Generated_Files}
     ${FSP_Startup_File}
+    ${FSP_Linker_Init_File}
 )
 
 # Link against FSP modules
@@ -122,6 +128,7 @@ target_include_directories(tfm_ns
     PRIVATE
         ${FSP_NS_PROJECT_DIR}/src
         ${FSP_NS_PROJECT_DIR}/ra_gen  # RASC-generated headers
+        ${FSP_NS_PROJECT_DIR}  # For bsp_linker_info.h
         ${CMAKE_BINARY_DIR}/generated/interface/include
         ${CMAKE_BINARY_DIR}/lib/ext/mbedcrypto-src/include  # mbedTLS headers
         ${CMAKE_SOURCE_DIR}/interface/include
