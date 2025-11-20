@@ -20,6 +20,10 @@ include(${FSP_NS_PROJECT_DIR}/Config.cmake)
 include(${FSP_NS_PROJECT_DIR}/cmake/GeneratedCfg.cmake)
 
 # NOTE: fsp_bsp is already defined by the TF-M platform
+# Filter FP flags and specs to match TF-M's soft float ABI and avoid conflicts
+string(REGEX REPLACE "(-mfloat-abi=[^ ]+|-mfpu=[^ ]+|--specs=[^ ]+|-specs=[^ ]+)" "" RASC_CMAKE_C_FLAGS "${RASC_CMAKE_C_FLAGS}")
+string(REGEX REPLACE "(-mfloat-abi=[^ ]+|-mfpu=[^ ]+|--specs=[^ ]+|-specs=[^ ]+)" "" RASC_CMAKE_EXE_LINKER_FLAGS "${RASC_CMAKE_EXE_LINKER_FLAGS}")
+
 # However, fsp_freertos needs to be defined here since it's app-specific
 
 # Define fsp_freertos if not already defined
@@ -74,11 +78,17 @@ set(FSP_HAL_Generated_Files
     ${FSP_NS_PROJECT_DIR}/ra_gen/new_thread0.c
 )
 
+# FSP startup file (provides Reset_Handler entry point required by FSP linker script)
+set(FSP_Startup_File
+    ${FSP_NS_PROJECT_DIR}/ra/fsp/src/bsp/cmsis/Device/RENESAS/Source/startup.c
+)
+
 # TF-M non-secure application target
 # Note: TF-M expects the target to be named 'tfm_ns'
 add_executable(tfm_ns
     ${FSP_App_Source_Files}
     ${FSP_HAL_Generated_Files}
+    ${FSP_Startup_File}
 )
 
 # Link against FSP modules
@@ -122,18 +132,21 @@ target_include_directories(tfm_ns
 )
 
 # Filter out linker options that conflict with TF-M's build system
-# Remove: --specs, -T (linker script), -o (output)
-string(REGEX REPLACE "(-T;[^;]+|--specs=[^;]+|-o;[^;]+|-Wl,-Map,[^;]+)" "" FILTERED_LINKER_FLAGS "${RASC_CMAKE_EXE_LINKER_FLAGS}")
+# Remove: --specs, -T (linker script), -o (output), --entry, FP flags
+string(REGEX REPLACE "(--entry=[^;]+|-T;[^;]+|--specs=[^;]+|-o;[^;]+|-Wl,-Map,[^;]+|-mfloat-abi=[^;]+|-mfpu=[^;]+)" "" FILTERED_LINKER_FLAGS "${RASC_CMAKE_EXE_LINKER_FLAGS}")
 # Convert back to list
 string(REPLACE ";" " " FILTERED_LINKER_FLAGS_STR "${FILTERED_LINKER_FLAGS}")
 separate_arguments(FILTERED_LINKER_FLAGS UNIX_COMMAND "${FILTERED_LINKER_FLAGS_STR}")
 
-# Linker options (TF-M manages linker script and specs)
+# Linker options (use FSP project's RASC-generated linker script)
 target_link_options(tfm_ns
     PRIVATE
         ${FILTERED_LINKER_FLAGS}
+        -T${FSP_NS_PROJECT_DIR}/script/fsp.ld
+        -L${FSP_NS_PROJECT_DIR}  # For memory_regions.ld and fsp_gen.ld includes
         -Wl,--gc-sections
         -Wl,-Map=${CMAKE_CURRENT_BINARY_DIR}/tfm_ns.map
+        -Wl,--no-fatal-warnings  # Allow newlib syscall warnings
 )
 
 # Set output properties
@@ -148,7 +161,6 @@ add_custom_command(TARGET tfm_ns
     POST_BUILD
     COMMAND ${CMAKE_OBJCOPY} -O ihex $<TARGET_FILE:tfm_ns> ${CMAKE_BINARY_DIR}/bin/tfm_ns.hex
     COMMAND ${CMAKE_OBJCOPY} -O binary $<TARGET_FILE:tfm_ns> ${CMAKE_BINARY_DIR}/bin/tfm_ns.bin
-    COMMAND ${CMAKE_SIZE} $<TARGET_FILE:tfm_ns>
     COMMENT "Generating FSP NS application hex and bin files"
 )
 
