@@ -12,13 +12,54 @@ cmake_minimum_required(VERSION 3.21)
 
 set(FSP_NS_PROJECT_DIR ${CMAKE_CURRENT_LIST_DIR}/..)
 
+# Set PROJECT_NAME to avoid spaces in custom target names
+set(PROJECT_NAME tfm_ns)
+
 # Include FSP project configuration
 include(${FSP_NS_PROJECT_DIR}/Config.cmake)
 include(${FSP_NS_PROJECT_DIR}/cmake/GeneratedCfg.cmake)
 
-# Include FSP module definitions (modular build)
-include(${FSP_NS_PROJECT_DIR}/cmake/modules/fsp_bsp.cmake)
-include(${FSP_NS_PROJECT_DIR}/cmake/modules/fsp_freertos.cmake)
+# NOTE: fsp_bsp is already defined by the TF-M platform
+# However, fsp_freertos needs to be defined here since it's app-specific
+
+# Define fsp_freertos if not already defined
+if(NOT TARGET fsp_freertos)
+    add_library(fsp_freertos STATIC)
+
+    # FreeRTOS kernel source files
+    target_sources(fsp_freertos
+        PRIVATE
+            ${FSP_NS_PROJECT_DIR}/ra/aws/FreeRTOS/FreeRTOS/Source/tasks.c
+            ${FSP_NS_PROJECT_DIR}/ra/aws/FreeRTOS/FreeRTOS/Source/queue.c
+            ${FSP_NS_PROJECT_DIR}/ra/aws/FreeRTOS/FreeRTOS/Source/list.c
+            ${FSP_NS_PROJECT_DIR}/ra/aws/FreeRTOS/FreeRTOS/Source/timers.c
+            ${FSP_NS_PROJECT_DIR}/ra/aws/FreeRTOS/FreeRTOS/Source/event_groups.c
+            ${FSP_NS_PROJECT_DIR}/ra/aws/FreeRTOS/FreeRTOS/Source/stream_buffer.c
+            ${FSP_NS_PROJECT_DIR}/ra/fsp/src/rm_freertos_port/port.c
+    )
+
+    # FreeRTOS include directories
+    target_include_directories(fsp_freertos
+        PUBLIC
+            ${FSP_NS_PROJECT_DIR}/ra/aws/FreeRTOS/FreeRTOS/Source/include
+            ${FSP_NS_PROJECT_DIR}/ra/fsp/src/rm_freertos_port
+            ${FSP_NS_PROJECT_DIR}/ra_cfg/aws
+    )
+
+    # FreeRTOS requires BSP (already defined by platform)
+    target_link_libraries(fsp_freertos
+        PUBLIC
+            fsp_bsp
+    )
+
+    # FreeRTOS compile options
+    target_compile_options(fsp_freertos
+        PRIVATE
+            $<$<COMPILE_LANGUAGE:C>:${RASC_CMAKE_C_FLAGS}>
+            $<$<CONFIG:Debug>:${RASC_DEBUG_FLAGS}>
+            $<$<CONFIG:Release>:${RASC_RELEASE_FLAGS}>
+    )
+endif()
 
 # Application source files
 set(FSP_App_Source_Files
@@ -70,17 +111,27 @@ target_compile_options(tfm_ns
 target_include_directories(tfm_ns
     PRIVATE
         ${FSP_NS_PROJECT_DIR}/src
+        ${FSP_NS_PROJECT_DIR}/ra_gen  # RASC-generated headers
         ${CMAKE_BINARY_DIR}/generated/interface/include
+        ${CMAKE_BINARY_DIR}/lib/ext/mbedcrypto-src/include  # mbedTLS headers
         ${CMAKE_SOURCE_DIR}/interface/include
         ${CMAKE_SOURCE_DIR}/interface/include/psa
         ${CMAKE_SOURCE_DIR}/interface/include/crypto
+        ${CMAKE_SOURCE_DIR}/interface/include/crypto_keys
         ${CMAKE_SOURCE_DIR}/interface/include/tfm
 )
 
-# Linker options
+# Filter out linker options that conflict with TF-M's build system
+# Remove: --specs, -T (linker script), -o (output)
+string(REGEX REPLACE "(-T;[^;]+|--specs=[^;]+|-o;[^;]+|-Wl,-Map,[^;]+)" "" FILTERED_LINKER_FLAGS "${RASC_CMAKE_EXE_LINKER_FLAGS}")
+# Convert back to list
+string(REPLACE ";" " " FILTERED_LINKER_FLAGS_STR "${FILTERED_LINKER_FLAGS}")
+separate_arguments(FILTERED_LINKER_FLAGS UNIX_COMMAND "${FILTERED_LINKER_FLAGS_STR}")
+
+# Linker options (TF-M manages linker script and specs)
 target_link_options(tfm_ns
     PRIVATE
-        $<$<LINK_LANGUAGE:C>:${RASC_CMAKE_EXE_LINKER_FLAGS}>
+        ${FILTERED_LINKER_FLAGS}
         -Wl,--gc-sections
         -Wl,-Map=${CMAKE_CURRENT_BINARY_DIR}/tfm_ns.map
 )

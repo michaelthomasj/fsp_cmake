@@ -21,7 +21,6 @@
 #include "psa/crypto.h"
 #include "tfm_ns_interface.h"
 #include "tfm_platform_api.h"
-#include "tfm_ioctl_api.h"
 #include "tfm_crypto_defs.h"
 #include <string.h>
 
