@@ -1,0 +1,49 @@
+{
+  "definedMacros": [
+    "_RA_CORE=CM33",
+    "_RA_ORDINAL=1",
+    "_RENESAS_RA_"
+  ],
+  "sourcePaths": [
+    "ra",
+    "ra_gen",
+    "src"
+  ],
+  "excludedFilePaths": [],
+  "includePaths": [
+    "ra/arm/CMSIS_6/CMSIS/Core/Include",
+    "ra/arm/mbedtls/include",
+    "ra/arm/mbedtls/library",
+    "ra/fsp/inc",
+    "ra/fsp/inc/api",
+    "ra/fsp/inc/instances",
+    "ra/fsp/src/r_sce",
+    "ra/fsp/src/r_sce/common",
+    "ra/fsp/src/r_sce/crypto_procedures/src/sce9/plainkey/primitive",
+    "ra/fsp/src/r_sce/crypto_procedures/src/sce9/plainkey/private/inc",
+    "ra/fsp/src/r_sce/crypto_procedures/src/sce9/plainkey/public/inc",
+    "ra/fsp/src/rm_mcuboot_port",
+    "ra/fsp/src/rm_psa_crypto/inc",
+    "ra/mcu-tools/MCUboot/boot/bootutil/include",
+    "ra/mcu-tools/MCUboot/boot/bootutil/src",
+    "ra_cfg/arm",
+    "ra_cfg/arm/mbedtls",
+    "ra_cfg/fsp_cfg",
+    "ra_cfg/fsp_cfg/bsp",
+    "ra_cfg/mcu-tools/include",
+    "ra_cfg/mcu-tools/include/mcuboot_config",
+    "ra_cfg/mcu-tools/include/sysflash",
+    "ra_gen",
+    "src"
+  ],
+  "libraryPaths": [],
+  "libraryNames": [],
+  "objectFiles": [],
+  "linkerScript": "script/fsp.ld",
+  "targetDeviceName": "R7FA6M4AF3CFB",
+  "entrySymbol": "Reset_Handler",
+  "isPreBuildContentGenEnabled": true,
+  "isPostBuildContentGenEnabled": true,
+  "isTargetDeviceSupportsTrustZone": true,
+  "buildOptionsMap": {}
+}
