@@ -695,6 +695,10 @@
       <configSetting altId="debug0.tdi.p110" configurationId="debug0.tdi"/>
       <configSetting altId="debug0.tdo.p109" configurationId="debug0.tdo"/>
       <configSetting altId="debug0.tms.p108" configurationId="debug0.tms"/>
+      <configSetting altId="p100.sci0.rxd" configurationId="p100"/>
+      <configSetting altId="p100.gpio_mode.gpio_mode_peripheral" configurationId="p100.gpio_mode"/>
+      <configSetting altId="p101.sci0.txd" configurationId="p101"/>
+      <configSetting altId="p101.gpio_mode.gpio_mode_peripheral" configurationId="p101.gpio_mode"/>
       <configSetting altId="p108.debug0.tms" configurationId="p108"/>
       <configSetting altId="p108.gpio_mode.gpio_mode_peripheral" configurationId="p108.gpio_mode"/>
       <configSetting altId="p109.debug0.tdo" configurationId="p109"/>
@@ -703,6 +707,9 @@
       <configSetting altId="p110.gpio_mode.gpio_mode_peripheral" configurationId="p110.gpio_mode"/>
       <configSetting altId="p300.debug0.tck" configurationId="p300"/>
       <configSetting altId="p300.gpio_mode.gpio_mode_peripheral" configurationId="p300.gpio_mode"/>
+      <configSetting altId="sci0.mode.asynchronous.free" configurationId="sci0.mode"/>
+      <configSetting altId="sci0.rxd.p100" configurationId="sci0.rxd"/>
+      <configSetting altId="sci0.txd.p101" configurationId="sci0.txd"/>
     </pincfg>
   </raPinConfiguration>
 </raConfiguration>
