@@ -39,8 +39,10 @@ else()
 endif()
 
 # Make target for opening the FSP Configuration in Smart Configurator
-add_custom_target(open_rasc_${PROJECT_NAME}
+# Use RASC_PROJECT_NAME to avoid spaces in target name when included from other projects
+string(REPLACE " " "_" RASC_TARGET_SAFE_NAME "${RASC_PROJECT_NAME}")
+add_custom_target(open_rasc_${RASC_TARGET_SAFE_NAME}
     COMMAND ${RASC_COMMAND}
-    WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
-    COMMENT "FSP Smart Configurator"
+    WORKING_DIRECTORY "${CMAKE_CURRENT_LIST_DIR}/.."
+    COMMENT "FSP Smart Configurator for ${RASC_PROJECT_NAME}"
 )

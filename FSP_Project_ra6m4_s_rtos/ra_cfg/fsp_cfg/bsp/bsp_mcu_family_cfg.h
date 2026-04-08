@@ -316,11 +316,17 @@ extern "C" {
              * Memory Layout (with BL2):
              *   Flash:
              *     BL2:        0x00000000 - 0x0001FFFF (128KB)
-             *     Secure:     0x00020000 - 0x0004FFFF (192KB) - includes NSC
+             *     Secure:     0x00020000 - 0x0004F3FF (189KB code) + NSC
+             *     NSC:        0x0004F400 - 0x0004F7FF (1KB)
              *     Non-Secure: 0x00050000 - 0x0006FFFF (128KB)
              *   SRAM:
              *     Secure:     0x20000000 - 0x2001FFFF (128KB)
              *     Non-Secure: 0x20020000 - 0x2003FFFF (128KB)
+             *
+             * Note: S_CODE_SIZE = FLASH_S_PARTITION_SIZE - BL2_HEADER_SIZE - BL2_TRAILER_SIZE
+             *                   = 0x30000 - 0x400 - 0x800 = 0x2F400
+             *       NSC starts at S_CODE_START + S_CODE_SIZE - CMSE_VENEER_REGION_SIZE
+             *                   = 0x20400 + 0x2F400 - 0x400 = 0x4F400
              */
 
             /* Flash partition addresses - must match flash_layout.h */
@@ -328,15 +334,15 @@ extern "C" {
     #define BSP_PARTITION_FLASH_CPU0_S_START    (0x00020000U)  /* Secure flash start (after BL2) */
 #endif
 #ifndef BSP_PARTITION_FLASH_CPU0_S_SIZE
-    #define BSP_PARTITION_FLASH_CPU0_S_SIZE     (0x0002FC00U)  /* Secure size minus NSC (192KB - 1KB) */
+    #define BSP_PARTITION_FLASH_CPU0_S_SIZE     (0x0002A000U)  /* Secure size: 0x4A020 - 0x20000 = 0x2A020, rounded down: 0x2EC00 - 0x400 = 0x2E800 (0x2F400 - 0x400 = 0x2F000) */
 #endif
 
             /* NSC (Non-Secure Callable) region - veneer functions */
 #ifndef BSP_PARTITION_FLASH_CPU0_C_START
-    #define BSP_PARTITION_FLASH_CPU0_C_START    (0x0004FC00U)  /* NSC at end of secure region */
+    #define BSP_PARTITION_FLASH_CPU0_C_START    (0x0004A000U)  /* NSC region (32-byte aligned below 0x4A020) */
 #endif
 #ifndef BSP_PARTITION_FLASH_CPU0_C_SIZE
-    #define BSP_PARTITION_FLASH_CPU0_C_SIZE     (0x00000400U)  /* 1KB for NSC veneers */
+    #define BSP_PARTITION_FLASH_CPU0_C_SIZE     (0x00006000U)  /* NSC from 0x4A000 to 0x50000 */
 #endif
 
             /* Non-secure flash region */
@@ -349,15 +355,15 @@ extern "C" {
     #define BSP_PARTITION_RAM_CPU0_S_START      (0x20000000U)  /* Secure RAM start */
 #endif
 #ifndef BSP_PARTITION_RAM_CPU0_S_SIZE
-    #define BSP_PARTITION_RAM_CPU0_S_SIZE       (0x0001FC00U)  /* 128KB - 1KB for NSC */
+    #define BSP_PARTITION_RAM_CPU0_S_SIZE       (0x00020000U)  /* 128KB secure RAM (no NSC RAM split needed) */
 #endif
 
-            /* NSC RAM region (not typically used, but required by FSP) */
+            /* NSC RAM region - TF-M doesn't use separate NSC RAM, set to 0 */
 #ifndef BSP_PARTITION_RAM_CPU0_C_START
-    #define BSP_PARTITION_RAM_CPU0_C_START      (0x2001FC00U)  /* NSC RAM at end of secure */
+    #define BSP_PARTITION_RAM_CPU0_C_START      (0x20020000U)  /* At NS boundary (unused) */
 #endif
 #ifndef BSP_PARTITION_RAM_CPU0_C_SIZE
-    #define BSP_PARTITION_RAM_CPU0_C_SIZE       (0x00000400U)  /* 1KB for NSC RAM */
+    #define BSP_PARTITION_RAM_CPU0_C_SIZE       (0x00000000U)  /* 0 - not used by TF-M */
 #endif
 
             /* Non-secure RAM region */
