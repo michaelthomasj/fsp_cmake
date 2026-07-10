@@ -91,6 +91,35 @@ cmake --build build_ra6m4_full
   (drop `FSP_BL2_APP_DIR`, keep `FSP_NS_APP_DIR`). This validates the December NS/region fixes, which
   is where the November failures actually were.
 
+## Regression suite: how it actually works in TF-M v2.2 (investigated 2026-07-10)
+
+- **`TEST_S` / `TEST_NS` are NOT valid flags here.** Passing them to the main build yields
+  `Manually-specified variables were not used by the project` and they are silently ignored — the
+  build just produces a normal non-test image. **This is almost certainly why the November test
+  attempt was malformed** (`build_tfm_api_test.log` multiple-definition cascade).
+- TF-M v2.2 uses a **split SPE/NSPE build**:
+  1. **SPE (secure):** configure + `cmake --build <spe> -- install`. Installs an `api_ns/` export tree
+     containing `spe-CMakeLists.cmake`, `toolchain_ns_GNUARM.cmake`, platform NS sources, and the
+     secure interface. (The RA6M4 port already installs its NS toolchain + platform NS bits — good.)
+  2. **NSPE (tests):** configure the **fetched `tf-m-tests`** NS app against the installed SPE via
+     `-DCONFIG_SPE_PATH=<spe>/api_ns`, with the regression flags (standard names
+     `TFM_S_REG_TEST=ON` / `TFM_NS_REG_TEST=ON` — confirm exact names from the fetched
+     `lib/ext/tf-m-tests` once downloaded). Then build → produces the NS regression `tfm_ns`.
+- **Port gap:** the port's `CMakeLists.txt` NS logic is only
+  `if(FSP_NS_APP_DIR) <FSP FreeRTOS app> else() add_subdirectory(ns_app)` — there is **no branch for
+  the standard tf-m-tests NS app**, and the `ns_app` fallback needs `lib/ext/freertos` (absent). So
+  the standard NSPE regression app has **never been built** against this port. The FSP FreeRTOS app
+  (with its bespoke smoke tests) was the only NS path exercised.
+
+### Two viable routes to run the official suite (decide before doing)
+- **Route A — proper split build (recommended, more work):** do the SPE install, fetch tf-m-tests,
+  build the NSPE regression app against the installed SPE. Requires confirming the RA6M4 NS platform
+  (startup, linker script, `platform_ns`, syscalls) links cleanly against the standard tf-m-tests NS
+  app — untested territory.
+- **Route B — extend the FSP smoke test (faster, less "official"):** add the tf-m-tests NS regression
+  suite sources to the existing FSP FreeRTOS `tfm_ns` app (the smoke test already calls PSA APIs).
+  Keeps the working NS build; less canonical but exercises the same test content.
+
 ## TODO (open)
 
 - [ ] **Fix the FSP BL2 integration cmake** to match the actual RASC 6.1.0 file layout (mbedTLS
@@ -109,8 +138,9 @@ cmake --build build_ra6m4_full
 - [ ] Flash BL2 → tfm_s → tfm_ns to EK-RA6M4 (J-Link / Renesas Flash Programmer).
 - [ ] Confirm boot over UART0 / SCI0 (115200 8N1) — expect MCUboot + TF-M banner.
 - [ ] Get the bespoke NS smoke test passing (attestation / ITS / crypto random / SHA-256 / HUK).
-- [ ] Wire in the **official TF-M regression suite** (`TEST_S` / `TEST_NS`) — never configured; the
-      Nov attempt hit multiple-definition link errors.
+- [ ] Wire in the **official TF-M regression suite** — see "Regression suite" section above. NOT a
+      flag flip: needs the split SPE-install + NSPE(tf-m-tests) build (Route A) or extending the FSP
+      NS app (Route B). `TEST_S`/`TEST_NS` are ignored on the main build (v2.2 model).
 - [ ] Fix bad hash test vector: `FSP_Project_ra6m4_ns_rtos/src/tfm_service_tests.c` (and the TF-M
       `ns_app/src/tfm_test_thread.c:127`) has `0xcb4` — an out-of-range `uint8_t` literal.
 
