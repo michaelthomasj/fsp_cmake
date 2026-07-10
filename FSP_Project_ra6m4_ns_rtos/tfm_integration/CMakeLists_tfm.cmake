@@ -70,6 +70,9 @@ set(FSP_App_Source_Files
     ${FSP_NS_PROJECT_DIR}/src/hal_warmstart.c
     ${FSP_NS_PROJECT_DIR}/src/new_thread0_entry.c
     ${FSP_NS_PROJECT_DIR}/src/tfm_service_tests.c
+    # SEGGER RTT for non-secure log output (proves S->NS jump over J-Link)
+    ${FSP_NS_PROJECT_DIR}/src/SEGGER_RTT/SEGGER_RTT.c
+    ${FSP_NS_PROJECT_DIR}/src/SEGGER_RTT/SEGGER_RTT_printf.c
 )
 
 # RASC-generated files
@@ -127,6 +130,7 @@ target_compile_options(tfm_ns
 target_include_directories(tfm_ns
     PRIVATE
         ${FSP_NS_PROJECT_DIR}/src
+        ${FSP_NS_PROJECT_DIR}/src/SEGGER_RTT  # SEGGER RTT headers
         ${FSP_NS_PROJECT_DIR}/ra_gen  # RASC-generated headers
         ${FSP_NS_PROJECT_DIR}  # For bsp_linker_info.h
         ${CMAKE_BINARY_DIR}/generated/interface/include

@@ -70,6 +70,38 @@ test, use the instrumented build below.
      (the S→NS transition). **Positive NS-side proof still TODO** — the FSP NS app currently produces
      no output/LED (see open TODO).
 
+## ⛔ 2026-07-10 KEY BLOCKER: NS linker regions don't match TF-M's NS partition
+
+Found while wiring the NS RTT banner. The FSP NS app (`FSP_Project_ra6m4_ns_rtos/memory_regions.ld`)
+is linked for a **standalone** layout that does NOT match where TF-M puts the non-secure image:
+
+| | NS FSP app linked for | TF-M expects (region_defs.h / config) |
+|---|---|---|
+| RAM  | `RAM_START=0x20002000`, len `0x3e000` (**inside SECURE RAM** 0x20000000–0x2001FFFF) | `NS_RAM_ALIAS_BASE=0x20020000`, `0x20000` |
+| Flash| `FLASH_START=0x00008000`, len `0xf8000` | NS partition `0x40000` (config.cmake) |
+
+Consequences on hardware:
+- NS is linked to run from **secure RAM** → SAU/SecureFault the instant TF-M jumps to NS.
+- NS absolute addresses point at `0x8xxx` flash while the signed image is placed at the NS slot
+  (`0x40000`/`0x50000`) → wrong vector table / reset handler.
+- **Net: the secure→non-secure jump will fault.** BL2→secure is unaffected (TF-M links secure correctly).
+
+**Also: the NS flash offset is itself inconsistent** — `config.cmake` says NS `0x40000`, but
+`flash_layout.h` computes `FLASH_AREA_1` (NS primary) at `0x50000` (S primary is 0x30000, not 0x20000).
+The memory map has **three disagreeing sources of truth** (config.cmake, flash_layout.h, FSP
+memory_regions.ld) that must be reconciled before NS can boot.
+
+### Fix required (next task)
+1. Pick ONE authoritative NS flash/RAM layout and make config.cmake, flash_layout.h, region_defs.h,
+   and the FSP NS `memory_regions.ld`/`fsp.ld` all agree.
+2. Re-link the FSP NS app for NS RAM `0x20020000` (size 0x20000) and the NS code slot
+   (flash `0x40000 + BL2_HEADER 0x400`, size ≈ `0x1F400`). Likely regenerate via RASC with the
+   correct linker settings, or hand-edit `memory_regions.ld`.
+3. Re-verify the signed NS image offset used for flashing matches the reconciled NS partition.
+
+The NS RTT banner (`new_thread0_entry.c`) is in place and correct — it just needs the NS image to
+actually run, which the above unblocks.
+
 ## Big picture: where things stand
 
 - The port is **structurally complete and was build-worked through Dec 2025**, but the
@@ -174,9 +206,13 @@ cmake --build build_ra6m4_full
 - [ ] Verify output image sizes fit the flash layout (S primary 128KB, NS primary 128KB).
 - [ ] **Flash `build_ra6m4_boot` + watch RTT** — confirm BL2 boots and jumps into TF-M secure
       (see "observable boot image" section). IMAGES READY 2026-07-10.
-- [ ] **Add positive NS-side signal** so the S→NS jump is provable: either an RTT print from the FSP
-      NS thread (`new_thread0_entry`) or an LED toggle. Currently the NS app does nothing observable.
-      Optionally also call `run_all_tfm_tests()` (the smoke tests are built but never invoked).
+- [x] **Add positive NS-side signal** — DONE: `new_thread0_entry.c` now inits SEGGER RTT and prints
+      `[NS] non-secure world running (TF-M S->NS jump OK)` + heartbeat. (Won't appear until the NS
+      linker blocker below is fixed.)
+- [ ] **⛔ FIX NS linker regions** (see "KEY BLOCKER" above) — NS is linked for secure RAM
+      (0x20002000) and flash 0x8000; must be NS RAM 0x20020000 + NS flash slot. Blocks the S→NS jump.
+- [ ] **Reconcile the memory map** across config.cmake / flash_layout.h / region_defs.h / FSP
+      memory_regions.ld (NS flash 0x40000 vs 0x50000; S slot 0x20000 vs 0x30000).
 - [ ] Get the bespoke NS smoke test passing (attestation / ITS / crypto random / SHA-256 / HUK).
 - [ ] Wire in the **official TF-M regression suite** — see "Regression suite" section above. NOT a
       flag flip: needs the split SPE-install + NSPE(tf-m-tests) build (Route A) or extending the FSP
