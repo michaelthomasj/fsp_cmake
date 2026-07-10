@@ -1,0 +1,155 @@
+# TF-M + FSP CMake Port for RA6M4 — Status & Running TODO
+
+**Purpose:** Port Trusted Firmware-M to the Renesas RA6M4 (R7FA6M4AF, Cortex-M33) using
+RASC-generated FSP driver sources, wired into TF-M as a platform under
+`platform/ext/target/renesas/ra6m4/`. Drivers are exposed as modular CMake libraries in
+this repo (`fsp_cmake`) and consumed by TF-M via `FSP_*_APP_DIR` variables.
+
+**Repos in scope (only these two):**
+- `fsp_cmake` — RASC-generated FSP projects + modular CMake modules.
+- `trusted-firmware-m` — branch `FSPRA-5483_FSP_TFM_Cmake_framework`, TF-M base `TF-Mv2.2.0-26`.
+
+**Last substantive work:** December 23, 2025 (attestation HAL, cmse flag, BL2 header offsets).
+**This refresh:** July 10, 2026.
+
+---
+
+## ✅ 2026-07-10 RESULT: core build produces all three images
+
+`build_ra6m4_core` (default MCUboot BL2 + external FSP NS) **builds clean and signs all three images**
+after one one-line fix (see below). This confirms the December secure+NS work is sound — the November
+NS/region and multiple-definition failures are **gone**.
+
+| Image | Flash (text+data) | BSS/RAM | Signed image | Slot (flash_layout.h) |
+|---|---|---|---|---|
+| bl2   | ~35 KB  | 19 KB | bl2.bin 35 KB          | BL2 128 KB (0x20000) |
+| tfm_s | ~127 KB | 48 KB | tfm_s_signed.bin 192 KB | S primary 192 KB (0x30000) |
+| tfm_ns| ~9 KB   | 4 KB  | tfm_ns_signed.bin 128 KB| NS primary 128 KB (0x20000) |
+
+Flash map fills exactly 1 MB: BL2 128 + S 192 + NS 128 + S-sec 192 + NS-sec 128 + scratch 256.
+Output dir: `trusted-firmware-m/build_ra6m4_core/bin/`.
+
+**The one fix applied:** `attest_hal.c` (December) `#include "tfm_strnlen.h"` had no include path (the port
+sets `PLATFORM_DEFAULT_ATTEST_HAL OFF`, so it doesn't inherit `tfm_sprt`'s includes like the default HAL does).
+Added `secure_fw/partitions/lib/runtime/include` to `platform_s` includes in the port's `CMakeLists.txt`.
+
+## Big picture: where things stand
+
+- The port is **structurally complete and was build-worked through Dec 2025**, but the
+  **last captured build logs (Nov 19, 2025) end in failures** that the December commits were
+  meant to fix. After those December fixes, **no clean end-to-end build was ever captured**,
+  and **no hardware testing was ever done**.
+- Goal of this effort: (1) reproduce a clean full build producing all three images
+  (bl2 / tfm_s / tfm_ns), (2) verify boot on EK-RA6M4 over UART, (3) run the TF-M test suite.
+
+## Key facts / gotchas discovered
+
+- **Secure side uses the embedded `fsp/` tree** inside the TF-M port dir — it does NOT need
+  `FSP_S_APP_DIR`. Only **BL2** (`FSP_BL2_APP_DIR`) and **NS** (`FSP_NS_APP_DIR`) consume
+  external RASC projects (they have `tfm_integration/CMakeLists_tfm.cmake`; the `_s`/`_s_rtos`
+  projects do not).
+- The built-in fallback `ns_app/` needs FreeRTOS at `lib/ext/freertos`, which is **not checked
+  out** (submodule absent). So the NS side must use the **external** `FSP_Project_ra6m4_ns_rtos`.
+- `fsp_cmake` working tree had **~900 uncommitted deletions** of RASC vendor sources (FreeRTOS,
+  BSP, MCUboot, mbedTLS). These were **restored** from git on 2026-07-10 — needed for the
+  external BL2/NS builds. Do not re-delete them without gitignoring/regenerating.
+- Config pins: software crypto only (`CRYPTO_HW_ACCELERATOR OFF`), BL2 = Renesas MCUboot fork
+  `2.1.0+renesas.3` (`MCUBOOT_IMAGE_NUMBER=2`), asymmetric attestation (256-bit), PS encrypted (GCM).
+
+## Full build command (December-intended configuration)
+
+```bash
+export ARM_TOOLCHAIN_PATH="C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/13.2 Rel1/bin"
+cd C:/Users/Michael/Documents/GitHub/trusted-firmware-m
+cmake -S . -B build_ra6m4_full \
+  -DTFM_PLATFORM=renesas/ra6m4 \
+  -DTFM_TOOLCHAIN_FILE=toolchain_GNUARM.cmake \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DBL2=ON \
+  -DFSP_BL2_APP_DIR="C:/Users/Michael/Documents/GitHub/fsp_cmake/FSP_Project_ra6m4_bl2" \
+  -DFSP_NS_APP_DIR="C:/Users/Michael/Documents/GitHub/fsp_cmake/FSP_Project_ra6m4_ns_rtos" \
+  -G Ninja
+cmake --build build_ra6m4_full
+```
+
+---
+
+## Findings from the 2026-07-10 build attempt
+
+- **External FSP BL2 integration is broken at configure time.**
+  `FSP_Project_ra6m4_bl2/tfm_integration/CMakeLists_tfm.cmake` references files that do not exist
+  in the RASC project (confirmed absent on disk *and* in git — never committed):
+  - `ra/arm/mbedtls/library/hash_info.c` — the project ships a **newer mbedTLS** (~141 files,
+    includes `psa_crypto_mlkem.c` etc.) where `hash_info.c` was folded into `md.c`. The integration
+    script was written against an older mbedTLS 3.x layout.
+  - `ra/fsp/src/rm_mcuboot_port/flash_map_backend/flash_map_backend.c` — only `flash_map_backend.h`
+    exists; the backend `.c` logic appears to live in `ra/fsp/src/rm_mcuboot_port/flash_map.c`.
+  - Result: `fsp_mcuboot_port` and `fsp_mbedtls_bl2` get "No SOURCES given to target".
+  - **This is why no clean external-BL2 build was ever produced.** Fixing it means reconciling the
+    BL2 integration cmake with the actual RASC 6.1.0 mbedTLS + mcuboot_port file layout (separate task).
+- **Workaround in progress:** build the core (secure + NS) with TF-M's **default downloaded MCUboot**
+  (drop `FSP_BL2_APP_DIR`, keep `FSP_NS_APP_DIR`). This validates the December NS/region fixes, which
+  is where the November failures actually were.
+
+## TODO (open)
+
+- [ ] **Fix the FSP BL2 integration cmake** to match the actual RASC 6.1.0 file layout (mbedTLS
+      `hash_info.c` → drop/use `md.c`; `flash_map_backend.c` → `flash_map.c`). Then re-attempt the
+      full external-BL2 build.
+- [x] **Reproduce clean build (core: default BL2 + external NS)** — DONE 2026-07-10. All three images
+      produced and signed. Nov failures gone.
+- [ ] Reconcile `config.cmake` (`FLASH_S_PARTITION_SIZE 0x20000`) vs `flash_layout.h`
+      (`FLASH_AREA_0_SIZE 0x30000`) — same-named macro, different values. Build works (flash_layout.h wins
+      for MCUboot), but the stale config.cmake value/comment is confusing. Not a blocker.
+- [ ] Confirm Dec fixes resolved the Nov failures:
+      - [ ] NS linker: `undefined symbol NS_HEAP_SIZE`, `invalid origin/length for FLASH/RAM`.
+      - [ ] `multiple definition` cascade / `cannot use executable 'bin/tfm_s.axf' as input` (test build).
+      - [ ] `FLASH_DEVICE_ID` redefinition warning (flash_layout.h vs mcuboot).
+- [ ] Verify output image sizes fit the flash layout (S primary 128KB, NS primary 128KB).
+- [ ] Flash BL2 → tfm_s → tfm_ns to EK-RA6M4 (J-Link / Renesas Flash Programmer).
+- [ ] Confirm boot over UART0 / SCI0 (115200 8N1) — expect MCUboot + TF-M banner.
+- [ ] Get the bespoke NS smoke test passing (attestation / ITS / crypto random / SHA-256 / HUK).
+- [ ] Wire in the **official TF-M regression suite** (`TEST_S` / `TEST_NS`) — never configured; the
+      Nov attempt hit multiple-definition link errors.
+- [ ] Fix bad hash test vector: `FSP_Project_ra6m4_ns_rtos/src/tfm_service_tests.c` (and the TF-M
+      `ns_app/src/tfm_test_thread.c:127`) has `0xcb4` — an out-of-range `uint8_t` literal.
+
+## TODO (cleanup / hardening — lower priority)
+
+- [ ] Remove committed backup/scratch files in the TF-M port: `CMakeLists.txt.bak`,
+      `CMakeLists.txt.backup`, `flash_layout.h.bak`, `cmsis_drivers/Driver_Flash_original.c`,
+      `flash_temp.txt`, duplicate `README_FULL.md`.
+- [ ] Decide on the dead `tfm_hal_isolation.c` (v7M-style, superseded by common `tfm_hal_isolation_v8m.c`).
+- [ ] Replace stubs before any production use: `tfm_platform_hal_ioctl` (returns NOT_SUPPORTED),
+      `tfm_attest_hal_get_platform_config` (dummy `0xDEADBEEF`), flash-based NV counters, dummy provisioning.
+- [ ] Consider enabling RA6M4 HW crypto (SCE9/RSIP) instead of software mbedTLS.
+- [ ] Add a `.gitignore` in `fsp_cmake` (build dirs, e.g. `FSP_Project_ra6m4_s_rtos/build/`).
+- [ ] Refresh the Nov-dated status docs (`TFM_INTEGRATION_COMPLETE.md`, `BUILD_TEST_RESULTS.md`) or
+      mark them superseded by this file.
+
+## DONE
+
+- [x] Reconstructed project state from docs + git history (Nov docs are stale; real work ran to Dec 23, 2025).
+- [x] Confirmed toolchain present: Arm GNU 13.2 Rel1 (`arm-none-eabi-gcc`).
+- [x] Confirmed TF-M base = `TF-Mv2.2.0-26-g292f82c23`, branch `FSPRA-5483_FSP_TFM_Cmake_framework`.
+- [x] Restored ~900 uncommitted-deleted FSP vendor sources in `fsp_cmake` (needed for BL2/NS builds).
+- [x] Mapped the build wiring: secure = embedded fsp/; BL2 + NS = external via `FSP_*_APP_DIR`.
+- [x] Started clean full-build configure into `build_ra6m4_full` (2026-07-10) — found external BL2 broken.
+- [x] Built core (default BL2 + external NS) end-to-end: bl2 + tfm_s + tfm_ns all produced & signed (2026-07-10).
+- [x] Applied fix: added runtime include dir for `attest_hal.c`'s `tfm_strnlen.h` (TF-M `CMakeLists.txt`).
+
+## Reference: file map
+
+| Thing | Path |
+|---|---|
+| TF-M platform port | `trusted-firmware-m/platform/ext/target/renesas/ra6m4/` |
+| Platform config | `.../ra6m4/config.cmake`, `.../ra6m4/CMakeLists.txt` |
+| Custom attest HAL | `.../ra6m4/attest_hal.c` |
+| Modular FSP modules (secure) | `.../ra6m4/cmake/modules/fsp_{bsp,uart,flash}.cmake` |
+| BL2 RASC project + integration | `fsp_cmake/FSP_Project_ra6m4_bl2/tfm_integration/CMakeLists_tfm.cmake` |
+| NS RASC project + integration | `fsp_cmake/FSP_Project_ra6m4_ns_rtos/tfm_integration/CMakeLists_tfm.cmake` |
+| NS smoke tests | `fsp_cmake/FSP_Project_ra6m4_ns_rtos/src/tfm_service_tests.c` |
+| FSP / RASC version | FSP 6.1.0 / RASC `sc_v2025-07` |
+
+---
+_Update this file as items move between TODO and DONE._
