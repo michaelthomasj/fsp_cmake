@@ -33,6 +33,43 @@ Output dir: `trusted-firmware-m/build_ra6m4_core/bin/`.
 sets `PLATFORM_DEFAULT_ATTEST_HAL OFF`, so it doesn't inherit `tfm_sprt`'s includes like the default HAL does).
 Added `secure_fw/partitions/lib/runtime/include` to `platform_s` includes in the port's `CMakeLists.txt`.
 
+## 2026-07-10 (cont.): observable boot image over SEGGER RTT
+
+The `build_ra6m4_core` images are **not observable** (secure/SPM logging compiled to SILENCE in
+Release; BL2 no logging; the FSP NS app just spins in `while(1) vTaskDelay(1)` and its smoke tests
+are dead code). A silently-booting board would look identical to a hung one. So for the basic boot
+test, use the instrumented build below.
+
+**`build_ra6m4_boot`** = same core build (default MCUboot BL2 + external FSP NS) but with:
+- `-DCMAKE_BUILD_TYPE=Debug -DMCUBOOT_LOG_LEVEL=INFO -DTFM_SPM_LOG_LEVEL=..._INFO
+  -DTFM_PARTITION_LOG_LEVEL=..._INFO` → BL2 + TF-M secure now emit boot logs.
+- **stdout routed to SEGGER RTT** (no UART wiring, no S/NS peripheral contention).
+
+### RTT stdout backend (clean, switchable — does NOT touch the FSP UART driver)
+- New files in the port: `rtt/rtt_stdout.c` (implements TF-M's `stdio_*` backend over RTT),
+  `rtt/SEGGER_RTT.c` + `SEGGER_RTT.h` + `SEGGER_RTT_Conf.h` (from the ra8d2_gcm workspace, SEGGER v7.x).
+- One switch: **`RA6M4_STDOUT_RTT`** (default ON) in `config.cmake`. ON → RTT backend, common
+  `uart_stdout.c` disabled (`PLATFORM_DEFAULT_UART_STDOUT` forced OFF). OFF → back to FSP SCI UART
+  via the untouched `cmsis_drivers/Driver_USART.c`. Flipping the flag is the entire switch.
+- Verified in the binaries: `_SEGGER_RTT` CB in secure image @ `0x2000baf8`, in BL2 @ `0x20002ed0`;
+  exactly one `stdio_output_string` (RTT one; UART backend not linked). Build clean.
+- Note: BL2 and the secure image are separate binaries with **separate RTT control blocks** at
+  different addresses. J-Link RTT Viewer auto-search finds the currently-running image's CB; seeing
+  the secure "Booting TF-M" over RTT already proves BL2 validated the image and jumped to secure.
+
+### How to flash + watch (basic boot bring-up)
+1. Flash `build_ra6m4_boot/bin/`: `bl2.hex`, then `tfm_s_signed.bin` @ `0x20000`, `tfm_ns_signed.bin`
+   @ `0x40000` (J-Link or Renesas Flash Programmer, device `R7FA6M4AF`).
+2. J-Link RTT Viewer / `JLinkRTTClient`, device `R7FA6M4AF`, SWD. Auto-detect RTT (or set CB address
+   to the secure CB above).
+3. Reset. Expected over RTT:
+   - BL2: `[INF] Starting bootloader` → `[INF] Bootloader chainload address offset: 0x20000` →
+     `[INF] Jumping to the first image slot`
+   - Secure: `Booting TF-M v2.2.0+...` → `[Sec Thread] Secure image initializing!`
+   - Reaching the secure banner = BL2 works + jumped into the app. TF-M then starts the NS agent
+     (the S→NS transition). **Positive NS-side proof still TODO** — the FSP NS app currently produces
+     no output/LED (see open TODO).
+
 ## Big picture: where things stand
 
 - The port is **structurally complete and was build-worked through Dec 2025**, but the
@@ -135,8 +172,11 @@ cmake --build build_ra6m4_full
       - [ ] `multiple definition` cascade / `cannot use executable 'bin/tfm_s.axf' as input` (test build).
       - [ ] `FLASH_DEVICE_ID` redefinition warning (flash_layout.h vs mcuboot).
 - [ ] Verify output image sizes fit the flash layout (S primary 128KB, NS primary 128KB).
-- [ ] Flash BL2 → tfm_s → tfm_ns to EK-RA6M4 (J-Link / Renesas Flash Programmer).
-- [ ] Confirm boot over UART0 / SCI0 (115200 8N1) — expect MCUboot + TF-M banner.
+- [ ] **Flash `build_ra6m4_boot` + watch RTT** — confirm BL2 boots and jumps into TF-M secure
+      (see "observable boot image" section). IMAGES READY 2026-07-10.
+- [ ] **Add positive NS-side signal** so the S→NS jump is provable: either an RTT print from the FSP
+      NS thread (`new_thread0_entry`) or an LED toggle. Currently the NS app does nothing observable.
+      Optionally also call `run_all_tfm_tests()` (the smoke tests are built but never invoked).
 - [ ] Get the bespoke NS smoke test passing (attestation / ITS / crypto random / SHA-256 / HUK).
 - [ ] Wire in the **official TF-M regression suite** — see "Regression suite" section above. NOT a
       flag flip: needs the split SPE-install + NSPE(tf-m-tests) build (Route A) or extending the FSP
