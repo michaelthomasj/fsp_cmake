@@ -301,8 +301,15 @@ Verify the SAU/veneer attribution on hardware; do NOT program an IDAU NSC region
 
 ## TODO (open)
 - [ ] **Program TrustZone/IDAU boundaries** (RFP): code-flash S/NS @ `0x50000`, SRAM S/NS @ `0x20020000`,
-      data flash all-secure. Resolve the NSC veneer discrepancy (built @ `0x20C00` vs region_defs `0x4F400`)
-      and confirm SAU marks the veneer region NSC.
+      data flash all-secure. **NSC/veneer window = `0x20C00`–`0x20C40`** (linker `Image$$ER_VENEER$$Base`),
+      NOT `region_defs.h` `CMSE_VENEER_REGION_START` (`0x4F400`).
+- [ ] **Clean up the stale NSC macro** — `region_defs.h` `CMSE_VENEER_REGION_START` (=0x4F400, end-of-secure
+      model) is disconnected from the actual linker placement (TF-M's common `tfm_isolation_s.ld` places
+      `.gnu.sgstubs` at the START of secure code → `0x20C00`, because `TFM_LINKER_VENEERS_LOCATION_END` is
+      not defined). It only feeds `target_cfg.c`'s `nsc_cfg`, which has NO consumer (`sau_and_idau_cfg()`
+      is empty; the correct value is the linker symbol `Image$$ER_VENEER$$Base`, used by the common
+      `tfm_hal_platform_v8m.c`). Fix: point these at the linker symbol or delete the dead `nsc_cfg` /
+      `CMSE_VENEER_REGION_*` to prevent the wrong value being used for IDAU/SAU NSC programming.
 
 - [x] **Fix RA6M4 region-1 (32 KB) flash erase geometry** — DONE 2026-07-13 (commit `f9c13269a`).
       Fixed in TF-M's own `Driver_Flash.c` + `flash_layout.h` (32KB sector/block), NOT by grafting FSP's
