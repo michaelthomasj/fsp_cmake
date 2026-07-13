@@ -139,7 +139,7 @@ incompatibility: the RASC BL2 project is configured for **single-image** MCUboot
 linker-symbol conflicts and would not boot even if linked. So the graft was reverted.
 
 The actual bug — RA6M4 region-1 32KB erase geometry — was fixed directly in TF-M's flash driver
-(commit `f9c13269a`): `FLASH_AREA_IMAGE_SECTOR_SIZE = 0x8000` (32KB) and `Driver_Flash.c`
+(commit `3ada2151c`): `FLASH_AREA_IMAGE_SECTOR_SIZE = 0x8000` (32KB) and `Driver_Flash.c`
 `FLASH_HP_BLOCK_SIZE` → `REGION1` (32KB). This keeps TF-M's correct dual-image flash_map/area-IDs and
 builds clean via the **default BL2 path** (`build_ra6m4_boot`, TF-M MCUboot + fixed Driver_Flash.c).
 All three signed images still produced (bl2, tfm_s 192KB @0x20000, tfm_ns 128KB @0x50000).
@@ -373,7 +373,7 @@ Verify the SAU/veneer attribution on hardware; do NOT program an IDAU NSC region
       `tfm_hal_platform_v8m.c`). Fix: point these at the linker symbol or delete the dead `nsc_cfg` /
       `CMSE_VENEER_REGION_*` to prevent the wrong value being used for IDAU/SAU NSC programming.
 
-- [x] **Fix RA6M4 region-1 (32 KB) flash erase geometry** — DONE 2026-07-13 (commit `f9c13269a`).
+- [x] **Fix RA6M4 region-1 (32 KB) flash erase geometry** — DONE 2026-07-13 (commit `3ada2151c`).
       Fixed in TF-M's own `Driver_Flash.c` + `flash_layout.h` (32KB sector/block), NOT by grafting FSP's
       flash_map.c (which is single-image and incompatible with TF-M's dual-image MCUboot). Default BL2
       path builds all 3 images clean. Still needs hardware verification of erase/swap.
