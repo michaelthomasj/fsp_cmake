@@ -117,6 +117,69 @@ Derived (region_defs.h): `BL2_HEADER_SIZE`=0x400, `BL2_TRAILER_SIZE`=0x800.
    FSP project's linker/BSP config accordingly) or re-apply the edit.
 3. Watch: NS FreeRTOS heap (`FreeRTOSConfig.h` `configTOTAL_HEAP_SIZE`) must fit the 128K NS RAM.
 
+## 2026-07-13: BL2 must use the RASC MCUboot port (flash geometry)
+
+The current BL2 uses TF-M's downloaded Renesas MCUboot fork + the generic CMSIS `Driver_Flash.c`
+path (MCUboot → `ARM_DRIVER_FLASH` → `R_FLASH_HP`). **That path has the wrong RA6M4 flash geometry
+and would fail on hardware:**
+- RA6M4 HP code flash: **region 0** `0x0–0xFFFF` = 8 KB blocks; **region 1** `0x10000`+ = **32 KB blocks**.
+- S primary (`0x20000`) and NS primary (`0x50000`) are both in **region 1 → 32 KB erase blocks**.
+- But `Driver_Flash.c` assumes 8 KB (`sector_size = FLASH_AREA_IMAGE_SECTOR_SIZE = 0x2000`, block size
+  from `REGION0_BLOCK_SIZE`, and it errors if page size != 0x2000). MCUboot erase/swap of the region-1
+  slots would fail.
+- `rm_mcuboot_port/flash_map.c` handles this natively: `..._INTERNAL_FLASH_BLOCK_SIZE (0x8000)` / "erase
+  sector size to 32K". This is why the RASC port + the fork's "flash block alignment" changes go together.
+
+**RESOLUTION (2026-07-13): fixed the geometry in TF-M's OWN flash path — did NOT graft FSP's flash_map.c.**
+Attempting to graft the RASC `rm_mcuboot_port/flash_map.c` into TF-M's bootutil revealed a fundamental
+incompatibility: the RASC BL2 project is configured for **single-image** MCUboot (`bsp_linker_info.h`:
+`MCUBOOT_IMAGE_NUMBER 1`, FSP area IDs `FLASH_AREA_0P/0S/S_ID`), but TF-M here is **dual-image**
+(`MCUBOOT_IMAGE_NUMBER=2`, separate S+NS). FSP's flash_map.c carries FSP's whole flash identity
+(layout/area-IDs/config via `bsp_linker_info.h`), which cascaded into config, `flash_device_base`, and
+linker-symbol conflicts and would not boot even if linked. So the graft was reverted.
+
+The actual bug — RA6M4 region-1 32KB erase geometry — was fixed directly in TF-M's flash driver
+(commit `f9c13269a`): `FLASH_AREA_IMAGE_SECTOR_SIZE = 0x8000` (32KB) and `Driver_Flash.c`
+`FLASH_HP_BLOCK_SIZE` → `REGION1` (32KB). This keeps TF-M's correct dual-image flash_map/area-IDs and
+builds clean via the **default BL2 path** (`build_ra6m4_boot`, TF-M MCUboot + fixed Driver_Flash.c).
+All three signed images still produced (bl2, tfm_s 192KB @0x20000, tfm_ns 128KB @0x50000).
+
+Deferred: the external FSP BL2 path (`FSP_BL2_APP_DIR`) — to actually use the RASC MCUboot port would
+require reconfiguring the RASC BL2 project to dual-image in RASC and regenerating. The staged work
+(glob-refactored `tfm_integration/CMakeLists_tfm.cmake`, `mbedtls_user_config.h`) remains for that future
+effort. NOTE: the earlier BL2 integration was also unfinished scaffolding — `FSP_BL2_LIBRARIES` linked
+nowhere; hand-typed file lists referenced files absent in FSP 6.1.0 (`hash_info.c`, `flash_map_backend.c`).
+
+**Design rule (per user):** do NOT modify RASC output (GeneratedSrc.cmake globs stay as-is). The TF-M BL2
+CMakeLists must SELECT the needed files from the RASC-generated tree via directory globs, organized into
+the module separation TF-M requires — excluding files TF-M provides itself (e.g. `ra_gen/main.c`).
+
+### Finalized BL2 integration decisions (2026-07-13)
+- **MCUboot bootutil:** use the RASC copy in-place (`FSP_BL2_APP_DIR/ra/mcu-tools/MCUboot`) via
+  `MCUBOOT_PATH` — do NOT download (identical to the RASC one).
+- **Flash abstraction:** RASC `rm_mcuboot_port/flash_map.c` (correct 32 KB region-1 geometry) + `rm_mcuboot_port.c`.
+  Disable TF-M's CMSIS `Driver_Flash` flash-map path.
+- **Crypto:** software mbedTLS. `MCUBOOT_USE_MBED_TLS` + `MBEDTLS_USER_CONFIG_FILE =
+  tfm_integration/mbedtls_user_config.h` which `#undef`s the 17 SCE9 crypto ALT macros. **KEEP
+  `MBEDTLS_ENTROPY_HARDWARE_ALT`** — mbedTLS needs it to pull entropy from the RA TRNG.
+- **Signing:** keep TF-M's default signing flow (it already calls `${MCUBOOT_PATH}/scripts/imgtool.py`).
+  Because `MCUBOOT_PATH` points at the RASC MCUboot, this **automatically uses RASC's `imgtool.py`** — no
+  changes needed. (`rm_mcuboot_port_sign.py` is only for standalone RASC MCUboot projects; not used for TF-M.)
+- **bootutil build glue:** RASC strips TF-M's `boot/bootutil/CMakeLists.txt` (its MCUboot is built by
+  RASC's own CMake). TF-M's `add_subdirectory(${MCUBOOT_PATH}/boot/bootutil)` needs it, and the bootutil
+  `src/` set is identical, so the 35-line generic ARM/TF-M `bootutil/CMakeLists.txt` was copied into the
+  RASC MCUboot tree (a build file, not RASC-generated source). Re-copy if RASC regeneration removes it.
+- **NV counters + image versioning + boot_hal:** keep TF-M's (`bl2/src/security_cnt.c`).
+- **Sources:** directory-glob from the RASC tree per module; exclude TF-M-provided files (`ra_gen/main.c`).
+
+### Two integration points to handle during the switch
+1. **MCUboot NV (rollback) counters:** TF-M's BL2 provides the MCUboot non-volatile security-counter
+   implementation; `rm_mcuboot_port` does NOT. Must keep/incorporate TF-M's NV-counter backend in the
+   build when switching to the RASC MCUboot.
+2. **mbedTLS crypto ALT flags:** the RASC MCUboot ships crypto via mbedTLS with `*_ALT` flags routing to
+   RA hardware (SCE9/RSIP). For now use **software crypto** → disable the mbedTLS ALT flags in the BL2
+   mbedTLS config. **TODO later: switch to hardware crypto** (re-enable ALT / SCE9-RSIP path).
+
 ## Big picture: where things stand
 
 - The port is **structurally complete and was build-worked through Dec 2025**, but the
@@ -206,9 +269,27 @@ cmake --build build_ra6m4_full
 
 ## TODO (open)
 
-- [ ] **Fix the FSP BL2 integration cmake** to match the actual RASC 6.1.0 file layout (mbedTLS
-      `hash_info.c` → drop/use `md.c`; `flash_map_backend.c` → `flash_map.c`). Then re-attempt the
-      full external-BL2 build.
+- [x] **Fix RA6M4 region-1 (32 KB) flash erase geometry** — DONE 2026-07-13 (commit `f9c13269a`).
+      Fixed in TF-M's own `Driver_Flash.c` + `flash_layout.h` (32KB sector/block), NOT by grafting FSP's
+      flash_map.c (which is single-image and incompatible with TF-M's dual-image MCUboot). Default BL2
+      path builds all 3 images clean. Still needs hardware verification of erase/swap.
+- [ ] **(Deferred) External RASC MCUboot BL2 path** — to use the RASC `rm_mcuboot_port`/MCUboot directly
+      would require reconfiguring the RASC BL2 project to dual-image (`MCUBOOT_IMAGE_NUMBER=2`) in RASC
+      and regenerating. Staged: glob-refactored BL2 `tfm_integration/CMakeLists_tfm.cmake` + `mbedtls_user_config.h`.
+- [ ] **(BL2) Incorporate TF-M's MCUboot NV (rollback) counter implementation** — not provided by
+      `rm_mcuboot_port`; must keep TF-M's NV-counter backend when moving to the RASC MCUboot.
+- [ ] **(BL2) Disable mbedTLS `*_ALT` flags** in the BL2 mbedTLS config to use software crypto for now.
+      **Later: switch to hardware crypto (SCE9/RSIP)** by re-enabling the ALT path. NOTE: chose option A
+      (2026-07-13) — bootutil uses TF-M's software mbedcrypto for now; the FSP mbedTLS + SCE9 path (and
+      `mbedtls_user_config.h`) is staged for this later HW-crypto switch. FSP mbedTLS is entangled with
+      the FSP MCUboot config (`bsp_linker_info.h`), so the HW switch will need config isolation work.
+- [ ] **(BL2) OFS / option-setting regions** — the RASC-BL2 now uses TF-M's `tfm_common_bl2.ld` + TF-M
+      BL2 startup (not FSP `fsp.ld`/startup), so **FSP's OFS option-setting-memory regions are NOT in the
+      BL2 image** (OFS uses chip defaults). Revisit if hardware needs non-default option settings
+      (clock/flash-protection/etc.): either program OFS separately or merge the FSP OFS regions into the
+      TF-M BL2 linker script.
+- [ ] Glob-refactor the BL2 (and NS) `tfm_integration` cmake to select sources from the RASC tree
+      (per-module directory globs) instead of hardcoded file lists — kills the drift permanently.
 - [x] **Reproduce clean build (core: default BL2 + external NS)** — DONE 2026-07-10. All three images
       produced and signed. Nov failures gone.
 - [ ] Reconcile `config.cmake` (`FLASH_S_PARTITION_SIZE 0x20000`) vs `flash_layout.h`
