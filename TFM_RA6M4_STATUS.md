@@ -292,6 +292,22 @@ the built layout (dual-image, BL2+S secure, NS non-secure):
 BL2 runs secure and accesses all slots for MCUboot swap, so putting NS-secondary/scratch in the
 non-secure region above `0x50000` is fine.
 
+**✅ NSC FIXED (2026-07-13): veneers pinned at a stable `0x4F400` via macros (no custom linker).**
+`region_defs.h` now sets `TFM_LINKER_VENEERS_LOCATION_END` + `TFM_LINKER_VENEERS_START =
+CMSE_VENEER_REGION_START`, both `#ifndef`-overridable in TF-M's generated linker. Verified:
+`Image$$ER_VENEER$$Base = 0x4F400`. Programmable RA6M4 TZ boundaries (stable across firmware updates):
+
+| Memory | Secure | NSC | Non-Secure |
+|---|---|---|---|
+| Code flash | `0x00000000`–`0x0004F3FF` | `0x0004F400`–`0x0004F7FF` (SG veneers, 1KB) | `0x00050000`–`0x000FFFFF` |
+| SRAM | `0x20000000`–`0x2001FFFF` | (none — via SAU if needed) | `0x20020000`–`0x2003FFFF` |
+| Data flash | `0x08000000`–`0x08001FFF` (all) | — | — |
+
+(Note: `0x4F800`–`0x4FFFF` is the secure image's MCUboot trailer, above the NSC; treat as non-secure or
+extend NSC to the slot end when programming — refine per RA6M4 TZ boundary granularity.)
+
+<details><summary>Historical: the earlier NSC blocker (now resolved)</summary>
+
 **⚠⚠ NSC BLOCKER (2026-07-13): current image is NOT programmable on RA6M4 hardware.** The RA6M4
 attributes code flash as three CONTIGUOUS regions `[Secure][NSC][Non-secure]`, and the port programs
 NEITHER the SAU nor the hardware regions in software (`sau_and_idau_cfg()` is empty; no `SAU->RBAR/RLAR`
@@ -308,6 +324,7 @@ Non-secure. NS→S PSA calls (SG at `0x20C00`) therefore cannot be attributed. *
 
 S/NS boundaries that ARE correct/programmable now: code flash S `0x0–0x4FFFF` / NS `0x50000–0xFFFFF`;
 SRAM S `0x20000000–0x2001FFFF` / NS `0x20020000–0x2003FFFF`; data flash all-secure.
+</details>
 
 _Older note (still true re: where the numbers come from):_
 **NSC / veneer discrepancy:** `region_defs.h`
@@ -321,10 +338,14 @@ Verify the SAU/veneer attribution on hardware; do NOT program an IDAU NSC region
 - [ ] **Program TrustZone/IDAU boundaries** (RFP): code-flash S/NS @ `0x50000`, SRAM S/NS @ `0x20020000`,
       data flash all-secure. **NSC/veneer window = `0x20C00`–`0x20C40`** (linker `Image$$ER_VENEER$$Base`),
       NOT `region_defs.h` `CMSE_VENEER_REGION_START` (`0x4F400`).
-- [ ] **⚠ PREREQUISITE for NSC boundary: move veneers to end of secure** (custom linker script, Path A) OR
-      program the SAU in software (Path B). Current veneers @ `0x20C00` (start of secure) cannot be
-      attributed NSC by the RA6M4 contiguous `[S][NSC][NS]` hardware model. See the NSC BLOCKER note above.
-- [ ] **Use our OWN platform linker script (like STM32), not TF-M's default generated one.** Today the
+- [x] **NSC boundary fixed (Path A)** — DONE 2026-07-13. Veneers pinned at stable `0x4F400` via
+      `TFM_LINKER_VENEERS_LOCATION_END` + `TFM_LINKER_VENEERS_START` macros in region_defs.h (TF-M's
+      generated linker, no custom linker copy). NSC = `0x4F400`–`0x4F7FF`, stable across firmware updates.
+- [ ] **OFS option-setting section** — integrate OFS0/OFS1 (@ `0x0100A1xx`) into the secure/BL2 image so
+      OFS is programmed deterministically (not left to prior chip state). IN PROGRESS 2026-07-13.
+- [ ] _(Superseded)_ Full custom platform linker (STM32-style) turned out UNNECESSARY for the veneers —
+      the `TFM_LINKER_VENEERS_START`/`_LOCATION_END` macros pin them on TF-M's own linker. Keep this note:
+      prefer TF-M's `#ifndef`-overridable linker macros over a platform linker copy (upstream/maintainability).
       port relies on TF-M's common generated `tfm_isolation_s.ld`, so we don't control section placement —
       which is exactly why the veneers landed at `0x20C00` while `region_defs.h` assumed `0x4F400`. STM32
       platforms ship their own `Device/Source/gcc/tfm_common_s.ld` where the `region_defs.h` macros
