@@ -303,6 +303,15 @@ Verify the SAU/veneer attribution on hardware; do NOT program an IDAU NSC region
 - [ ] **Program TrustZone/IDAU boundaries** (RFP): code-flash S/NS @ `0x50000`, SRAM S/NS @ `0x20020000`,
       data flash all-secure. **NSC/veneer window = `0x20C00`–`0x20C40`** (linker `Image$$ER_VENEER$$Base`),
       NOT `region_defs.h` `CMSE_VENEER_REGION_START` (`0x4F400`).
+- [ ] **Use our OWN platform linker script (like STM32), not TF-M's default generated one.** Today the
+      port relies on TF-M's common generated `tfm_isolation_s.ld`, so we don't control section placement —
+      which is exactly why the veneers landed at `0x20C00` while `region_defs.h` assumed `0x4F400`. STM32
+      platforms ship their own `Device/Source/gcc/tfm_common_s.ld` where the `region_defs.h` macros
+      (`CMSE_VENEER_REGION_START`, etc.) ARE the section origins, so the C view and the image agree by
+      construction. Adopt the same model for RA6M4: provide a platform-owned secure (and BL2/NS) linker
+      script driven by our `region_defs.h`, giving deterministic control of the NSC/veneer window, the
+      OFS regions, and the flash/RAM layout — instead of chasing TF-M's default placement. This also makes
+      the IDAU/SAU NSC boundary derivable directly from `region_defs.h` (no linker-vs-macro divergence).
 - [ ] **Clean up the stale NSC macro** — `region_defs.h` `CMSE_VENEER_REGION_START` (=0x4F400, end-of-secure
       model) is disconnected from the actual linker placement (TF-M's common `tfm_isolation_s.ld` places
       `.gnu.sgstubs` at the START of secure code → `0x20C00`, because `TFM_LINKER_VENEERS_LOCATION_END` is
