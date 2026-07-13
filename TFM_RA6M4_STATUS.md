@@ -267,7 +267,42 @@ cmake --build build_ra6m4_full
   suite sources to the existing FSP FreeRTOS `tfm_ns` app (the smoke test already calls PSA APIs).
   Keeps the working NS build; less canonical but exercises the same test content.
 
+## Hardware bring-up: TrustZone boundaries + flash/RTT
+
+**Bring-up scripts:** `bringup/flash_ra6m4.jlink` (J-Link flash) + `bringup/bringup_ra6m4.sh`
+(flash + RTT stream). `./bringup_ra6m4.sh` flashes and streams the SECURE RTT block;
+`bl2`/`ns`/`noflash` args switch the RTT source. Device `R7FA6M4AF`, SWD.
+
+**Images have full debug symbols** (`CMAKE_BUILD_TYPE=Debug`) — load `bl2.axf` / `tfm_s.elf` /
+`tfm_ns.axf` into J-Link GDB / Ozone / e2studio for source-level debug. `.bin`/`.hex` are stripped.
+
+**RTT control blocks** (per-image, from `nm` on the built .axf): BL2 `0x20002bd0`, Secure `0x2000baf8`,
+NS `0x20020854`.
+
+### TrustZone / IDAU security boundaries to program (via Renesas Flash Programmer TrustZone settings)
+The RA6M4 IDAU hardware boundaries partition memory; TF-M's SAU refines the NSC. From region_defs.h /
+the built layout (dual-image, BL2+S secure, NS non-secure):
+
+| Memory | Secure | Non-Secure | Boundary |
+|---|---|---|---|
+| Code flash | `0x00000000`–`0x0004FFFF` (BL2 128K + S slot 192K) | `0x00050000`–`0x000FFFFF` (NS slot + secondary slots + scratch) | **`0x00050000`** |
+| SRAM | `0x20000000`–`0x2001FFFF` (128K) | `0x20020000`–`0x2003FFFF` (128K) | **`0x20020000`** |
+| Data flash | `0x08000000`–`0x08001FFF` (all — ITS/PS/NV) | (none) | all secure |
+
+BL2 runs secure and accesses all slots for MCUboot swap, so putting NS-secondary/scratch in the
+non-secure region above `0x50000` is fine.
+
+**⚠ NSC / veneer discrepancy to resolve before setting the NSC boundary:** `region_defs.h`
+`CMSE_VENEER_REGION_START` computes `0x4F400` (end of secure), but the ACTUAL built image places the
+secure-gateway veneers at **`0x20C00`** (`Image$$ER_VENEER$$Base`, limit `0x20C40`) — right after the
+secure vector table. So the region_defs.h NSC macro is NOT what the linker uses. The SAU (TF-M common
+v8m config) is what marks the veneer region NSC; the RA IDAU only needs the coarse S/NS split above.
+Verify the SAU/veneer attribution on hardware; do NOT program an IDAU NSC region at 0x4F400.
+
 ## TODO (open)
+- [ ] **Program TrustZone/IDAU boundaries** (RFP): code-flash S/NS @ `0x50000`, SRAM S/NS @ `0x20020000`,
+      data flash all-secure. Resolve the NSC veneer discrepancy (built @ `0x20C00` vs region_defs `0x4F400`)
+      and confirm SAU marks the veneer region NSC.
 
 - [x] **Fix RA6M4 region-1 (32 KB) flash erase geometry** — DONE 2026-07-13 (commit `f9c13269a`).
       Fixed in TF-M's own `Driver_Flash.c` + `flash_layout.h` (32KB sector/block), NOT by grafting FSP's

@@ -1,0 +1,27 @@
+// J-Link Commander script: flash the TF-M RA6M4 images (BL2 + secure + NS).
+// Usage (see bringup_ra6m4.sh):
+//   JLink.exe -device R7FA6M4AF -if SWD -speed 4000 -autoconnect 1 -CommanderScript flash_ra6m4.jlink
+//
+// Flash layout (authoritative = flash_layout.h):
+//   bl2.hex            -> 0x00000000 (addresses baked into the hex)
+//   tfm_s_signed.bin   -> 0x00020000 (secure primary slot, 192KB)
+//   tfm_ns_signed.bin  -> 0x00050000 (non-secure primary slot, 128KB)
+//
+// NOTE: paths below are absolute for this workspace - edit if the build dir moves.
+si SWD
+speed 4000
+device R7FA6M4AF
+connect
+r
+halt
+// Erase full code flash so no stale OFS/image/TZ state remains (fresh-chip behaviour).
+erase
+loadfile C:/Users/Michael/Documents/GitHub/trusted-firmware-m/build_ra6m4_boot/bin/bl2.hex
+loadbin C:/Users/Michael/Documents/GitHub/trusted-firmware-m/build_ra6m4_boot/bin/tfm_s_signed.bin 0x20000
+loadbin C:/Users/Michael/Documents/GitHub/trusted-firmware-m/build_ra6m4_boot/bin/tfm_ns_signed.bin 0x50000
+// Verify a couple of key addresses were written
+mem32 0x00000000 4
+mem32 0x00020400 4
+r
+halt
+qc
