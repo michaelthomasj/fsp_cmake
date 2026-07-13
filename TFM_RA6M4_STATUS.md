@@ -283,11 +283,20 @@ cmake --build build_ra6m4_full
       (2026-07-13) — bootutil uses TF-M's software mbedcrypto for now; the FSP mbedTLS + SCE9 path (and
       `mbedtls_user_config.h`) is staged for this later HW-crypto switch. FSP mbedTLS is entangled with
       the FSP MCUboot config (`bsp_linker_info.h`), so the HW switch will need config isolation work.
-- [ ] **(BL2) OFS / option-setting regions** — the RASC-BL2 now uses TF-M's `tfm_common_bl2.ld` + TF-M
-      BL2 startup (not FSP `fsp.ld`/startup), so **FSP's OFS option-setting-memory regions are NOT in the
-      BL2 image** (OFS uses chip defaults). Revisit if hardware needs non-default option settings
-      (clock/flash-protection/etc.): either program OFS separately or merge the FSP OFS regions into the
-      TF-M BL2 linker script.
+- [ ] **(BL2) OFS / option-setting regions — VERIFY ON HARDWARE (not "defaults are fine").** The BL2 now
+      uses TF-M's `tfm_common_bl2.ld` + TF-M startup (not FSP `fsp.ld`/startup), so **FSP's OFS
+      option-setting-memory (OFS0/OFS1 @ 0x0100A1xx) is NOT programmed by our image.** Analysis:
+      - System clock is **PLL from the external 24 MHz crystal** (`bsp_clock_cfg.h`: CLOCK_SOURCE=PLL,
+        PLL_SOURCE=MAIN_OSC, ÷3 ×25 → 200 MHz), brought up by **runtime** `SystemInit → bsp_clock_init`
+        (system.c:295). This does NOT depend on OFS, which is why the board can run without it.
+      - BUT the FSP config programs `OFS1 = …|0xF00` → **HOCO enabled @20 MHz at reset** (`BSP_PRV_HOCO_USED=1`).
+        HOCOFRQ is **OFS-only (not runtime-writable)**; on an erased chip OFS1 defaults to HOCO disabled.
+        Tolerable here (HOCO isn't on the system-clock path) but fragile if anything relies on HOCO@20MHz.
+      - OFS0 (watchdog/LVD) + prior state: a chip previously flashed with FSP's OFS retains it (e.g. IWDT
+        auto-start could reset us); a truly-erased chip is benign.
+      **Robust fix:** include the OFS regions in the BL2 image — add an OFS data section at 0x0100A1xx with
+      the RASC-configured OFS0/OFS1 values, or merge FSP's OFS regions into the TF-M BL2 linker script.
+      Until then, verify clock/watchdog behaviour on hardware and start from an erased chip.
 - [ ] Glob-refactor the BL2 (and NS) `tfm_integration` cmake to select sources from the RASC tree
       (per-module directory globs) instead of hardcoded file lists — kills the drift permanently.
 - [x] **Reproduce clean build (core: default BL2 + external NS)** — DONE 2026-07-10. All three images
