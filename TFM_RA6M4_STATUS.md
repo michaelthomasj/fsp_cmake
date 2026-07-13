@@ -341,8 +341,19 @@ Verify the SAU/veneer attribution on hardware; do NOT program an IDAU NSC region
 - [x] **NSC boundary fixed (Path A)** — DONE 2026-07-13. Veneers pinned at stable `0x4F400` via
       `TFM_LINKER_VENEERS_LOCATION_END` + `TFM_LINKER_VENEERS_START` macros in region_defs.h (TF-M's
       generated linker, no custom linker copy). NSC = `0x4F400`–`0x4F7FF`, stable across firmware updates.
-- [ ] **OFS option-setting section** — integrate OFS0/OFS1 (@ `0x0100A1xx`) into the secure/BL2 image so
-      OFS is programmed deterministically (not left to prior chip state). IN PROGRESS 2026-07-13.
+- [x] **OFS option-setting section (BL2-only)** — DONE 2026-07-13. `bl2_option_setting.c` emits the
+      RASC-configured OFS sections; `ra6m4_bl2.ld` (platform BL2 linker = tfm_common_bl2.ld + OFS) places
+      them at `0x0100A100/A200/A280`. Verified in `bl2.hex`; absent from signed secure/NS. Values are
+      RASC-driven (`BSP_CFG_OPTION_SETTING_*`). NOTE: `ra6m4_bl2.ld` is the ONE forked linker — sync with
+      TF-M on version bumps.
+- [ ] **⚠ IAR toolchain support (do immediately, keep in the design).** The veneer/NSC + OFS + BL2 linker
+      work is currently GNU-only: `ra6m4_bl2.ld` is a GNU script (need an IAR `.icf` BL2 linker with the
+      OFS sections), and the `TFM_LINKER_VENEERS_START/_LOCATION_END` macros must be confirmed/ported for
+      TF-M's IAR isolation linker (`tfm_isolation_s.icf`) or given an IAR equivalent. Design all linker/OFS
+      decisions to be expressible for GNU + IAR (+ armclang) from the start.
+- [ ] **⚠ Write the architecture/design document** (`fsp_cmake/DESIGN.md`, scaffolded 2026-07-13) — capture
+      every architectural decision + rationale so a future maintainer (and the RA8D2 port) can follow it.
+      Keep it current as decisions are made.
 - [ ] _(Superseded)_ Full custom platform linker (STM32-style) turned out UNNECESSARY for the veneers —
       the `TFM_LINKER_VENEERS_START`/`_LOCATION_END` macros pin them on TF-M's own linker. Keep this note:
       prefer TF-M's `#ifndef`-overridable linker macros over a platform linker copy (upstream/maintainability).
