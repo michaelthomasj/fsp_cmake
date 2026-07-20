@@ -265,6 +265,37 @@ Window" / permanent-protection option, or a botched Config-area write). Exact st
 - Before any option/protection programming, `objdump -s` the image and **read `FAWMON` back after** —
   confirm `FSPR` stayed `1`.
 
+**How did `FSPR` get set to 0? — what was ruled out, and what remains (evidence, not a guess):**
+`FSPR` is written **only** by the flash **Configuration-Set command** (FCU) — *not* by programming a
+normal image, *not* by chip-erase, *not* by any `.option_setting_*` flash section. The `ofs*`/`bps`
+sections live at `0x0100A1xx`; the FAW/`FSPR` word is in a separate config area the FCU reaches with
+that command. Verified **ruled out** as the source:
+- **The TF-M port** — no `AccessWindowSet`/`StartUpAreaSelect`/FAW code in BL2 or the platform; only
+  `ofs0`/`ofs1_sec`/`ofs1_sel` sections emitted (`objdump -h`).
+- **User application code** — no `R_FLASH_HP_AccessWindow*` / `StartUpAreaSelect` call in any workspace.
+- **The RFP project** (`ra6m4.rpj`) — `SetOTP/SetLockbit/SetBoundary/SetExtraOption/ExtraOptionProtect`
+  all `False`, no FAW/startup-area tags (but it was re-saved during recovery, so this is *current*, not
+  bricking-time, state).
+
+So the `FSPR=0` came from a **Configuration-Set operation by a tool** whose settings are not preserved
+in any surviving artifact — most plausibly a manual RFP "Flash Options" action or an e2 studio/RDPM
+step performed at the "catastrophic" moment. **The exact operation cannot be proven from what remains,
+and is not being guessed.** Corroborating oddity: the Security-MPU config block (`0x0100A120–A17F`)
+also reads all-zeros (erased = `FF`), i.e. a zeroed config buffer reached the FCU at some point.
+The lesson is already actioned by the rules above + the `check_ofs.py` guard below.
+
+### 8.5 Build-time OFS guard — `bringup/check_ofs.py`
+[`bringup/check_ofs.py`](bringup/check_ofs.py) diffs the BL2's option memory (`0x0100A100–0x0100A2CF`)
+against the field-proven **`ra6m4_der_conversion`** reference ELF and exits non-zero on any divergence.
+Run before every flash (and wire into CI / a post-build step):
+```
+python bringup/check_ofs.py            # defaults: build_ra6m4_boot/bin/bl2.elf vs der ELF
+python bringup/check_ofs.py <elf> --ref <known-good.elf>
+```
+It reads unprogrammed slots as `0xFFFFFFFF` (erased), so it compares *effective* option memory, and
+labels each region (OFS0/OFS1_SEC/OFS1_SEL/BPS/…). This is the automated form of the §8.2 rule
+"never program OFS values not diffed against a known-good image."
+
 ## 9. Console / logging — SEGGER RTT (switchable)
 - `RA6M4_STDOUT_RTT` (default ON): routes TF-M/MCUboot stdout to SEGGER RTT over J-Link (no UART wiring,
   no S/NS peripheral contention). `rtt/rtt_stdout.c` implements TF-M's `stdio_*` backend; the common
