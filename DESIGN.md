@@ -27,6 +27,11 @@ the stable "decisions" companion.
 - **Corollary:** whenever a value/section could come from RASC config, source it from there
   (e.g. OFS values from `BSP_CFG_OPTION_SETTING_*`), even if the emitting shim is small.
 
+> **Recreating the RASC projects:** the concrete per-project RASC settings (device, clock tree, modules
+> to add, stack/heap, memory regions, and the required post-generation edits) are captured in
+> [RASC_PROJECT_SETUP.md](RASC_PROJECT_SETUP.md). This file explains the *why*; that one is the
+> *how-to-rebuild-the-inputs* reference.
+
 ## 2. Repositories
 - `fsp_cmake` — RASC-generated FSP projects (bl2 / s / ns / …) + modular CMake + this doc + status doc
   + bring-up scripts. FSP 6.1.0 / RASC `sc_v2025-07`.
