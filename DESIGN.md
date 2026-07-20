@@ -187,6 +187,25 @@ placement changing across TF-M versions. If the secure linker is ever forked, gi
   IAR (`.icf`) too: an IAR BL2 linker with the OFS sections, and confirmation/porting of the veneer
   macros for TF-M's IAR isolation linker. Design compiler-agnostically from the start (§7/§8).
 
+## 11.1 ⚠ Build gotcha — signed images are NOT produced by a plain `cmake --build`
+Bit us on the first bring-up: **a 10-day-old `tfm_s_signed.bin` was being flashed** while `tfm_s.axf`
+was current, so none of the fixes were actually on the device.
+
+- The signed images come from `add_custom_command(OUTPUT tfm_s_signed.bin DEPENDS tfm_s_bin ...)`.
+  The dependency is on the **target** `tfm_s_bin`, not on the file `tfm_s.bin`, and the custom targets
+  are **not reached by the default `all`** target.
+- Consequence: `tfm_s.axf`/`tfm_s.bin` relink, but the signing does not re-run — ninja reports
+  "no work to do" while `bin/tfm_s_signed.bin` stays stale. Deleting only the copy in `bin/` does not
+  help either, because the **intermediate** `<build>/bl2/ext/mcuboot/tfm_s_signed.bin` still satisfies it.
+
+**Always regenerate before flashing:**
+```
+rm -f <build>/bl2/ext/mcuboot/tfm_*_signed.bin      # if in doubt
+cmake --build <build> --target signed_images
+```
+and sanity-check the timestamps/sizes of `bin/tfm_s_signed.bin` (0x30000) and `bin/tfm_ns_signed.bin`
+(0x20000). Worth fixing properly later by making the signing depend on the binary and adding it to `all`.
+
 ## 12. Bring-up
 - `fsp_cmake/bringup/` — J-Link flash + RTT scripts. Images are Debug builds (full symbols for
   GDB/Ozone). Flash from an erased chip; program the TZ boundaries (§7) via RFP; OFS (§8) is in `bl2.hex`.

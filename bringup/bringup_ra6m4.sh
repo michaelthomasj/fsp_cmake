@@ -3,6 +3,21 @@
 # One-command bring-up for the TF-M RA6M4: flash BL2 + secure + NS, then stream
 # SEGGER RTT so you can watch the BL2 -> secure -> non-secure boot chain.
 #
+# ⚠ BEFORE FLASHING, REGENERATE THE SIGNED IMAGES:
+#     cmake --build <build_dir> --target signed_images
+#
+# `cmake --build <build_dir>` alone is NOT enough. The signed images come from
+# add_custom_command(OUTPUT tfm_s_signed.bin DEPENDS tfm_s_bin ...) whose
+# dependency is on the *target*, not on tfm_s.bin, and they are not reached by
+# the default `all` target. A stale intermediate at
+#   <build_dir>/bl2/ext/mcuboot/tfm_s_signed.bin
+# will therefore satisfy ninja ("no work to do") and you will silently flash an
+# OLD secure image even though tfm_s.axf was rebuilt. If in doubt, delete the
+# intermediates and rebuild the target:
+#   rm -f <build_dir>/bl2/ext/mcuboot/tfm_*_signed.bin
+#   cmake --build <build_dir> --target signed_images
+# Then check the timestamps of bin/tfm_s_signed.bin and bin/tfm_ns_signed.bin.
+#
 #   ./bringup_ra6m4.sh              # flash, then RTT from the SECURE control block
 #   ./bringup_ra6m4.sh bl2          # RTT from the BL2 control block
 #   ./bringup_ra6m4.sh ns           # RTT from the NS control block
