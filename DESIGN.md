@@ -170,34 +170,34 @@ design, and the orphan is `LOAD/DATA` rather than NOLOAD). For that reason the o
 placement changing across TF-M versions. If the secure linker is ever forked, give it the same explicit
 `.ram_noinit` section and the guard can go.
 
-## 8.2 ⚠ OFS security attribution — `BSP_CFG_CLOCKS_SECURE` (bricked a board)
+## 8.2 ⚠ OFS security attribution — `BSP_CFG_CLOCKS_SECURE`
 
-Programming option-setting memory is the one thing in this port that can make a part unrecoverable.
-A board was bricked (no erase, no program, no debug) by a **single wrong word** in the OFS we emit:
-
-| Address | Known-good RA6M4 image | What we emitted |
-|---|---|---|
-| `0x0100A100` OFS0 | `ffffffff` | `ffffffff` ✓ |
-| `0x0100A200` OFS1_SEC | `fffdffff` | `fffdffff` ✓ |
-| **`0x0100A280` OFS1_SEL** | **`f8f8ffff`** (`0xFFFFF8F8`) | **`f8ffffff`** (`0xFFFFFFF8`) ✗ |
-
-Cause — `bsp_mcu_ofs_cfg.h` computes:
+`bsp_mcu_ofs_cfg.h` computes:
 ```c
 OFS1_SEL = 0xFFFFF8F8 | ((BSP_CFG_CLOCKS_SECURE == 0) ? 0xF00 : 0)
 ```
-With `BSP_CFG_CLOCKS_SECURE = 0` it ORs in `0xF00`, marking the **clock-related OFS1 fields
-non-secure**. On a TrustZone part whose TZ boundaries have been programmed, that attribution mismatch
-on option memory can lock out the debug interface.
 
-**Rules for this port:**
-- BL2 and the secure image own the clocks ⇒ **`BSP_CFG_CLOCKS_SECURE` must be 1** (set in the vendored
-  `fsp/` snapshot; **external RASC projects must set Clocks = Secure in the RASC BSP config**).
-- **Never program OFS values that haven't been diffed against a known-good image for that device.**
-  Extract them with `arm-none-eabi-objdump -s` on a working ELF and compare byte-for-byte — the config
-  macros can be identical while the emitted words differ.
-- Recovery if it happens: Renesas Flash Programmer via **boot mode** (MD pin low at reset) →
-  **Target Device → Initialize Device** (full erase incl. option memory). SWD/J-Link cannot help once
-  the debug interface is locked out.
+| `BSP_CFG_CLOCKS_SECURE` | OFS1_SEL | LE bytes |
+|---|---|---|
+| `1` (correct here) | `0xFFFFF8F8` | `f8f8ffff` |
+| `0` (RASC default) | `0xFFFFFFF8` | `f8ffffff` |
+
+OFS1_SEL is a **security-attribution** register: the differing bits (8-10) select whether the
+corresponding OFS1 fields are secure or non-secure. BL2 and the secure image own the clocks on this
+port, so **`BSP_CFG_CLOCKS_SECURE` must be 1** — set in the vendored `fsp/` snapshot, and **external
+RASC projects must set Clocks = Secure in the RASC BSP config**. Fixed in TF-M `7b99ce397`; both
+values now match a known-good RA6M4 image byte-for-byte.
+
+> **Scope note (do not repeat an earlier mistake):** this is a misconfiguration, **not** a lockout
+> mechanism. OFS1_SEL does not disable debug or lock flash, and option memory is erasable. During
+> bring-up this diff was wrongly reported as the cause of a board that would no longer erase; that
+> symptom is a DLM/TrustZone permission state — see 8.3. Keep the two separate.
+
+**Process rule that does generalise:** never program OFS values that haven't been diffed against a
+known-good image for that device (`arm-none-eabi-objdump -s` on a working ELF). The config macros can
+be identical while the emitted words differ. And when reporting such a diff, state whether each value
+was **observed in a binary** or **derived from macros** — mixing them silently is how a wrong root
+cause gets locked in.
 
 ### 8.3 Recovering a "connects but won't erase" board — RDPM, not RFP
 
