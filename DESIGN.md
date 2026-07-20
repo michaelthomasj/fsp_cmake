@@ -118,6 +118,46 @@ Verified accepted by RFP.
   ld `INSERT` cannot augment a `-T` main script from a second `-T` fragment. Keep it in sync with TF-M
   on version bumps. The secure/NS side stays on TF-M's generated linker (§7), unforked.
 
+## 8.1 FSP ↔ TF-M startup-order contract (.ram_noinit / BSP_CFG_EARLY_INIT)
+**This bit the first hardware bring-up — read before porting to another RA part.**
+
+TF-M's `Reset_Handler` (startup_ra6m4.c) does:
+```
+SystemInit();          /* FSP: bsp_clock_init() + SystemCoreClockUpdate() */
+__PROGRAM_START();     /* C-runtime init: copy .data, ZERO .bss, then main() */
+```
+i.e. **FSP's BSP is initialised *before* the C-runtime init**. Any FSP state that lands in `.bss` is
+therefore zeroed immediately after FSP computed it. FSP's own contract for this is:
+- `BSP_SECTION_NOINIT` → `.ram_noinit` (GCC; `.bss.ram_noinit` where `BSP_UNINIT_SECTION_PREFIX` is `.bss`)
+- `BSP_SECTION_EARLY_INIT` → `BSP_PLACE_IN_SECTION(BSP_SECTION_NOINIT)` **only if `BSP_CFG_EARLY_INIT == 1`**
+
+Affected variables: `SystemCoreClock`, `g_clock_freq[]`, `g_protect_counters[]`,
+`g_bsp_group_irq_sources[]`.
+
+**Symptom when it goes wrong:** BL2 dies in `boot_platform_init` → `ARM_Flash_Initialize` →
+`R_FLASH_HP_Open` with **`FSP_ERR_FCLK`**. `R_FSP_SystemClockHzGet()` is `SystemCoreClock >> divider`;
+with `SystemCoreClock == 0` FCLK reads 0, below the 4 MHz minimum. The clock *hardware* is fine
+(PLL 200 MHz, FCLK /4 = 50 MHz) — only the cached value was lost.
+
+**What the port does about it (two layers):**
+1. **Linker (§8):** `ra6m4_bl2.ld` declares `.ram_noinit` explicitly — **before `.bss`** (so a
+   `.bss.ram_noinit` variant isn't swallowed by `*(.bss*)`) and **NOLOAD** (no flash image, never
+   copied or zeroed), and outside `ADDR(.bss)..SIZEOF(.bss)` so the zero table can't reach it.
+   Previously it was an *orphan* section ld marked `LOAD/CONTENTS` — it survived only by luck.
+2. **Defensive code:** `SystemCoreClockUpdate()` is called at the top of `ARM_Flash_Initialize()` and in
+   `tfm_hal_platform_init()`. `g_clock_freq[]` survives in `.ram_noinit`, so this restores the correct
+   value. Idempotent, and keeps the port correct **regardless of the RASC `BSP_CFG_EARLY_INIT` setting**.
+
+**To make it fully FSP-native (recommended):** set **`BSP_CFG_EARLY_INIT = 1`** in the RASC BSP config.
+Then `SystemCoreClock` et al. carry the `.ram_noinit` attribute, land in the section the linker now
+provides, and survive by design — the defensive calls become redundant (harmless). With
+`BSP_CFG_EARLY_INIT = 0` (current RASC config) they have *no* section attribute, so the linker cannot
+rescue them and only layer 2 saves you.
+
+**Secure/NS images:** they use TF-M's *generated* linker (§7, unforked), which has no `.ram_noinit`
+rule — `.ram_noinit` is still an orphan there. It currently lands outside the zeroed `.bss`, and layer 2
+covers `SystemCoreClock`. If the secure linker is ever forked, give it the same explicit section.
+
 ## 9. Console / logging — SEGGER RTT (switchable)
 - `RA6M4_STDOUT_RTT` (default ON): routes TF-M/MCUboot stdout to SEGGER RTT over J-Link (no UART wiring,
   no S/NS peripheral contention). `rtt/rtt_stdout.c` implements TF-M's `stdio_*` backend; the common

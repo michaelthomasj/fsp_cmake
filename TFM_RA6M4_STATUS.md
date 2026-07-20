@@ -346,6 +346,18 @@ Verify the SAU/veneer attribution on hardware; do NOT program an IDAU NSC region
       them at `0x0100A100/A200/A280`. Verified in `bl2.hex`; absent from signed secure/NS. Values are
       RASC-driven (`BSP_CFG_OPTION_SETTING_*`). NOTE: `ra6m4_bl2.ld` is the ONE forked linker — sync with
       TF-M on version bumps.
+- [x] **FIXED: BL2 crashed on hardware with `FSP_ERR_FCLK`** (2026-07-13, first bring-up). Root cause:
+      TF-M's startup runs `SystemInit()` (bsp_clock_init) BEFORE the C-runtime init, which then zeroed
+      `.bss` — and `SystemCoreClock` was in `.bss` (RASC config has `BSP_CFG_EARLY_INIT=0`, so
+      `BSP_SECTION_EARLY_INIT` is empty). `R_FLASH_HP_Open` reads FCLK as `SystemCoreClock >> div` = 0 <
+      4 MHz → `FSP_ERR_FCLK`. Clock HW was fine (PLL 200 MHz, FCLK 50 MHz); only the cached value was
+      lost. Fix (2 layers): `ra6m4_bl2.ld` now declares `.ram_noinit` explicitly (before `.bss`, NOLOAD,
+      outside the zero table) as FSP does; plus defensive `SystemCoreClockUpdate()` in
+      `ARM_Flash_Initialize()` and `tfm_hal_platform_init()`. See DESIGN.md §8.1.
+- [ ] **Set `BSP_CFG_EARLY_INIT = 1` in the RASC BSP config** so `SystemCoreClock` et al. actually carry
+      the `.ram_noinit` attribute and survive by design (FSP-native fix). Today `BSP_CFG_EARLY_INIT=0`,
+      so only the defensive `SystemCoreClockUpdate()` calls save us. Note the embedded `fsp/` snapshot in
+      the TF-M port needs the same setting (or point the build at the regenerated RASC project).
 - [ ] **⚠ IAR toolchain support (do immediately, keep in the design).** The veneer/NSC + OFS + BL2 linker
       work is currently GNU-only: `ra6m4_bl2.ld` is a GNU script (need an IAR `.icf` BL2 linker with the
       OFS sections), and the `TFM_LINKER_VENEERS_START/_LOCATION_END` macros must be confirmed/ported for
