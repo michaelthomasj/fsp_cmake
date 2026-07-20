@@ -199,6 +199,32 @@ on option memory can lock out the debug interface.
   **Target Device → Initialize Device** (full erase incl. option memory). SWD/J-Link cannot help once
   the debug interface is locked out.
 
+### 8.3 Recovering a "connects but won't erase" board — RDPM, not RFP
+
+If the board **connects and reads but refuses erase/program**, the flash is not dead — the device is
+in a TrustZone **access-permission state**. Once TZ boundaries are programmed and the DLM state has
+advanced to **NSECSD**, the debugger is restricted to non-secure regions, so erasing the secure area
+(`0x0-0x4F3FF`, where BL2 lives) is refused. RFP over SWD cannot undo this.
+
+The correct tool is the **Renesas Device Partition Manager (RDPM)**, driven from the MCU's boot
+firmware. CLI at `<SUPPORT_FILE_LOCATION>/DebugComp/RA/DevicePartitionManager/`
+(the **32-bit** build — the `x64/` one ships no `JLinkARM.dll`). Wrapped by
+[`bringup/recover_ra6m4.sh`](bringup/recover_ra6m4.sh):
+
+| Command | Action |
+|---|---|
+| `./recover_ra6m4.sh status` | read DLM state + IDAU boundaries (read-only) |
+| `./recover_ra6m4.sh initialize` | erase all, back to factory |
+| `./recover_ra6m4.sh ssd` | DLM state back to SSD |
+| `./recover_ra6m4.sh boundaries` | program this port's TZ boundaries (7.1) |
+
+⚠ **All of them require BOOT MODE: jumper on `J16` (MD/P201) + power-cycle.** Without it RDPM reports
+`Unable to retrieve device's boot code`. Leave `J16` open for normal operation.
+
+`INITIALIZE` is refused in CM state and is **permanently** disabled by permanent block protection
+(PBPS). This port emits only `ofs0` / `ofs1_sec` / `ofs1_sel` — **never** `bps`/`pbps`/`osis` — which
+is what keeps recovery possible at all. Do not add those sections without a very good reason.
+
 ## 9. Console / logging — SEGGER RTT (switchable)
 - `RA6M4_STDOUT_RTT` (default ON): routes TF-M/MCUboot stdout to SEGGER RTT over J-Link (no UART wiring,
   no S/NS peripheral contention). `rtt/rtt_stdout.c` implements TF-M's `stdio_*` backend; the common
