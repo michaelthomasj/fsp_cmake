@@ -233,6 +233,38 @@ permanent block protection (PBPS). This port emits only `ofs0` / `ofs1_sec` / `o
 `bps`/`pbps`/`osis` — which is what keeps recovery possible at all. Do not add those sections without a
 very good reason.
 
+### 8.4 ⚠⚠ The permanent brick — `FSPR = 0` (Flash Access Window permanence). NOT recoverable.
+
+**One EK-RA6M4 was permanently bricked during bring-up.** Symptom sequence and the definitive
+diagnosis (all values *observed*, not derived):
+
+- RDPM connects and reads fine; **Initialize fails with `Boot error code: 0xDA` (RES_PROTECTION_ERROR)**,
+  after which the boot firmware stops responding. Per the RA standard-boot-firmware spec (R01AN5562),
+  this is the *documented* behavior when **`FSPR` in the Config area is 0**.
+- RDPM STATUS: **DLM = SSD, Debug = DBG2** (full debug, least-restrictive) — so it is **not** a DLM
+  lock; a DLM lock would be key-reversible, this is not.
+- J-Link read of `FAWMON @ 0x407FE0DC` = `0x00000000` → **`FSPR` (bit 15) = 0**. Corroborated by
+  `FSTATR @ 0x407FE080 = 0x00008000` (FRDY set → FACI is clocked, so the read is real, not a dead bus).
+
+`FSPR` is the **Flash Access Window protection flag: one-time-programmable**. Once `0`, the FAW
+setting is locked and flash outside the window is erase/write-protected **for the life of the part**.
+No field tool recovers it — not RFP, not RDPM Initialize, not J-Link. Only Renesas RMA, and permanent
+protection is generally not reversible even there. **Diagnostic recipe for a suspected brick:** read
+`FAWMON @ 0x407FE0DC`; if bit 15 (`0x8000`) is clear, the part is permanently protected.
+
+**The port image did NOT cause this.** `arm-none-eabi-objdump -h bl2.elf` shows only three option
+sections (`ofs0`/`ofs1_sec`/`ofs1_sel`); none touch the FAW/Config area, so flashing the TF-M image
+never writes `FSPR`. The lock was introduced by a **tool/manual step** (an RFP or RASC "Flash Access
+Window" / permanent-protection option, or a botched Config-area write). Exact step unknown.
+
+**Hard rules to never brick another board:**
+- **Never** enable a Flash Access Window with the **permanent / FSPR / "OTP" / "permanent lock"** option
+  in RFP, RASC, or e2 studio during development. Leave `FSPR = 1`.
+- The port must **never** emit a FAW / Config-area section, `bps`/`pbps`/`osis` — keep OFS to the three
+  `ofs*` sections only (§8, §8.3 guard).
+- Before any option/protection programming, `objdump -s` the image and **read `FAWMON` back after** —
+  confirm `FSPR` stayed `1`.
+
 ## 9. Console / logging — SEGGER RTT (switchable)
 - `RA6M4_STDOUT_RTT` (default ON): routes TF-M/MCUboot stdout to SEGGER RTT over J-Link (no UART wiring,
   no S/NS peripheral contention). `rtt/rtt_stdout.c` implements TF-M's `stdio_*` backend; the common
