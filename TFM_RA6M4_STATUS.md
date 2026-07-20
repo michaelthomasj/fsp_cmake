@@ -354,7 +354,7 @@ Verify the SAU/veneer attribution on hardware; do NOT program an IDAU NSC region
       lost. Fix (2 layers): `ra6m4_bl2.ld` now declares `.ram_noinit` explicitly (before `.bss`, NOLOAD,
       outside the zero table) as FSP does; plus defensive `SystemCoreClockUpdate()` in
       `ARM_Flash_Initialize()` and `tfm_hal_platform_init()`. See DESIGN.md §8.1.
-- [ ] **Set `BSP_CFG_EARLY_INIT = 1` in the RASC BSP config** so `SystemCoreClock` et al. actually carry
+- [x] **Set `BSP_CFG_EARLY_INIT = 1`** (done in the vendored fsp/ snapshot 2026-07-13; SystemCoreClock now in .ram_noinit). STILL TODO for external RASC projects (`FSP_*_APP_DIR`) — set it in RASC there too. Originally: so `SystemCoreClock` et al. actually carry
       the `.ram_noinit` attribute and survive by design (FSP-native fix). Today `BSP_CFG_EARLY_INIT=0`,
       so only the defensive `SystemCoreClockUpdate()` calls save us. Note the embedded `fsp/` snapshot in
       the TF-M port needs the same setting (or point the build at the regenerated RASC project).
