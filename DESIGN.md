@@ -199,31 +199,39 @@ be identical while the emitted words differ. And when reporting such a diff, sta
 was **observed in a binary** or **derived from macros** — mixing them silently is how a wrong root
 cause gets locked in.
 
-### 8.3 Recovering a "connects but won't erase" board — RDPM, not RFP
+### 8.3 Recovering a "connects but won't erase" board — RDPM GUI Initialize
 
 If the board **connects and reads but refuses erase/program**, the flash is not dead — the device is
-in a TrustZone **access-permission state**. Once TZ boundaries are programmed and the DLM state has
-advanced to **NSECSD**, the debugger is restricted to non-secure regions, so erasing the secure area
-(`0x0-0x4F3FF`, where BL2 lives) is refused. RFP over SWD cannot undo this.
+in a restricted TrustZone **DLM state** (e.g. NSECSD), where the debugger is limited to non-secure
+regions and erasing the secure area (`0x0-0x4F3FF`, where BL2 lives) is refused. RFP over SWD cannot
+undo this.
 
-The correct tool is the **Renesas Device Partition Manager (RDPM)**, driven from the MCU's boot
-firmware. CLI at `<SUPPORT_FILE_LOCATION>/DebugComp/RA/DevicePartitionManager/`
-(the **32-bit** build — the `x64/` one ships no `JLinkARM.dll`). Wrapped by
-[`bringup/recover_ra6m4.sh`](bringup/recover_ra6m4.sh):
+**What works (verified on this bench):** the **Renesas Device Partition Manager GUI → "Initialize
+device", connection = J-Link**. Menu: *Run → Renesas Debug Tools → Renesas Device Partition Manager*
+in e2 studio or RASC. This drives **J-Link's native RA DLM support over the normal SWD debug
+connection** — **no boot-mode jumper**, no RFP. It erases all flash and resets the memory partitions
+and DLM state to factory. After it, the reset vector at `0x0` and OFS at `0x0100A100/A200/A280` all
+read `0xFFFFFFFF`; DLM state is back to SSD; re-flash normally.
 
-| Command | Action |
-|---|---|
-| `./recover_ra6m4.sh status` | read DLM state + IDAU boundaries (read-only) |
-| `./recover_ra6m4.sh initialize` | erase all, back to factory |
-| `./recover_ra6m4.sh ssd` | DLM state back to SSD |
-| `./recover_ra6m4.sh boundaries` | program this port's TZ boundaries (7.1) |
+**What does NOT work here (and why the earlier recovery script was wrong):** the RDPM **command-line**
+tool (`RenesasDevicePartitionManagerCmd.exe`) reaches the device only through **boot firmware**
+(`-bootInterface SCI|SWD`). On the EK-RA6M4 with its on-board J-Link, boot mode is not reachable that
+way even with the `J16` (MD) jumper fitted — it fails with *"Unable to retrieve device's boot code"*.
+**This was observed on a known-good board too**, so that failure is not evidence of a brick. The CLI
+is only useful in a production fixture that actually wires up SCI/USB boot mode. Use the GUI on the
+bench. [`bringup/recover_ra6m4.sh`](bringup/recover_ra6m4.sh) now only does read-only J-Link
+status + prints the GUI steps.
 
-⚠ **All of them require BOOT MODE: jumper on `J16` (MD/P201) + power-cycle.** Without it RDPM reports
-`Unable to retrieve device's boot code`. Leave `J16` open for normal operation.
+**On observed OFS1_SEL values (don't re-theorise from these):** three states were seen — erased/factory
+`0xFFFFFFFF` (confirmed on a J-Link-erased board), a programmed board reading `0x00000000`, and what
+our ELF *writes* (`0xFFFFF8F8`, §8.2). These differ because option-memory bits program `1→0` and are
+only reset to `1` by erase; the on-silicon value depends on program/erase history, not just our image.
+None of this is a lockout mechanism — see the §8.2 scope note.
 
-`INITIALIZE` is refused in CM state and is **permanently** disabled by permanent block protection
-(PBPS). This port emits only `ofs0` / `ofs1_sec` / `ofs1_sel` — **never** `bps`/`pbps`/`osis` — which
-is what keeps recovery possible at all. Do not add those sections without a very good reason.
+**Recoverability guard:** `INITIALIZE` is refused in CM state and is **permanently** disabled by
+permanent block protection (PBPS). This port emits only `ofs0` / `ofs1_sec` / `ofs1_sel` — **never**
+`bps`/`pbps`/`osis` — which is what keeps recovery possible at all. Do not add those sections without a
+very good reason.
 
 ## 9. Console / logging — SEGGER RTT (switchable)
 - `RA6M4_STDOUT_RTT` (default ON): routes TF-M/MCUboot stdout to SEGGER RTT over J-Link (no UART wiring,
