@@ -358,6 +358,14 @@ Verify the SAU/veneer attribution on hardware; do NOT program an IDAU NSC region
       the `.ram_noinit` attribute and survive by design (FSP-native fix). Today `BSP_CFG_EARLY_INIT=0`,
       so only the defensive `SystemCoreClockUpdate()` calls save us. Note the embedded `fsp/` snapshot in
       the TF-M port needs the same setting (or point the build at the regenerated RASC project).
+- [x] **FIXED (2026-07-20): BL2 was linked into the SECURE slot, not at 0x0.** `region_defs.h` had
+      `BL2_CODE_START = (S_ROM_ALIAS_BASE + FLASH_AREA_BL2_OFFSET)`; `S_ROM_ALIAS_BASE` is the *secure*
+      image base (`0x20000` when BL2 is on), so `bl2.axf .text` linked at `0x20000` and `bl2.hex` carried
+      an `:020000022000` extended-segment record. Nothing was programmed at the reset vector, and the
+      flash step writing `tfm_s_signed.bin` @ `0x20000` landed on top of the misplaced bootloader — so
+      **the device never ran this BL2**, which is why the `FSP_ERR_FCLK` failure survived fixes that were
+      never executing. Now `BL2_CODE_START = FLASH_BASE_ADDRESS + FLASH_AREA_BL2_OFFSET` → `.text` @ `0x0`
+      (Reset_Handler `0x16b0`, `bsp_clock_init` `0xc58c`). TF-M commit `be511be17`.
 - [ ] **⚠ Fix the signed-image build dependency (stale-image trap — do before upstreaming).** A plain
       `cmake --build <build>` does NOT regenerate `tfm_s_signed.bin` / `tfm_ns_signed.bin`: the signing
       `add_custom_command(OUTPUT tfm_s_signed.bin DEPENDS tfm_s_bin ...)` depends on the **target**, not
