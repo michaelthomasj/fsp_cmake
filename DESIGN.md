@@ -170,6 +170,35 @@ design, and the orphan is `LOAD/DATA` rather than NOLOAD). For that reason the o
 placement changing across TF-M versions. If the secure linker is ever forked, give it the same explicit
 `.ram_noinit` section and the guard can go.
 
+## 8.2 ⚠ OFS security attribution — `BSP_CFG_CLOCKS_SECURE` (bricked a board)
+
+Programming option-setting memory is the one thing in this port that can make a part unrecoverable.
+A board was bricked (no erase, no program, no debug) by a **single wrong word** in the OFS we emit:
+
+| Address | Known-good RA6M4 image | What we emitted |
+|---|---|---|
+| `0x0100A100` OFS0 | `ffffffff` | `ffffffff` ✓ |
+| `0x0100A200` OFS1_SEC | `fffdffff` | `fffdffff` ✓ |
+| **`0x0100A280` OFS1_SEL** | **`f8f8ffff`** (`0xFFFFF8F8`) | **`f8ffffff`** (`0xFFFFFFF8`) ✗ |
+
+Cause — `bsp_mcu_ofs_cfg.h` computes:
+```c
+OFS1_SEL = 0xFFFFF8F8 | ((BSP_CFG_CLOCKS_SECURE == 0) ? 0xF00 : 0)
+```
+With `BSP_CFG_CLOCKS_SECURE = 0` it ORs in `0xF00`, marking the **clock-related OFS1 fields
+non-secure**. On a TrustZone part whose TZ boundaries have been programmed, that attribution mismatch
+on option memory can lock out the debug interface.
+
+**Rules for this port:**
+- BL2 and the secure image own the clocks ⇒ **`BSP_CFG_CLOCKS_SECURE` must be 1** (set in the vendored
+  `fsp/` snapshot; **external RASC projects must set Clocks = Secure in the RASC BSP config**).
+- **Never program OFS values that haven't been diffed against a known-good image for that device.**
+  Extract them with `arm-none-eabi-objdump -s` on a working ELF and compare byte-for-byte — the config
+  macros can be identical while the emitted words differ.
+- Recovery if it happens: Renesas Flash Programmer via **boot mode** (MD pin low at reset) →
+  **Target Device → Initialize Device** (full erase incl. option memory). SWD/J-Link cannot help once
+  the debug interface is locked out.
+
 ## 9. Console / logging — SEGGER RTT (switchable)
 - `RA6M4_STDOUT_RTT` (default ON): routes TF-M/MCUboot stdout to SEGGER RTT over J-Link (no UART wiring,
   no S/NS peripheral contention). `rtt/rtt_stdout.c` implements TF-M's `stdio_*` backend; the common
