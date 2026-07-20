@@ -74,8 +74,37 @@ the stable "decisions" companion.
   CMSE_VENEER_REGION_START` (both `#ifndef`-overridable). **No custom secure linker** — the
   nordic/laird upstream pattern. Fixed (not end-of-code) so the NSC is stable across firmware updates,
   which matters because RA TZ boundaries are set once at provisioning.
-- **Boundaries to program (RFP):** code flash S `0x0–0x4F3FF` / NSC `0x4F400–0x4F7FF` / NS `0x50000+`;
-  SRAM S `0x20000000–0x2001FFFF` / NS `0x20020000+`; data flash all-secure.
+### 7.1 RA6M4 TZ boundary hardware model + alignment rules (from the HW manual)
+Code flash is partitioned by two programmed values, **CFS1** and **CFS2**:
+
+| Region | Start | Size |
+|---|---|---|
+| Code flash secure | `0x00000000` | `CFS1 × 1 KB` |
+| Code flash non-secure callable | `CFS1 × 1 KB` | `CFS2 × 32 KB − CFS1 × 1 KB` |
+| Code flash non-secure | `CFS2 × 32 KB` | flash size − `CFS2 × 32 KB` |
+
+**Alignment rules that follow (important — do not over-constrain):**
+- The secure size / **NSC start is 1 KB-granular** (`CFS1 × 1 KB`) — any whole KB is legal.
+- The **Secure→Non-secure boundary is 32 KB-granular** (`CFS2 × 32 KB`).
+- ⇒ **Design rule: `Code Secure + Code NSC` must be a multiple of 32 KB**, i.e. the **NS partition start
+  must be 32 KB-aligned**. The veneer/NSC start only needs 1 KB alignment.
+- This constrains the *memory map* (§3): pick `FLASH_AREA_1_OFFSET` (NS primary) on a 32 KB boundary.
+  Carry this rule to the RA8D2 port.
+
+**Our values** — veneers pinned at `0x4F400` (§7), NS partition at `0x50000`:
+`CFS1 = 317` (secure `0x0–0x4F3FF`), `CFS2 = 10` (`10 × 32 KB = 0x50000`), NSC size `= 320 − 317 = 3 KB`.
+Verified accepted by RFP.
+
+- **Boundaries to program (RFP fields):**
+
+| RFP field | Value |
+|---|---|
+| Code Secure (KB) | `317` |
+| Code NSC (KB) | `3` |
+| Data Secure (KB) | `8` (all data flash — ITS/PS/NV) |
+| SRAM Secure (KB) | `128` (`0x20000000–0x2001FFFF`; NS from `0x20020000`) |
+| SRAM NSC (KB) | `0` (veneers live in code flash) |
+| SiP Flash Secure (KB) | `0` (unused on EK-RA6M4) |
 
 ## 8. OFS (option-setting memory) — BL2 only
 - OFS (`0x0100A100–0x0100A2CF`: OFS0/OFS1/`_SEC`/`_SEL`/BANKSEL/BPS…) is emitted **into the BL2 image
