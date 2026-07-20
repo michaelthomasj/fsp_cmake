@@ -358,6 +358,18 @@ Verify the SAU/veneer attribution on hardware; do NOT program an IDAU NSC region
       the `.ram_noinit` attribute and survive by design (FSP-native fix). Today `BSP_CFG_EARLY_INIT=0`,
       so only the defensive `SystemCoreClockUpdate()` calls save us. Note the embedded `fsp/` snapshot in
       the TF-M port needs the same setting (or point the build at the regenerated RASC project).
+- [ ] **⚠ Fix the signed-image build dependency (stale-image trap — do before upstreaming).** A plain
+      `cmake --build <build>` does NOT regenerate `tfm_s_signed.bin` / `tfm_ns_signed.bin`: the signing
+      `add_custom_command(OUTPUT tfm_s_signed.bin DEPENDS tfm_s_bin ...)` depends on the **target**, not
+      on the file `tfm_s.bin`, and the custom targets are not reached by the default `all`. Result: the
+      ELF relinks, signing never re-runs, ninja says "no work to do", and you silently flash a stale
+      secure image (this actually happened on 2026-07-20 — a 10-day-old `tfm_s_signed.bin` was on the
+      device for the first bring-up). Deleting only `bin/tfm_s_signed.bin` doesn't help either; the
+      intermediate `<build>/bl2/ext/mcuboot/tfm_s_signed.bin` still satisfies it.
+      **Workaround today:** `rm -f <build>/bl2/ext/mcuboot/tfm_*_signed.bin && cmake --build <build>
+      --target signed_images`, then check timestamps/sizes (S=0x30000, NS=0x20000).
+      **Proper fix:** make the signing depend on the produced binary and pull the signed images into the
+      default target so `cmake --build` is sufficient. See DESIGN.md §11.1.
 - [ ] **⚠ IAR toolchain support (do immediately, keep in the design).** The veneer/NSC + OFS + BL2 linker
       work is currently GNU-only: `ra6m4_bl2.ld` is a GNU script (need an IAR `.icf` BL2 linker with the
       OFS sections), and the `TFM_LINKER_VENEERS_START/_LOCATION_END` macros must be confirmed/ported for
