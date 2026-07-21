@@ -1,7 +1,8 @@
-# Bricking evidence — RA6M4 FSPR=0 permanent lock
+# Bricking evidence — RA6M4 un-erasable boards (cause UNKNOWN)
 
-These files are the **exact BL2 image that permanently bricked two EK-RA6M4 boards** on
-2026-07-20, preserved for forensic reference. Do **not** flash them to any board.
+These files are the **exact BL2 image flashed to two EK-RA6M4 boards** that then became un-erasable on
+2026-07-20, preserved for forensic reference. Do **not** flash them to any board. (An earlier title
+called this an "FSPR=0 permanent lock" — that diagnosis was wrong; see below.)
 
 - `bl2_BRICKED.elf` — the exact `build_ra6m4_boot/bin/bl2.elf` (built 14:31:26), copied with its
   original timestamp.
@@ -31,20 +32,24 @@ here; do not read them. The variable that differs from the working der board is 
 hardware left). Correct check on a suspect board: read `DLMMON @0x400E002C`, attempt RDPM Initialize,
 and compare Ozone vs e2 studio/RFP flashing.
 
-### Observed post-brick state (both boards, read over J-Link)
+### Observed post-brick state (read over J-Link)  — with corrected interpretation
 ```
-FAWMON @0x407FE0DC = 0x00000000   -> FSPR (bit15) = 0   PERMANENT
-FSTATR @0x407FE080 = 0x00008000   -> peripheral clocked, read is valid
-0x0100A130 / 0x0100A160 = 0x00000000  -> Security-MPU block zeroed by the config-set
+DLMMON @0x400E002C = 0x2  -> DLM state SSD (open dev state, NOT locked)  [correct lock register]
 Boot firmware Initialize -> "Boot error code: 0xDA" (RES_PROTECTION_ERROR)
+0x0100A130 / 0x0100A160  = 0x00000000  (config-area words; addresses NOT verified vs HW manual)
+
+# INVALID readings from the withdrawn theory (RA6M4 has no Flash Access Window):
+FAWMON @0x407FE0DC = 0x00000000   -> FSPR is not a feature on RA6M4; meaningless here
+FBPROT0/1 @0x407FE078/7C = 0x0000 -> write-only cancel bits, always read 0; meaningless
 ```
 
-`FSPR = 0` is irreversible — no RFP / RDPM / J-Link recovery. RMA only.
+No valid register read proves a permanent lock. `DLMMON` says SSD; the `0xDA` on Initialize is real but
+unexplained. **Reversibility is unknown**, not "irreversible / RMA only" as previously stated.
 
 ## The mitigation (not a proven fix)
 
 Option-setting sections were removed from **all** TF-M images (linker + source + CMake) — per the
-project requirement that BL2 never link OFS, and as a precaution that takes the dangerous region out of
-every debugger-flashed image. This is **not confirmed** to be the brick cause (see above). Prefer the
-**e2 studio / RFP** flashing flow over Ozone/raw-JLink for RA6M4, and read `FAWMON` back after any
+project requirement that BL2 never link OFS, and as a precaution that takes a security-sensitive region
+out of every debugger-flashed image. This is **not confirmed** to be the cause (see above). Prefer the
+**e2 studio / RFP** flashing flow over Ozone/raw-JLink for RA6M4, and verify state on hardware after any
 option/protection programming. See `../../DESIGN.md` §8.4 and `../check_ofs.py`.
