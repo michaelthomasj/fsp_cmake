@@ -7,7 +7,7 @@ These files are the **exact BL2 image that permanently bricked two EK-RA6M4 boar
   original timestamp.
 - `bl2_BRICKED.srec` / `bl2_BRICKED.hex` — same image, S-record / Intel-hex.
 
-## What caused the brick
+## Status: root cause NOT established
 
 The image contains three data records in the RA6M4 **option/config memory** region
 (`0x0100A100–0x0100A2CF`):
@@ -18,11 +18,18 @@ S3 09 0100A200 FFFDFFFF 59    OFS1_SEC = 0xFFFFFDFF
 S3 09 0100A280 F8F8FFFF E5    OFS1_SEL = 0xFFFFF8F8
 ```
 
-The RA6M4 programs option/config memory through the flash **FCU Configuration-Set** command as **one
-block** covering OFS **+ Security-MPU + FAW** (including the one-time-programmable **FSPR** permanence
-bit). When a debugger (J-Link/Ozone) flashes an image that contains only a **partial** option region,
-the flash algorithm supplies **zeros** for the rest of the config block. That drives **`FSPR → 0`**,
-which permanently locks the Flash Access Window and disables erase for the life of the part.
+These were **initially blamed** for the brick. That was **disproven**: the field-proven
+`ra6m4_der_conversion` image carries **byte-identical** records in this region (SREC diff) yet is a
+working, reprogrammable board. So the option-memory *content* is not the differentiator.
+
+What is known: both bricked boards read `FAWMON=0` / `FSPR=0` (permanent FAW lock), and `FSPR` is set
+only by a flash Configuration-Set command. The variable that differs is the **flashing path**, not the
+image: der is programmed by e2 studio's RA-aware Renesas J-Link flow; both bricks came via **Ozone /
+raw `JLink.exe`** (generic flash path). Whether that path clears `FSPR` — and whether because of the
+`0x0100A1xx` records or independently (erase/reset on a TZ-configured device) — is **untested** (no
+hardware left). Falsifiable test when a board is available: flash the OFS-free `bl2.elf` via Ozone,
+read `FAWMON`; `FSPR=1` ⇒ OFS+Ozone was the trigger, `FSPR=0` ⇒ the Ozone/raw-JLink path itself is
+unsafe for RA6M4.
 
 ### Observed post-brick state (both boards, read over J-Link)
 ```
@@ -34,8 +41,10 @@ Boot firmware Initialize -> "Boot error code: 0xDA" (RES_PROTECTION_ERROR)
 
 `FSPR = 0` is irreversible — no RFP / RDPM / J-Link recovery. RMA only.
 
-## The fix
+## The mitigation (not a proven fix)
 
-Option-setting sections were removed from **all** TF-M images (linker + source + CMake). Option memory
-must be programmed **only** by an RA-aware tool (RFP) with a **complete, FSPR-preserving** config, and
-verified by reading `FAWMON` back afterward. See `../../DESIGN.md` §8.4 and `../check_ofs.py`.
+Option-setting sections were removed from **all** TF-M images (linker + source + CMake) — per the
+project requirement that BL2 never link OFS, and as a precaution that takes the dangerous region out of
+every debugger-flashed image. This is **not confirmed** to be the brick cause (see above). Prefer the
+**e2 studio / RFP** flashing flow over Ozone/raw-JLink for RA6M4, and read `FAWMON` back after any
+option/protection programming. See `../../DESIGN.md` §8.4 and `../check_ofs.py`.

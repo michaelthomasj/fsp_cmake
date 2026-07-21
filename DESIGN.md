@@ -111,17 +111,20 @@ Verified accepted by RFP.
 | SRAM NSC (KB) | `0` (veneers live in code flash) |
 | SiP Flash Secure (KB) | `0` (unused on EK-RA6M4) |
 
-## 8. OFS (option-setting memory) — NOT in ANY image ⚠ (reversed decision)
-> **This reverses the original "OFS in the BL2 image" design. That design bricked two EK-RA6M4 boards
-> (§8.4). No TF-M image (BL2/secure/NS) may contain option/config-memory sections.** Commit: removed
-> `bl2_option_setting.c`, the `.option_setting_*` placements in `ra6m4_bl2.ld`, and its CMake wiring.
+## 8. OFS (option-setting memory) — NOT in ANY image (reversed decision)
+> **This reverses the original "OFS in the BL2 image" design, per user instruction and as a precaution
+> after two EK-RA6M4 boards were permanently bricked (§8.4).** No TF-M image (BL2/secure/NS) contains
+> option/config-memory sections. Commit: removed `bl2_option_setting.c`, the `.option_setting_*`
+> placements in `ra6m4_bl2.ld`, and its CMake wiring.
+> **Note:** removing OFS is *not* a proven fix — the bricked images carry OFS records byte-identical to
+> the working der image (§8.4). It removes one variable and satisfies the "no OFS in BL2" requirement.
 
-- **Why removed:** the RA6M4 option/config area (`0x0100A100–0x0100A2CF`) is written by the flash FCU
-  as one **Configuration-Set** block spanning OFS + Security-MPU + FAW (incl. the one-time-programmable
-  **FSPR** permanence bit). A debugger (J-Link/Ozone) flashing an image with a **partial** option region
-  fills the rest of that block with zeros → `FSPR = 0` → **permanent brick** (§8.4). Reproduced on two
-  boards. This is unavoidable for *any* debugger-flashed image that carries these sections, so they must
-  not exist in the build at all.
+- **Why removed:** (1) the user requires that BL2 builds never link OFS; (2) the RA6M4 option/config area
+  (`0x0100A100–0x0100A2CF`) is adjacent to the one-time-programmable **FSPR** FAW permanence bit, and two
+  boards died with `FSPR=0` after flashing OFS-bearing images via Ozone/raw-JLink — so keeping option
+  memory out of every debugger-flashed image removes that region from the blast radius entirely, whatever
+  the precise trigger turns out to be (§8.4). Option memory, if ever needed, is set only by RFP with
+  `FAWMON` read back.
 - **Where OFS is set instead:** option memory is configured **only** by an RA-aware tool (**RFP**) with a
   complete, FSPR-preserving config, programmed **separately** from the firmware image, and **verified by
   reading `FAWMON` back** (`FSPR` must stay `1`). This is a provisioning/production step, not part of the
@@ -263,16 +266,26 @@ No field tool recovers it — not RFP, not RDPM Initialize, not J-Link. Only Ren
 protection is generally not reversible even there. **Diagnostic recipe for a suspected brick:** read
 `FAWMON @ 0x407FE0DC`; if bit 15 (`0x8000`) is clear, the part is permanently protected.
 
-**CORRECTION — the port image DID cause this (proven on a second board).** An earlier version of this
-section claimed the image was innocent because it "only writes OFS, not FAW." That was wrong, and acting
-on it cost a second board. On 2026-07-20 a **known-good board was flashed with `bl2.elf` via Ozone and
-immediately bricked identically** (`FAWMON=0`, `FSPR=0`, SECMPU zeroed, code not programmed). The three
-OFS records the image *does* carry (`0x0100A100/A200/A280`) are enough: the FCU programs the whole
-Configuration-Set block, and J-Link supplies **zeros for the SECMPU + FAW words the image omits**, so
-`FSPR` goes to 0. Preserved evidence: [`bringup/bricking_evidence/`](bringup/bricking_evidence/)
-(`bl2_BRICKED.elf/.srec/.hex` + README). The lesson: reasoning from ELF section *bytes* is not the same
-as knowing what the programmer *does to silicon* — verify on hardware, or (better) don't ship the
-sections at all (§8, done).
+**Root cause is NOT established. Do not claim the OFS records caused it.** Two earlier claims here were
+wrong: first "the image is innocent," then "the OFS records are proven to cause it." Both were retracted.
+The decisive counter-evidence: the field-proven **`ra6m4_der_conversion`** image carries **byte-identical**
+config-region records (`0100A100 FFFFFFFF`, `0100A200 FFFDFFFF`, `0100A280 F8F8FFFF` — verified by SREC
+diff), yet der is a working, reprogrammable board. Identical option-memory content, opposite outcome ⇒
+the **image content is not the differentiator**.
+
+What *is* known: both boards read `FAWMON=0`/`FSPR=0` (permanent FAW lock), and `FSPR` is only set by a
+flash Configuration-Set command. What differs between the working case and the bricked cases is the
+**flashing path**, not the image: der is programmed by **e2 studio's Renesas J-Link flow** (RA-aware);
+both bricks came via **Ozone / raw `JLink.exe` CommanderScript** (generic flash path). Whether that
+generic path issues a config-set that clears `FSPR` — and whether it does so because of the `0x0100A1xx`
+records or independently (erase/reset on a TZ-configured device) — is **untested**; no hardware remains.
+
+Preserved evidence: [`bringup/bricking_evidence/`](bringup/bricking_evidence/). **Falsifiable test when a
+board is available:** flash the now-OFS-free `bl2.elf` via Ozone to a fresh board, read `FAWMON`. `FSPR=1`
+⇒ the OFS-in-image + Ozone combination was the trigger (removal fixed it). `FSPR=0` ⇒ the Ozone/raw-JLink
+path itself is unsafe for RA6M4 and must be replaced by the e2 studio / RFP flow regardless of image.
+Until then, treat OFS removal (§8) as **precaution and per-instruction**, not a proven fix, and prefer
+the RA-aware flashing flow.
 
 **Hard rules to never brick another board:**
 - **Never** enable a Flash Access Window with the **permanent / FSPR / "OTP" / "permanent lock"** option
@@ -301,10 +314,11 @@ and is not being guessed.** Corroborating oddity: the Security-MPU config block 
 also reads all-zeros (erased = `FF`), i.e. a zeroed config buffer reached the FCU at some point.
 The lesson is already actioned by the rules above + the `check_ofs.py` guard below.
 
-### 8.5 Build-time brick guard — `bringup/check_ofs.py`
+### 8.5 Build-time OFS policy guard — `bringup/check_ofs.py`
 [`bringup/check_ofs.py`](bringup/check_ofs.py) **fails if any image contains a byte in the option/config
-window `0x0100A100–0x0100A2CF`** — the definitive pre-flash safety gate after §8/§8.4. Run before every
-flash and in CI:
+window `0x0100A100–0x0100A2CF`** — it enforces the "no OFS in any image" policy (§8). It is a policy gate,
+not a proven anti-brick measure (root cause unestablished, §8.4), but keeping option memory out of every
+debugger-flashed image is a sound precaution. Run before every flash and in CI:
 ```
 python bringup/check_ofs.py                    # defaults to the three build_ra6m4_boot images
 python bringup/check_ofs.py path/to/image.elf  # explicit
