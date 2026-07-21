@@ -111,17 +111,28 @@ Verified accepted by RFP.
 | SRAM NSC (KB) | `0` (veneers live in code flash) |
 | SiP Flash Secure (KB) | `0` (unused on EK-RA6M4) |
 
-## 8. OFS (option-setting memory) — BL2 only
-- OFS (`0x0100A100–0x0100A2CF`: OFS0/OFS1/`_SEC`/`_SEL`/BANKSEL/BPS…) is emitted **into the BL2 image
-  only**. Reasons: (a) the secure/NS images are MCUboot-signed and imgtool needs a **contiguous**
-  payload — OFS is non-contiguous with code flash; (b) two images programming OFS would collide. FSP's
-  `bsp_linker.c` already gates OFS on `#ifndef BSP_BOOTLOADED_APPLICATION` (bootloader only).
-- **Implementation:** `bl2_option_setting.c` emits `.option_setting_*` with values from the RASC config
-  (`BSP_CFG_OPTION_SETTING_*`), compiled straight into the `bl2` executable (not a static lib, or the
-  linker wouldn't pull it in). `ra6m4_bl2.ld` places the sections at their fixed addresses.
-- **`ra6m4_bl2.ld` is the ONE forked linker** (a copy of `tfm_common_bl2.ld` + OFS). Forked because GNU
-  ld `INSERT` cannot augment a `-T` main script from a second `-T` fragment. Keep it in sync with TF-M
-  on version bumps. The secure/NS side stays on TF-M's generated linker (§7), unforked.
+## 8. OFS (option-setting memory) — NOT in ANY image ⚠ (reversed decision)
+> **This reverses the original "OFS in the BL2 image" design. That design bricked two EK-RA6M4 boards
+> (§8.4). No TF-M image (BL2/secure/NS) may contain option/config-memory sections.** Commit: removed
+> `bl2_option_setting.c`, the `.option_setting_*` placements in `ra6m4_bl2.ld`, and its CMake wiring.
+
+- **Why removed:** the RA6M4 option/config area (`0x0100A100–0x0100A2CF`) is written by the flash FCU
+  as one **Configuration-Set** block spanning OFS + Security-MPU + FAW (incl. the one-time-programmable
+  **FSPR** permanence bit). A debugger (J-Link/Ozone) flashing an image with a **partial** option region
+  fills the rest of that block with zeros → `FSPR = 0` → **permanent brick** (§8.4). Reproduced on two
+  boards. This is unavoidable for *any* debugger-flashed image that carries these sections, so they must
+  not exist in the build at all.
+- **Where OFS is set instead:** option memory is configured **only** by an RA-aware tool (**RFP**) with a
+  complete, FSPR-preserving config, programmed **separately** from the firmware image, and **verified by
+  reading `FAWMON` back** (`FSPR` must stay `1`). This is a provisioning/production step, not part of the
+  TF-M build. For plain BL2 debugging, no OFS is needed (watchdogs off by default; the clock tree is set
+  by FSP `SystemInit`).
+- **Guard:** [`bringup/check_ofs.py`](bringup/check_ofs.py) is now a **brick guard** — it fails the build/CI
+  if any image contains a byte in `0x0100A100–0x0100A2CF`. Run before every flash.
+- **`ra6m4_bl2.ld` stays forked** but now only for the `.ram_noinit` FCLK fix (§8.1), **not** OFS — it is a
+  copy of `tfm_common_bl2.ld` + `.ram_noinit`, kept in sync with TF-M on version bumps. Secure/NS stay on
+  TF-M's generated linker (§7). FSP's own `bsp_linker.c` also emits these sections when compiled, so the
+  NS/secure FSP builds are checked by the guard too (currently clean).
 
 ## 8.1 FSP ↔ TF-M startup-order contract (.ram_noinit / BSP_CFG_EARLY_INIT)
 **This bit the first hardware bring-up — read before porting to another RA part.**
@@ -252,10 +263,16 @@ No field tool recovers it — not RFP, not RDPM Initialize, not J-Link. Only Ren
 protection is generally not reversible even there. **Diagnostic recipe for a suspected brick:** read
 `FAWMON @ 0x407FE0DC`; if bit 15 (`0x8000`) is clear, the part is permanently protected.
 
-**The port image did NOT cause this.** `arm-none-eabi-objdump -h bl2.elf` shows only three option
-sections (`ofs0`/`ofs1_sec`/`ofs1_sel`); none touch the FAW/Config area, so flashing the TF-M image
-never writes `FSPR`. The lock was introduced by a **tool/manual step** (an RFP or RASC "Flash Access
-Window" / permanent-protection option, or a botched Config-area write). Exact step unknown.
+**CORRECTION — the port image DID cause this (proven on a second board).** An earlier version of this
+section claimed the image was innocent because it "only writes OFS, not FAW." That was wrong, and acting
+on it cost a second board. On 2026-07-20 a **known-good board was flashed with `bl2.elf` via Ozone and
+immediately bricked identically** (`FAWMON=0`, `FSPR=0`, SECMPU zeroed, code not programmed). The three
+OFS records the image *does* carry (`0x0100A100/A200/A280`) are enough: the FCU programs the whole
+Configuration-Set block, and J-Link supplies **zeros for the SECMPU + FAW words the image omits**, so
+`FSPR` goes to 0. Preserved evidence: [`bringup/bricking_evidence/`](bringup/bricking_evidence/)
+(`bl2_BRICKED.elf/.srec/.hex` + README). The lesson: reasoning from ELF section *bytes* is not the same
+as knowing what the programmer *does to silicon* — verify on hardware, or (better) don't ship the
+sections at all (§8, done).
 
 **Hard rules to never brick another board:**
 - **Never** enable a Flash Access Window with the **permanent / FSPR / "OTP" / "permanent lock"** option
@@ -284,17 +301,16 @@ and is not being guessed.** Corroborating oddity: the Security-MPU config block 
 also reads all-zeros (erased = `FF`), i.e. a zeroed config buffer reached the FCU at some point.
 The lesson is already actioned by the rules above + the `check_ofs.py` guard below.
 
-### 8.5 Build-time OFS guard — `bringup/check_ofs.py`
-[`bringup/check_ofs.py`](bringup/check_ofs.py) diffs the BL2's option memory (`0x0100A100–0x0100A2CF`)
-against the field-proven **`ra6m4_der_conversion`** reference ELF and exits non-zero on any divergence.
-Run before every flash (and wire into CI / a post-build step):
+### 8.5 Build-time brick guard — `bringup/check_ofs.py`
+[`bringup/check_ofs.py`](bringup/check_ofs.py) **fails if any image contains a byte in the option/config
+window `0x0100A100–0x0100A2CF`** — the definitive pre-flash safety gate after §8/§8.4. Run before every
+flash and in CI:
 ```
-python bringup/check_ofs.py            # defaults: build_ra6m4_boot/bin/bl2.elf vs der ELF
-python bringup/check_ofs.py <elf> --ref <known-good.elf>
+python bringup/check_ofs.py                    # defaults to the three build_ra6m4_boot images
+python bringup/check_ofs.py path/to/image.elf  # explicit
 ```
-It reads unprogrammed slots as `0xFFFFFFFF` (erased), so it compares *effective* option memory, and
-labels each region (OFS0/OFS1_SEC/OFS1_SEL/BPS/…). This is the automated form of the §8.2 rule
-"never program OFS values not diffed against a known-good image."
+Exit 0 = safe to flash via debugger; exit 1 = image carries option memory, **do not flash**. Verified:
+CLEAN on the current build, FAIL on the preserved `bl2_BRICKED.elf`.
 
 ## 9. Console / logging — SEGGER RTT (switchable)
 - `RA6M4_STDOUT_RTT` (default ON): routes TF-M/MCUboot stdout to SEGGER RTT over J-Link (no UART wiring,

@@ -1,58 +1,48 @@
 #!/usr/bin/env python3
 """
-check_ofs.py - flag any option-setting (OFS) memory value in a built BL2 image
-that differs from a KNOWN-GOOD reference image.
+check_ofs.py - BRICK GUARD. Fail if a firmware image contains ANY RA6M4
+option/config-memory content (0x0100A100-0x0100A2CF).
 
-Why: the OFS region (0x0100A100-0x0100A2CF: OFS0/OFS1/_SEC/_SEL/BPS/PBPS/SECMPU...)
-programs security attribution, watchdogs, clocks, and flash protection. A wrong
-word here can misconfigure or (with FAW/permanent bits) permanently brick a part.
-The RA6M4 ra6m4_der_conversion project is a trusted, field-proven image, so we
-diff our BL2's OFS bytes against it and fail the build if anything diverges.
+WHY THIS EXISTS (read DESIGN.md 8.4): flashing an image that carries even a
+partial option region via J-Link/Ozone drives the flash Configuration-Set
+command to zero the rest of the config block, which clears the one-time FSPR
+permanence bit and PERMANENTLY BRICKS the part. This destroyed two EK-RA6M4
+boards. No BL2/secure/NS image may ever contain these sections; option memory
+is programmed ONLY by RFP, separately, verified by reading FAWMON back.
 
-Compares the effective programmed option memory over 0x0100A100..0x0100A2CF:
-for each 4-byte slot, the value is the image's section content where present,
-else 0xFFFFFFFF (unprogrammed option memory reads as erased = all-ones).
+This check makes that a build/CI gate: it inspects the ELF (or any objdump-able
+image) and exits non-zero if a single byte lands in 0x0100A100-0x0100A2CF.
 
 Usage:
-    python check_ofs.py [TARGET_ELF] [--ref REFERENCE_ELF] [--objdump OBJDUMP]
-Defaults:
-    TARGET_ELF = trusted-firmware-m/build_ra6m4_boot/bin/bl2.elf
-    REFERENCE  = ra6m4_der_conversion/Debug/ra6m4_der_conversion.elf
-Exit code: 0 = all match, 1 = a difference was found, 2 = usage/tool error.
+    python check_ofs.py [IMAGE_ELF ...]
+    (defaults to the three build_ra6m4_boot images if no args)
+Exit: 0 = all clean, 1 = an image carries option memory (DO NOT FLASH), 2 = tool error.
 """
-import argparse, os, re, shutil, subprocess, sys
+import os, re, shutil, subprocess, sys
 
 OFS_START = 0x0100A100
-OFS_END   = 0x0100A2D0          # exclusive (covers ...A2CF)
-ERASED    = 0xFF                # unprogrammed option flash reads all-ones
+OFS_END   = 0x0100A2D0            # exclusive (covers ...A2CF)
+OBJDUMP   = os.environ.get("OBJDUMP", "arm-none-eabi-objdump")
 
-# Human labels for the known region addresses (from ra6m4_bl2.ld).
-REGION_NAMES = {
-    0x0100A100: "OFS0", 0x0100A110: "DUALSEL", 0x0100A180: "OFS1",
-    0x0100A190: "BANKSEL", 0x0100A1C0: "BPS", 0x0100A1E0: "PBPS",
-    0x0100A200: "OFS1_SEC", 0x0100A210: "BANKSEL_SEC", 0x0100A240: "BPS_SEC",
-    0x0100A260: "PBPS_SEC", 0x0100A280: "OFS1_SEL", 0x0100A290: "BANKSEL_SEL",
-    0x0100A2C0: "BPS_SEL",
-    # 0x0100A120-0x0100A17F is the Security MPU (SECMPU) config block.
-}
-
-def find_default(*rel):
+def default_images():
     here = os.path.dirname(os.path.abspath(__file__))
-    for base in (here, os.path.join(here, ".."), os.path.join(here, "..", "..")):
-        p = os.path.normpath(os.path.join(base, *rel))
+    binp = os.path.normpath(os.path.join(here, "..", "..", "trusted-firmware-m",
+                                          "build_ra6m4_boot", "bin"))
+    out = []
+    for n in ("bl2.elf", "tfm_s.axf", "tfm_ns.axf"):
+        p = os.path.join(binp, n)
         if os.path.isfile(p):
-            return p
-    return os.path.normpath(os.path.join(here, "..", "..", *rel))
+            out.append(p)
+    return out
 
-def ofs_bytes(elf, objdump):
-    """Return {addr: byte} for every byte in [OFS_START, OFS_END) present in elf."""
+def option_bytes(elf):
+    """Return sorted list of (addr, byte) that fall inside the config window."""
     try:
-        out = subprocess.run([objdump, "-s", elf], capture_output=True, text=True,
+        out = subprocess.run([OBJDUMP, "-s", elf], capture_output=True, text=True,
                              check=True).stdout
     except (subprocess.CalledProcessError, FileNotFoundError) as e:
         sys.exit(f"ERROR: objdump failed on {elf}: {e}")
-    m = {}
-    # Lines look like: " 100a100 ffffffff fffdffff ....  ...."
+    hits = {}
     for line in out.splitlines():
         t = re.match(r"\s*([0-9a-fA-F]{4,8})\s+((?:[0-9a-fA-F]{2,8}\s+){1,4})", line)
         if not t:
@@ -64,54 +54,36 @@ def ofs_bytes(elf, objdump):
         for i in range(0, len(blob), 2):
             a = addr + i // 2
             if OFS_START <= a < OFS_END:
-                m[a] = int(blob[i:i+2], 16)
-    return m
-
-def word(m, a):
-    return sum(m.get(a + i, ERASED) << (8 * i) for i in range(4))  # little-endian
+                hits[a] = int(blob[i:i+2], 16)
+    return sorted(hits.items())
 
 def main():
-    ap = argparse.ArgumentParser()
-    ap.add_argument("target", nargs="?",
-                    default=find_default("trusted-firmware-m", "build_ra6m4_boot", "bin", "bl2.elf"))
-    ap.add_argument("--ref",
-                    default=find_default("..", "..", "e2_studio", "workspace64_1",
-                                         "ra6m4_der_conversion", "Debug", "ra6m4_der_conversion.elf"))
-    ap.add_argument("--objdump", default=os.environ.get("OBJDUMP", "arm-none-eabi-objdump"))
-    a = ap.parse_args()
+    if not shutil.which(OBJDUMP):
+        sys.exit(f"ERROR: objdump '{OBJDUMP}' not on PATH (set $OBJDUMP)")
+    images = sys.argv[1:] or default_images()
+    if not images:
+        sys.exit("ERROR: no images given and no default build images found")
 
-    if not shutil.which(a.objdump):
-        sys.exit(f"ERROR: objdump '{a.objdump}' not on PATH (set --objdump or $OBJDUMP)")
-    for label, p in (("target", a.target), ("reference", a.ref)):
-        if not os.path.isfile(p):
-            sys.exit(f"ERROR: {label} ELF not found: {p}")
-
-    ref, tgt = ofs_bytes(a.ref, a.objdump), ofs_bytes(a.target, a.objdump)
-    print(f"OFS diff  0x{OFS_START:08X}..0x{OFS_END-1:08X}")
-    print(f"  target   : {a.target}")
-    print(f"  reference: {a.ref}\n")
-    print(f"  {'addr':<12}{'region':<14}{'reference':<12}{'target':<12}status")
-
-    diffs = 0
-    for addr in range(OFS_START, OFS_END, 4):
-        rv, tv = word(ref, addr), word(tgt, addr)
-        name = REGION_NAMES.get(addr, "")
-        # Only print programmed slots or mismatches (keep the erased sea quiet).
-        interesting = (rv != 0xFFFFFFFF) or (tv != 0xFFFFFFFF) or (rv != tv)
-        if not interesting:
-            continue
-        if rv == tv:
-            print(f"  0x{addr:08X}  {name:<14}{rv:08x}    {tv:08x}    OK")
+    print(f"Brick guard: no image may contain option memory 0x{OFS_START:08X}-0x{OFS_END-1:08X}\n")
+    bad = 0
+    for elf in images:
+        if not os.path.isfile(elf):
+            print(f"  {os.path.basename(elf):<14} MISSING ({elf})"); continue
+        hits = option_bytes(elf)
+        if not hits:
+            print(f"  {os.path.basename(elf):<14} CLEAN")
         else:
-            diffs += 1
-            print(f"  0x{addr:08X}  {name:<14}{rv:08x}    {tv:08x}    *** DIFF ***")
+            bad += 1
+            addrs = ", ".join(f"0x{a:08X}" for a, _ in hits[:8])
+            print(f"  {os.path.basename(elf):<14} *** CONTAINS OPTION MEMORY - DO NOT FLASH *** "
+                  f"({len(hits)} bytes @ {addrs}{'...' if len(hits) > 8 else ''})")
 
     print()
-    if diffs:
-        print(f"FAIL: {diffs} OFS word(s) differ from the known-good reference.")
-        print("Investigate before flashing - a wrong OFS word can brick the part (DESIGN.md 8.2/8.4).")
+    if bad:
+        print(f"FAIL: {bad} image(s) carry option memory. Flashing them via J-Link/Ozone will")
+        print("permanently brick the part (FSPR=0). Remove the .option_setting_* sections. DESIGN.md 8.4.")
         return 1
-    print("PASS: all programmed OFS words match the known-good reference.")
+    print("PASS: no image carries option memory - safe to flash via debugger.")
     return 0
 
 if __name__ == "__main__":
