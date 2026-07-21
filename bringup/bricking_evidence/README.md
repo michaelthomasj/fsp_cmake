@@ -22,14 +22,14 @@ These were **initially blamed** for the brick. That was **disproven**: the field
 `ra6m4_der_conversion` image carries **byte-identical** records in this region (SREC diff) yet is a
 working, reprogrammable board. So the option-memory *content* is not the differentiator.
 
-What is known: both bricked boards read `FAWMON=0` / `FSPR=0` (permanent FAW lock), and `FSPR` is set
-only by a flash Configuration-Set command. The variable that differs is the **flashing path**, not the
-image: der is programmed by e2 studio's RA-aware Renesas J-Link flow; both bricks came via **Ozone /
-raw `JLink.exe`** (generic flash path). Whether that path clears `FSPR` — and whether because of the
-`0x0100A1xx` records or independently (erase/reset on a TZ-configured device) — is **untested** (no
-hardware left). Falsifiable test when a board is available: flash the OFS-free `bl2.elf` via Ozone,
-read `FAWMON`; `FSPR=1` ⇒ OFS+Ozone was the trigger, `FSPR=0` ⇒ the Ozone/raw-JLink path itself is
-unsafe for RA6M4.
+What is known: both boards won't erase and RDPM `Initialize` returns `0xDA` (RES_PROTECTION_ERROR),
+while `DLMMON @0x400E002C = 0x2` = **SSD** (open dev state, NOT locked). **The cause and reversibility
+are UNKNOWN.** An earlier "permanent FSPR/FAW brick" diagnosis was WRONG — RA6M4 does not implement the
+Flash Access Window (`BSP_FEATURE_FLASH_SUPPORTS_ACCESS_WINDOW = 0`), so `FAWMON/FSPR` are meaningless
+here; do not read them. The variable that differs from the working der board is the **flashing path**
+(Ozone/raw-JLink vs e2 studio RA-aware) and/or the relink to `0x0` at `be511be17` — untested (no
+hardware left). Correct check on a suspect board: read `DLMMON @0x400E002C`, attempt RDPM Initialize,
+and compare Ozone vs e2 studio/RFP flashing.
 
 ### Observed post-brick state (both boards, read over J-Link)
 ```

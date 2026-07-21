@@ -3,12 +3,12 @@
 check_ofs.py - BRICK GUARD. Fail if a firmware image contains ANY RA6M4
 option/config-memory content (0x0100A100-0x0100A2CF).
 
-WHY THIS EXISTS (read DESIGN.md 8.4): flashing an image that carries even a
-partial option region via J-Link/Ozone drives the flash Configuration-Set
-command to zero the rest of the config block, which clears the one-time FSPR
-permanence bit and PERMANENTLY BRICKS the part. This destroyed two EK-RA6M4
-boards. No BL2/secure/NS image may ever contain these sections; option memory
-is programmed ONLY by RFP, separately, verified by reading FAWMON back.
+WHY THIS EXISTS (read DESIGN.md 8.4): two EK-RA6M4 boards ended up un-erasable
+during bring-up while option-memory-bearing images were being flashed via
+Ozone/raw-JLink. The exact cause is NOT established (an earlier "FSPR brick"
+theory was wrong - RA6M4 has no Flash Access Window). As a precaution and per
+project requirement, no BL2/secure/NS image may contain option/config sections;
+option memory is programmed ONLY by RFP, separately, verified on hardware.
 
 This check makes that a build/CI gate: it inspects the ELF (or any objdump-able
 image) and exits non-zero if a single byte lands in 0x0100A100-0x0100A2CF.
@@ -81,7 +81,8 @@ def main():
     print()
     if bad:
         print(f"FAIL: {bad} image(s) carry option memory. Flashing them via J-Link/Ozone will")
-        print("permanently brick the part (FSPR=0). Remove the .option_setting_* sections. DESIGN.md 8.4.")
+        print("touch RA6M4 option/config memory - a region implicated in two un-erasable boards")
+        print("(cause unestablished, DESIGN.md 8.4). Remove the .option_setting_* sections.")
         return 1
     print("PASS: no image carries option memory - safe to flash via debugger.")
     return 0

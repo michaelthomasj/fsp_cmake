@@ -113,23 +113,21 @@ Verified accepted by RFP.
 
 ## 8. OFS (option-setting memory) — NOT in ANY image (reversed decision)
 > **This reverses the original "OFS in the BL2 image" design, per user instruction and as a precaution
-> after two EK-RA6M4 boards were permanently bricked (§8.4).** No TF-M image (BL2/secure/NS) contains
-> option/config-memory sections. Commit: removed `bl2_option_setting.c`, the `.option_setting_*`
+> after two EK-RA6M4 boards ended up un-erasable during bring-up (§8.4).** No TF-M image (BL2/secure/NS)
+> contains option/config-memory sections. Commit: removed `bl2_option_setting.c`, the `.option_setting_*`
 > placements in `ra6m4_bl2.ld`, and its CMake wiring.
-> **Note:** removing OFS is *not* a proven fix — the bricked images carry OFS records byte-identical to
+> **Note:** removing OFS is *not* a proven fix — the affected images carry OFS records byte-identical to
 > the working der image (§8.4). It removes one variable and satisfies the "no OFS in BL2" requirement.
 
 - **Why removed:** (1) the user requires that BL2 builds never link OFS; (2) the RA6M4 option/config area
-  (`0x0100A100–0x0100A2CF`) is adjacent to the one-time-programmable **FSPR** FAW permanence bit, and two
-  boards died with `FSPR=0` after flashing OFS-bearing images via Ozone/raw-JLink — so keeping option
-  memory out of every debugger-flashed image removes that region from the blast radius entirely, whatever
-  the precise trigger turns out to be (§8.4). Option memory, if ever needed, is set only by RFP with
-  `FAWMON` read back.
-- **Where OFS is set instead:** option memory is configured **only** by an RA-aware tool (**RFP**) with a
-  complete, FSPR-preserving config, programmed **separately** from the firmware image, and **verified by
-  reading `FAWMON` back** (`FSPR` must stay `1`). This is a provisioning/production step, not part of the
-  TF-M build. For plain BL2 debugging, no OFS is needed (watchdogs off by default; the clock tree is set
-  by FSP `SystemInit`).
+  (`0x0100A100–0x0100A2CF`) is a security-sensitive region best kept out of every debugger-flashed image
+  while the un-erasable-board cause is still unestablished (§8.4) — this takes that region out of the
+  blast radius entirely, whatever the trigger turns out to be. Option memory, if ever needed, is set only
+  by RFP and verified by reading the relevant state back **on hardware**.
+- **Where OFS is set instead:** option memory is configured **only** by an RA-aware tool (**RFP**),
+  programmed **separately** from the firmware image, and verified against a known-good part. This is a
+  provisioning/production step, not part of the TF-M build. For plain BL2 debugging, no OFS is needed
+  (watchdogs off by default; the clock tree is set by FSP `SystemInit`).
 - **Guard:** [`bringup/check_ofs.py`](bringup/check_ofs.py) is now a **brick guard** — it fails the build/CI
   if any image contains a byte in `0x0100A100–0x0100A2CF`. Run before every flash.
 - **`ra6m4_bl2.ld` stays forked** but now only for the `.ram_noinit` FCLK fix (§8.1), **not** OFS — it is a
@@ -247,72 +245,55 @@ permanent block protection (PBPS). This port emits only `ofs0` / `ofs1_sec` / `o
 `bps`/`pbps`/`osis` — which is what keeps recovery possible at all. Do not add those sections without a
 very good reason.
 
-### 8.4 ⚠⚠ The permanent brick — `FSPR = 0` (Flash Access Window permanence). NOT recoverable.
+### 8.4 Two boards in an un-erasable state — cause UNESTABLISHED (FSPR theory withdrawn)
 
-**One EK-RA6M4 was permanently bricked during bring-up.** Symptom sequence and the definitive
-diagnosis (all values *observed*, not derived):
+Two EK-RA6M4 boards ended up unable to erase/program. The mechanism is **not established**, and an
+earlier "permanent FSPR/FAW brick" diagnosis here was **WRONG** — recorded in full so the error isn't
+repeated.
 
-- RDPM connects and reads fine; **Initialize fails with `Boot error code: 0xDA` (RES_PROTECTION_ERROR)**,
-  after which the boot firmware stops responding. Per the RA standard-boot-firmware spec (R01AN5562),
-  this is the *documented* behavior when **`FSPR` in the Config area is 0**.
-- RDPM STATUS: **DLM = SSD, Debug = DBG2** (full debug, least-restrictive) — so it is **not** a DLM
-  lock; a DLM lock would be key-reversible, this is not.
-- J-Link read of `FAWMON @ 0x407FE0DC` = `0x00000000` → **`FSPR` (bit 15) = 0**. Corroborated by
-  `FSTATR @ 0x407FE080 = 0x00008000` (FRDY set → FACI is clocked, so the read is real, not a dead bus).
+**What was observed (facts):**
+- RDPM connects and reads; **`Initialize` fails with `Boot error code: 0xDA` (RES_PROTECTION_ERROR)**.
+- RDPM STATUS and a direct read of **`DLMMON @ 0x400E002C = 0x2` = SSD** (full-debug DBG2) — the
+  *least*-restrictive development state. **Not** a locked lifecycle state.
 
-`FSPR` is the **Flash Access Window protection flag: one-time-programmable**. Once `0`, the FAW
-setting is locked and flash outside the window is erase/write-protected **for the life of the part**.
-No field tool recovers it — not RFP, not RDPM Initialize, not J-Link. Only Renesas RMA, and permanent
-protection is generally not reversible even there. **Diagnostic recipe for a suspected brick:** read
-`FAWMON @ 0x407FE0DC`; if bit 15 (`0x8000`) is clear, the part is permanently protected.
+**Why the FSPR diagnosis was wrong (do not reuse it):**
+- The RA6M4 **does not implement the Flash Access Window feature**:
+  `BSP_FEATURE_FLASH_SUPPORTS_ACCESS_WINDOW = 0` (bsp_feature.h). `FAWMON` is only in the CMSIS header as
+  a superset symbol; the FSP driver touches only `FAWMON.BTFLG` (dual-bank swap), never `FSPR/FAWS/FAWE`.
+- So `FAWMON @ 0x407FE0DC` and its "`FSPR` bit 15" are **not valid lock indicators on this die**. The
+  `FAWMON = 0` reading proved nothing (and was never baselined against a healthy RA6M4). FAWMON/FSPR
+  belongs to RA6M3-class parts, not RA6M4.
+- `FBPROT0/1 @ 0x407FE078/7C` are **write-only cancel bits** ("always read as 0x00") — reading them is
+  meaningless too.
 
-**Root cause is NOT established. Do not claim the OFS records caused it.** Two earlier claims here were
-wrong: first "the image is innocent," then "the OFS records are proven to cause it." Both were retracted.
-The decisive counter-evidence: the field-proven **`ra6m4_der_conversion`** image carries **byte-identical**
-config-region records (`0100A100 FFFFFFFF`, `0100A200 FFFDFFFF`, `0100A280 F8F8FFFF` — verified by SREC
-diff), yet der is a working, reprogrammable board. Identical option-memory content, opposite outcome ⇒
-the **image content is not the differentiator**.
+**Correct registers on RA6M4** (`BSP_FEATURE_TZ_HAS_DLM = 1`):
 
-What *is* known: both boards read `FAWMON=0`/`FSPR=0` (permanent FAW lock), and `FSPR` is only set by a
-flash Configuration-Set command. What differs between the working case and the bricked cases is the
-**flashing path**, not the image: der is programmed by **e2 studio's Renesas J-Link flow** (RA-aware);
-both bricks came via **Ozone / raw `JLink.exe` CommanderScript** (generic flash path). Whether that
-generic path issues a config-set that clears `FSPR` — and whether it does so because of the `0x0100A1xx`
-records or independently (erase/reset on a TZ-configured device) — is **untested**; no hardware remains.
+| Purpose | Register | Address |
+|---|---|---|
+| Lifecycle / lock state (`CM/SSD/NSECSD/DPL/LCK_DBG/LCK_BOOT/RMA`) | `PSCU.DLMMON` bits[3:0] | `0x400E002C` |
+| P/E block-protection cancel (write-only, don't read) | `FACI.FBPROT0/1` | `0x407FE078` / `0x407FE07C` |
 
-Preserved evidence: [`bringup/bricking_evidence/`](bringup/bricking_evidence/). **Falsifiable test when a
-board is available:** flash the now-OFS-free `bl2.elf` via Ozone to a fresh board, read `FAWMON`. `FSPR=1`
-⇒ the OFS-in-image + Ozone combination was the trigger (removal fixed it). `FSPR=0` ⇒ the Ozone/raw-JLink
-path itself is unsafe for RA6M4 and must be replaced by the e2 studio / RFP flow regardless of image.
-Until then, treat OFS removal (§8) as **precaution and per-instruction**, not a proven fix, and prefer
-the RA-aware flashing flow.
+Config-area block-protect (`BPS`/`PBPS`) addresses were **not** verified against the RA6M4 hardware
+manual — the `0x0100A1xx` values in this port's linker were only where *we intended to emit* sections,
+so any raw read there is uninterpreted. **Verify addresses against the HW manual before trusting them.**
 
-**Hard rules to never brick another board:**
-- **Never** enable a Flash Access Window with the **permanent / FSPR / "OTP" / "permanent lock"** option
-  in RFP, RASC, or e2 studio during development. Leave `FSPR = 1`.
-- The port must **never** emit a FAW / Config-area section, `bps`/`pbps`/`osis` — keep OFS to the three
-  `ofs*` sections only (§8, §8.3 guard).
-- Before any option/protection programming, `objdump -s` the image and **read `FAWMON` back after** —
-  confirm `FSPR` stayed `1`.
+**So what is actually established?** Only that two boards won't erase and return `0xDA` on Initialize,
+while sitting in DLM=SSD. Neither the **cause** nor whether it is **reversible** is known. The prior
+claims of "permanent", "irreversible", "FSPR=0", and "OFS records caused it" are all withdrawn:
+- OFS content is not the differentiator — der carries **byte-identical** config records (SREC diff) and
+  works, and `8a090` (which also flashed the OFS records) survived.
+- The remaining suspects are the **flashing path** (Ozone/raw-JLink vs e2 studio RA-aware) and/or the
+  change at **`be511be17`** (BL2 relinked to `0x0`, so it boots from reset). No BL2 code can write the
+  flash config area (no `AccessWindow`/`StartUpArea`/`BankSwap`/config-set is even linked into BL2).
 
-**How did `FSPR` get set to 0? — what was ruled out, and what remains (evidence, not a guess):**
-`FSPR` is written **only** by the flash **Configuration-Set command** (FCU) — *not* by programming a
-normal image, *not* by chip-erase, *not* by any `.option_setting_*` flash section. The `ofs*`/`bps`
-sections live at `0x0100A1xx`; the FAW/`FSPR` word is in a separate config area the FCU reaches with
-that command. Verified **ruled out** as the source:
-- **The TF-M port** — no `AccessWindowSet`/`StartUpAreaSelect`/FAW code in BL2 or the platform; only
-  `ofs0`/`ofs1_sec`/`ofs1_sel` sections emitted (`objdump -h`).
-- **User application code** — no `R_FLASH_HP_AccessWindow*` / `StartUpAreaSelect` call in any workspace.
-- **The RFP project** (`ra6m4.rpj`) — `SetOTP/SetLockbit/SetBoundary/SetExtraOption/ExtraOptionProtect`
-  all `False`, no FAW/startup-area tags (but it was re-saved during recovery, so this is *current*, not
-  bricking-time, state).
+**Test when a board is available** (use the `RA6M4_BL2_HALT_AT_MAIN` spin image, §CMake):
+read `DLMMON @ 0x400E002C` and attempt RDPM Initialize; compare flashing via **Ozone vs e2 studio/RFP**.
+Do not read FAWMON/FSPR — it is meaningless here.
 
-So the `FSPR=0` came from a **Configuration-Set operation by a tool** whose settings are not preserved
-in any surviving artifact — most plausibly a manual RFP "Flash Options" action or an e2 studio/RDPM
-step performed at the "catastrophic" moment. **The exact operation cannot be proven from what remains,
-and is not being guessed.** Corroborating oddity: the Security-MPU config block (`0x0100A120–A17F`)
-also reads all-zeros (erased = `FF`), i.e. a zeroed config buffer reached the FCU at some point.
-The lesson is already actioned by the rules above + the `check_ofs.py` guard below.
+**Lesson (this cost credibility four times over):** do not assert a hardware cause from a register
+whose *existence and meaning on this exact die* haven't been confirmed in the device's own
+bsp_feature.h / hardware manual. Verify the register applies before reading it, and baseline against a
+known-good part. Preserved evidence: [`bringup/bricking_evidence/`](bringup/bricking_evidence/).
 
 ### 8.5 Build-time OFS policy guard — `bringup/check_ofs.py`
 [`bringup/check_ofs.py`](bringup/check_ofs.py) **fails if any image contains a byte in the option/config
