@@ -345,9 +345,75 @@ and sanity-check the timestamps/sizes of `bin/tfm_s_signed.bin` (0x30000) and `b
 
 ## 12. Bring-up
 - `fsp_cmake/bringup/` — J-Link flash + RTT scripts. Images are Debug builds (full symbols for
-  GDB/Ozone). Flash from an erased chip; program the TZ boundaries (§7) via RFP; OFS (§8) is in `bl2.hex`.
+  GDB/Ozone). Flash from an erased chip; program the TZ boundaries (§7) via RFP. **No image carries OFS**
+  (§8); option memory is programmed separately by RFP only.
+
+## 13. Open issues / architectural risks — MUST resolve before upstreaming
+
+These are unresolved concerns about **dual ownership of startup and security config between FSP's BSP and
+TF-M**. None is the confirmed brick cause (§8.4), but each is a correctness/security risk for the port.
+
+### 13.1 SAU/IDAU config is an empty stub — FSP silently owns it
+`target_cfg.c::sau_and_idau_cfg()` is **empty** on RA6M4:
+```c
+void sau_and_idau_cfg(void) { /* "handled by TF-M's common ARMv8-M isolation framework" */ }
+```
+But the common framework's *only* SAU action is to **call this stub** (`tfm_hal_isolation_v8m.c:275`), so
+from the TF-M side **nothing configures the SAU**. On ST (the reference), `sau_and_idau_cfg()` fully
+programs SAU regions from `memory_regions` and **locks** it (`SYSCFG_CSLCKR_LOCKSAU`). On RA6M4 the SAU is
+instead configured by **FSP's `R_BSP_SecurityInit()`** (from `SystemInit`, bsp_security.c:280-336), driven
+by FSP's `BSP_PARTITION_*` config — a **different source of truth** than TF-M's `region_defs.h`. The stub's
+comment is circular and the "RA6M4 has no IDAU" comment is misleading (RA attributes via the RFP-programmed
+CFS boundaries). **Fix:** either implement `sau_and_idau_cfg()` from `region_defs.h` like ST, or make the
+stub honestly document that FSP owns it *and* reconcile `BSP_PARTITION_*` against `region_defs.h`.
+
+### 13.2 Startup ordering — FSP runs first and wins; TF-M believes it is in control
+Boot order per image (secure/BL2):
+```
+Reset_Handler (startup_ra6m4.c) -> SystemInit() -> R_BSP_SecurityInit()  [FSP: SAU, PSCU/CPSCU periph
+   security, clocks, cache]  -> __PROGRAM_START (C runtime) -> main() -> ... -> sau_and_idau_cfg() [STUB]
+   -> tfm_hal_isolation (MPU)
+```
+So **FSP configures the security state before TF-M's `main` even runs**, and TF-M then executes its HAL
+*assuming it owns that setup*. Concrete risks from this split:
+- **Config-source drift:** FSP SAU/peripheral-security from RASC (`BSP_PARTITION_*`, `BSP_TZ_CFG_PSARB/C/D/E`)
+  vs TF-M MPU/isolation from `region_defs.h`. Two files that must agree by hand and can silently diverge on
+  any RASC regen or memory-map change.
+- **Peripheral security double-config:** FSP sets `PSARB/C/D/E`/`MSSAR` from RASC; TF-M has its own
+  peripheral security model (`target_cfg.c`, `tfm_peripherals_def.c`). If they disagree on a peripheral's
+  S/NS attribution, behaviour is whichever ran last / whatever isn't re-set.
+- **Lock/re-entrancy:** if FSP locks a security register (as ST deliberately does for SAU), later TF-M
+  writes fault or are silently dropped.
+- **No verification:** some TF-M platforms (an521) run `fih_verify_sau_and_idau_cfg()` as a security
+  self-check. RA6M4 cannot — it never set the SAU — so a SAU regression goes undetected.
+- **NS transition:** the jump to NS relies on SAU/IDAU NS attribution matching where TF-M placed the NS
+  image; that attribution came from FSP's config, not TF-M's.
+This is the same class of bug as §8.1 (FSP computing `SystemCoreClock` before the C-runtime zeroed it):
+**FSP's BSP assumes it is the sole owner of a standalone FSP TrustZone app; under TF-M it is not.** Decide a
+single owner of each security facet and make the other side explicitly defer, with the config reconciled.
+
+### 13.3 One `startup_ra6m4.c` vs ST's three (bl2 / s / ns)
+ST ships **three** startup files (`startup_stm32l5xx_{bl2,s,ns}.c`) — each with its own vector table and a
+`Reset_Handler` body tailored to the image (the secure one does more setup; NS does not reconfigure
+clocks/security). RA6M4 uses **one** `startup_ra6m4.c` compiled three times. The per-image differences are
+handled **implicitly by macros** rather than by separate files:
+- `startup_ra6m4.c` itself only branches on `__ARM_FEATURE_CMSE == 3` (secure vs non-secure: stack seal,
+  `MSPLIM`), not on BL2/S/NS directly.
+- The real per-image behaviour lives in **FSP's `SystemInit`** (system.c), which branches heavily on
+  `BSP_TZ_NONSECURE_BUILD` / `BSP_TZ_SECURE_BUILD` / `BSP_TZ_CFG_SKIP_INIT` / `BSP_CFG_BOOT_IMAGE` — e.g. the
+  NS build **skips** clock/security init because the secure world already did it.
+- The 496-entry `__VECTOR_TABLE` is common; per-image handler bodies resolve at link time (weak → each
+  image's own implementations), and secure-only vectors (SecureFault) are harmless-but-present in NS.
+
+**This works only if each image is compiled with the correct TZ macros** (`BL2`; `BSP_TZ_SECURE_BUILD` for S;
+`BSP_TZ_NONSECURE_BUILD` for NS). It is functionally equivalent to ST's three files but **harder to audit** —
+a wrong/missing macro silently gives an image the wrong init path (e.g. an NS build that re-runs secure clock
+init, or a secure build that skips it). **Action:** verify the exact TZ macro set passed to each of the three
+builds (BL2/S/NS), and document them (RASC_PROJECT_SETUP.md), or split into per-image startups like ST for
+auditability before upstreaming.
 
 ---
 _Maintainer note: when bumping TF-M, re-check §5 (bootutil glue), §7 (veneer macros still honored by the
-generated linker), and §8 (`ra6m4_bl2.ld` vs the new `tfm_common_bl2.ld`). When bumping FSP, the RASC
-config (§1) flows through; re-verify OFS (§8) and clock/flash-geometry assumptions (§4)._
+generated linker), §8 (`ra6m4_bl2.ld` vs the new `tfm_common_bl2.ld`), and §13 (SAU/startup ownership vs the
+reference platforms). When bumping FSP, the RASC config (§1) flows through; re-verify clock/flash-geometry
+assumptions (§4) and the §13.2 config-source reconciliation._
