@@ -47,3 +47,19 @@ include(${CMAKE_CURRENT_LIST_DIR}/cmake/GeneratedCfg.cmake)
 # If required user can amend RASC generated flags here, e.g. list(REMOVE_ITEM RASC_CMAKE_C_FLAGS "-Wall")
 
 include(${CMAKE_CURRENT_LIST_DIR}/cmake/GeneratedSrc.cmake)
+
+# --- Auto-emit an S-record next to the ELF on every build ---
+# Mirrors the TF-M build rule (trusted-firmware-m/toolchain_*.cmake). --srec-forceS3
+# keeps 4-byte addresses so RA option/config-area records (0x0100A1xx, incl. BPS/PBPS)
+# are captured - the primary artifact for diffing what an image actually programs.
+# See fsp_cmake/DESIGN.md 8.4. (Hand-added; re-apply if RASC regenerates CMakeLists.txt.)
+find_program(RA_OBJCOPY NAMES arm-none-eabi-objcopy)
+if(RA_OBJCOPY)
+    add_custom_command(TARGET ${PROJECT_NAME}.elf POST_BUILD
+        COMMAND ${RA_OBJCOPY} -O srec --srec-forceS3
+                ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}.elf
+                ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}.srec
+        COMMENT "Generating ${PROJECT_NAME}.srec")
+else()
+    message(WARNING "arm-none-eabi-objcopy not found; ${PROJECT_NAME}.srec will not be auto-generated")
+endif()
