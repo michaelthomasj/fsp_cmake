@@ -111,29 +111,34 @@ Verified accepted by RFP.
 | SRAM NSC (KB) | `0` (veneers live in code flash) |
 | SiP Flash Secure (KB) | `0` (unused on EK-RA6M4) |
 
-## 8. OFS (option-setting memory) — NOT in ANY image (reversed decision)
-> **This reverses the original "OFS in the BL2 image" design, per user instruction and as a precaution
-> after two EK-RA6M4 boards ended up un-erasable during bring-up (§8.4).** No TF-M image (BL2/secure/NS)
-> contains option/config-memory sections. Commit: removed `bl2_option_setting.c`, the `.option_setting_*`
-> placements in `ra6m4_bl2.ld`, and its CMake wiring.
-> **Note:** removing OFS is *not* a proven fix — the affected images carry OFS records byte-identical to
-> the working der image (§8.4). It removes one variable and satisfies the "no OFS in BL2" requirement.
+## 8. OFS (option-setting memory) — BL2 only, per-word segments (the safe way)
+OFS **is** emitted into the BL2 image — but placed so it can never brick the part. The root-cause saga
+(removed entirely, then re-added correctly) is in §8.4; this is the resulting design.
 
-- **Why removed:** (1) the user requires that BL2 builds never link OFS; (2) the RA6M4 option/config area
-  (`0x0100A100–0x0100A2CF`) is a security-sensitive region best kept out of every debugger-flashed image
-  while the un-erasable-board cause is still unestablished (§8.4) — this takes that region out of the
-  blast radius entirely, whatever the trigger turns out to be. Option memory, if ever needed, is set only
-  by RFP and verified by reading the relevant state back **on hardware**.
-- **Where OFS is set instead:** option memory is configured **only** by an RA-aware tool (**RFP**),
-  programmed **separately** from the firmware image, and verified against a known-good part. This is a
-  provisioning/production step, not part of the TF-M build. For plain BL2 debugging, no OFS is needed
-  (watchdogs off by default; the clock tree is set by FSP `SystemInit`).
-- **Guard:** [`bringup/check_ofs.py`](bringup/check_ofs.py) is now a **brick guard** — it fails the build/CI
-  if any image contains a byte in `0x0100A100–0x0100A2CF`. Run before every flash.
-- **`ra6m4_bl2.ld` stays forked** but now only for the `.ram_noinit` FCLK fix (§8.1), **not** OFS — it is a
-  copy of `tfm_common_bl2.ld` + `.ram_noinit`, kept in sync with TF-M on version bumps. Secure/NS stay on
-  TF-M's generated linker (§7). FSP's own `bsp_linker.c` also emits these sections when compiled, so the
-  NS/secure FSP builds are checked by the guard too (currently clean).
+- **What was lethal:** *not* having OFS in the image, and *not* the OFS values — it was the **linker
+  section→segment layout**. The old `ra6m4_bl2.ld` placed the OFS words at absolute addresses in the
+  default region, so GNU ld coalesced them into **one PT_LOAD segment** spanning `0x0100A100–0x0100A284`
+  with the gaps **zero-filled**. A debugger flashes by program header, so it programmed `0x00000000` into
+  the gap words — including **PBPS (`0x0100A1E0`)**, the one-time Permanent Block Protect → permanent lock
+  → two bricked boards (§8.4).
+- **The fix — exactly as FSP's generated `fsp_gen.ld` does it:** each option word gets its **own,
+  exactly-sized `MEMORY` region** in `ra6m4_bl2.ld` (`OPTION_SETTING_OFS0 (r): ORIGIN=0x0100A100,
+  LENGTH=0x04`, …) and each `.option_setting_*` section is placed `> its own region`. Distinct regions ⇒
+  ld emits a **separate, tiny PT_LOAD segment per word** (4 or 12 bytes) ⇒ **no span, no gap-fill**. A
+  debugger writes only the configured words; PBPS is never in a segment. Verified: `readelf -l` shows
+  three discrete 4-byte segments (`A100`/`A200`/`A280`), identical to a safe FSP image.
+- **Emission:** `bl2_option_setting.c` emits `.option_setting_*` only for words configured in RASC
+  (`BSP_CFG_OPTION_SETTING_*`), compiled into the `bl2` executable (not a lib, or the linker wouldn't pull
+  it in). Unconfigured words emit nothing → their region stays empty → no segment. This mirrors FSP, whose
+  `fsp_gen.ld` only contains entries for configured OFS.
+- **BL2 only:** the secure/NS images are MCUboot-signed (imgtool needs a contiguous payload) and must not
+  carry OFS; two images programming OFS would also collide.
+- **Guard:** [`bringup/check_ofs.py`](bringup/check_ofs.py) is a **brick guard on the segment layout** — it
+  fails if any PT_LOAD segment across `0x0100A100–0x0100A2CF` exceeds 12 bytes (i.e. spans/zero-fills gaps).
+  Discrete per-word segments pass; the old 0x184 span fails. Run before every flash / in CI.
+- **`ra6m4_bl2.ld` stays forked** for the `.ram_noinit` FCLK fix (§8.1) **and** this per-region OFS block.
+  ⚠ **Never** collapse the OFS words into one region or place them at absolute addresses in a shared region
+  — that reintroduces the gap-filled span. Keep in sync with `fsp_gen.ld`'s per-region pattern on FSP bumps.
 
 ## 8.1 FSP ↔ TF-M startup-order contract (.ram_noinit / BSP_CFG_EARLY_INIT)
 **This bit the first hardware bring-up — read before porting to another RA part.**
@@ -245,67 +250,62 @@ permanent block protection (PBPS). This port emits only `ofs0` / `ofs1_sec` / `o
 `bps`/`pbps`/`osis` — which is what keeps recovery possible at all. Do not add those sections without a
 very good reason.
 
-### 8.4 Two boards in an un-erasable state — cause UNESTABLISHED (FSPR theory withdrawn)
+### 8.4 The brick — CONFIRMED root cause: OFS words merged into one gap-filled segment
 
-Two EK-RA6M4 boards ended up unable to erase/program. The mechanism is **not established**, and an
-earlier "permanent FSPR/FAW brick" diagnosis here was **WRONG** — recorded in full so the error isn't
-repeated.
+Two EK-RA6M4 boards were permanently bricked. The confirmed cause is the **linker section->segment
+layout of the BL2 image**, proven byte-for-byte against a bricked board's config memory.
 
-**What was observed (facts):**
-- RDPM connects and reads; **`Initialize` fails with `Boot error code: 0xDA` (RES_PROTECTION_ERROR)**.
-- RDPM STATUS and a direct read of **`DLMMON @ 0x400E002C = 0x2` = SSD** (full-debug DBG2) — the
-  *least*-restrictive development state. **Not** a locked lifecycle state.
+**Mechanism.** The old `ra6m4_bl2.ld` placed the OFS words (`.option_setting_ofs0/_sec/_sel`) at absolute
+addresses in the default output region. GNU `ld` coalesced them into **one PT_LOAD segment** spanning
+`0x0100A100-0x0100A284` (`0x184` bytes), with the gaps between the words **zero-filled** in the segment's
+file image (`p_filesz == p_memsz == 0x184`). Debuggers (Ozone / J-Link) flash an ELF by **program header**,
+so they wrote the whole `0x184` span - zeros included - into option memory. The zero at `0x0100A1E0` is
+**PBPS**, the one-time-programmable **Permanent Block Protect Setting** (`0 = protected`, permanent) - so
+all covered blocks became permanently erase/write-protected -> RDPM `Initialize` returns `0xDA` -> unrecoverable.
 
-**Why the FSPR diagnosis was wrong (do not reuse it):**
-- The RA6M4 **does not implement the Flash Access Window feature**:
-  `BSP_FEATURE_FLASH_SUPPORTS_ACCESS_WINDOW = 0` (bsp_feature.h). `FAWMON` is only in the CMSIS header as
-  a superset symbol; the FSP driver touches only `FAWMON.BTFLG` (dual-bank swap), never `FSPR/FAWS/FAWE`.
-- So `FAWMON @ 0x407FE0DC` and its "`FSPR` bit 15" are **not valid lock indicators on this die**. The
-  `FAWMON = 0` reading proved nothing (and was never baselined against a healthy RA6M4). FAWMON/FSPR
-  belongs to RA6M3-class parts, not RA6M4.
-- `FBPROT0/1 @ 0x407FE078/7C` are **write-only cancel bits** ("always read as 0x00") — reading them is
-  meaningless too.
+**Byte-exact proof** - the TF-M BL2 segment's contents == the bricked board's config dump:
 
-**Correct registers on RA6M4** (`BSP_FEATURE_TZ_HAS_DLM = 1`):
+| addr | value |
+|---|---|
+| `A100` OFS0 | `ffffffff` |
+| `A130` SECMPU / `A1C0` BPS / **`A1E0` PBPS** | **`00000000`** (zero-filled gap) |
+| `A200` OFS1_SEC | `fffdffff` |
+| `A280` OFS1_SEL | `f8f8ffff` |
 
-| Purpose | Register | Address |
-|---|---|---|
-| Lifecycle / lock state (`CM/SSD/NSECSD/DPL/LCK_DBG/LCK_BOOT/RMA`) | `PSCU.DLMMON` bits[3:0] | `0x400E002C` |
-| P/E block-protection cancel (write-only, don't read) | `FACI.FBPROT0/1` | `0x407FE078` / `0x407FE07C` |
+**Why the `.srec` never showed it (and misled us for days).** `objcopy -O srec/ihex` is **section-based**:
+one record per loadable *section*. The image has only three OFS *sections* (4 bytes each); the gaps belong
+to no section, so the SREC has three discrete records and **no gap bytes**. The danger exists only in the
+**program-header/segment** view (`readelf -l`, `objcopy -O binary`), which spans the gaps with zeros - and
+that is what a debugger flashes. Our long "bricked `.srec` == der `.srec`" comparison was reading the
+*section* view (identical) and was blind to the *segment* layout (bricked = one span, der = discrete).
 
-Config-area block-protect (`BPS`/`PBPS`) addresses were **not** verified against the RA6M4 hardware
-manual — the `0x0100A1xx` values in this port's linker were only where *we intended to emit* sections,
-so any raw read there is uninterpreted. **Verify addresses against the HW manual before trusting them.**
+**Why FSP images (and the RA6E1 proxy) are safe.** FSP's generated `fsp_gen.ld` gives each option word its
+**own MEMORY region** -> `ld` emits a separate tiny PT_LOAD per word -> no span, no gap-fill. A sacrificial
+**RA6E1** (identical config-area map) ran the *whole* process - RDPM boundaries + Ozone flash, even
+TZ-provisioned with the RA6M4 boundaries - and stayed healthy (`PBPS = FFFFFFFF`), because its FSP
+bootloader has discrete segments. That exoneration (tool, device family, provisioning) is what isolated
+the cause to the **image's segment layout**.
 
-**So what is actually established?** Only that two boards won't erase and return `0xDA` on Initialize,
-while sitting in DLM=SSD. Neither the **cause** nor whether it is **reversible** is known. The prior
-claims of "permanent", "irreversible", "FSPR=0", and "OFS records caused it" are all withdrawn:
-- OFS content is not the differentiator — der carries **byte-identical** config records (SREC diff) and
-  works, and `8a090` (which also flashed the OFS records) survived.
-- The remaining suspects are the **flashing path** (Ozone/raw-JLink vs e2 studio RA-aware) and/or the
-  change at **`be511be17`** (BL2 relinked to `0x0`, so it boots from reset). No BL2 code can write the
-  flash config area (no `AccessWindow`/`StartUpArea`/`BankSwap`/config-set is even linked into BL2).
+**The fix (§8).** `ra6m4_bl2.ld` now uses the FSP per-word-region pattern -> three discrete 4-byte segments
+(verified via `readelf -l`). The build-wired guard (§8.5) fails on any spanning segment.
 
-**Test when a board is available** (use the `RA6M4_BL2_HALT_AT_MAIN` spin image, §CMake):
-read `DLMMON @ 0x400E002C` and attempt RDPM Initialize; compare flashing via **Ozone vs e2 studio/RFP**.
-Do not read FAWMON/FSPR — it is meaningless here.
+**Detour that was wrong (kept as a warning).** An interim diagnosis blamed `FSPR` / `FAWMON @ 0x407FE0DC`.
+That register/feature **does not exist on RA6M4** (`BSP_FEATURE_FLASH_SUPPORTS_ACCESS_WINDOW = 0`) - it is
+an RA6M3-class thing. The real lock is **PBPS** (block protection, in the config area); the lifecycle state
+is **`DLMMON @ 0x400E002C`** (bricked boards read `SSD` - not a DLM lock). Do not read FAWMON on this die.
 
-**Lesson (this cost credibility four times over):** do not assert a hardware cause from a register
-whose *existence and meaning on this exact die* haven't been confirmed in the device's own
-bsp_feature.h / hardware manual. Verify the register applies before reading it, and baseline against a
-known-good part. Preserved evidence: [`bringup/bricking_evidence/`](bringup/bricking_evidence/).
+**Lessons.** (1) A debugger flashes by **segment**, not the `.srec`/section view - audit `readelf -l`.
+(2) Place option words in **per-word regions** so `ld` cannot span+zero-fill them. (3) Do not assert a
+hardware cause from a register unconfirmed for the exact die. Evidence: [`bringup/bricking_evidence/`](bringup/bricking_evidence/).
 
-### 8.5 Build-time OFS policy guard — `bringup/check_ofs.py`
-[`bringup/check_ofs.py`](bringup/check_ofs.py) **fails if any image contains a byte in the option/config
-window `0x0100A100–0x0100A2CF`** — it enforces the "no OFS in any image" policy (§8). It is a policy gate,
-not a proven anti-brick measure (root cause unestablished, §8.4), but keeping option memory out of every
-debugger-flashed image is a sound precaution. Run before every flash and in CI:
-```
-python bringup/check_ofs.py                    # defaults to the three build_ra6m4_boot images
-python bringup/check_ofs.py path/to/image.elf  # explicit
-```
-Exit 0 = safe to flash via debugger; exit 1 = image carries option memory, **do not flash**. Verified:
-CLEAN on the current build, FAIL on the preserved `bl2_BRICKED.elf`.
+### 8.5 Automatic OFS brick guard — `check_ofs.py`
+The guard runs **automatically on every BL2 build**: a `bl2_ofs_guard` target in `ALL` (wired in the port
+`CMakeLists.txt`) runs `platform/ext/target/renesas/ra6m4/check_ofs.py` on the linked `bl2` and **fails the
+build** if any PT_LOAD segment across `0x0100A100-0x0100A2CF` exceeds 12 bytes - i.e. a gap-filled span
+(§8.4). Discrete per-word segments pass. It reads **program headers** (`readelf -l`), not the SREC, because
+the SREC is blind to the segment layout (§8.4). A mirror copy in [`bringup/check_ofs.py`](bringup/check_ofs.py)
+is for manual runs (`python check_ofs.py <image.elf ...>`; exit 1 = spanning segment). Verified: PASS on the
+per-region build, FAIL on the preserved `bl2_BRICKED.elf`.
 
 ## 9. Console / logging — SEGGER RTT (switchable)
 - `RA6M4_STDOUT_RTT` (default ON): routes TF-M/MCUboot stdout to SEGGER RTT over J-Link (no UART wiring,
