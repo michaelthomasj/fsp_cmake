@@ -672,6 +672,7 @@ FSP Configuration
     Code Flash Programming Enable: Enabled
     Data Flash Programming Enable: Disabled
     
+  Module "MCUboot Example Keys (NOT FOR PRODUCTION)"
   HAL
     Instance "g_ioport I/O Port (r_ioport)"
       Name: g_ioport
@@ -694,3 +695,4 @@ FSP Configuration
           Flash Error Interrupt Priority: Disabled
           
       Instance "MCUboot logging"
+      Instance "MCUboot Example Keys (NOT FOR PRODUCTION)"

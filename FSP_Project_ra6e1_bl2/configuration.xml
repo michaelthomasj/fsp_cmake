@@ -236,6 +236,10 @@
       <description>MCUboot</description>
       <originalPack>Linaro.MCUboot.2.1.0+renesas.3.fsp.6.1.0.pack</originalPack>
     </component>
+    <component apiversion="" class="boot" condition="" group="all" subgroup="keys" variant="" vendor="Linaro" version="2.1.0+renesas.3.fsp.6.1.0">
+      <description>MCUboot Example Keys</description>
+      <originalPack>Linaro.MCUboot.2.1.0+renesas.3.fsp.6.1.0.pack</originalPack>
+    </component>
   </raComponentSelection>
   <raElcConfiguration/>
   <raIcuConfiguration/>
@@ -261,6 +265,7 @@
       <property id="module.driver.flash.ipl" value="_disabled"/>
       <property id="module.driver.flash.err_ipl" value="_disabled"/>
     </module>
+    <module id="module.middleware.mcuboot_keys.298912125"/>
     <context id="_hal.0">
       <stack module="module.driver.ioport_on_ioport.0"/>
       <stack module="module.middleware.mcuboot.483443858">
@@ -273,6 +278,7 @@
           <stack module="module.driver.flash_on_flash_hp.1013026011" requires="module.driver.rm_mcuboot_port.requires.flash"/>
         </stack>
         <stack module="module.middleware.mcuboot_logging.1407349939" requires="module.middleware.mcuboot.requires.mcuboot_logging"/>
+        <stack module="module.middleware.mcuboot_keys.298912125" requires="module.middleware.mcuboot.requires.mcuboot_keys"/>
       </stack>
     </context>
     <config id="config.driver.flash_hp">
