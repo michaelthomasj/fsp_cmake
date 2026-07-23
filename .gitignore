@@ -1,0 +1,4 @@
+# Build output (regeneratable)
+**/build/
+# RASC transient log
+**/rasc_cmd_log.txt
