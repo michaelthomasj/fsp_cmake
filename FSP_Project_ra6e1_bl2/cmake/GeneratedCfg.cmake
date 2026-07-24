@@ -39,7 +39,10 @@ else()
 endif()
 
 # Make target for opening the FSP Configuration in Smart Configurator
-add_custom_target(open_rasc_${PROJECT_NAME}
+# Sanitize the name: when this project is include()d from another build (e.g. TF-M,
+# whose PROJECT_NAME is "Trusted Firmware M"), spaces make an invalid target name.
+string(MAKE_C_IDENTIFIER "${PROJECT_NAME}" RASC_TARGET_SAFE_NAME)
+add_custom_target(open_rasc_${RASC_TARGET_SAFE_NAME}
     COMMAND ${RASC_COMMAND}
     WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
     COMMENT "FSP Smart Configurator"
