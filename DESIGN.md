@@ -412,6 +412,29 @@ init, or a secure build that skips it). **Action:** verify the exact TZ macro se
 builds (BL2/S/NS), and document them (RASC_PROJECT_SETUP.md), or split into per-image startups like ST for
 auditability before upstreaming.
 
+### 13.4 REVISIT (long-term direction) — a TF-M Solution Template so RASC owns the partitions
+The recurring root cause behind §13.1, §13.2, and the `bsp_security.c` build failure is the **same**: our flat
+RASC project defines **no `BSP_PARTITION_*` macros**. Those normally come from an FSP **Solution Project**, where
+the user lays out the S / NSC / NS / data-flash partitions in the RASC GUI and RASC generates `bsp_linker_info.h`
+(the `BSP_PARTITION_*` set + the MCUboot `bsp_linker_info` struct). Because RASC has no Solution-Project template
+for TF-M today, the memory map is instead hand-authored in TF-M's `flash_layout.h` / `region_defs.h`, and the two
+sources (FSP BSP vs TF-M) must be reconciled by hand and can silently drift.
+
+**Symptoms this explains:**
+- `bsp_security.c` falls into FSP's legacy `gp_ddsc_*` tail-chaining path (no `BSP_PARTITION_*`) → the secure
+  `fsp_bsp` fails to compile. **Near-term workaround:** exclude `bsp_security.c` from the secure BSP glob (TF-M
+  does its own S→NS transition and never calls `R_BSP_NonSecureEnter`), same pattern as `startup.c`/`bsp_linker.c`.
+- FSP's `R_BSP_SecurityInit()` configures the SAU from `BSP_PARTITION_*` while TF-M's `region_defs.h` is a
+  *different* source of truth (§13.1/§13.2).
+
+**Long-term fix (planned):** build a **TF-M Solution Template for RASC**. Users would define the TF-M partitions
+(BL2 / S / NSC / NS / data-flash areas) once in the RASC GUI; RASC generates `bsp_linker_info.h` and the
+`BSP_PARTITION_*` macros; TF-M's `flash_layout.h`/`region_defs.h` then *derive from* (or are validated against)
+that single GUI-owned source instead of being hand-maintained. This is strictly better for users (partitions set
+in the GUI, no hand-edited linker math) and collapses §13.1/§13.2 into one source of truth — the whole point of
+"§1: consume RASC config, don't fork." Until the template exists, keep the hand-authored map + the `bsp_security.c`
+exclusion, and treat the FSP↔TF-M reconciliation as a manual step on every RASC regen.
+
 ---
 _Maintainer note: when bumping TF-M, re-check §5 (bootutil glue), §7 (veneer macros still honored by the
 generated linker), §8 (`ra6m4_bl2.ld` vs the new `tfm_common_bl2.ld`), and §13 (SAU/startup ownership vs the
