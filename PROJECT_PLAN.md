@@ -1,113 +1,121 @@
-# TF-M on Renesas RA — CMake Port for RA6 & RA8 (FSP 6.6)
+# TF-M on Renesas RA — RA6 → RA8x2 (dual-core), FSP 6.6, GNUARM + IAR
 
-**Project plan · Firmware security**
+**Project plan · Firmware security · revised after stakeholder review**
 
-Deliver Trusted Firmware-M building on RA6 and RA8 from RASC-generated FSP 6.6
-sources via the modular CMake framework, on both **GNUARM and IAR** toolchains,
-validated against the PSA arch tests. Upstreaming to the Arm TF-M repository is
-planned as a stretch goal.
+Stakeholders are primarily interested in **RA8x2 (dual-core)** running Trusted
+Firmware-M. TF-M supports a multi-core topology, but RA8x2 requires binding
+**FSP's inter-core communication to TF-M's mailbox HAL** — the project's biggest
+technical unknown. IAR is required. A working demo is needed by **mid-September**.
 
+Because the engineer is out the **first and last weeks of August**, the mid-Sept
+window is only ~5 working weeks, so the plan splits into two horizons and
+**defers psa-arch-tests**.
+
+> A rendered version of this plan is in [`PROJECT_PLAN.html`](PROJECT_PLAN.html).
 
 | | |
 |---|---|
-| **MVP target** | **2027-01-30** |
-| Prepared | 2026-07-28 |
-| Duration | ~26 weeks (25% buffer added) |
+| **Mid-Sept checkpoint** | **2026-09-15 — RA6 full chain, GNUARM + IAR** |
+| **Primary goal (RA8x2 dual-core)** | **2026-12-18** |
+| Revised | 2026-07-28 |
 | Toolchains | GNUARM + IAR |
+| Deferred | psa-arch-tests → Q1 2027 |
 | Stretch — upstream | Q2 2027 |
-| Resourcing | 1 engineer |
+| Resourcing | 1 engineer (out Aug 3–7 and Aug 24–28) |
 
 ---
 
 ## Snapshot
 
 **Done — baseline**
-- **RA6E1 BL2 boots on silicon** (TF-M v2.2, FSP 6.1): full boot through flash init, NV-counter init, MCUboot image search.
+- **RA6E1 BL2 boots on silicon** (TF-M v2.2, FSP 6.1): flash init, NV-counter init, MCUboot image search.
 - **Flash driver** ported (data-flash NV counters working); OFS brick-guard in place.
 - Modular CMake consuming RASC output; RTT logging.
 
-**MVP scope**
-- **RA6** full secure boot chain (BL2 → S → NS) on FSP 6.6.
-- **RA8** port to the same chain on FSP 6.6.
-- **GNUARM + IAR** toolchains, both platforms.
-- Both pass **some or all** targeted PSA arch tests.
+**Mid-Sept checkpoint (Sep 15)**
+- **RA6** full secure boot chain (BL2 → S → NS) on silicon.
+- **GNUARM + IAR**, both building/booting.
+- Stays on the current **FSP 6.1** baseline (no rebase) to protect the date.
 
-**Not in MVP**
-- Upstream merge to Arm TF-M (planned as stretch, phase H).
+**Primary goal — RA8x2 dual-core (~Dec 18)**
+- **RA8x2** on **FSP 6.6**: SPE on one core, NSPE on the other.
+- **FSP inter-core comms bound to TF-M's mailbox HAL** (`tfm_hal_multi_core_*` / `platform_mailbox`); PSA calls marshaled across cores.
+- GNUARM + IAR.
+
+**Deferred / not now**
+- psa-arch-tests → Q1 2027 (dropped from the near-term).
+- Upstream merge to Arm TF-M → stretch, Q2 2027.
 - ARMCLANG toolchain.
-- Full PSA test-suite green across every service (best-effort in MVP).
 
 ---
 
 ## Timeline
 
+Engineer out: **Aug 3–7** and **Aug 24–28** (reflected in the phase dates below).
+
 | Phase | Work | Start | End | Track |
 |---|---|---|---|---|
-| **A** | FSP 6.6 rebase · RA6 BL2 baseline | 2026-07-28 | 2026-08-14 | Cross-cutting |
-| **B** | RA6 secure image (tfm_s) | 2026-08-17 | 2026-09-11 | RA6 |
-| **C** | RA6 non-secure · full boot chain | 2026-09-14 | 2026-09-25 | RA6 |
-| **D** | RA6 PSA arch tests (GNUARM) | 2026-09-28 | 2026-10-23 | RA6 |
-| **E** | RA8 port · BL2 → S → NS (GNUARM) | 2026-10-26 | 2026-11-27 | RA8 |
-| **F** | RA8 PSA arch tests (GNUARM) | 2026-11-30 | 2026-12-18 | RA8 |
-| **G** | IAR toolchain · RA6 + RA8 → **MVP** | 2027-01-05 | 2027-01-30 | Cross-cutting |
-| **H** | *Stretch* — upstream to Arm TF-M | 2027-02-09 | 2027-04-24 | Stretch |
+| **P1** | RA6 secure image (tfm_s) — GNUARM, FSP 6.1 | 2026-07-28 | 2026-08-14 | RA6 |
+| **P2** | RA6 non-secure · full boot chain (GNUARM) | 2026-08-17 | 2026-08-21 | RA6 |
+| **P3** | IAR toolchain for RA6 → **mid-Sept demo** | 2026-08-31 | 2026-09-11 | Key deliverable |
+| **P4** | RA8x2 base port — BL2 + SPE on primary core (FSP 6.6) | 2026-09-16 | 2026-10-16 | RA8x2 |
+| **P5** | Dual-core — FSP ICC ↔ TF-M mailbox HAL | 2026-10-19 | 2026-11-20 | RA8x2 |
+| **P6** | RA8x2 NS + IAR + consolidation → **primary goal** | 2026-11-23 | 2026-12-18 | Key deliverable |
+| **P7** | *Deferred* — psa-arch-tests (RA6 + RA8x2) | 2027-01-05 | 2027-02-05 | Deferred |
+| **P8** | *Stretch* — upstream to Arm TF-M | 2027-02-15 | 2027-04-24 | Stretch |
 
-Critical path: **A → B → C → D → E → F → G** (sequential under a single engineer).
+Critical path: **P1 → P2 → P3** (to the Sept 15 demo) **→ P4 → P5 → P6** (to the RA8x2 dual-core goal).
 
 ---
 
 ## Phases
 
-### A · Foundation — FSP 6.6 rebase & RA6 BL2 baseline (Jul 28 – Aug 14)
-- Regenerate RA6E1/RA6M4 RASC projects on FSP 6.6.
-- Re-apply hand-edits: data-flash programming, EARLY_INIT, per-word OFS, flash driver.
-- Confirm BL2 still boots on RA6E1 silicon under 6.6.
-- **Exit M1** — RA6 BL2 boots on FSP 6.6.
-
-### B · Secure — RA6 secure image (tfm_s) (Aug 17 – Sep 11)
+### P1 · RA6 secure image (tfm_s) — GNUARM, FSP 6.1 (Jul 28 – Aug 14, spans Aug 3–7 out)
 - Generate RA6 TrustZone-Secure RASC project; wire DDSC symbols (`fsp_gen.ld` + `bsp_linker_info.h`) into the tfm_s link.
 - Resolve `bsp_security.c`; decide SAU ownership — `tfm_hal_isolation.c` / `target_cfg.c` vs FSP `R_BSP_SecurityInit`.
 - Platform HAL: `tfm_hal_platform_init`, `tfm_platform_system.c` (reset / IOCTL / NV-counter API); OTP HAL + lifecycle-state so first-boot dummy provisioning runs.
 - Build + sign tfm_s; BL2 validates & chainloads it.
-- **Exit M2** — BL2 → tfm_s boots on silicon.
+- **Exit M1** — RA6 BL2 → tfm_s boots on silicon.
 
-### C · Non-secure — RA6 non-secure & full boot chain (Sep 14 – Sep 25)
+### P2 · RA6 non-secure & full boot chain, GNUARM (Aug 17 – Aug 21)
 - NS RASC project downstream of secure; consume veneer / CMSE import library.
 - `ns/CMakeLists.txt`, `cpuarch_ns.cmake`, S→NS transition.
 - Full BL2 → S → NS boot, proven over RTT.
-- **Exit M3** — full RA6 secure boot chain.
+- **Exit M2** — full RA6 boot chain (GNUARM).
 
-### D · Validate — RA6 PSA arch tests, GNUARM (Sep 28 – Oct 23)
-- Integrate psa-arch-tests; split SPE/NSPE build; `TFM_DUMMY_PROVISIONING` (dummy IAK/ROTPK match the TF-M test keys).
-- Wire service HALs the suites exercise: entropy / RSIP TRNG (crypto), `its_flash_fs` (ITS), `ps_nv_counters` (PS), boot-seed + device-ID + IAK (attestation).
-- Run on RA6E1; iterate to green on targeted suites.
-- **Exit M4** — RA6 passes targeted PSA tests.
-
-### E · RA8 — RA8 port, new platform, GNUARM (Oct 26 – Nov 27)
-- New `platform/ext/target/renesas/ra8`; RA8 RASC projects (BL2/S/NS) on FSP 6.6.
-- RA8 specifics: SAU reach-to-NS (FSP 6.6 fix), TCM DDSC symbols, memory map, RSIP crypto driver.
-- Cortex-M85: PACBTI / branch-protection + FPU-in-SPE config decisions.
-- BL2 → S → NS boot on EK-RA8 silicon.
-- **Exit M5** — RA8 full boot chain on silicon.
-
-### F · Validate — RA8 PSA arch tests, GNUARM (Nov 30 – Dec 18)
-- RA8 provisioning / entropy / RSIP crypto wired up.
-- Run psa-arch-tests on EK-RA8; iterate to targeted green.
-- Cross-check RA6 + RA8 GNUARM regression before the toolchain fan-out.
-- **Exit M6** — RA8 passes targeted PSA tests.
-
-### G · IAR / MVP — IAR toolchain across RA6 + RA8 (Jan 5 – Jan 30, 2027)
+### P3 · IAR toolchain for RA6 → mid-Sept demo (Aug 31 – Sep 11; after Aug 24–28 out)
 - IAR linker `.icf` for BL2 / S / NS: replicate per-word OFS, veneer / NSC placement, TZ regions (GCC `.ld` → IAR `.icf`).
-- IAR startup + toolchain CMake; build BL2 → S → NS on RA6 then RA8; boot on silicon.
-- Run targeted PSA tests under IAR; MVP consolidation + stakeholder sign-off.
-- **Exit M7** — MVP: RA6 + RA8, GNUARM + IAR, PSA tests.
+- IAR startup + toolchain CMake; build BL2 → S → NS under IAR; boot on RA6E1 silicon.
+- **Exit M3 (Sep 15) — DEMO: RA6 full chain, GNUARM + IAR, on silicon.**
 
-### H · Stretch — upstream to the Arm TF-M repository (Feb 9 – Apr 24, 2027)
+### P4 · RA8x2 base port — BL2 + SPE on primary core, FSP 6.6 (Sep 16 – Oct 16)
+- New `platform/ext/target/renesas/ra8x2`; RA8x2 RASC projects on FSP 6.6; reuse RA6 patterns (DDSC, secure project, isolation, veneer).
+- Settle the **core topology**: which core runs SPE vs NSPE; TZ-on-M85 + M33-as-NS-core vs pure multi-core (drives the whole mailbox design).
+- RA8x2 specifics: memory map, RSIP crypto driver, Cortex-M85 PACBTI / branch-protection + FPU-in-SPE.
+- **Exit M4** — RA8x2 SPE boots on the primary core.
+
+### P5 · Dual-core — FSP ICC ↔ TF-M mailbox HAL (Oct 19 – Nov 20)
+- Implement TF-M's multi-core mailbox HAL (`tfm_hal_multi_core_*`, `platform_mailbox`) on top of **FSP inter-core communication** (shared memory + semaphore/IPC).
+- NS mailbox agent on the NSPE core; marshal PSA client calls across cores; boot both cores.
+- **Exit M5** — a PSA call marshaled NSPE-core → SPE-core over FSP ICC completes.
+
+### P6 · RA8x2 NS + IAR + consolidation → primary goal (Nov 23 – Dec 18)
+- NSPE application on the second core; end-to-end dual-core boot + PSA services.
+- IAR `.icf` / startup for RA8x2 (both cores); build + boot under IAR.
+- Consolidation + stakeholder sign-off.
+- **Exit M6 — RA8x2 dual-core full chain, GNUARM + IAR.**
+
+### P7 · Deferred — psa-arch-tests, RA6 + RA8x2 (Jan 5 – Feb 5, 2027)
+- Integrate psa-arch-tests; `TFM_DUMMY_PROVISIONING` (dummy IAK/ROTPK match the TF-M test keys); split SPE/NSPE build.
+- Wire service HALs the suites exercise: entropy / RSIP TRNG (crypto), `its_flash_fs` (ITS), `ps_nv_counters` (PS), boot-seed + device-ID + IAK (attestation).
+- Run on RA6E1 + RA8x2; iterate to targeted green.
+- **Exit M7** — targeted PSA arch tests pass.
+
+### P8 · Stretch — upstream to the Arm TF-M repository (Feb 15 – Apr 24, 2027)
 - Docs tree: vendor `index.rst` + per-platform entry + `platform_introduction.rst`, added to `docs/platform/index.rst`.
-- Accept the deprecation policy's **ongoing-maintenance commitment** (owner keeps the platform building/running upstream); maintainer sign-off + CI.
-- Submit via review.trustedfirmware.org (Gerrit); iterate through community review cycles.
-- Not mandatory for this customer — timeline is bounded by external review latency.
-- **Exit M8** — RA6 + RA8 merged upstream (review-latency dependent).
+- Accept the deprecation policy's **ongoing-maintenance commitment**; maintainer sign-off + CI; submit via review.trustedfirmware.org (Gerrit).
+- Not mandatory for this customer — bounded by external review latency.
+- **Exit M8** — RA6 + RA8x2 merged upstream (review-latency dependent).
 
 ---
 
@@ -116,6 +124,7 @@ Critical path: **A → B → C → D → E → F → G** (sequential under a sin
 | Area | Items |
 |---|---|
 | **Boot & isolation** | startup + linker, OFS (BL2); `target_cfg.c` (SAU/PPC/MPC); `tfm_hal_isolation.c` + static boundaries |
+| **Multi-core (RA8x2)** | `tfm_hal_multi_core_*` + `platform_mailbox` over FSP ICC; NS mailbox agent; PSA call marshaling |
 | **Storage** | `Driver_FLASH0/1` (code + data); `its_flash_fs` HAL (ITS); `ps_nv_counters` (PS) |
 | **Crypto & entropy** | RSIP crypto driver; entropy / TRNG source; crypto key HAL |
 | **Identity & provisioning** | OTP HAL + lifecycle state; IAK + BL2 ROTPKs (dummy for dev/tests); NV counters backend |
@@ -128,14 +137,14 @@ Critical path: **A → B → C → D → E → F → G** (sequential under a sin
 
 | ID | Date | Gate |
 |---|---|---|
-| M1 | 2026-08-14 | **RA6 BL2 boots on FSP 6.6** silicon (baseline re-established after regen) |
-| M2 | 2026-09-11 | **BL2 → tfm_s** validated & chainloaded; DDSC/secure project + isolation resolved |
-| M3 | 2026-09-25 | **Full RA6 boot chain** BL2 → S → NS on silicon |
-| M4 | 2026-10-23 | **RA6 passes targeted PSA arch tests** (GNUARM) |
-| M5 | 2026-11-27 | **RA8 full boot chain** on silicon (GNUARM) |
-| M6 | 2026-12-18 | **RA8 passes targeted PSA arch tests** (GNUARM) |
-| **M7** | **2027-01-30** | **MVP — RA6 + RA8 on FSP 6.6, GNUARM + IAR, passing targeted PSA arch tests** |
-| M8 | ~2027 Q2 | *Stretch* — RA6 + RA8 merged into Arm TF-M upstream |
+| M1 | 2026-08-14 | RA6 BL2 → tfm_s boots on silicon |
+| M2 | 2026-08-21 | Full RA6 boot chain BL2 → S → NS (GNUARM) |
+| **M3** | **2026-09-15** | **DEMO — RA6 full chain, GNUARM + IAR, on silicon** (mid-Sept checkpoint) |
+| M4 | 2026-10-16 | RA8x2 SPE boots on the primary core (FSP 6.6) |
+| M5 | 2026-11-20 | RA8x2 dual-core: PSA call marshaled NSPE-core → SPE-core over FSP ICC |
+| **M6** | **2026-12-18** | **RA8x2 dual-core full chain, GNUARM + IAR** (primary goal) |
+| M7 | 2027-02-05 | *Deferred* — targeted psa-arch-tests pass (RA6 + RA8x2) |
+| M8 | ~2027 Q2 | *Stretch* — RA6 + RA8x2 merged into Arm TF-M upstream |
 
 ---
 
@@ -143,19 +152,17 @@ Critical path: **A → B → C → D → E → F → G** (sequential under a sin
 
 | Severity | Risk |
 |---|---|
-| **High** | **FSP 6.6 regen churn.** Every hand-edit (DF programming, EARLY_INIT, OFS, flash driver, DDSC wiring) needs to be replicated; 6.6 is unlikely to have major changes in that regard. Mitigated by sticking with 6.1 but not recommended. |
-| **High** | **RA8 SAU reach-to-NS.** Flat MCUboot can't reach NS on RA8 without the FSP 6.6 fix — unverified until phase E. If it slips, RA8 secure→NS needs a workaround. |
-| **High** | **IAR linker replication.** Recreating OFS / veneer / TZ region placement + startup as IAR `.icf` across BL2/S/NS × 2 platforms; IAR TZ and veneer handling differs from GCC. On the MVP critical path (phase G). |
-| Med | **SAU ownership decision.** FSP `R_BSP_SecurityInit` vs TF-M `sau_and_idau_cfg` (DESIGN §13.1/§13.2). Choosing TF-M-owns expands scope; folded into phase B. |
-| Med | **PSA test depth.** Attestation / PS / ITS need entropy, provisioning, and RSIP crypto wired up. "Some or all" is deliberate — full green may exceed the MVP window per service. |
-| Med | **Hardware.** 2× EK-RA6M4 bricked (RA6E1 is the RA6 vehicle); an EK-RA8 must be procured before phase E. |
-| Med | **Upstream maintenance commitment.** The deprecation policy obliges the platform owner to keep RA6/RA8 building & running upstream after merge — an ongoing cost beyond the merge itself. |
-| Ext | **Upstream review latency.** Phase H duration is set by trustedfirmware.org maintainer cycles — outside our control, hence stretch and off the MVP critical path. |
+| **High** | **Mid-Sept is tight, with little slack.** RA6 secure-image (DDSC + SAU/isolation) is still an unknown and is compressed into ~5 working weeks around two absences, plus IAR. Any snag in P1 or P3 slips the Sep 15 demo directly — there is minimal buffer in this leg. |
+| **High** | **Dual-core mailbox integration.** Binding FSP inter-core comms to TF-M's `tfm_hal_multi_core` / `platform_mailbox` is the project's biggest unknown; no RA reference exists. Concentrated in P5. |
+| **High** | **RA8x2 core-topology decision.** Which core runs SPE vs NSPE, and TZ-on-M85 + M33-as-NS-core vs pure multi-core, sets the entire mailbox design. Must be settled at the start of P4. |
+| **High** | **IAR replication.** OFS / veneer / TZ placement + startup as IAR `.icf`; IAR TZ/veneer handling differs from GCC. On the critical path for both the Sep 15 demo (RA6) and the Dec goal (RA8x2). |
+| **High** | **FSP 6.6 for RA8x2.** First use for the dual-core + SAU-reach-NS + RA8 support; regen churn and unverified dual-core generation. |
+| Med | **New silicon.** First RA8x2 bring-up (M85 PACBTI/FPU, RSIP, dual-core boot). |
+| Med | **Hardware.** An EK-RA8x2 (dual-core) board must be procured before P4; 2× EK-RA6M4 bricked (RA6E1 is the RA6 vehicle). |
+| Med | **No PSA conformance at the Dec goal.** psa-arch-tests are deferred to Q1 2027, so there is no formal PSA evidence at M6 — stakeholders have accepted this. |
 
-**Buffer model.** Each phase carries roughly 25–30% internal buffer. The
-Dec 19 – Jan 2 year-end period is held as schedule contingency ahead of phase G.
-Critical path runs A→B→C→D→E→F→G; phases D (RA6 tests), E (RA8), and G (IAR) are
-the most likely to consume buffer, and with just one engineer, are sequential.
+**Buffer.** The mid-Sept leg (P1–P3) is **constraint-driven, not buffer-driven** — it is aggressive and carries little slack; the two August absences already consume the margin. The RA8x2 leg (P4–P6) carries ~20–25% internal buffer and holds the Dec 21 – Jan 2 year-end period as contingency. Everything is sequential under one engineer.
 
 ---
 
+*Revised 2026-07-28 · Mid-Sept checkpoint 2026-09-15 · RA8x2 dual-core goal 2026-12-18 · GNUARM + IAR · psa-arch-tests deferred*

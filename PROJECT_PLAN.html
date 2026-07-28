@@ -11,7 +11,7 @@
     --bg:#eef1f5; --surface:#ffffff; --surface-2:#e7ecf1; --surface-3:#dde4ea;
     --ink:#152029; --ink-2:#47555f; --ink-3:#6b7883;
     --line:#d3dbe2; --line-2:#c2ccd5;
-    --ra6:#0d7d8c; --ra8:#4258b0; --shared:#5b6a76; --stretch:#8c96a0;
+    --ra6:#0d7d8c; --ra8:#4258b0; --shared:#5b6a76; --stretch:#8c96a0; --deferred:#7a8791;
     --milestone:#c07c1e;
     --done:#2f8f5b; --active:#b9791d; --risk:#b4453a; --muted:#7a8791;
     --accent:#0d7d8c;
@@ -24,7 +24,7 @@
     :root{
       --bg:#0e141a; --surface:#151d25; --surface-2:#1b242d; --surface-3:#222d38;
       --ink:#e7edf3; --ink-2:#a7b4bf; --ink-3:#7d8b96; --line:#28333d; --line-2:#33404b;
-      --ra6:#2ea6b4; --ra8:#6f83e0; --shared:#8695a1; --stretch:#5c6771;
+      --ra6:#2ea6b4; --ra8:#6f83e0; --shared:#8695a1; --stretch:#5c6771; --deferred:#6c7883;
       --milestone:#e0a145; --done:#3fae72; --active:#d99a3a; --risk:#d3685c; --muted:#8695a1; --accent:#2ea6b4;
       --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.35);
     }
@@ -32,14 +32,14 @@
   :root[data-theme="light"]{
     --bg:#eef1f5; --surface:#ffffff; --surface-2:#e7ecf1; --surface-3:#dde4ea;
     --ink:#152029; --ink-2:#47555f; --ink-3:#6b7883; --line:#d3dbe2; --line-2:#c2ccd5;
-    --ra6:#0d7d8c; --ra8:#4258b0; --shared:#5b6a76; --stretch:#8c96a0;
+    --ra6:#0d7d8c; --ra8:#4258b0; --shared:#5b6a76; --stretch:#8c96a0; --deferred:#7a8791;
     --milestone:#c07c1e; --done:#2f8f5b; --active:#b9791d; --risk:#b4453a; --muted:#7a8791; --accent:#0d7d8c;
     --shadow:0 1px 2px rgba(20,32,41,.06),0 6px 20px rgba(20,32,41,.05);
   }
   :root[data-theme="dark"]{
     --bg:#0e141a; --surface:#151d25; --surface-2:#1b242d; --surface-3:#222d38;
     --ink:#e7edf3; --ink-2:#a7b4bf; --ink-3:#7d8b96; --line:#28333d; --line-2:#33404b;
-    --ra6:#2ea6b4; --ra8:#6f83e0; --shared:#8695a1; --stretch:#5c6771;
+    --ra6:#2ea6b4; --ra8:#6f83e0; --shared:#8695a1; --stretch:#5c6771; --deferred:#6c7883;
     --milestone:#e0a145; --done:#3fae72; --active:#d99a3a; --risk:#d3685c; --muted:#8695a1; --accent:#2ea6b4;
     --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.35);
   }
@@ -51,12 +51,12 @@
   .eyebrow{font-family:var(--font-mono);font-size:11.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);font-weight:600}
 
   header.head{border-bottom:1px solid var(--line);padding-bottom:26px;margin-bottom:34px}
-  h1{font-size:30px;line-height:1.12;letter-spacing:-.015em;margin:.35em 0 .3em;text-wrap:balance;font-weight:750}
-  .sub{color:var(--ink-2);max-width:64ch;font-size:15.5px;margin:0}
+  h1{font-size:29px;line-height:1.12;letter-spacing:-.015em;margin:.35em 0 .3em;text-wrap:balance;font-weight:750}
+  .sub{color:var(--ink-2);max-width:66ch;font-size:15px;margin:0}
   .metarow{display:flex;flex-wrap:wrap;gap:10px 14px;margin-top:20px}
   .meta{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:9px 13px;box-shadow:var(--shadow);min-width:120px}
-  .meta .k{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)}
-  .meta .v{font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-size:15px;font-weight:600;color:var(--ink);margin-top:2px}
+  .meta .k{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)}
+  .meta .v{font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-size:14px;font-weight:600;color:var(--ink);margin-top:2px}
   .meta.mvp{border-color:var(--milestone);background:color-mix(in srgb,var(--milestone) 8%,var(--surface))}
   .meta.mvp .v{color:var(--milestone)}
 
@@ -65,18 +65,21 @@
 
   .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
   .card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 17px;box-shadow:var(--shadow)}
-  .card h3{margin:0 0 10px;font-size:12px;font-family:var(--font-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);font-weight:600}
+  .card h3{margin:0 0 10px;font-size:12px;font-family:var(--font-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);font-weight:600}
   .card ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px}
   .card li{font-size:13.5px;color:var(--ink-2);padding-left:18px;position:relative;line-height:1.45}
   .card li::before{content:"";position:absolute;left:0;top:7px;width:7px;height:7px;border-radius:50%}
   .card.done li::before{background:var(--done)}
-  .card.scope li::before{background:var(--accent)}
-  .card.out li::before{background:var(--muted);border-radius:1px;transform:rotate(45deg);top:6px}
+  .card.chk li::before{background:var(--milestone)}
+  .card.goal li::before{background:var(--ra8)}
   .card li b{color:var(--ink);font-weight:600}
-  .card.done h3{color:var(--done)}
+  .card.done h3{color:var(--done)} .card.chk h3{color:var(--milestone)} .card.goal h3{color:var(--ra8)}
+
+  .deferbar{margin-top:14px;background:var(--surface-2);border:1px solid var(--line);border-radius:9px;padding:11px 15px;font-size:13px;color:var(--ink-2);display:flex;gap:10px;flex-wrap:wrap;align-items:baseline}
+  .deferbar b{color:var(--ink);font-family:var(--font-mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase}
 
   .gantt-scroll{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--surface);box-shadow:var(--shadow)}
-  .gantt{display:grid;grid-template-columns:186px repeat(20,minmax(26px,1fr));min-width:840px;position:relative}
+  .gantt{display:grid;grid-template-columns:196px repeat(20,minmax(26px,1fr));min-width:860px;position:relative}
   .g-corner{grid-column:1;grid-row:1;padding:11px 14px;border-bottom:1px solid var(--line-2);border-right:1px solid var(--line)}
   .g-corner span{font-family:var(--font-mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)}
   .g-month{grid-row:1;border-bottom:1px solid var(--line-2);border-left:1px solid var(--line);padding:9px 0 8px;text-align:center}
@@ -86,36 +89,38 @@
   .today{grid-row:1/-1;border-left:2px dashed var(--accent);z-index:3;pointer-events:none;position:relative}
   .today .tlab{position:absolute;top:2px;left:4px;font-family:var(--font-mono);font-size:9px;letter-spacing:.1em;color:var(--accent);font-weight:700;white-space:nowrap}
 
-  .g-lab{grid-column:1;border-right:1px solid var(--line);border-top:1px solid var(--line);display:flex;align-items:center;gap:9px;padding:0 12px;min-height:46px;z-index:2;background:var(--surface)}
-  .g-lab .id{font-family:var(--font-mono);font-weight:700;font-size:12px;width:16px;color:var(--ink)}
-  .g-lab .tx{font-size:12.5px;color:var(--ink-2);line-height:1.2}
+  .g-lab{grid-column:1;border-right:1px solid var(--line);border-top:1px solid var(--line);display:flex;align-items:center;gap:9px;padding:0 12px;min-height:44px;z-index:2;background:var(--surface)}
+  .g-lab .id{font-family:var(--font-mono);font-weight:700;font-size:11.5px;width:20px;color:var(--ink)}
+  .g-lab .tx{font-size:12px;color:var(--ink-2);line-height:1.2}
   .g-track{border-top:1px solid var(--line);grid-column:2/-1;z-index:0}
 
-  .bar{align-self:center;height:26px;border-radius:6px;display:flex;align-items:center;justify-content:space-between;padding:0 9px;color:#fff;font-family:var(--font-mono);font-size:10.5px;font-weight:600;position:relative;z-index:2;box-shadow:0 1px 2px rgba(0,0,0,.18)}
-  .bar .ms{background:rgba(255,255,255,.22);border-radius:4px;padding:1px 5px;font-size:9.5px;letter-spacing:.03em}
+  .bar{align-self:center;height:25px;border-radius:6px;display:flex;align-items:center;justify-content:space-between;padding:0 9px;color:#fff;font-family:var(--font-mono);font-size:10px;font-weight:600;position:relative;z-index:2;box-shadow:0 1px 2px rgba(0,0,0,.18)}
+  .bar .ms{background:rgba(255,255,255,.22);border-radius:4px;padding:1px 5px;font-size:9px;letter-spacing:.02em}
   .bar::after{content:"";position:absolute;right:-7px;top:50%;width:11px;height:11px;transform:translateY(-50%) rotate(45deg);background:var(--milestone);border:1.5px solid var(--surface);z-index:4}
-  .bar.ra6{background:var(--ra6)} .bar.ra8{background:var(--ra8)} .bar.shared{background:var(--shared)}
-  .bar.mvpbar{background:var(--milestone)}
+  .bar.ra6{background:var(--ra6)} .bar.ra8{background:var(--ra8)} .bar.key{background:var(--milestone)} .bar.deferred{background:var(--deferred)}
+  .bar.deferred::after{background:var(--deferred)}
   .bar.stretch{background:repeating-linear-gradient(135deg,var(--stretch),var(--stretch) 6px,transparent 6px,transparent 11px),var(--surface-3);color:var(--ink-2);border:1px dashed var(--stretch);box-shadow:none}
   .bar.stretch::after{background:var(--stretch)}
   .bar.stretch .ms{background:color-mix(in srgb,var(--stretch) 30%,transparent);color:var(--ink-2)}
 
-  .legend{display:flex;flex-wrap:wrap;gap:8px 20px;margin-top:14px;padding:0 2px}
+  .legend{display:flex;flex-wrap:wrap;gap:8px 18px;margin-top:14px;padding:0 2px}
   .lg{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--ink-2);font-family:var(--font-mono)}
   .sw{width:15px;height:11px;border-radius:3px}
-  .sw.ra6{background:var(--ra6)} .sw.ra8{background:var(--ra8)} .sw.shared{background:var(--shared)} .sw.mvpbar{background:var(--milestone)}
+  .sw.ra6{background:var(--ra6)} .sw.ra8{background:var(--ra8)} .sw.key{background:var(--milestone)} .sw.deferred{background:var(--deferred)}
   .sw.stretch{background:repeating-linear-gradient(135deg,var(--stretch),var(--stretch) 4px,transparent 4px,transparent 7px),var(--surface-3);border:1px dashed var(--stretch)}
   .sw.dia{width:11px;height:11px;transform:rotate(45deg);background:var(--milestone);border-radius:2px}
+  .gnote{margin-top:8px;font-size:12px;color:var(--ink-3);font-family:var(--font-mono)}
+  .gnote b{color:var(--risk)}
 
   .phases{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
-  .ph{background:var(--surface);border:1px solid var(--line);border-radius:11px;padding:17px 18px;box-shadow:var(--shadow);border-left:4px solid var(--shared)}
-  .ph.ra6{border-left-color:var(--ra6)} .ph.ra8{border-left-color:var(--ra8)} .ph.stretch{border-left-color:var(--stretch)} .ph.mvpph{border-left-color:var(--milestone)}
+  .ph{background:var(--surface);border:1px solid var(--line);border-radius:11px;padding:16px 18px;box-shadow:var(--shadow);border-left:4px solid var(--shared)}
+  .ph.ra6{border-left-color:var(--ra6)} .ph.ra8{border-left-color:var(--ra8)} .ph.key{border-left-color:var(--milestone)} .ph.deferred{border-left-color:var(--deferred)} .ph.stretch{border-left-color:var(--stretch)}
   .ph-top{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:4px}
   .ph-id{font-family:var(--font-mono);font-weight:700;font-size:13px;color:var(--ink)}
-  .ph-dates{font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-size:11.5px;color:var(--ink-3);white-space:nowrap}
-  .ph h3{margin:0 0 9px;font-size:15px;font-weight:650;color:var(--ink);letter-spacing:-.01em}
+  .ph-dates{font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-size:11px;color:var(--ink-3);white-space:nowrap}
+  .ph h3{margin:0 0 9px;font-size:14.5px;font-weight:650;color:var(--ink);letter-spacing:-.01em}
   .ph ul{margin:0 0 11px;padding:0;list-style:none;display:flex;flex-direction:column;gap:5px}
-  .ph li{font-size:12.8px;color:var(--ink-2);padding-left:15px;position:relative;line-height:1.4}
+  .ph li{font-size:12.6px;color:var(--ink-2);padding-left:15px;position:relative;line-height:1.4}
   .ph li::before{content:"–";position:absolute;left:0;color:var(--ink-3)}
   .ph .exit{font-size:12px;color:var(--ink-2);border-top:1px dashed var(--line-2);padding-top:9px;margin-top:2px}
   .ph .exit b{font-family:var(--font-mono);color:var(--milestone);font-weight:700}
@@ -128,17 +133,15 @@
   td.id{font-family:var(--font-mono);font-weight:700;color:var(--ink)}
   td.date{font-family:var(--font-mono);font-variant-numeric:tabular-nums;color:var(--ink);white-space:nowrap}
   td.gate b{color:var(--ink);font-weight:600}
-  tr.mvp td{background:color-mix(in srgb,var(--milestone) 8%,var(--surface))}
-  tr.mvp td.id,tr.mvp td.date{color:var(--milestone)}
-  tr.stretch td{color:var(--ink-2)}
-  tr.stretch td.id{color:var(--stretch)}
+  tr.key td{background:color-mix(in srgb,var(--milestone) 9%,var(--surface))}
+  tr.key td.id,tr.key td.date{color:var(--milestone)}
+  tr.def td,tr.stretch td{color:var(--ink-2)} tr.def td.id{color:var(--deferred)} tr.stretch td.id{color:var(--stretch)}
 
   .risks{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
   .rk{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 15px;box-shadow:var(--shadow);display:flex;gap:12px;align-items:flex-start}
   .rk .sev{flex:none;width:52px;font-family:var(--font-mono);font-size:9.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:3px 0;text-align:center;border-radius:5px;margin-top:1px}
   .sev.hi{background:color-mix(in srgb,var(--risk) 15%,transparent);color:var(--risk)}
   .sev.md{background:color-mix(in srgb,var(--active) 16%,transparent);color:var(--active)}
-  .sev.ex{background:color-mix(in srgb,var(--muted) 16%,transparent);color:var(--muted)}
   .rk .body{font-size:13px;color:var(--ink-2);line-height:1.45}
   .rk .body b{color:var(--ink);font-weight:600}
 
@@ -147,21 +150,21 @@
 
   footer{margin-top:40px;padding-top:18px;border-top:1px solid var(--line);font-size:12px;color:var(--ink-3);font-family:var(--font-mono);display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
 
-  @media (max-width:720px){.cards,.phases,.risks{grid-template-columns:1fr}h1{font-size:25px}.wrap{padding:34px 18px 60px}}
+  @media (max-width:720px){.cards,.phases,.risks{grid-template-columns:1fr}h1{font-size:24px}.wrap{padding:34px 18px 60px}}
 </style>
 
 <div class="wrap">
   <header class="head">
-    <div class="eyebrow">Project Plan · Firmware Security</div>
-    <h1>TF-M on Renesas RA — CMake Port for RA6 &amp; RA8 (FSP 6.6)</h1>
-    <p class="sub">Deliver Trusted Firmware-M building on RA6 and RA8 from RASC-generated FSP 6.6 sources via the modular CMake framework, on both GNUARM and IAR toolchains, validated against the PSA arch tests. Upstreaming to the Arm TF-M repository is planned as a stretch goal.</p>
+    <div class="eyebrow">Project Plan · Revised after stakeholder review</div>
+    <h1>TF-M on Renesas RA — RA6 → RA8x2 (dual-core), FSP 6.6, GNUARM + IAR</h1>
+    <p class="sub">Stakeholders primarily want <b>RA8x2 (dual-core)</b> running Trusted Firmware-M — which means binding FSP inter-core communication to TF-M's multi-core mailbox HAL. IAR is required, and a working demo is needed by mid-September. With the engineer out the first and last weeks of August, the plan splits into two horizons and defers the psa-arch-tests.</p>
     <div class="metarow">
-      <div class="meta mvp"><div class="k">MVP target</div><div class="v">2027-01-30</div></div>
-      <div class="meta"><div class="k">Prepared</div><div class="v">2026-07-28</div></div>
-      <div class="meta"><div class="k">Duration</div><div class="v">~26 wks · 25% buffer</div></div>
+      <div class="meta mvp"><div class="k">Mid-Sept checkpoint</div><div class="v">2026-09-15 · RA6 + IAR</div></div>
+      <div class="meta mvp"><div class="k">RA8x2 dual-core goal</div><div class="v">2026-12-18</div></div>
+      <div class="meta"><div class="k">Revised</div><div class="v">2026-07-28</div></div>
       <div class="meta"><div class="k">Toolchains</div><div class="v">GNUARM + IAR</div></div>
-      <div class="meta"><div class="k">Stretch — upstream</div><div class="v">Q2 2027</div></div>
-      <div class="meta"><div class="k">Resourcing</div><div class="v">1 engineer</div></div>
+      <div class="meta"><div class="k">Deferred</div><div class="v">PSA tests → Q1 2027</div></div>
+      <div class="meta"><div class="k">Resourcing</div><div class="v">1 eng · Aug 3–7, 24–28 out</div></div>
     </div>
   </header>
 
@@ -170,29 +173,29 @@
     <div class="card done">
       <h3>Done — baseline</h3>
       <ul>
-        <li><b>RA6E1 BL2 boots on silicon</b> (TF-M v2.2, FSP 6.1): full boot through flash init, NV-counter init, MCUboot image search.</li>
+        <li><b>RA6E1 BL2 boots on silicon</b> (TF-M v2.2, FSP 6.1): flash init, NV-counter init, MCUboot image search.</li>
         <li><b>Flash driver</b> ported (data-flash NV counters working); OFS brick-guard in place.</li>
         <li>Modular CMake consuming RASC output; RTT logging.</li>
       </ul>
     </div>
-    <div class="card scope">
-      <h3>MVP scope</h3>
+    <div class="card chk">
+      <h3>Mid-Sept checkpoint · Sep 15</h3>
       <ul>
-        <li><b>RA6</b> full secure boot chain (BL2 → S → NS) on FSP 6.6.</li>
-        <li><b>RA8</b> port to the same chain on FSP 6.6.</li>
-        <li><b>GNUARM + IAR</b> toolchains, both platforms.</li>
-        <li>Both pass <b>some or all</b> targeted PSA arch tests.</li>
+        <li><b>RA6</b> full secure boot chain (BL2 → S → NS) on silicon.</li>
+        <li><b>GNUARM + IAR</b>, both building / booting.</li>
+        <li>Stays on the current <b>FSP 6.1</b> baseline (no rebase) to protect the date.</li>
       </ul>
     </div>
-    <div class="card out">
-      <h3>Not in MVP</h3>
+    <div class="card goal">
+      <h3>Primary goal · RA8x2 dual-core · Dec 18</h3>
       <ul>
-        <li>Upstream merge to Arm TF-M (planned as stretch, phase&nbsp;H).</li>
-        <li>ARMCLANG toolchain.</li>
-        <li>Full PSA test-suite green across every service (best-effort in MVP).</li>
+        <li><b>RA8x2</b> on <b>FSP 6.6</b>: SPE on one core, NSPE on the other.</li>
+        <li><b>FSP inter-core comms bound to TF-M's mailbox HAL</b>; PSA calls marshaled across cores.</li>
+        <li>GNUARM + IAR.</li>
       </ul>
     </div>
   </div>
+  <div class="deferbar"><b>Deferred / not now</b><span>psa-arch-tests → Q1 2027 · upstream to Arm TF-M → stretch, Q2 2027 · ARMCLANG toolchain</span></div>
 
   <h2>Timeline</h2>
   <div class="gantt-scroll">
@@ -220,173 +223,168 @@
       <div class="vline" style="grid-column:20"></div>
       <div class="today" style="grid-column:3"><span class="tlab">TODAY</span></div>
 
-      <div class="g-lab" style="grid-row:2"><span class="id">A</span><span class="tx">FSP 6.6 rebase · RA6 BL2 baseline</span></div>
+      <div class="g-lab" style="grid-row:2"><span class="id">P1</span><span class="tx">RA6 secure image (tfm_s)</span></div>
       <div class="g-track" style="grid-row:2"></div>
-      <div class="bar shared" style="grid-row:2;grid-column:3/5">Rebase<span class="ms">M1</span></div>
+      <div class="bar ra6" style="grid-row:2;grid-column:3/5">RA6 secure<span class="ms">M1</span></div>
 
-      <div class="g-lab" style="grid-row:3"><span class="id">B</span><span class="tx">RA6 secure image (tfm_s)</span></div>
+      <div class="g-lab" style="grid-row:3"><span class="id">P2</span><span class="tx">RA6 non-secure · full chain</span></div>
       <div class="g-track" style="grid-row:3"></div>
-      <div class="bar ra6" style="grid-row:3;grid-column:5/7">Secure<span class="ms">M2</span></div>
+      <div class="bar ra6" style="grid-row:3;grid-column:5/6">NS<span class="ms">M2</span></div>
 
-      <div class="g-lab" style="grid-row:4"><span class="id">C</span><span class="tx">RA6 non-secure · full chain</span></div>
+      <div class="g-lab" style="grid-row:4"><span class="id">P3</span><span class="tx">IAR for RA6 → mid-Sept demo</span></div>
       <div class="g-track" style="grid-row:4"></div>
-      <div class="bar ra6" style="grid-row:4;grid-column:7/8">NS<span class="ms">M3</span></div>
+      <div class="bar key" style="grid-row:4;grid-column:6/7">IAR · DEMO<span class="ms">M3</span></div>
 
-      <div class="g-lab" style="grid-row:5"><span class="id">D</span><span class="tx">RA6 PSA tests (GNUARM)</span></div>
+      <div class="g-lab" style="grid-row:5"><span class="id">P4</span><span class="tx">RA8x2 base port · BL2 + SPE</span></div>
       <div class="g-track" style="grid-row:5"></div>
-      <div class="bar ra6" style="grid-row:5;grid-column:8/10">Tests<span class="ms">M4</span></div>
+      <div class="bar ra8" style="grid-row:5;grid-column:7/9">RA8x2 base<span class="ms">M4</span></div>
 
-      <div class="g-lab" style="grid-row:6"><span class="id">E</span><span class="tx">RA8 port · BL2 → S → NS</span></div>
+      <div class="g-lab" style="grid-row:6"><span class="id">P5</span><span class="tx">Dual-core · FSP ICC ↔ TF-M mailbox</span></div>
       <div class="g-track" style="grid-row:6"></div>
-      <div class="bar ra8" style="grid-row:6;grid-column:10/12">RA8 port<span class="ms">M5</span></div>
+      <div class="bar ra8" style="grid-row:6;grid-column:9/11">Dual-core mailbox<span class="ms">M5</span></div>
 
-      <div class="g-lab" style="grid-row:7"><span class="id">F</span><span class="tx">RA8 PSA tests (GNUARM)</span></div>
+      <div class="g-lab" style="grid-row:7"><span class="id">P6</span><span class="tx">RA8x2 NS + IAR → primary goal</span></div>
       <div class="g-track" style="grid-row:7"></div>
-      <div class="bar ra8" style="grid-row:7;grid-column:12/14">RA8 tests<span class="ms">M6</span></div>
+      <div class="bar key" style="grid-row:7;grid-column:11/13">RA8x2 goal<span class="ms">M6</span></div>
 
-      <div class="g-lab" style="grid-row:8"><span class="id">G</span><span class="tx">IAR toolchain · RA6 + RA8 → MVP</span></div>
+      <div class="g-lab" style="grid-row:8"><span class="id">P7</span><span class="tx">Deferred — psa-arch-tests</span></div>
       <div class="g-track" style="grid-row:8"></div>
-      <div class="bar mvpbar" style="grid-row:8;grid-column:14/16">IAR + MVP<span class="ms">M7</span></div>
+      <div class="bar deferred" style="grid-row:8;grid-column:14/16">PSA tests<span class="ms">M7</span></div>
 
-      <div class="g-lab" style="grid-row:9"><span class="id">H</span><span class="tx">Stretch — upstream to Arm TF-M</span></div>
+      <div class="g-lab" style="grid-row:9"><span class="id">P8</span><span class="tx">Stretch — upstream to Arm TF-M</span></div>
       <div class="g-track" style="grid-row:9"></div>
-      <div class="bar stretch" style="grid-row:9;grid-column:16/21">Upstream review<span class="ms">M8</span></div>
+      <div class="bar stretch" style="grid-row:9;grid-column:16/21">Upstream<span class="ms">M8</span></div>
     </div>
   </div>
   <div class="legend">
-    <div class="lg"><span class="sw ra6"></span>RA6 track</div>
-    <div class="lg"><span class="sw ra8"></span>RA8 track</div>
-    <div class="lg"><span class="sw shared"></span>Cross-cutting</div>
-    <div class="lg"><span class="sw mvpbar"></span>IAR / MVP</div>
-    <div class="lg"><span class="sw stretch"></span>Stretch (not in MVP)</div>
-    <div class="lg"><span class="sw dia"></span>Milestone / phase gate</div>
+    <div class="lg"><span class="sw ra6"></span>RA6</div>
+    <div class="lg"><span class="sw ra8"></span>RA8x2</div>
+    <div class="lg"><span class="sw key"></span>Key deliverable</div>
+    <div class="lg"><span class="sw deferred"></span>Deferred</div>
+    <div class="lg"><span class="sw stretch"></span>Stretch</div>
+    <div class="lg"><span class="sw dia"></span>Milestone</div>
   </div>
+  <div class="gnote">Engineer <b>out Aug 3–7 and Aug 24–28</b> — reflected in the phase dates (P1 spans the first; the gap before P3 is the second).</div>
 
   <h2>Phases</h2>
   <div class="phases">
-    <div class="ph shared">
-      <div class="ph-top"><span class="ph-id">A · Foundation</span><span class="ph-dates">Jul 28 – Aug 14</span></div>
-      <h3>FSP 6.6 rebase &amp; RA6 BL2 baseline</h3>
+    <div class="ph ra6">
+      <div class="ph-top"><span class="ph-id">P1 · RA6 secure</span><span class="ph-dates">Jul 28 – Aug 14</span></div>
+      <h3>RA6 secure image (tfm_s) — GNUARM, FSP 6.1</h3>
       <ul>
-        <li>Regenerate RA6E1/RA6M4 RASC projects on FSP 6.6</li>
-        <li>Re-apply hand-edits: data-flash programming, EARLY_INIT, per-word OFS, flash driver</li>
-        <li>Confirm BL2 still boots on RA6E1 silicon under 6.6</li>
+        <li>Generate RA6 TrustZone-Secure RASC project; wire DDSC symbols (<span class="mono">fsp_gen.ld</span> + <span class="mono">bsp_linker_info.h</span>) into the tfm_s link</li>
+        <li>Resolve <span class="mono">bsp_security.c</span>; decide SAU ownership (<span class="mono">tfm_hal_isolation.c</span> vs FSP <span class="mono">R_BSP_SecurityInit</span>)</li>
+        <li>Platform HAL + OTP/lifecycle so first-boot dummy provisioning runs; build + sign tfm_s; BL2 chainloads it</li>
       </ul>
-      <div class="exit">Exit <b>M1</b> — RA6 BL2 boots on FSP 6.6</div>
+      <div class="exit">Exit <b>M1</b> — RA6 BL2 → tfm_s boots (spans Aug 3–7 out)</div>
     </div>
 
     <div class="ph ra6">
-      <div class="ph-top"><span class="ph-id">B · Secure</span><span class="ph-dates">Aug 17 – Sep 11</span></div>
-      <h3>RA6 secure image (tfm_s)</h3>
+      <div class="ph-top"><span class="ph-id">P2 · RA6 NS</span><span class="ph-dates">Aug 17 – Aug 21</span></div>
+      <h3>RA6 non-secure &amp; full chain (GNUARM)</h3>
       <ul>
-        <li>Generate RA6 TrustZone-Secure RASC project; wire DDSC symbols (fsp_gen.ld + <span class="mono">bsp_linker_info.h</span>) into the tfm_s link</li>
-        <li>Resolve <span class="mono">bsp_security.c</span>; decide SAU ownership — <span class="mono">tfm_hal_isolation.c</span> / <span class="mono">target_cfg.c</span> vs FSP R_BSP_SecurityInit</li>
-        <li>Platform HAL: <span class="mono">tfm_hal_platform_init</span>, <span class="mono">tfm_platform_system.c</span> (reset / IOCTL / NV-counter API); OTP HAL + lifecycle-state so first-boot dummy provisioning runs</li>
-        <li>Build + sign tfm_s; BL2 validates &amp; chainloads it</li>
-      </ul>
-      <div class="exit">Exit <b>M2</b> — BL2 → tfm_s boots on silicon</div>
-    </div>
-
-    <div class="ph ra6">
-      <div class="ph-top"><span class="ph-id">C · Non-secure</span><span class="ph-dates">Sep 14 – Sep 25</span></div>
-      <h3>RA6 non-secure &amp; full boot chain</h3>
-      <ul>
-        <li>NS RASC project downstream of secure; consume veneer / CMSE import library</li>
+        <li>NS RASC project downstream of secure; veneer / CMSE import library</li>
         <li><span class="mono">ns/CMakeLists.txt</span>, <span class="mono">cpuarch_ns.cmake</span>, S→NS transition</li>
         <li>Full BL2 → S → NS boot, proven over RTT</li>
       </ul>
-      <div class="exit">Exit <b>M3</b> — full RA6 secure boot chain</div>
+      <div class="exit">Exit <b>M2</b> — full RA6 chain (GNUARM)</div>
     </div>
 
-    <div class="ph ra6">
-      <div class="ph-top"><span class="ph-id">D · Validate</span><span class="ph-dates">Sep 28 – Oct 23</span></div>
-      <h3>RA6 PSA arch tests (GNUARM)</h3>
+    <div class="ph key">
+      <div class="ph-top"><span class="ph-id">P3 · IAR / DEMO</span><span class="ph-dates">Aug 31 – Sep 11</span></div>
+      <h3>IAR toolchain for RA6 → mid-Sept demo</h3>
       <ul>
-        <li>Integrate psa-arch-tests; split SPE/NSPE build; <span class="mono">TFM_DUMMY_PROVISIONING</span> (dummy IAK/ROTPK match the TF-M test keys)</li>
-        <li>Wire service HALs the suites exercise: entropy / RSIP TRNG (crypto), <span class="mono">its_flash_fs</span> (ITS), <span class="mono">ps_nv_counters</span> (PS), boot-seed + device-ID + IAK (attestation)</li>
-        <li>Run on RA6E1; iterate to green on targeted suites</li>
+        <li>IAR linker <span class="mono">.icf</span> for BL2 / S / NS: OFS, veneer / NSC, TZ regions (GCC <span class="mono">.ld</span> → IAR <span class="mono">.icf</span>)</li>
+        <li>IAR startup + toolchain CMake; build BL2 → S → NS under IAR; boot on RA6E1</li>
       </ul>
-      <div class="exit">Exit <b>M4</b> — RA6 passes targeted PSA tests</div>
-    </div>
-
-    <div class="ph ra8">
-      <div class="ph-top"><span class="ph-id">E · RA8</span><span class="ph-dates">Oct 26 – Nov 27</span></div>
-      <h3>RA8 port — new platform (GNUARM)</h3>
-      <ul>
-        <li>New <span class="mono">platform/ext/target/renesas/ra8</span>; RA8 RASC projects (BL2/S/NS) on FSP 6.6</li>
-        <li>RA8 specifics: SAU reach-to-NS (FSP 6.6 fix), TCM DDSC symbols, memory map, RSIP crypto driver</li>
-        <li>Cortex-M85: PACBTI / branch-protection + FPU-in-SPE config decisions</li>
-        <li>BL2 → S → NS boot on EK-RA8 silicon</li>
-      </ul>
-      <div class="exit">Exit <b>M5</b> — RA8 full boot chain on silicon</div>
+      <div class="exit">Exit <b>M3 (Sep 15)</b> — DEMO: RA6 full chain, GNUARM + IAR, on silicon</div>
     </div>
 
     <div class="ph ra8">
-      <div class="ph-top"><span class="ph-id">F · Validate</span><span class="ph-dates">Nov 30 – Dec 18</span></div>
-      <h3>RA8 PSA arch tests (GNUARM)</h3>
+      <div class="ph-top"><span class="ph-id">P4 · RA8x2 base</span><span class="ph-dates">Sep 16 – Oct 16</span></div>
+      <h3>RA8x2 base port — BL2 + SPE on primary core (FSP 6.6)</h3>
       <ul>
-        <li>RA8 provisioning / entropy / RSIP crypto wired up</li>
-        <li>Run psa-arch-tests on EK-RA8; iterate to targeted green</li>
-        <li>Cross-check RA6 + RA8 GNUARM regression before the toolchain fan-out</li>
+        <li>New <span class="mono">platform/ext/target/renesas/ra8x2</span>; RASC projects on FSP 6.6; reuse RA6 patterns</li>
+        <li>Settle <b>core topology</b> — which core runs SPE vs NSPE; TZ-on-M85 + M33-as-NS vs pure multi-core (drives the mailbox design)</li>
+        <li>RA8x2 specifics: memory map, RSIP crypto, Cortex-M85 PACBTI / FPU-in-SPE</li>
       </ul>
-      <div class="exit">Exit <b>M6</b> — RA8 passes targeted PSA tests</div>
+      <div class="exit">Exit <b>M4</b> — RA8x2 SPE boots on the primary core</div>
     </div>
 
-    <div class="ph mvpph">
-      <div class="ph-top"><span class="ph-id">G · IAR / MVP</span><span class="ph-dates">Jan 5 – Jan 30, 2027</span></div>
-      <h3>IAR toolchain across RA6 + RA8</h3>
+    <div class="ph ra8">
+      <div class="ph-top"><span class="ph-id">P5 · Dual-core</span><span class="ph-dates">Oct 19 – Nov 20</span></div>
+      <h3>Dual-core — FSP ICC ↔ TF-M mailbox HAL</h3>
       <ul>
-        <li>IAR linker <span class="mono">.icf</span> for BL2 / S / NS: replicate per-word OFS, veneer / NSC placement, TZ regions (GCC <span class="mono">.ld</span> → IAR <span class="mono">.icf</span>)</li>
-        <li>IAR startup + toolchain CMake; build BL2 → S → NS on RA6 then RA8; boot on silicon</li>
-        <li>Run targeted PSA tests under IAR; MVP consolidation + stakeholder sign-off</li>
+        <li>Implement <span class="mono">tfm_hal_multi_core_*</span> / <span class="mono">platform_mailbox</span> over FSP inter-core comms (shared memory + semaphore/IPC)</li>
+        <li>NS mailbox agent on the NSPE core; marshal PSA client calls across cores; boot both cores</li>
       </ul>
-      <div class="exit">Exit <b>M7</b> — MVP: RA6 + RA8, GNUARM + IAR, PSA tests</div>
+      <div class="exit">Exit <b>M5</b> — PSA call marshaled NSPE-core → SPE-core over FSP ICC</div>
+    </div>
+
+    <div class="ph key">
+      <div class="ph-top"><span class="ph-id">P6 · RA8x2 goal</span><span class="ph-dates">Nov 23 – Dec 18</span></div>
+      <h3>RA8x2 NS + IAR + consolidation</h3>
+      <ul>
+        <li>NSPE application on the second core; end-to-end dual-core boot + PSA services</li>
+        <li>IAR <span class="mono">.icf</span> / startup for RA8x2 (both cores); build + boot under IAR</li>
+        <li>Consolidation + stakeholder sign-off</li>
+      </ul>
+      <div class="exit">Exit <b>M6</b> — RA8x2 dual-core full chain, GNUARM + IAR</div>
+    </div>
+
+    <div class="ph deferred">
+      <div class="ph-top"><span class="ph-id">P7 · Deferred</span><span class="ph-dates">Jan 5 – Feb 5, 2027</span></div>
+      <h3>psa-arch-tests — RA6 + RA8x2</h3>
+      <ul>
+        <li>Integrate psa-arch-tests; <span class="mono">TFM_DUMMY_PROVISIONING</span>; split SPE/NSPE build</li>
+        <li>Service HALs: entropy / RSIP TRNG (crypto), <span class="mono">its_flash_fs</span> (ITS), <span class="mono">ps_nv_counters</span> (PS), boot-seed + device-ID + IAK (attestation)</li>
+        <li>Run on RA6E1 + RA8x2; iterate to targeted green</li>
+      </ul>
+      <div class="exit">Exit <b>M7</b> — targeted PSA arch tests pass</div>
     </div>
 
     <div class="ph stretch" style="grid-column:1/-1">
-      <div class="ph-top"><span class="ph-id">H · Stretch</span><span class="ph-dates">Feb 9 – Apr 24, 2027</span></div>
+      <div class="ph-top"><span class="ph-id">P8 · Stretch</span><span class="ph-dates">Feb 15 – Apr 24, 2027</span></div>
       <h3>Upstream to the Arm TF-M repository</h3>
       <ul>
-        <li>Docs tree: vendor <span class="mono">index.rst</span> + per-platform entry + <span class="mono">platform_introduction.rst</span>, added to <span class="mono">docs/platform/index.rst</span></li>
-        <li>Accept the deprecation policy's <b>ongoing-maintenance commitment</b> (owner keeps the platform building/running upstream); maintainer sign-off + CI</li>
-        <li>Submit via review.trustedfirmware.org (Gerrit); iterate through community review cycles</li>
-        <li>Not mandatory for this customer — timeline is bounded by external review latency</li>
+        <li>Docs tree (vendor + per-platform <span class="mono">index.rst</span>, <span class="mono">platform_introduction.rst</span>); accept the deprecation policy's ongoing-maintenance commitment; maintainer sign-off + CI</li>
+        <li>Submit via review.trustedfirmware.org (Gerrit). Not mandatory for this customer — bounded by external review latency</li>
       </ul>
-      <div class="exit">Exit <b>M8</b> — RA6 + RA8 merged upstream (review-latency dependent)</div>
+      <div class="exit">Exit <b>M8</b> — RA6 + RA8x2 merged upstream (review-latency dependent)</div>
     </div>
   </div>
 
   <h2>Platform HAL surface — what each target must implement</h2>
   <div class="cards hal">
-    <div class="card scope"><h3>Boot &amp; isolation</h3><ul>
+    <div class="card goal"><h3>Boot &amp; isolation</h3><ul>
       <li>startup + linker, OFS (BL2)</li>
       <li><span class="mono">target_cfg.c</span> — SAU / PPC / MPC</li>
       <li><span class="mono">tfm_hal_isolation.c</span>, static boundaries</li>
     </ul></div>
-    <div class="card scope"><h3>Storage</h3><ul>
+    <div class="card goal"><h3>Multi-core (RA8x2)</h3><ul>
+      <li><span class="mono">tfm_hal_multi_core_*</span> + <span class="mono">platform_mailbox</span> over FSP ICC</li>
+      <li>NS mailbox agent</li>
+      <li>PSA call marshaling across cores</li>
+    </ul></div>
+    <div class="card goal"><h3>Storage</h3><ul>
       <li><span class="mono">Driver_FLASH0/1</span> (code + data)</li>
       <li><span class="mono">its_flash_fs</span> HAL (ITS)</li>
       <li><span class="mono">ps_nv_counters</span> (PS)</li>
     </ul></div>
-    <div class="card scope"><h3>Crypto &amp; entropy</h3><ul>
+    <div class="card goal"><h3>Crypto &amp; entropy</h3><ul>
       <li>RSIP crypto driver</li>
       <li>entropy / TRNG source</li>
       <li>crypto key HAL</li>
     </ul></div>
-    <div class="card scope"><h3>Identity &amp; provisioning</h3><ul>
+    <div class="card goal"><h3>Identity &amp; provisioning</h3><ul>
       <li>OTP HAL + lifecycle state</li>
       <li>IAK + BL2 ROTPKs (dummy for dev/tests)</li>
       <li>NV counters backend</li>
     </ul></div>
-    <div class="card scope"><h3>Platform service</h3><ul>
-      <li>system reset</li>
-      <li>IOCTL entry point</li>
-      <li>NV-counter increment / read API</li>
-    </ul></div>
-    <div class="card scope"><h3>Attestation &amp; NS</h3><ul>
-      <li>boot seed, implementation / device ID</li>
-      <li>NS: <span class="mono">ns/CMakeLists</span>, <span class="mono">cpuarch_ns</span></li>
-      <li>veneer / CMSE import library</li>
+    <div class="card goal"><h3>Platform service &amp; NS</h3><ul>
+      <li>system reset, IOCTL, NV-counter API</li>
+      <li>attestation: boot seed, device ID</li>
+      <li>NS <span class="mono">ns/CMakeLists</span> + <span class="mono">cpuarch_ns</span>; veneer lib</li>
     </ul></div>
   </div>
 
@@ -395,36 +393,36 @@
     <table>
       <thead><tr><th>ID</th><th>Date</th><th>Gate</th></tr></thead>
       <tbody>
-        <tr><td class="id">M1</td><td class="date">2026-08-14</td><td class="gate"><b>RA6 BL2 boots on FSP 6.6</b> silicon (baseline re-established after regen)</td></tr>
-        <tr><td class="id">M2</td><td class="date">2026-09-11</td><td class="gate"><b>BL2 → tfm_s</b> validated &amp; chainloaded; DDSC/secure project + isolation resolved</td></tr>
-        <tr><td class="id">M3</td><td class="date">2026-09-25</td><td class="gate"><b>Full RA6 boot chain</b> BL2 → S → NS on silicon</td></tr>
-        <tr><td class="id">M4</td><td class="date">2026-10-23</td><td class="gate"><b>RA6 passes targeted PSA arch tests</b> (GNUARM)</td></tr>
-        <tr><td class="id">M5</td><td class="date">2026-11-27</td><td class="gate"><b>RA8 full boot chain</b> on silicon (GNUARM)</td></tr>
-        <tr><td class="id">M6</td><td class="date">2026-12-18</td><td class="gate"><b>RA8 passes targeted PSA arch tests</b> (GNUARM)</td></tr>
-        <tr class="mvp"><td class="id">M7</td><td class="date">2027-01-30</td><td class="gate"><b>MVP — RA6 + RA8 on FSP 6.6, GNUARM + IAR, passing targeted PSA arch tests</b></td></tr>
-        <tr class="stretch"><td class="id">M8</td><td class="date">~2027 Q2</td><td class="gate">Stretch — RA6 + RA8 merged into Arm TF-M upstream</td></tr>
+        <tr><td class="id">M1</td><td class="date">2026-08-14</td><td class="gate">RA6 BL2 → tfm_s boots on silicon</td></tr>
+        <tr><td class="id">M2</td><td class="date">2026-08-21</td><td class="gate">Full RA6 boot chain BL2 → S → NS (GNUARM)</td></tr>
+        <tr class="key"><td class="id">M3</td><td class="date">2026-09-15</td><td class="gate"><b>DEMO — RA6 full chain, GNUARM + IAR, on silicon</b> (mid-Sept checkpoint)</td></tr>
+        <tr><td class="id">M4</td><td class="date">2026-10-16</td><td class="gate">RA8x2 SPE boots on the primary core (FSP 6.6)</td></tr>
+        <tr><td class="id">M5</td><td class="date">2026-11-20</td><td class="gate">RA8x2 dual-core: PSA call marshaled NSPE-core → SPE-core over FSP ICC</td></tr>
+        <tr class="key"><td class="id">M6</td><td class="date">2026-12-18</td><td class="gate"><b>RA8x2 dual-core full chain, GNUARM + IAR</b> (primary goal)</td></tr>
+        <tr class="def"><td class="id">M7</td><td class="date">2027-02-05</td><td class="gate">Deferred — targeted psa-arch-tests pass (RA6 + RA8x2)</td></tr>
+        <tr class="stretch"><td class="id">M8</td><td class="date">~2027 Q2</td><td class="gate">Stretch — RA6 + RA8x2 merged into Arm TF-M upstream</td></tr>
       </tbody>
     </table>
   </div>
 
   <h2>Risks &amp; buffer</h2>
   <div class="risks">
-    <div class="rk"><div class="sev hi">High</div><div class="body"><b>FSP 6.6 regen churn.</b> Every hand-edit (DF programming, EARLY_INIT, OFS, flash driver, DDSC wiring) needs to be replicated; 6.6 is unlikely to have major changes in that regard. Mitigated by sticking with 6.1 but not recommended.</div></div>
-    <div class="rk"><div class="sev hi">High</div><div class="body"><b>RA8 SAU reach-to-NS.</b> Flat MCUboot can't reach NS on RA8 without the FSP 6.6 fix — unverified until phase E. If it slips, RA8 secure→NS needs a workaround.</div></div>
-    <div class="rk"><div class="sev hi">High</div><div class="body"><b>IAR linker replication.</b> Recreating OFS / veneer / TZ region placement + startup as IAR <span class="mono">.icf</span> across BL2/S/NS × 2 platforms; IAR TZ and veneer handling differs from GCC. On the MVP critical path (phase G).</div></div>
-    <div class="rk"><div class="sev md">Med</div><div class="body"><b>SAU ownership decision.</b> FSP <span class="mono">R_BSP_SecurityInit</span> vs TF-M <span class="mono">sau_and_idau_cfg</span> (DESIGN §13.1/§13.2). Choosing TF-M-owns expands scope; folded into phase B.</div></div>
-    <div class="rk"><div class="sev md">Med</div><div class="body"><b>PSA test depth.</b> Attestation / PS / ITS need entropy, provisioning, and RSIP crypto wired up. "Some or all" is deliberate — full green may exceed the MVP window per service.</div></div>
-    <div class="rk"><div class="sev md">Med</div><div class="body"><b>Hardware.</b> 2× EK-RA6M4 bricked (RA6E1 is the RA6 vehicle); an EK-RA8 must be procured before phase E.</div></div>
-    <div class="rk"><div class="sev md">Med</div><div class="body"><b>Upstream maintenance commitment.</b> The deprecation policy obliges the platform owner to keep RA6/RA8 building &amp; running upstream after merge — an ongoing cost beyond the merge itself.</div></div>
-    <div class="rk"><div class="sev ex">Ext</div><div class="body"><b>Upstream review latency.</b> Phase H duration is set by trustedfirmware.org maintainer cycles — outside our control, hence stretch and off the MVP critical path.</div></div>
+    <div class="rk"><div class="sev hi">High</div><div class="body"><b>Mid-Sept is tight, little slack.</b> RA6 secure-image (DDSC + SAU/isolation) is still an unknown, compressed into ~5 working weeks around two absences, plus IAR. Any snag in P1 or P3 slips the Sep 15 demo directly.</div></div>
+    <div class="rk"><div class="sev hi">High</div><div class="body"><b>Dual-core mailbox integration.</b> Binding FSP inter-core comms to TF-M's <span class="mono">tfm_hal_multi_core</span> / <span class="mono">platform_mailbox</span> is the project's biggest unknown; no RA reference exists. Concentrated in P5.</div></div>
+    <div class="rk"><div class="sev hi">High</div><div class="body"><b>RA8x2 core-topology decision.</b> Which core runs SPE vs NSPE, and TZ-on-M85 + M33-as-NS vs pure multi-core, sets the entire mailbox design. Must be settled at the start of P4.</div></div>
+    <div class="rk"><div class="sev hi">High</div><div class="body"><b>IAR replication.</b> OFS / veneer / TZ placement + startup as IAR <span class="mono">.icf</span>; IAR TZ/veneer handling differs from GCC. On the critical path for both the Sep 15 demo and the Dec goal.</div></div>
+    <div class="rk"><div class="sev hi">High</div><div class="body"><b>FSP 6.6 for RA8x2.</b> First use for dual-core + SAU-reach-NS + RA8 support; regen churn and unverified dual-core generation.</div></div>
+    <div class="rk"><div class="sev md">Med</div><div class="body"><b>New silicon.</b> First RA8x2 bring-up — M85 PACBTI/FPU, RSIP, dual-core boot.</div></div>
+    <div class="rk"><div class="sev md">Med</div><div class="body"><b>Hardware.</b> An EK-RA8x2 (dual-core) board must be procured before P4; 2× EK-RA6M4 bricked (RA6E1 is the RA6 vehicle).</div></div>
+    <div class="rk"><div class="sev md">Med</div><div class="body"><b>No PSA conformance at the Dec goal.</b> psa-arch-tests deferred to Q1 2027, so no formal PSA evidence at M6 — stakeholders have accepted this.</div></div>
   </div>
   <div class="buffer">
-    <b>Buffer model.</b> Each phase carries roughly <span class="mono">25–30%</span> internal buffer. The <span class="mono">Dec 19 – Jan 2</span> year-end period is held as schedule contingency ahead of phase G. Critical path runs A→B→C→D→E→F→G; phases D (RA6 tests), E (RA8), and G (IAR) are the most likely to consume buffer, and with just one engineer, are sequential.
+    <b>Buffer.</b> The mid-Sept leg (P1–P3) is <b>constraint-driven, not buffer-driven</b> — aggressive with little slack; the two August absences already consume the margin. The RA8x2 leg (P4–P6) carries <span class="mono">~20–25%</span> internal buffer and holds Dec 21 – Jan 2 as contingency. Everything is sequential under one engineer.
   </div>
 
   <footer>
-    <span>TF-M on Renesas RA · RA6 + RA8 · FSP 6.6 · GNUARM + IAR</span>
-    <span>Prepared 2026-07-28 · MVP 2027-01-30</span>
+    <span>TF-M on Renesas RA · RA6 → RA8x2 dual-core · FSP 6.6 · GNUARM + IAR</span>
+    <span>Revised 2026-07-28 · Demo 2026-09-15 · Goal 2026-12-18</span>
   </footer>
 </div>
 
