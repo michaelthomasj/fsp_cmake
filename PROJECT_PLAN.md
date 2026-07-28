@@ -7,13 +7,12 @@ sources via the modular CMake framework, on both **GNUARM and IAR** toolchains,
 validated against the PSA arch tests. Upstreaming to the Arm TF-M repository is
 planned as a stretch goal.
 
-> A rendered version of this plan is in [`PROJECT_PLAN.html`](PROJECT_PLAN.html).
 
 | | |
 |---|---|
 | **MVP target** | **2027-01-30** |
 | Prepared | 2026-07-28 |
-| Duration | ~26 weeks |
+| Duration | ~26 weeks (25% buffer added) |
 | Toolchains | GNUARM + IAR |
 | Stretch — upstream | Q2 2027 |
 | Resourcing | 1 engineer |
@@ -24,7 +23,7 @@ planned as a stretch goal.
 
 **Done — baseline**
 - **RA6E1 BL2 boots on silicon** (TF-M v2.2, FSP 6.1): full boot through flash init, NV-counter init, MCUboot image search.
-- **Flash driver** faithfully ported (data-flash NV counters working); OFS brick-guard in place.
+- **Flash driver** ported (data-flash NV counters working); OFS brick-guard in place.
 - Modular CMake consuming RASC output; RTT logging.
 
 **MVP scope**
@@ -144,7 +143,7 @@ Critical path: **A → B → C → D → E → F → G** (sequential under a sin
 
 | Severity | Risk |
 |---|---|
-| **High** | **FSP 6.6 regen churn.** Every hand-edit (DF programming, EARLY_INIT, OFS, flash driver, DDSC wiring) must survive regeneration; 6.6 may change generated structure. Mitigated by phase A doing nothing but rebase + prove baseline. |
+| **High** | **FSP 6.6 regen churn.** Every hand-edit (DF programming, EARLY_INIT, OFS, flash driver, DDSC wiring) needs to be replicated; 6.6 is unlikely to have major changes in that regard. Mitigated by sticking with 6.1 but not recommended. |
 | **High** | **RA8 SAU reach-to-NS.** Flat MCUboot can't reach NS on RA8 without the FSP 6.6 fix — unverified until phase E. If it slips, RA8 secure→NS needs a workaround. |
 | **High** | **IAR linker replication.** Recreating OFS / veneer / TZ region placement + startup as IAR `.icf` across BL2/S/NS × 2 platforms; IAR TZ and veneer handling differs from GCC. On the MVP critical path (phase G). |
 | Med | **SAU ownership decision.** FSP `R_BSP_SecurityInit` vs TF-M `sau_and_idau_cfg` (DESIGN §13.1/§13.2). Choosing TF-M-owns expands scope; folded into phase B. |
@@ -156,8 +155,7 @@ Critical path: **A → B → C → D → E → F → G** (sequential under a sin
 **Buffer model.** Each phase carries roughly 25–30% internal buffer. The
 Dec 19 – Jan 2 year-end period is held as schedule contingency ahead of phase G.
 Critical path runs A→B→C→D→E→F→G; phases D (RA6 tests), E (RA8), and G (IAR) are
-the most likely to consume buffer, and are sequential under a single engineer.
+the most likely to consume buffer, and with just one engineer, are sequential.
 
 ---
 
-*Prepared 2026-07-28 · MVP 2027-01-30 · TF-M on Renesas RA · RA6 + RA8 · FSP 6.6 · GNUARM + IAR*

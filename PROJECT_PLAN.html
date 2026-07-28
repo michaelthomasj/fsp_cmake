@@ -158,7 +158,7 @@
     <div class="metarow">
       <div class="meta mvp"><div class="k">MVP target</div><div class="v">2027-01-30</div></div>
       <div class="meta"><div class="k">Prepared</div><div class="v">2026-07-28</div></div>
-      <div class="meta"><div class="k">Duration</div><div class="v">~26 wks</div></div>
+      <div class="meta"><div class="k">Duration</div><div class="v">~26 wks · 25% buffer</div></div>
       <div class="meta"><div class="k">Toolchains</div><div class="v">GNUARM + IAR</div></div>
       <div class="meta"><div class="k">Stretch — upstream</div><div class="v">Q2 2027</div></div>
       <div class="meta"><div class="k">Resourcing</div><div class="v">1 engineer</div></div>
@@ -171,7 +171,7 @@
       <h3>Done — baseline</h3>
       <ul>
         <li><b>RA6E1 BL2 boots on silicon</b> (TF-M v2.2, FSP 6.1): full boot through flash init, NV-counter init, MCUboot image search.</li>
-        <li><b>Flash driver</b> faithfully ported (data-flash NV counters working); OFS brick-guard in place.</li>
+        <li><b>Flash driver</b> ported (data-flash NV counters working); OFS brick-guard in place.</li>
         <li>Modular CMake consuming RASC output; RTT logging.</li>
       </ul>
     </div>
@@ -409,7 +409,7 @@
 
   <h2>Risks &amp; buffer</h2>
   <div class="risks">
-    <div class="rk"><div class="sev hi">High</div><div class="body"><b>FSP 6.6 regen churn.</b> Every hand-edit (DF programming, EARLY_INIT, OFS, flash driver, DDSC wiring) must survive regeneration; 6.6 may change generated structure. Mitigated by phase A doing nothing but rebase + prove baseline.</div></div>
+    <div class="rk"><div class="sev hi">High</div><div class="body"><b>FSP 6.6 regen churn.</b> Every hand-edit (DF programming, EARLY_INIT, OFS, flash driver, DDSC wiring) needs to be replicated; 6.6 is unlikely to have major changes in that regard. Mitigated by sticking with 6.1 but not recommended.</div></div>
     <div class="rk"><div class="sev hi">High</div><div class="body"><b>RA8 SAU reach-to-NS.</b> Flat MCUboot can't reach NS on RA8 without the FSP 6.6 fix — unverified until phase E. If it slips, RA8 secure→NS needs a workaround.</div></div>
     <div class="rk"><div class="sev hi">High</div><div class="body"><b>IAR linker replication.</b> Recreating OFS / veneer / TZ region placement + startup as IAR <span class="mono">.icf</span> across BL2/S/NS × 2 platforms; IAR TZ and veneer handling differs from GCC. On the MVP critical path (phase G).</div></div>
     <div class="rk"><div class="sev md">Med</div><div class="body"><b>SAU ownership decision.</b> FSP <span class="mono">R_BSP_SecurityInit</span> vs TF-M <span class="mono">sau_and_idau_cfg</span> (DESIGN §13.1/§13.2). Choosing TF-M-owns expands scope; folded into phase B.</div></div>
@@ -419,7 +419,7 @@
     <div class="rk"><div class="sev ex">Ext</div><div class="body"><b>Upstream review latency.</b> Phase H duration is set by trustedfirmware.org maintainer cycles — outside our control, hence stretch and off the MVP critical path.</div></div>
   </div>
   <div class="buffer">
-    <b>Buffer model.</b> Each phase carries roughly <span class="mono">25–30%</span> internal buffer. The <span class="mono">Dec 19 – Jan 2</span> year-end period is held as schedule contingency ahead of phase G. Critical path runs A→B→C→D→E→F→G; phase D (RA6 tests), E (RA8), and G (IAR) are the most likely to consume buffer, and are sequential under a single engineer.
+    <b>Buffer model.</b> Each phase carries roughly <span class="mono">25–30%</span> internal buffer. The <span class="mono">Dec 19 – Jan 2</span> year-end period is held as schedule contingency ahead of phase G. Critical path runs A→B→C→D→E→F→G; phases D (RA6 tests), E (RA8), and G (IAR) are the most likely to consume buffer, and with just one engineer, are sequential.
   </div>
 
   <footer>
