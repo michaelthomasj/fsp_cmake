@@ -157,7 +157,7 @@
   <header class="head">
     <div class="eyebrow">Project Plan · Revised after stakeholder review</div>
     <h1>TF-M on Renesas RA — RA6 → RA8x2 (dual-core), FSP 6.6, GNUARM + IAR</h1>
-    <p class="sub">Stakeholders primarily want <b>RA8x2 (dual-core)</b> running Trusted Firmware-M — which means binding FSP inter-core communication to TF-M's multi-core mailbox HAL. IAR is required, and a working demo is needed by mid-September. With the engineer out the first and last weeks of August, the plan splits into two horizons and defers the psa-arch-tests.</p>
+    <p class="sub">Stakeholders primarily want <b>RA8x2 (dual-core)</b> running Trusted Firmware-M — which means binding FSP inter-core communication to TF-M's multi-core mailbox HAL. IAR is required, and a working demo is needed by mid-September. With the engineer out the first and last weeks of August, the plan splits into two horizons and defers the psa-arch-tests. <b>All dates are targets</b> — stakeholders prefer a slip to cutting the dual-core scope.</p>
     <div class="metarow">
       <div class="meta mvp"><div class="k">Mid-Sept checkpoint</div><div class="v">2026-09-15 · RA6 + IAR</div></div>
       <div class="meta mvp"><div class="k">RA8x2 dual-core goal</div><div class="v">2026-12-18</div></div>
@@ -409,7 +409,7 @@
   <div class="risks">
     <div class="rk"><div class="sev hi">High</div><div class="body"><b>Mid-Sept is tight, little slack.</b> RA6 secure-image (DDSC + SAU/isolation) is still an unknown, compressed into ~5 working weeks around two absences, plus IAR. Any snag in P1 or P3 slips the Sep 15 demo directly.</div></div>
     <div class="rk"><div class="sev hi">High</div><div class="body"><b>Dual-core mailbox integration.</b> Binding FSP inter-core comms to TF-M's <span class="mono">tfm_hal_multi_core</span> / <span class="mono">platform_mailbox</span> is the project's biggest unknown; no RA reference exists. Concentrated in P5.</div></div>
-    <div class="rk"><div class="sev hi">High</div><div class="body"><b>RA8x2 core-topology decision.</b> Which core runs SPE vs NSPE, and TZ-on-M85 + M33-as-NS vs pure multi-core, sets the entire mailbox design. Must be settled at the start of P4.</div></div>
+    <div class="rk"><div class="sev hi">High</div><div class="body"><b>RA8x2 core-topology is an open unknown.</b> Which core runs SPE vs NSPE, and TZ-on-M85 + M33-as-NS vs pure multi-core, sets the entire mailbox design — not examined before. Needs an early spike (before/at P4 start) to settle it and de-risk P5.</div></div>
     <div class="rk"><div class="sev hi">High</div><div class="body"><b>IAR replication.</b> OFS / veneer / TZ placement + startup as IAR <span class="mono">.icf</span>; IAR TZ/veneer handling differs from GCC. On the critical path for both the Sep 15 demo and the Dec goal.</div></div>
     <div class="rk"><div class="sev hi">High</div><div class="body"><b>FSP 6.6 for RA8x2.</b> First use for dual-core + SAU-reach-NS + RA8 support; regen churn and unverified dual-core generation.</div></div>
     <div class="rk"><div class="sev md">Med</div><div class="body"><b>New silicon.</b> First RA8x2 bring-up — M85 PACBTI/FPU, RSIP, dual-core boot.</div></div>

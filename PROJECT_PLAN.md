@@ -11,6 +11,11 @@ Because the engineer is out the **first and last weeks of August**, the mid-Sept
 window is only ~5 working weeks, so the plan splits into two horizons and
 **defers psa-arch-tests**.
 
+**All dates below are targets, not commitments.** Stakeholders prioritise
+delivering the real dual-core RA8x2 over hitting a fixed date, so an overrun
+shifts subsequent dates rather than cutting scope. RA6 (with IAR) is finished
+first as the foundation for RA8x2.
+
 > A rendered version of this plan is in [`PROJECT_PLAN.html`](PROJECT_PLAN.html).
 
 | | |
@@ -154,7 +159,7 @@ Critical path: **P1 → P2 → P3** (to the Sept 15 demo) **→ P4 → P5 → P6
 |---|---|
 | **High** | **Mid-Sept is tight, with little slack.** RA6 secure-image (DDSC + SAU/isolation) is still an unknown and is compressed into ~5 working weeks around two absences, plus IAR. Any snag in P1 or P3 slips the Sep 15 demo directly — there is minimal buffer in this leg. |
 | **High** | **Dual-core mailbox integration.** Binding FSP inter-core comms to TF-M's `tfm_hal_multi_core` / `platform_mailbox` is the project's biggest unknown; no RA reference exists. Concentrated in P5. |
-| **High** | **RA8x2 core-topology decision.** Which core runs SPE vs NSPE, and TZ-on-M85 + M33-as-NS-core vs pure multi-core, sets the entire mailbox design. Must be settled at the start of P4. |
+| **High** | **RA8x2 core-topology is an open unknown.** Which core runs SPE vs NSPE, and TZ-on-M85 + M33-as-NS-core vs pure multi-core, sets the entire mailbox design — and it has not been examined before. Needs an **early spike (before/at P4 start)** to settle it and de-risk P5. |
 | **High** | **IAR replication.** OFS / veneer / TZ placement + startup as IAR `.icf`; IAR TZ/veneer handling differs from GCC. On the critical path for both the Sep 15 demo (RA6) and the Dec goal (RA8x2). |
 | **High** | **FSP 6.6 for RA8x2.** First use for the dual-core + SAU-reach-NS + RA8 support; regen churn and unverified dual-core generation. |
 | Med | **New silicon.** First RA8x2 bring-up (M85 PACBTI/FPU, RSIP, dual-core boot). |
