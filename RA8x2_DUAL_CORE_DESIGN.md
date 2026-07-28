@@ -64,9 +64,25 @@ to avoid the busfault.
 | `R_IPC_Close(ctrl)` | Release the channel |
 | callback `ipc_callback_args_t{ event, message }` | `event = IPC_EVENT_MESSAGE_RECEIVED` (FIFO data) or `IPC_EVENT_IRQ0..n`; `message` = received word. Runs in ISR context |
 
-**Not in the IPC driver — use BSP APIs:** the **hardware semaphores** (`IPCSEMn`) and
-the **NMI** are handled through `R_BSP_*` APIs, not `r_ipc`. Confirm the exact BSP
-semaphore lock/unlock symbols in FSP 6.6.
+**Not in the IPC driver — BSP APIs** (`ra/fsp/src/bsp/mcu/all/bsp_ipc.c`):
+
+| BSP call | Purpose |
+|---|---|
+| `R_BSP_IpcSemaphoreTake(handle)` | **Try-take** `IPCSEMn` → `FSP_SUCCESS` / `FSP_ERR_IN_USE` (non-blocking; reads the LOCK). A blocking critical section must **spin** until success |
+| `R_BSP_IpcSemaphoreGive(handle)` | Release the semaphore |
+| `R_BSP_IpcNmiEnable(cb)` | Enable inter-core NMI + register `cb` (`void(*)(void)`) |
+| `R_BSP_IpcNmiRequestSet()` | Issue the NMI to the peer core |
+
+Handle: `bsp_ipc_semaphore_handle_t { uint8_t semaphore_num; }` selects `IPCSEM0..15`.
+Note the message-FIFO send/receive is **not** here — that is `r_ipc` (`R_IPC_MessageSend`);
+`bsp_ipc.c` is only semaphores + NMI.
+
+**Secondary-core start** (`bsp_common.h`, `__STATIC_INLINE`): `R_BSP_SecondaryCoreStart(void)`
+— sets `R_CPU_CTRL->CPU1INITVTOR = BSP_PARTITION_FLASH_CPU1_S_START` (CPU1's initial
+vector table), clears `CPU1WAITCR` (in case a debugger parked CPU1), then writes the
+key code + `ACTREQ` to `CPU1ACTCSR` to activate CPU1. **No start-address parameter** —
+CPU1's entry is fixed by `CPU1INITVTOR`, which is driven by `BSP_PARTITION_FLASH_CPU1_S_START`
+(a partition-config macro — the DESIGN §13.4 `BSP_PARTITION_*` dependency, back again).
 
 ---
 
@@ -92,10 +108,10 @@ Closest reference: **`platform/ext/target/rpi/rp2350/`** (dual Cortex-M33 + Trus
 |---|---|---|---|
 | `tfm_mailbox_hal_init(s_queue)` | `R_IPC_Open`(RECEIVE + callback); handshake via `R_IPC_MessageSend`/RX | RXD/TXD FIFO | NSPE sends its NS-queue base **address (32-bit)** over the FIFO; SPE stores `ns_status`/`ns_slots`/`ns_slot_count` into `s_queue`. **Validate the address is in NS SRAM** (the rp2350 `FIXME`) |
 | `tfm_mailbox_hal_notify_peer()` | `R_IPC_MessageSend(token)` or `R_IPC_EventGenerate` | TXD FIFO → peer `RDY`/IRQ | doorbell only; payload already in shared SRAM |
-| `tfm_mailbox_hal_enter_critical()` | BSP semaphore **lock** | `IPCSEMn.LOCK` | reserve one `IPCSEMn` for the mailbox |
-| `tfm_mailbox_hal_exit_critical()` | BSP semaphore **unlock** | `IPCSEMn` release | |
+| `tfm_mailbox_hal_enter_critical()` | **spin** on `R_BSP_IpcSemaphoreTake(&h)` until `FSP_SUCCESS` | `IPCSEMn.LOCK` | try-take is non-blocking → loop; reserve one `IPCSEMn` for the mailbox |
+| `tfm_mailbox_hal_exit_critical()` | `R_BSP_IpcSemaphoreGive(&h)` | `IPCSEMn` release | |
 | IPC IRQ handler → `spm_handle_interrupt()` | `R_IPC` callback (`IPC_EVENT_MESSAGE_RECEIVED`) | `IPCxSTAy` (RDY/IRQn) → `IPCxCLRy` | one IRQ line/channel — read STA, clear, then signal `MAILBOX_SIGNAL` to `ns_agent_mailbox` |
-| `tfm_hal_boot_ns_cpu(start)` | FSP secondary-core start (**confirm API**) | CPU1 release (SYSC/reset) | separate from IPC; the second core then does its TZ/NS setup |
+| `tfm_hal_boot_ns_cpu(start)` | `R_BSP_SecondaryCoreStart()` | `CPU1INITVTOR` ← `BSP_PARTITION_FLASH_CPU1_S_START`; clear `CPU1WAITCR`; `CPU1ACTCSR` = key+ACTREQ | **ignores `start`** — reconcile CPU1's vector (`BSP_PARTITION_FLASH_CPU1_S_START`) with TF-M's CPU1 image start, or set `CPU1INITVTOR` from `start` before calling |
 | `tfm_hal_wait_for_ns_cpu_ready()` | `R_IPC` RX of a ready token | RXD FIFO | |
 | `tfm_hal_get_{secure,ns}_access_attr()` | — | — | from RA8x2 `region_defs.h` + shared-SRAM attribution; see `tfm_multi_core_access_check.rst` |
 
@@ -130,14 +146,17 @@ Plus: enable `TFM_MULTI_CORE_TOPOLOGY`, pull in `ns_agent_mailbox`, set
    with any application semaphore use).
 4. **Shared SRAM region.** Where the mailbox queues live so both cores reach them;
    its S/NS attribution; how the SPE reads NS-owned params (access check).
-5. **Secondary-core boot.** The RA8D2 CPU1 release mechanism + the FSP API for it,
-   and CPU1's entry (TZ setup, `sau_and_idau_cfg`, jump to NS).
+5. **Secondary-core boot — API known, wiring open.** `R_BSP_SecondaryCoreStart()`
+   boots CPU1 at `BSP_PARTITION_FLASH_CPU1_S_START`. Open: provide that partition
+   macro (or set `CPU1INITVTOR` from TF-M's CPU1 image start), and author CPU1's entry
+   (TZ setup / `sau_and_idau_cfg` / jump to NS). Note `tfm_hal_boot_ns_cpu`'s `start`
+   arg is unused by the FSP call — reconcile.
 6. **IPC peripheral ownership.** `IPCSAR`/`IPCPAR` attribution — which world programs
    the IPC; both cores need their end.
 7. **NMI use.** Reserve NMI for a flash-write "halt peer" doorbell (rp2350 pattern),
    or leave unused for MVP.
-8. **FSP BSP semaphore API.** Confirm the `R_BSP_*` symbols for `IPCSEMn` lock/unlock
-   in FSP 6.6.
+8. ~~FSP BSP semaphore API~~ — **resolved.** `R_BSP_IpcSemaphoreTake` / `Give`
+   (`bsp_ipc.c`), try-take semantics → `enter_critical` spins.
 
 ---
 
@@ -147,12 +166,12 @@ Plus: enable `TFM_MULTI_CORE_TOPOLOGY`, pull in `ns_agent_mailbox`, set
 |---|---|---|---|
 | 1 | Topology decision (SPE/NSPE core, hybrid vs split) | design | ☐ open |
 | 2 | RA8x2 base port: BL2 + SPE boot on primary core (reuse RA6 patterns + DDSC bridge) | port | ☐ |
-| 3 | Secondary-core boot (`tfm_hal_boot_ns_cpu`, CPU1 release + entry) | HAL | ☐ |
+| 3 | Secondary-core boot — `R_BSP_SecondaryCoreStart` known; author CPU1 entry + `BSP_PARTITION_FLASH_CPU1_S_START` | HAL | ☐ API known |
 | 4 | Shared-SRAM mailbox-queue region + `region_defs.h` | layout | ☐ |
 | 5 | `R_IPC_Open` channels (S↔NS), callback wiring | FSP | ☐ |
 | 6 | `tfm_mailbox_hal_init` handshake (exchange NS queue addr) | HAL | ☐ |
 | 7 | `tfm_mailbox_hal_notify_peer` (FIFO doorbell / EventGenerate) | HAL | ☐ |
-| 8 | `enter/exit_critical` on `IPCSEMn` (BSP semaphore) | HAL | ☐ |
+| 8 | `enter/exit_critical`: spin `R_BSP_IpcSemaphoreTake` / `R_BSP_IpcSemaphoreGive` | HAL | ☐ API known |
 | 9 | IPC IRQ handler → `spm_handle_interrupt`; `mailbox_irq_init` + client-id range | HAL | ☐ |
 | 10 | `ns_agent_mailbox` partition enabled; `TFM_MULTI_CORE_TOPOLOGY` build | build | ☐ |
 | 11 | NS-side `platform_ns_mailbox.c` on NSPE core | NS | ☐ |
