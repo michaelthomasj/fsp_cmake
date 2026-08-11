@@ -6,8 +6,12 @@ against newer FSP and newer TF-M without re-deriving the reasoning. Day-to-day s
 memory map, and the open TODO list live in [TFM_RA6M4_STATUS.md](TFM_RA6M4_STATUS.md); this file is
 the stable "decisions" companion.
 
-> Status: **scaffold** (2026-07-13). Sections below capture the decisions made so far; expand as the
-> port matures and before upstreaming.
+> Status: **in progress** (updated 2026-08-10). Sections below capture the decisions made so far;
+> expand as the port matures and before upstreaming.
+>
+> **§8 was rewritten on 2026-08-10** after the July hardware bring-up. If you are reading a copy
+> where §8 has no subsections, it predates the brick post-mortem and its OFS guidance is unsafe —
+> see [MACHINE_HANDOFF.md](MACHINE_HANDOFF.md).
 
 ## 0. Goals (these drive every decision below)
 1. Upstream the RA6M4 port to the official TF-M repo.
@@ -77,17 +81,92 @@ the stable "decisions" companion.
 - **Boundaries to program (RFP):** code flash S `0x0–0x4F3FF` / NSC `0x4F400–0x4F7FF` / NS `0x50000+`;
   SRAM S `0x20000000–0x2001FFFF` / NS `0x20020000+`; data flash all-secure.
 
-## 8. OFS (option-setting memory) — BL2 only
-- OFS (`0x0100A100–0x0100A2CF`: OFS0/OFS1/`_SEC`/`_SEL`/BANKSEL/BPS…) is emitted **into the BL2 image
-  only**. Reasons: (a) the secure/NS images are MCUboot-signed and imgtool needs a **contiguous**
-  payload — OFS is non-contiguous with code flash; (b) two images programming OFS would collide. FSP's
-  `bsp_linker.c` already gates OFS on `#ifndef BSP_BOOTLOADED_APPLICATION` (bootloader only).
-- **Implementation:** `bl2_option_setting.c` emits `.option_setting_*` with values from the RASC config
-  (`BSP_CFG_OPTION_SETTING_*`), compiled straight into the `bl2` executable (not a static lib, or the
-  linker wouldn't pull it in). `ra6m4_bl2.ld` places the sections at their fixed addresses.
-- **`ra6m4_bl2.ld` is the ONE forked linker** (a copy of `tfm_common_bl2.ld` + OFS). Forked because GNU
-  ld `INSERT` cannot augment a `-T` main script from a second `-T` fragment. Keep it in sync with TF-M
-  on version bumps. The secure/NS side stays on TF-M's generated linker (§7), unforked.
+## 8. The BL2 image: linker, runtime state, and option memory
+
+BL2 is the one image where TF-M's startup model and FSP's expectations collide. All four
+sub-decisions below came out of hardware bring-up in July 2026 and cost real boards; treat them
+as load-bearing.
+
+### 8.1 `.ram_noinit` and the FCLK / `SystemCoreClock` hazard
+TF-M's `Reset_Handler` calls `SystemInit()` (→ `bsp_clock_init()`) **before** `__PROGRAM_START()`
+runs the C-runtime init. FSP does not expect that ordering: anything `SystemInit` computes that
+lands in `.bss` is zeroed immediately afterwards. `SystemCoreClock` was the casualty —
+`R_FLASH_HP_Open` derives FCLK from it, read 0, and failed with `FSP_ERR_FCLK`.
+
+FSP's own mechanism for this is `BSP_CFG_EARLY_INIT`, which places such state in `.ram_noinit`.
+Decisions:
+- Set **`BSP_CFG_EARLY_INIT = 1`** in the vendored FSP snapshot (and in any external RASC project
+  used via `FSP_*_APP_DIR` — this does not flow automatically).
+- Declare `.ram_noinit` **explicitly** in `ra6m4_bl2.ld`: **before `.bss`** (so the prefixed
+  `.bss.ram_noinit` variant isn't swallowed by `*(.bss*)`) and **`NOLOAD`** (so it emits no flash
+  image and is neither copied nor zeroed), placed **outside** `ADDR(.bss)..SIZEOF(.bss)` so the
+  zero table never covers it. As an orphan section it survived only by luck of ld's placement and
+  wasted flash.
+- Keep the one-time `SystemCoreClockUpdate()` in `tfm_hal_platform_init()`. Not redundant: the
+  **secure** image uses TF-M's *generated* linker, which has no `.ram_noinit` rule, so its
+  `.ram_noinit` is still an orphan whose placement isn't guaranteed across TF-M versions.
+  Rejected: calling it from `ARM_Flash_Initialize` — wrong layer (a driver entry point, re-entered
+  per device and on `FSP_ERR_ALREADY_OPEN`) for one-time system state.
+
+Verify: `.ram_noinit` NOBITS, ending exactly where `__bss_start__` begins, with `g_clock_freq` and
+`SystemCoreClock` inside it.
+
+### 8.2 `ra6m4_bl2.ld` is the ONE forked linker
+A copy of TF-M's `tfm_common_bl2.ld` plus §8.1 and §8.4. Forked because GNU ld `INSERT` cannot
+augment a `-T` main script from a second `-T` fragment. Keep it in sync with TF-M on version
+bumps. The secure/NS side stays on TF-M's generated linker (§7), unforked.
+
+### 8.3 BL2 lives at the base of flash
+`BL2_CODE_START` derives from `FLASH_BASE_ADDRESS`, **not** `S_ROM_ALIAS_BASE`. The latter is the
+*secure image* base (`0x20000` when BL2 is on), so it linked the bootloader into the secure slot:
+nothing at the reset vector, and the flash step for `tfm_s_signed.bin` landed on top of the
+misplaced bootloader. The device never ran BL2 at all — which is why a run of earlier fixes
+appeared to change nothing. Verify: `__Vectors` at `0x0` in `bl2.axf`.
+
+### 8.4 OFS (option-setting memory) — BL2 only, DISCRETE regions
+OFS (`0x0100A100`–`0x0100A2CC`) is emitted into the **BL2 image only**. Reasons: (a) the secure/NS
+images are MCUboot-signed and imgtool needs a **contiguous** payload — OFS is non-contiguous with
+code flash; (b) two images programming OFS would collide. FSP's `bsp_linker.c` gates OFS on
+`#ifndef BSP_BOOTLOADED_APPLICATION` (bootloader only) for the same reason.
+
+**Implementation:** `bl2_option_setting.c` emits `.option_setting_*` with values from the RASC
+config (`BSP_CFG_OPTION_SETTING_*`), compiled straight into the `bl2` executable — *not* a static
+lib, since nothing references the OFS symbols and the linker would never pull the object out of an
+archive (`KEEP` only helps once linked).
+
+**⚠ The critical decision — one MEMORY region per option group.** The option-setting map is
+**sparse**: thirteen register groups holding 92 bytes of real data spread across a 460-byte span.
+The 368 bytes between them are other FCU configuration, including the **FSPR permanence word**, and
+are not ours to write.
+
+- **Correct** (what FSP's generated `fsp_gen.ld` does, and what we now do): declare thirteen
+  discrete `MEMORY` regions, each sized to exactly its group, and assign every section with
+  `> OPTION_SETTING_xxx`. ld then emits **one PT_LOAD per group** and physically cannot fill
+  between them.
+- **Fatal** (what we did until 2026-07-21): bare addressed sections with no `> REGION`
+  — `.option_setting_ofs0 0x0100A100 : { ... }`. ld coalesces all thirteen into **one PT_LOAD**
+  spanning the full 460 bytes and **zero-fills the gaps**. A debugger loading the ELF writes that
+  whole span, clearing FSPR → **the part is permanently bricked**. This destroyed two EK-RA6M4
+  boards.
+
+**The zero fill is invisible in the srec.** It lives in the program header, not in any section, and
+`objcopy -O srec` emits from sections. This is why the srec-diff approach (the premise of the
+"always emit .srec" build change) cannot catch a regression here. The only valid check is:
+
+```
+arm-none-eabi-readelf -l bin/bl2.axf
+```
+Expect small separate LOAD segments (`FileSiz` 0x4 or 0xc) in the `0x0100Axxx` range and **never**
+one segment spanning `0x1CC`. Confirm the values match a known-good image before flashing.
+
+**Related:** `BSP_CFG_CLOCKS_SECURE = 1`. `bsp_mcu_ofs_cfg.h` computes
+`OFS1_SEL = 0xFFFFF8F8 | ((BSP_CFG_CLOCKS_SECURE == 0) ? 0xF00 : 0)`. With `0`, the clock-related
+OFS1 fields are marked **non-secure**; on a TZ part with boundaries programmed that attribution
+mismatch can lock out the debug interface. BL2 and the secure image own the clocks, so clocks must
+be secure. External RASC projects must set this in the RASC BSP configuration too.
+
+**Note on `bl2.bin`:** because OFS sits at `0x0100Axxx`, `objcopy -O binary` pads `bl2.bin` to
+~16.8 MB. **Flash `bl2.hex` or `bl2.srec`, never `bl2.bin`.**
 
 ## 9. Console / logging — SEGGER RTT (switchable)
 - `RA6M4_STDOUT_RTT` (default ON): routes TF-M/MCUboot stdout to SEGGER RTT over J-Link (no UART wiring,

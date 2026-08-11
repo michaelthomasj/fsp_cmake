@@ -17,10 +17,16 @@ JLINK="$JLINK_DIR/JLink.exe"
 RTTLOG="$JLINK_DIR/JLinkRTTLogger.exe"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# --- RTT control-block addresses (from nm on the built .axf; update if images are rebuilt) ---
-RTT_BL2=0x20002bd0
-RTT_SECURE=0x2000baf8
-RTT_NS=0x20020854
+# --- RTT control-block addresses ---
+# These MOVE whenever the images are rebuilt. Refresh with:
+#   for f in bl2 tfm_s tfm_ns; do arm-none-eabi-nm ../../trusted-firmware-m/build_ra6m4_boot/bin/$f.a*f \
+#     | grep ' _SEGGER_RTT$'; done
+# Current values: build_ra6m4_boot on the Renesas_work machine, 2026-08-10
+# (previous values were BL2 0x20002bd0 / S 0x2000baf8 / NS 0x20020854 - the OFS
+#  restore and .ram_noinit changes shifted all three).
+RTT_BL2=0x20002c24
+RTT_SECURE=0x2000bb38
+RTT_NS=0x200208a4
 
 # --- parse args ---
 DO_FLASH=1

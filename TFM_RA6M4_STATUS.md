@@ -9,8 +9,81 @@ this repo (`fsp_cmake`) and consumed by TF-M via `FSP_*_APP_DIR` variables.
 - `fsp_cmake` — RASC-generated FSP projects + modular CMake modules.
 - `trusted-firmware-m` — branch `FSPRA-5483_FSP_TFM_Cmake_framework`, TF-M base `TF-Mv2.2.0-26`.
 
-**Last substantive work:** December 23, 2025 (attestation HAL, cmse flag, BL2 header offsets).
-**This refresh:** July 10, 2026.
+**Last substantive work:** August 10, 2026 (OFS discrete-region linker fix + full build verification).
+**This refresh:** August 10, 2026.
+
+> **Working on a different machine?** Read [MACHINE_HANDOFF.md](MACHINE_HANDOFF.md) first. Work is
+> split between the original machine (`Documents/GitHub`, holds unpushed post-2026-07-23 work
+> including RA6E1) and the Renesas_work machine (`Renesas_work/repos`, holds the 2026-08-10 work).
+> The two lines **overlap** on the OFS fix — merging needs care.
+
+---
+
+## ✅ 2026-08-10: OFS restored correctly; clean build + verified images
+
+### The brick post-mortem was wrong, and is now corrected
+`c78602fff` (2026-07-21) removed OFS from BL2 entirely, concluding option memory must never be
+linked into an image. The actual cause was narrower: `ra6m4_bl2.ld` emitted the option words as
+bare addressed sections with **no `> REGION` assignment**, so GNU ld coalesced all of them into one
+PT_LOAD spanning `0x0100A100`–`0x0100A2CC` and **zero-filled the 368 bytes of FCU config in
+between**, including the FSPR permanence word. FSP's generated linker gives each option group its
+own MEMORY region and therefore cannot do this.
+
+OFS emission is **restored**, with thirteen discrete MEMORY regions. Full rationale: **DESIGN.md
+§8.4**. Files changed: `region_defs.h` (13 `OPTION_SETTING_*` macros), `ra6m4_bl2.ld` (13 regions +
+`> REGION` on every section), `bl2_option_setting.c` (restored byte-identical), `CMakeLists.txt`.
+
+**The zero fill never appeared in the srec** — it lives in the program header, and `objcopy -O srec`
+emits from sections. This invalidates the premise of `d7df90820` ("srec is the primary diff artifact
+for what an image programs"). The only valid check is `readelf -l`.
+
+### Build verified end-to-end (first clean build since the July bring-up)
+`build_ra6m4_boot` builds clean; all three images produced and signed.
+
+| Image | text | data | bss | Fits |
+|---|---|---|---|---|
+| bl2 | 63892 | 156 | 19952 | 128K BL2 region |
+| tfm_s | 169870 | 320 | 49996 | 192K S slot |
+| tfm_ns | 14336 | 0 | 5410 | 128K NS slot |
+
+Verification actually run on the artifacts:
+- `readelf -l bl2.axf` → three discrete 4-byte LOAD segments at `0x0100A100` / `0x0100A200` /
+  `0x0100A280`; **no spanning segment**. (Three, not thirteen — this RASC config defines only
+  OFS0 / OFS1_SEC / OFS1_SEL.)
+- OFS values match the known-good image of `7b99ce397` byte-for-byte: `ffffffff` / `fffdffff` /
+  `f8f8ffff`.
+- Secure and NS images carry **no** option-setting sections or `0100a` segments.
+- No regressions: `__Vectors` `0x0`, `Reset_Handler` `0x16b0`, `.ram_noinit` NOBITS
+  `0x200004a0`+`0x70` ending at `__bss_start__` `0x20000510`, `g_clock_freq` / `SystemCoreClock`
+  inside it, `Image$$ER_VENEER$$Base` `0x4f400`.
+
+**Still no hardware verification** — SEGGER J-Link is not installed on the Renesas_work machine.
+
+### ⚠ New hazard: `bl2.bin` is ~16.8 MB
+OFS at `0x0100Axxx` makes `objcopy -O binary` pad the whole span. **Flash `bl2.hex` or `bl2.srec`,
+never `bl2.bin`.** The J-Link script uses `loadfile bl2.hex` and is fine.
+
+### RTT control blocks moved
+BL2 `0x20002c24` · Secure `0x2000bb38` · NS `0x200208a4` (were `0x20002bd0` / `0x2000baf8` /
+`0x20020854`). `bringup_ra6m4.sh` updated. **These move on every rebuild** — refresh with
+`arm-none-eabi-nm <img> | grep ' _SEGGER_RTT$'`.
+
+---
+
+## 2026-07-20 → 07-23: hardware bring-up (was never documented here)
+
+Eight commits landed in `trusted-firmware-m` after this doc last went stale. Summary:
+
+| Commit | What |
+|---|---|
+| `a1910e6eb` | `FSP_ERR_FCLK` in BL2 — `SystemCoreClock` zeroed by C-runtime init after `SystemInit` computed it (DESIGN.md §8.1) |
+| `d651a14f6` | `.ram_noinit` declared explicitly in the BL2 linker (NOLOAD, before `.bss`, outside the zero table) |
+| `8a0901967` | `BSP_CFG_EARLY_INIT=1` — the proper fix; dropped the driver-level workaround |
+| `be511be17` | **BL2 was linked at `0x20000`, not `0x0`** — `BL2_CODE_START` used `S_ROM_ALIAS_BASE`. The device had never run this BL2 at all, so earlier fixes appeared to do nothing (DESIGN.md §8.3) |
+| `7b99ce397` | `BSP_CFG_CLOCKS_SECURE=1` — bad `OFS1_SEL` marked clock fields non-secure |
+| `c78602fff` | OFS removed — **two EK-RA6M4 boards bricked**. Superseded 2026-08-10 (see above) |
+| `2b4b9113e` | `-DRA6M4_BL2_HALT_AT_MAIN` debug guard for brick isolation |
+| `d7df90820` | Always emit `.srec` — premise since invalidated (see above) |
 
 ---
 
@@ -205,6 +278,12 @@ the module separation TF-M requires — excluding files TF-M provides itself (e.
 
 ## Full build command (December-intended configuration)
 
+> **NOTE (2026-08-10): the paths below are for the ORIGINAL machine.**
+On the Renesas_work machine the repo root is `C:/Users/Michael/Renesas_work/repos` and the toolchain
+lives inside the e2 studio bundle — see [MACHINE_HANDOFF.md](MACHINE_HANDOFF.md) §3 for the exact
+PowerShell invocation that is known to work (and the `-D`-quoting gotcha). The `build_ra6m4_boot`
+command there is the one actually exercised on 2026-08-10.
+
 ```bash
 export ARM_TOOLCHAIN_PATH="C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/13.2 Rel1/bin"
 cd C:/Users/Michael/Documents/GitHub/trusted-firmware-m
@@ -276,8 +355,9 @@ cmake --build build_ra6m4_full
 **Images have full debug symbols** (`CMAKE_BUILD_TYPE=Debug`) — load `bl2.axf` / `tfm_s.elf` /
 `tfm_ns.axf` into J-Link GDB / Ozone / e2studio for source-level debug. `.bin`/`.hex` are stripped.
 
-**RTT control blocks** (per-image, from `nm` on the built .axf): BL2 `0x20002bd0`, Secure `0x2000baf8`,
-NS `0x20020854`.
+**RTT control blocks** (per-image, from `nm` on the built .axf) — **current, 2026-08-10 build**:
+BL2 `0x20002c24`, Secure `0x2000bb38`, NS `0x200208a4`. These change on every rebuild; refresh with
+`arm-none-eabi-nm <img> | grep ' _SEGGER_RTT$'` and update `bringup/bringup_ra6m4.sh`.
 
 ### TrustZone / IDAU security boundaries to program (via Renesas Flash Programmer TrustZone settings)
 The RA6M4 IDAU hardware boundaries partition memory; TF-M's SAU refines the NSC. From region_defs.h /
@@ -341,7 +421,10 @@ Verify the SAU/veneer attribution on hardware; do NOT program an IDAU NSC region
 - [x] **NSC boundary fixed (Path A)** — DONE 2026-07-13. Veneers pinned at stable `0x4F400` via
       `TFM_LINKER_VENEERS_LOCATION_END` + `TFM_LINKER_VENEERS_START` macros in region_defs.h (TF-M's
       generated linker, no custom linker copy). NSC = `0x4F400`–`0x4F7FF`, stable across firmware updates.
-- [x] **OFS option-setting section (BL2-only)** — DONE 2026-07-13. `bl2_option_setting.c` emits the
+- [x] **OFS option-setting section (BL2-only)** — first done 2026-07-13, **reverted 2026-07-21 after it
+      bricked two boards, re-done correctly 2026-08-10** with discrete per-group MEMORY regions. See the
+      2026-08-10 section at the top and DESIGN.md §8.4. Original (now superseded) note follows:
+      `bl2_option_setting.c` emits the
       RASC-configured OFS sections; `ra6m4_bl2.ld` (platform BL2 linker = tfm_common_bl2.ld + OFS) places
       them at `0x0100A100/A200/A280`. Verified in `bl2.hex`; absent from signed secure/NS. Values are
       RASC-driven (`BSP_CFG_OPTION_SETTING_*`). NOTE: `ra6m4_bl2.ld` is the ONE forked linker — sync with
@@ -387,9 +470,12 @@ Verify the SAU/veneer attribution on hardware; do NOT program an IDAU NSC region
       (2026-07-13) — bootutil uses TF-M's software mbedcrypto for now; the FSP mbedTLS + SCE9 path (and
       `mbedtls_user_config.h`) is staged for this later HW-crypto switch. FSP mbedTLS is entangled with
       the FSP MCUboot config (`bsp_linker_info.h`), so the HW switch will need config isolation work.
-- [ ] **(BL2) OFS / option-setting regions — VERIFY ON HARDWARE (not "defaults are fine").** The BL2 now
-      uses TF-M's `tfm_common_bl2.ld` + TF-M startup (not FSP `fsp.ld`/startup), so **FSP's OFS
-      option-setting-memory (OFS0/OFS1 @ 0x0100A1xx) is NOT programmed by our image.** Analysis:
+- [ ] **(BL2) OFS / option-setting regions — VERIFY ON HARDWARE.** _Status 2026-08-10: the image DOES
+      now program OFS again (OFS0 `0x0100A100`, OFS1_SEC `0x0100A200`, OFS1_SEL `0x0100A280`), via
+      discrete per-group MEMORY regions — see the 2026-08-10 section and DESIGN.md §8.4. What remains is
+      hardware verification: flash from an erased chip, read FAWMON/FSPR back before trusting it, and
+      confirm clock/watchdog behaviour._ The original analysis below assumed no OFS in the image and is
+      kept for the clock reasoning, which still holds:
       - System clock is **PLL from the external 24 MHz crystal** (`bsp_clock_cfg.h`: CLOCK_SOURCE=PLL,
         PLL_SOURCE=MAIN_OSC, ÷3 ×25 → 200 MHz), brought up by **runtime** `SystemInit → bsp_clock_init`
         (system.c:295). This does NOT depend on OFS, which is why the board can run without it.
@@ -398,9 +484,11 @@ Verify the SAU/veneer attribution on hardware; do NOT program an IDAU NSC region
         Tolerable here (HOCO isn't on the system-clock path) but fragile if anything relies on HOCO@20MHz.
       - OFS0 (watchdog/LVD) + prior state: a chip previously flashed with FSP's OFS retains it (e.g. IWDT
         auto-start could reset us); a truly-erased chip is benign.
-      **Robust fix:** include the OFS regions in the BL2 image — add an OFS data section at 0x0100A1xx with
-      the RASC-configured OFS0/OFS1 values, or merge FSP's OFS regions into the TF-M BL2 linker script.
-      Until then, verify clock/watchdog behaviour on hardware and start from an erased chip.
+      **Robust fix — DONE 2026-08-10:** the OFS regions are in the BL2 image, emitted by
+      `bl2_option_setting.c` from the RASC config and placed by `ra6m4_bl2.ld` in **thirteen discrete
+      MEMORY regions** (one per option group). The discrete-region part is not a detail — doing this with
+      a single spanning region is what bricked two boards. Always start from an erased chip and read
+      FAWMON back on the first flash of any new build.
 - [ ] Glob-refactor the BL2 (and NS) `tfm_integration` cmake to select sources from the RASC tree
       (per-module directory globs) instead of hardcoded file lists — kills the drift permanently.
 - [x] **Reproduce clean build (core: default BL2 + external NS)** — DONE 2026-07-10. All three images
