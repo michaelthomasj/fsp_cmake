@@ -1,0 +1,6 @@
+eclipse.preferences.version=1
+environment/project/com.renesas.cdt.managedbuild.gnuarm.config.elf.debug.1075725484/MCUBOOT_IMAGE_VERSION/delimiter=;
+environment/project/com.renesas.cdt.managedbuild.gnuarm.config.elf.debug.1075725484/MCUBOOT_IMAGE_VERSION/operation=append
+environment/project/com.renesas.cdt.managedbuild.gnuarm.config.elf.debug.1075725484/MCUBOOT_IMAGE_VERSION/value=1.0.0
+environment/project/com.renesas.cdt.managedbuild.gnuarm.config.elf.debug.1075725484/append=true
+environment/project/com.renesas.cdt.managedbuild.gnuarm.config.elf.debug.1075725484/appendContributed=true
