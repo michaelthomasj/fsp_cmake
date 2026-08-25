@@ -96,6 +96,19 @@ Note the trailer **cannot** be marked secure — RA has one secure region and it
 (DESIGN.md §7.1). So the secure image's trailer is NS-writable; bounded to DoS by
 `MCUBOOT_VALIDATE_PRIMARY_SLOT`, so don't disable it.
 
+### TODO — bundle a default project set inside the TF-M port
+An e2 build is now a prerequisite for building TF-M (the layout lives in
+`<project>/Debug/bsp_linker_info.h`). So the port should ship a copy of this project set —
+solution + bootloader + secure + non-secure — in a folder under
+`platform/ext/target/renesas/ra6e1/`, so it builds out of the box, with `FSP_BL2_APP_DIR` /
+`FSP_S_APP_DIR` / `FSP_NS_APP_DIR` defaulting to it and redirectable to the user's own regenerated
+set.
+
+Exclude binaries (`.elf .map .srec .sbd .bin .rpd .o`) to limit size, but **keep the generated text
+layout files** — `Debug/bsp_linker_info.h`, `memory_regions.ld`, `fsp_gen.ld` — or the bundled set
+won't build out of the box either. That's a deliberate exception to the "no Debug files" rule, which
+applies to the working project set in `fsp_cmake/`.
+
 ### Sizing — this layout will not hold TF-M as configured
 Not a problem for standalone bring-up; blocking for the TF-M port:
 
