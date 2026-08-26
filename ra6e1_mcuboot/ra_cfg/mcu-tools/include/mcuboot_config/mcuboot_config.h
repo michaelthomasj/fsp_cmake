@@ -6,6 +6,7 @@
 extern "C" {
 #endif
 
+#define MCUBOOT_SIGN_EC256
 #ifdef MCUBOOT_SIGN_RSA_LEN
 #define MCUBOOT_SIGN_RSA
 #endif

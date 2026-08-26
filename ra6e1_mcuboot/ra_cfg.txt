@@ -347,7 +347,7 @@ FSP Configuration
     
   Module "MCUboot"
     General: Custom mcuboot_config.h: 
-    Signing and Encryption Options: Signature Type: None
+    Signing and Encryption Options: Signature Type: ECDSA P-256
     General: Upgrade Mode: Overwrite Only
     General: Validate Primary Image: Enabled
     General: Downgrade Prevention (Overwrite Only): Disabled

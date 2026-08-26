@@ -67,7 +67,11 @@ Note the tool takes `0x400` for Code NSC although `.secure_azone` declares `FLAS
 is the unused gap before `__BL_0_P_T`; harmless.
 
 ## Status
-- [x] Bootloader validates both images correctly
+- [x] Bootloader validates both images correctly — but note this was proven with the MCUboot
+      module set to **Signature Type: None**, so it exercised the SHA-256 hash check only.
+      ECDSA P-256 was enabled in `ra6e1_mcuboot` on 2026-08-26 and the signature path has **not**
+      been run standalone since. (TF-M's own BL2 is unaffected — it has always signed and verified
+      EC-P256, from `MCUBOOT_SIGNATURE_TYPE` in its own cache, not from this project.)
 - [x] Secure application runs
 - [x] **S→NS jump works** — was failing with a security error until the TrustZone boundaries were
       programmed. Root cause: nothing in the firmware ever sets them (DESIGN.md §7.1)

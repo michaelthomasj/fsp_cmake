@@ -114,10 +114,20 @@ change does need it set, it has to be set in the project.
 
 ## 6. MCUboot module settings
 
-These are read into the TF-M build (or must agree with it). A mismatch is not a build error.
+**TF-M builds its own BL2** from its own vendored MCUboot, with its own keys; `ra6e1_mcuboot`
+contributes only FSP driver modules. So these settings govern the **standalone** bootloader, and
+only the ones the shared flash layout implies have to agree with `config.cmake`. Verified
+2026-08-26: switching this project from `signature.none` to ECDSA P-256 left `bl2.axf`,
+`tfm_s_signed.bin` and `tfm_ns_signed.bin` byte-identical.
+
+The two bootloaders are separate binaries with different keys — images signed for one will not
+boot under the other. A mismatch is not a build error.
 
 - [ ] `MCUBOOT_IMAGE_NUMBER` = **2** — dual image
-- [ ] Signature **ECDSA P-256**
+- [ ] Signature **ECDSA P-256**. ⚠ The template's default is **Signature Type: None**, which
+      silently reduces the standalone bootloader to a SHA-256 hash check — it boots, and looks
+      like it validated. This project set ran that way until 2026-08-26. Does not affect TF-M's
+      BL2 (see the note above), but it is the wrong default to ship.
 - [ ] Upgrade mode **overwrite-only** (hence no scratch area)
 - [ ] **Validate primary slot** enabled — the secure image's trailer is NS-writable by
       construction (RA has one secure region and it precedes the NSC), so this is what bounds

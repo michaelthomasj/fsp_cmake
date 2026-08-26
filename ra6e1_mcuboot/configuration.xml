@@ -257,7 +257,7 @@
     <config id="config.middleware.mcuboot_port"/>
     <config id="config.middleware.mcuboot">
       <property id="config.middleware.mcuboot.custom_mcuboot_config" value=""/>
-      <property id="config.middleware.mcuboot.signature" value="config.middleware.mcuboot.signature.none"/>
+      <property id="config.middleware.mcuboot.signature" value="config.middleware.mcuboot.signature.ecdsap256"/>
       <property id="config.middleware.mcuboot.upgrade_mode" value="config.middleware.mcuboot.upgrade_mode.overwrite_only"/>
       <property id="config.middleware.mcuboot.validate_primary" value="config.middleware.mcuboot.validate_primary.enabled"/>
       <property id="config.middleware.mcuboot.downgrade_prevention" value="config.middleware.mcuboot.downgrade_prevention.disabled"/>
