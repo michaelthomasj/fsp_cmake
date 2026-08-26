@@ -101,7 +101,7 @@ extern "C" {
             (((RA_NOT_DEFINED > 0) ? 0U : 1U) << 8) /* SSIE0 */ | \
             (((RA_NOT_DEFINED > 0) ? 0U : 1U) << 12) /* SDHI0 */ | \
             (((RA_NOT_DEFINED > 0) ? 0U : 1U) << 13) /* DOC */ | \
-            (((RA_NOT_DEFINED > 0) ? 0U : 1U) << 31) /* SCE9 */ | \
+            (((1 > 0) ? 0U : 1U) << 31) /* SCE9 */ | \
             0x7fffcef4) /* Unused */
 #endif
 #ifndef BSP_TZ_CFG_PSARD

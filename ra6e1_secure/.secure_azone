@@ -82,7 +82,7 @@
         <peripheral name="PORT5.CM33" group="PORT">
             <slot name="P500.CM33" secure="true"/>
         </peripheral>
-        <memory parent="RAM" name="RAM_CM33_B" size="0x4400" offset="0x0" security="s" Pname="CM33"/>
+        <memory parent="RAM" name="RAM_CM33_B" size="0x2800" offset="0x0" security="s" Pname="CM33"/>
         <memory parent="DATA_FLASH" name="DATA_FLASH_CM33_B" size="0x0" offset="0x0" security="s" Pname="CM33"/>
         <memory parent="QSPI_FLASH" name="QSPI_FLASH_CM33_B" size="0x0" offset="0x0" security="s" Pname="CM33"/>
         <memory parent="OPTION_SETTING_OFS0" name="OPTION_SETTING_OFS0_CM33_B" size="0x4" offset="0x0" security="s" Pname="CM33"/>

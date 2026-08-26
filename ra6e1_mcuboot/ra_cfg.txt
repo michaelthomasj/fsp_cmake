@@ -101,7 +101,7 @@ FSP Configuration
     Main Oscillator Populated: Not Populated
     PFS Protect: Enabled
     C Runtime Initialization : Enabled
-    Early BSP Initialization : Disabled
+    Early BSP Initialization : Enabled
     Main Oscillator Clock Source: Crystal or Resonator
     Subclock Populated: Not Populated
     Subclock Drive (Drive capacitance availability varies by MCU): Standard/Normal mode
