@@ -75,20 +75,25 @@ is the unused gap before `__BL_0_P_T`; harmless.
 - [x] **Re-partition for TF-M sizing** — done; secure slot is now 255.25K (see Layout)
 - [x] **TF-M port builds against this project set** — 2026-08-26, all three images signed
 
-### ⚠ Before flashing the TF-M images to a partitioned board
+### Before flashing the TF-M images to a partitioned board
 
-Two RASC/BSP settings are still wrong for TF-M, both in `ra6e1_mcuboot`:
+Both blockers previously listed here are **resolved** (2026-08-26, commit `9198e036b`):
 
-1. **`BSP_CFG_CLOCKS_SECURE` is unset (= 0)** in all three projects. The built BL2 carries
-   `OFS1_SEL = f8ffffff`; the RA6M4 known-good is `f8f8ffff`. The difference is the `0xF00` that
-   marks the clock-related OFS1 fields **non-secure**, which on a partitioned TZ part can lock out
-   the debug interface (DESIGN.md §8.4). Must be 1 for the bootloader and secure projects.
-2. **BL2 has no `SystemCoreClockUpdate()`** and `BSP_CFG_EARLY_INIT` is 0 in `ra6e1_mcuboot`, so
-   `R_FLASH_HP_Open()` will see FCLK 0 and return `FSP_ERR_FCLK` — the July failure. See
-   DESIGN.md §8.1 for the two ways to close it.
+1. ~~`BSP_CFG_CLOCKS_SECURE` unset~~ — moot. BL2 is now a **flat** build, matching how this
+   solution defines the bootloader, so `bsp_mcu_ofs_cfg.h` takes its `#else` branch and emits
+   `OFS1_SEL = 0xFFFFF8F8` without consulting the setting. Built BL2 now carries `f8f8ffff`, the
+   RA6M4 known-good value, byte-identical to this solution's own bootloader.
+2. ~~BL2 has no `SystemCoreClockUpdate()`~~ — `BSP_CFG_EARLY_INIT` is now enabled in
+   `ra6e1_mcuboot`, so the clock is up before `R_FLASH_HP_Open()`.
 
-Also note the NS image has **no RTT output**: `SEGGER_RTT.c` is linked but the FSP app never calls
-it, so `--gc-sections` drops the control block. There is no NS-side signal yet.
+Still true, and worth knowing before you interpret a silent board:
+
+- The NS image has **no RTT output**. `SEGGER_RTT.c` is linked but the FSP app never calls it, so
+  `--gc-sections` drops the control block. There is no NS-side signal yet — a successful S→NS jump
+  looks identical to a hang.
+- **No TF-M image has been run on hardware.** Everything above is verified from the artifacts.
+
+Turning this list into template defaults: **`RA6E1_TEMPLATE_CHECKLIST.md`**.
 
 ## Open issues
 
