@@ -77,7 +77,7 @@ is the unused gap before `__BL_0_P_T`; harmless.
 
 ### Before flashing the TF-M images to a partitioned board
 
-Both blockers previously listed here are **resolved** (2026-08-26, commit `9198e036b`):
+Both blockers previously listed here are **resolved** (2026-08-26, commit `9e3a10ef4`):
 
 1. ~~`BSP_CFG_CLOCKS_SECURE` unset~~ — moot. BL2 is now a **flat** build, matching how this
    solution defines the bootloader, so `bsp_mcu_ofs_cfg.h` takes its `#else` branch and emits

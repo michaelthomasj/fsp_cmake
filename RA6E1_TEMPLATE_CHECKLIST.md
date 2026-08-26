@@ -104,7 +104,7 @@ the standalone build but produces a configure-time **warning** naming the module
       `g_init_info` / `g_main_stack` that FSP's excluded `bsp_linker.c` would have defined.
 
 **`BSP_CFG_CLOCKS_SECURE` is no longer a requirement.** It was, until BL2 became a flat build
-(commit `9198e036b`). Flat takes the `#else` branch of `bsp_mcu_ofs_cfg.h`, which emits
+(commit `9e3a10ef4`). Flat takes the `#else` branch of `bsp_mcu_ofs_cfg.h`, which emits
 `OFS1_SEL = 0xFFFFF8F8` unconditionally and never reads the setting. BL2 is the only image that
 emits OFS at all, so the setting now has no effect on any TF-M image. Note also that
 `ra_gen/bsp_clock_cfg.h` defines it **unguarded**, so `-D` can never override it — if a future
