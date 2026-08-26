@@ -148,8 +148,36 @@ lands in `.bss` is zeroed immediately afterwards. `SystemCoreClock` was the casu
 
 FSP's own mechanism for this is `BSP_CFG_EARLY_INIT`, which places such state in `.ram_noinit`.
 Decisions:
-- Set **`BSP_CFG_EARLY_INIT = 1`** in the vendored FSP snapshot (and in any external RASC project
-  used via `FSP_*_APP_DIR` — this does not flow automatically).
+- Set **`BSP_CFG_EARLY_INIT = 1`** in the vendored FSP snapshot (and in any external RASC/e2
+  project used via `FSP_*_APP_DIR` — this does not flow automatically).
+
+**Which images need it — it is not all three.** The hazard exists only where *TF-M's* startup runs,
+because it is TF-M's `Reset_Handler` that inverts FSP's ordering:
+
+| Image | Startup | Needs `BSP_CFG_EARLY_INIT = 1`? |
+|---|---|---|
+| Secure | TF-M's (`startup_ra6xx.c`) | **Yes** |
+| BL2 | TF-M's (`startup_ra6xx.c`) | **Yes** — see below |
+| Non-secure | **FSP's own** `startup.c` | **No.** FSP's Reset_Handler does the C-runtime init in the order FSP expects, so nothing is zeroed after `SystemInit` computed it. |
+
+Set on RA6E1 (2026-08-26): secure only. **BL2 is still exposed.** It uses TF-M's startup and it is
+the image that actually failed in July: MCUboot → `ARM_Flash_Initialize` → `R_FLASH_HP_Open` reads
+`SystemCoreClock` as 0 and returns `FSP_ERR_FCLK`. Nothing restores it on the BL2 path —
+`SystemCoreClockUpdate()` lives in `tfm_hal_platform_init()`, which is an SPM hook the **secure**
+image calls and BL2 never does. (A comment in the RA6E1 `tfm_hal_platform.c` claims `Driver_Flash.c`
+also does it defensively; it does not.)
+
+Two ways to close it, pick one:
+1. `BSP_CFG_EARLY_INIT = 1` in the bootloader project too — but that project is shared with the
+   standalone e2 bootloader build, so it changes something outside the TF-M port.
+2. Override the `__WEAK boot_platform_post_init()` in the port and call `SystemCoreClockUpdate()`
+   there. `bl2_main.c` runs it after `boot_platform_init()` and before `boot_go_for_image_id()`
+   touches flash, so it is early enough, it is one-time system state at the right layer, and it
+   leaves the e2 project untouched. **This is the preferred fix** — it makes BL2 correct whatever
+   the RASC config says.
+
+Note that option 2 is *not* the thing rejected below: the rejection is about `ARM_Flash_Initialize`,
+a driver entry point re-entered per device, not about a one-shot boot hook.
 - Declare `.ram_noinit` **explicitly** in `ra6m4_bl2.ld`: **before `.bss`** (so the prefixed
   `.bss.ram_noinit` variant isn't swallowed by `*(.bss*)`) and **`NOLOAD`** (so it emits no flash
   image and is neither copied nor zeroed), placed **outside** `ADDR(.bss)..SIZEOF(.bss)` so the
