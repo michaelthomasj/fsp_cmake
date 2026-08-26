@@ -5,10 +5,10 @@ Device **R7FA6E10F2CFP**. FSP **6.6.0-beta2**, MCUboot **2.4.0+renesas.0**, RASC
 
 | Project | Role |
 |---|---|
-| `ra6e1_solution` | the solution — owns the shared flash layout |
-| `ra6e1_solution_mcuboot` | bootloader |
-| `ra6e1_solution_secure` | secure app |
-| `ra6e1_solution_nonsecure` | non-secure app |
+| `ra6e1` | the solution — owns the shared flash layout |
+| `ra6e1_mcuboot` | bootloader |
+| `ra6e1_secure` | secure app |
+| `ra6e1_nonsecure` | non-secure app |
 
 ## Why a solution project at all
 MCUboot needs flash-layout information that a standalone project cannot produce: the partition
@@ -21,18 +21,23 @@ The solution's bootloader is configured **dual-image** (`MCUBOOT_IMAGE_NUMBER 2`
 incompatibility that forced abandoning the `rm_mcuboot_port` graft in July 2026 (the old RASC BL2
 project was single-image; see DESIGN.md §5).
 
-## Layout (from the generated `memory_regions.ld`)
+## Layout
+
+**Repartitioned for TF-M sizing; values below re-read from
+`ra6e1_secure/Debug/bsp_linker_info.h` on 2026-08-26.** The original 96K-secure layout is gone —
+if you are looking at a copy where the secure slot is `0x17D00`, it predates this.
 
 | Region | Start | Size |
 |---|---|---|
-| MCUboot | `0x00000` | 96K |
-| Image 0 **secondary** (S) | `0x18000` | 96K |
-| Image 0 **primary** (S) | `0x30000` | 96K — code at `0x30200`, `0x17D00` |
-| Image 1 **primary** (NS) | `0x48100` | 32K — code at `0x48300`, `0x7D00` |
-| Image 1 **secondary** (NS) | `0x50100` | 32K |
+| MCUboot | `0x00000` | `0x18000` — 96K |
+| Image 0 **secondary** (S) | `0x18000` | `0x40000` — 256K |
+| Image 0 **primary** (S) | `0x58000` | `0x40100` — code at `0x58200`, `0x3FA00` (255.25K) |
+| Image 1 **primary** (NS) | `0x98100` | `0x30000` — code at `0x98300`, `0x2FD00` (191.25K) |
+| Image 1 **secondary** (NS) | `0xC8100` | `0x30000` |
 
-NSC flash `0x47C00` (`0x300`) at the end of secure. RAM: S `0x20000000`+`0x1FC00`, NSC `0x2001FC00`
-+`0x400`, NS `0x20020000`+`0x20000`. Data flash: S 4K, NS 4K.
+NSC flash `0x97C00` (`0x300`) at the end of secure, ahead of the image-0 trailer at `0x98000`.
+RAM: S `0x20000000`+`0x1FC00`, NSC `0x2001FC00`+`0x400`, NS `0x20020000`+`0x20000`.
+Data flash: S 4K (`0x08000000`), NS 4K. Total flash use ends at `0xF8100` of 1 MB.
 Upgrade mode **overwrite-only** (hence no scratch), signature **ECDSA P-256**, validate-primary on.
 
 The **option-setting map is byte-identical to RA6M4** — all thirteen groups at the same addresses and
@@ -42,20 +47,23 @@ discrete-region rule (DESIGN.md §8.4) applies unchanged.
 ## TrustZone boundary values for this layout
 Programmed with the Renesas Device Partition Manager, which takes **KB**:
 
+> ⚠ **These changed with the repartition.** Code Secure was **287**; it is now **607**. Programming
+> the old value puts most of the secure image in the non-secure region.
+
 | Field | Value (KB) | Bytes |
 |---|---|---|
-| Code Secure | **287** | `0x47C00` |
+| Code Secure | **607** | `0x97C00` |
 | Code NSC | **1** | `0x400` |
 | Data Secure | **4** | `0x1000` |
 | SRAM Secure | **127** | `0x1FC00` |
 | SRAM NSC | **1** | `0x400` |
 | SiP Flash Secure | **0** | none on RA6E1 |
 
-Sums land on the coarse granularities: code 287+1 = 288 KB = `0x48000` (32 KB × 9); SRAM 127+1 =
+Sums land on the coarse granularities: code 607+1 = 608 KB = `0x98000` (32 KB × 19); SRAM 127+1 =
 128 KB = `0x20000` (8 KB × 16). See DESIGN.md §7.1 for why that matters.
 
 Note the tool takes `0x400` for Code NSC although `.secure_azone` declares `FLASH_CM33_C` as `0x300`
-— `CFS2` must land on a 32 KB boundary, so the hardware NSC is `0x47C00`–`0x47FFF`. The extra `0x100`
+— `CFS2` must land on a 32 KB boundary, so the hardware NSC is `0x97C00`–`0x97FFF`. The extra `0x100`
 is the unused gap before `__BL_0_P_T`; harmless.
 
 ## Status
@@ -64,7 +72,23 @@ is the unused gap before `__BL_0_P_T`; harmless.
 - [x] **S→NS jump works** — was failing with a security error until the TrustZone boundaries were
       programmed. Root cause: nothing in the firmware ever sets them (DESIGN.md §7.1)
 - [ ] Non-secure application exercised beyond the jump
-- [ ] Re-partition for TF-M sizing (see below)
+- [x] **Re-partition for TF-M sizing** — done; secure slot is now 255.25K (see Layout)
+- [x] **TF-M port builds against this project set** — 2026-08-26, all three images signed
+
+### ⚠ Before flashing the TF-M images to a partitioned board
+
+Two RASC/BSP settings are still wrong for TF-M, both in `ra6e1_mcuboot`:
+
+1. **`BSP_CFG_CLOCKS_SECURE` is unset (= 0)** in all three projects. The built BL2 carries
+   `OFS1_SEL = f8ffffff`; the RA6M4 known-good is `f8f8ffff`. The difference is the `0xF00` that
+   marks the clock-related OFS1 fields **non-secure**, which on a partitioned TZ part can lock out
+   the debug interface (DESIGN.md §8.4). Must be 1 for the bootloader and secure projects.
+2. **BL2 has no `SystemCoreClockUpdate()`** and `BSP_CFG_EARLY_INIT` is 0 in `ra6e1_mcuboot`, so
+   `R_FLASH_HP_Open()` will see FCLK 0 and return `FSP_ERR_FCLK` — the July failure. See
+   DESIGN.md §8.1 for the two ways to close it.
+
+Also note the NS image has **no RTT output**: `SEGGER_RTT.c` is linked but the FSP app never calls
+it, so `--gc-sections` drops the control block. There is no NS-side signal yet.
 
 ## Open issues
 
@@ -76,9 +100,15 @@ knowledge) it marks everything secure and silently undoes a correct partition. C
 `ra6e1_solution_nonsecure/ra6e1_nonsecure Debug_SSD.launch`. Keep it off in **every** launch config —
 TF-M's BL2 is exactly the same shape. Full note: DESIGN.md §7.2.
 
-### ⚠ TO FIX — NSC placement likely ignores the trailer region
-**Suspected 2026-08-25, verify on regeneration.** RASC appears to compute "end of secure image" for
-NSC/veneer placement without accounting for `__BL_0_P_T`. Required order:
+### ✅ RESOLVED — NSC placement is correct
+**Verified 2026-08-26 on the first TF-M secure image.** `Image$$ER_VENEER$$Base` = `0x97C00`,
+exactly `BSP_PARTITION_FLASH_CPU0_C_START`, with the trailer at `0x98000` above it. So the order
+below holds, the veneers sit inside the signed payload, and `TFM_LINKER_VENEERS_START` derived from
+`region_defs.h` lands where the solution says. The suspicion below did not reproduce after the
+repartition; keep the check in the list for future layout changes.
+
+Original note follows. RASC was suspected of computing "end of secure image" for NSC/veneer
+placement without accounting for `__BL_0_P_T`. Required order:
 
 ```
 [ FLASH_CM33_S ][ FLASH_CM33_C ][ __BL_0_P_T ][ FLASH_CM33_N ]
@@ -109,17 +139,26 @@ layout files** — `Debug/bsp_linker_info.h`, `memory_regions.ld`, `fsp_gen.ld` 
 won't build out of the box either. That's a deliberate exception to the "no Debug files" rule, which
 applies to the working project set in `fsp_cmake/`.
 
-### Sizing — this layout will not hold TF-M as configured
-Not a problem for standalone bring-up; blocking for the TF-M port:
+### ✅ RESOLVED — Sizing
+The repartition fixed this. Measured from the first clean TF-M build (Debug, 2026-08-26):
 
-- **Secure slot 95.25 KB** (`0x17D00`). TF-M secure measures ~166 KB (Debug/INFO) and 121–127 KB even
-  in Release with logging silenced. Needs ≥160 KB, 192 KB for headroom.
-- **Secure data flash 4 KB.** The RA6M4 port uses ~7 KB of 8 KB (NV counters 2K + PS 3K + ITS 2K), and
-  DESIGN.md §7 has data flash all-secure — the solution gives 4 KB of it to NS.
-- NS 32 KB is probably fine (NS app ~14 KB text) but check against the FreeRTOS heap.
+| Image | `text` | Slot code region | Used |
+|---|---|---|---|
+| bl2 | 55 540 | `0x18000` (96K) | 57% |
+| tfm_s | 167 916 | `0x3FD00` (255.25K) | **64%** |
+| tfm_ns | 3 334 | `0x2FD00` (191.25K) | 2% |
 
-Repartitioning changes the Code Secure boundary, so the Partition Manager values above must be
-recomputed **and re-checked against the 32 KB / 8 KB granularity rule**.
+Beware `ld --print-memory-usage` on the secure image: it reports **99.85%** because the veneers are
+pinned at the top of FLASH, so the region always reads as full regardless of code size. Use
+`arm-none-eabi-size` for the real figure.
+
+Still open: **secure data flash is 4 KB**, and the RA6M4 port uses ~7 KB of 8 KB (NV counters 2K +
+PS 3K + ITS 2K). DESIGN.md §7 wants data flash all-secure; the solution gives half to NS. The port's
+`flash_layout.h` carries a `#error` that fires if the secure partition drops below 4 KB, and splits
+what it has proportionally — but there is no wear-levelling headroom at this size.
+
+Any further repartition changes the Code Secure boundary, so the Partition Manager values above must
+be recomputed **and re-checked against the 32 KB / 8 KB granularity rule**.
 
 ### Divergences from the current TF-M port config
 Signature ECDSA-P256 vs RSA-3072 · overwrite-only vs swap+256K scratch · MCUboot 2.4.0 vs 2.1.0 ·
