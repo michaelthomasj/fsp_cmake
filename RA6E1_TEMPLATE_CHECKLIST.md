@@ -87,6 +87,18 @@ the standalone build but produces a configure-time **warning** naming the module
 - [ ] Generated file **names** stay standard. The port excludes `ra_gen/main.c`,
       `.../Source/startup.c` and `bsp_linker.c` by name for S and BL2 (TF-M supplies all three).
       Renaming them means FSP's versions collide at link.
+- [ ] **Remove LittleFS from the FSP mbedTLS / `rm_psa_crypto` stack.** The stock stacking wires
+      PSA ITS down to LittleFS for key storage. TF-M provides ITS itself — the
+      `TFM_PARTITION_INTERNAL_TRUSTED_STORAGE` partition owns the secure data flash, backed by
+      `Driver_FLASH1` — so the two implementations both claim that role and the FSP one drags in
+      a filesystem the secure image has no use for. Dropping LFS from the stack in the template
+      avoids having to unpick it per project. See DESIGN.md §6.
+
+      Note this does not change what TF-M links today: `rm_psa_crypto` and `ra/arm/mbedtls` are
+      already in `FSP_MODULES_NEVER_BUILT`, so nothing from them reaches a signed image. The
+      reason to fix it in the template is that the module has to stay **generatable and buildable
+      standalone** — it is the path to hardware-accelerated crypto later, and that switch is much
+      easier if the storage backend was never LittleFS.
 
 ---
 
