@@ -261,38 +261,71 @@ Two things the memory report does **not** mean what it looks like:
   overflow that points nowhere near the cause. Worth moving the veneers to the very end of the
   script if it ever bites; `Image$$PT_RO_END$$Base` has to stay after them.
 
-### TODO — FSP linker fragments have no path into the TF-M secure image
+### ✅ RESOLVED — orphan-section check catches unhandled FSP sections
 
-`fsp.ld` is a stub: it `INCLUDE`s `memory_regions.ld` and `fsp_gen.ld`, and **`fsp_gen.ld` is
-generated per project from the enabled module set**. Every FSP module that needs special linker
-handling contributes its memory sections there — `.ram_from_flash`, `.ram_code_from_flash`,
-`.fsp_dtc_vector_table`, `.ram_nocache` / `.bss.*_fsp_nocache` (32-byte aligned), `.ram_noinit`,
-`.qspi_flash*`, `.data_flash*`, the `option_setting_*` windows.
+Added 2026-08-30, after the `.ram_from_flash` bug turned out to be an instance of a general
+problem rather than a one-off.
 
-`tfm_s` and `bl2` do not use `fsp.ld`. They use TF-M's generated `tfm_isolation_s.ld` and the port's
-`ra6e1_bl2.ld`. So **a module the user adds in e2 gets its C sources compiled but its linker
-fragment silently dropped**, and its sections are orphan-placed by ld — which is how
-`.ram_from_flash` ended up executing from flash in the first place. That failure mode is silent,
-and for `.ram_from_flash` specifically it is a hardware hang rather than a fault.
+`<project>/script/fsp.ld` is a stub that `INCLUDE`s `memory_regions.ld` and `fsp_gen.ld`, and
+`fsp_gen.ld` carries the device's memory-section contract: `.ram_from_flash`,
+`.ram_code_from_flash`, `.fsp_dtc_vector_table`, `.ram_nocache` / `.bss.*_fsp_nocache` at 32-byte
+alignment, `.ram_noinit`, `.qspi_flash*`, `.data_flash*`, the `option_setting_*` windows.
 
-The port already reports an unclaimed module (`fsp_add_modules()` in `CMakeLists.txt` warns when a
-directory under `ra/fsp/src` has no `cmake/modules/fsp_<name>.cmake`), so the C-source half is
-covered. The linker half is not. Before this goes public, at least one of:
+`tfm_s` and `bl2` do not use `fsp.ld` — `tfm_s` links TF-M's generated `tfm_isolation_s.ld`, `bl2`
+links `ra6e1_bl2.ld`. A section neither script names is not diagnosed: GNU ld **orphans** it,
+invents an output section, and places it next to whatever looks similar. No warning, no error.
+Only the NS image is safe; it is a full FSP application and keeps `fsp.ld`.
 
-1. **Extend the existing warning to the linker side.** Parse `<project>/Debug/fsp_gen.ld` for the
-   input-section names it places, diff against a list of names the TF-M scripts handle, and warn
-   per unhandled section. Cheap, catches the general case, and needs no new generated-file contract
-   beyond one already depended on (`bsp_linker_info.h` is read the same way).
-2. **Make `cmake/modules/fsp_<name>.cmake` own the linker requirement too** — each module declares
-   the sections it needs, and the build asserts the active script handles them. Fits the existing
-   opt-in registry, but every module needs a hand-written declaration.
-3. **Document the boundary.** State that the secure and BL2 images support the modules listed in
-   `FSP_MODULES_S` / `FSP_MODULES_BL2` and that adding others is a port change, not a configuration
-   change. Weakest, but honest, and the right floor if 1 is not done.
+**What the check is not.** The first idea — diff `fsp_gen.ld` against our scripts — does not work,
+because `fsp_gen.ld` is *device boilerplate, not a per-module subset*. Measured: the secure,
+bootloader and non-secure projects place the same 53 sections despite different module sets,
+differing only in the TrustZone entries (`.flash_nsc`, `.gnu.sgstubs*`, `.ram_nsc`, and the
+`_sec`/`_sel` option-setting variants). Diffing would flag ~30 sections nothing emits into.
 
-Option 1 is the recommendation: it turns the silent case into a build warning without promising
-support the port does not have. Note the NS image is unaffected — it is a full FSP application and
-keeps `fsp.ld`, so its fragments work normally.
+`ld --orphan-handling=warn` is the same idea and is the native mechanism, but it also reports every
+non-allocatable orphan — `.debug_*`, `.comment`, `.ARM.attributes` from every object, hundreds of
+lines on `tfm_s` — and TF-M links with `-Wl,-fatal-warnings`, so it cannot simply be switched on.
+
+**What it is.** A post-link check on the ELF, `cmake/ra6e1_check_orphans.cmake`, run as a custom
+target after `tfm_s` and `bl2`. An orphan output section's name appears nowhere in the linker
+script — that is what made it an orphan — so: list allocatable, non-empty sections in the ELF and
+report any whose name is not a token in the preprocessed, comment-stripped script. Substring
+matching, not grammar parsing; ld's output-section syntax is `.NAME <addr-expr> <(ATTRS)> :` with
+an arbitrary address expression, and parsing it is not worth the fragility.
+
+The script comes from `$<TARGET_OBJECTS:<target>_scatter>` — `target_add_scatter_file()` in
+`toolchain_GNUARM.cmake` preprocesses the `.ld` with `-E -P -xc` into that object library and hands
+it to ld as `-T`. So the check reads the same text ld saw, with macros expanded and only the `#if`
+branches that applied. Reading the source `.ld` would give the wrong answer for `bl2`, whose script
+has both a CMSE and a non-CMSE arm.
+
+**Verified by reverting the fix.** With `S_RAM_CODE_EXTRA_SECTION_NAME` commented out:
+
+```
+RA6E1 [tfm_s]: allocatable ORPHAN section(s) - present in the image, named
+nowhere in the linker script, so ld chose the address:
+    .ram_from_flash (2000 bytes at 0x00080b80)
+```
+
+Two known-benign orphans are allowlisted per image, with reasons, so a *new* one is still reported:
+
+| Image | Section | Why it is harmless |
+|---|---|---|
+| `tfm_s` | `.ram_noinit` (110 B) | FSP BSP noinit data — `SystemCoreClock`, `g_bsp_group_irq_sources`, `g_protect_counters`, `g_protect_pfswe_counter`. FSP places it NOLOAD; orphaned it becomes a *loaded* section, so ~110 bytes of flash hold initialisers nothing copies — it is not in the copy table. The variables end up uninitialised either way, which is what `.ram_noinit` means. Wasteful, not wrong. |
+| `bl2` | `.msp_stack_seal_res` (8 B) | `bl2` is flat, so `__ARM_FEATURE_CMSE != 3` and `ra6e1_bl2.ld` takes the non-CMSE arm, which has no seal section. `startup_ra6e1.c` still emits the 8-byte `__StackSeal`, which orphans away from the stack top. Inert: FSP writes the seal only under `BSP_TZ_SECURE_BUILD`, TF-M's startup only under CMSE, and both are false here. |
+
+Warning, not error, by default — a TF-M or FSP update can add a benign section and that should not
+block a build. `RA6E1_ORPHAN_CHECK_STRICT=ON` escalates to a hard failure; use it in CI.
+
+**Still open, deliberately.** The check tells you a section was placed by guesswork; it cannot tell
+you whether the guess was wrong. It also only covers the two images built here. And it complements
+rather than replaces the existing unclaimed-module warning in `fsp_add_modules()`, which catches the
+C-source half. Adding an FSP module to the secure or BL2 image remains a port change, not a
+configuration change — but it now fails loudly instead of silently.
+
+Follow-up worth doing: handle `.ram_noinit` properly in the secure script rather than allowlisting
+it. It would return 110 bytes of flash and relieve the LMA pressure inside the NSC window described
+above.
 
 ### TODO — strip the bring-up instrumentation
 
