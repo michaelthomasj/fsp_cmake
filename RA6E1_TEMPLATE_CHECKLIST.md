@@ -60,8 +60,17 @@ port needs **exactly these**, in `_START` / `_SIZE` pairs unless noted:
       `QSPI_FLASH_BL` entries the bootloader's own copy omits. If the template ever narrows what
       the secure project emits, the port loses the bootloader region.
 - [ ] `FLASH_CPU0_C_START` lands **below** `__BL_0_P_T_START`, so the NSC veneers sit inside the
-      signed payload. Currently `0x97C00` vs `0x98000`. Re-check on every repartition — see
+      signed payload. Currently `0x97800` vs `0x98000`. Re-check on every repartition — see
       `RA6E1_SOLUTION.md`, "NSC placement".
+- [ ] **NSC is 2 KB, not 1**, and ends exactly on the NS boundary. MCUboot needs the last
+      `0x180` of the slot for its trailer at `MCUBOOT_ALIGN_VAL` 128, and the veneers are pinned
+      at the NSC start — at 1 KB the signed image overran the trailer by 17 bytes. Take the extra
+      kilobyte from the secure code region so the S/NS boundary does not move.
+- [ ] **Partitions are contiguous and both slot pairs are the same size.** `fa_size` is a *sum of
+      sizes* while the trailer magic is placed from the *address span*, so a hole makes imgtool
+      and bootutil disagree on where the magic goes — and the image still boots, then fails on
+      first upgrade. `ra6e1_layout_checks.c` asserts both; a 2026-08-29 regeneration that grew the
+      NSC size without moving its start was caught this way.
 
 ---
 

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<raSolution version="12">
+<raSolution>
   <generalSettings>
     <option key="#Board#" value="board.ra6e1_fpb"/>
     <option key="#TargetName#" value="R7FA6E10F2CFP"/>
@@ -172,20 +172,20 @@
     <memory Pname="CM33" name="RAM_CM33_N" offset="0x20000" parent="RAM" security="n" size="0x20000"/>
     <memory Pname="CM33" name="FLASH_CM33_B" offset="0x0" parent="FLASH" security="s" size="0x18000"/>
     <memory Pname="CM33" name="__BL_0_S_H" offset="0x18000" parent="FLASH" security="s" size="0x200" userDefined="true"/>
-    <memory Pname="CM33" name="__BL_0_S_I" offset="0x18200" parent="FLASH" security="s" size="0x3FD00" userDefined="true"/>
-    <memory Pname="CM33" name="__BL_0_S_T" offset="0x57F00" parent="FLASH" security="s" size="0x100" userDefined="true"/>
+    <memory Pname="CM33" name="__BL_0_S_I" offset="0x18200" parent="FLASH" security="s" size="0x3FE00" userDefined="true"/>
+    <memory Pname="CM33" name="__BL_0_S_T" offset="0x58000" parent="FLASH" security="s" size="0x0" userDefined="true"/>
     <memory Pname="CM33" name="__BL_0_P_H" offset="0x58000" parent="FLASH" security="s" size="0x200" userDefined="true"/>
-    <memory Pname="CM33" name="FLASH_CM33_S" offset="0x58200" parent="FLASH" security="s" size="0x3FA00"/>
-    <memory Pname="CM33" name="FLASH_CM33_C" offset="0x97C00" parent="FLASH" security="c" size="0x300"/>
-    <memory Pname="CM33" name="__BL_0_P_T" offset="0x98000" parent="FLASH" security="n" size="0x100" userDefined="true"/>
-    <memory Pname="CM33" name="__BL_1_P_H" offset="0x98100" parent="FLASH" security="n" size="0x200" userDefined="true"/>
-    <memory Pname="CM33" name="FLASH_CM33_N" offset="0x98300" parent="FLASH" security="n" size="0x2FD00"/>
-    <memory Pname="CM33" name="__BL_1_P_T" offset="0xC8000" parent="FLASH" security="n" size="0x100" userDefined="true"/>
-    <memory Pname="CM33" name="__BL_1_S_H" offset="0xC8100" parent="FLASH" security="n" size="0x200" userDefined="true"/>
-    <memory Pname="CM33" name="__BL_1_S_I" offset="0xC8300" parent="FLASH" security="n" size="0x2FD00" userDefined="true"/>
-    <memory Pname="CM33" name="__BL_1_S_T" offset="0xF8000" parent="FLASH" security="n" size="0x100" userDefined="true"/>
-    <memory Pname="CM33" name="DATA_FLASH_CM33_S" offset="0x0" parent="DATA_FLASH" security="s" size="0x1000"/>
-    <memory Pname="CM33" name="DATA_FLASH_CM33_N" offset="0x1000" parent="DATA_FLASH" security="n" size="0x1000"/>
+    <memory Pname="CM33" name="FLASH_CM33_S" offset="0x58200" parent="FLASH" security="s" size="0x3F600"/>
+    <memory Pname="CM33" name="FLASH_CM33_C" offset="0x97800" parent="FLASH" security="c" size="0x800"/>
+    <memory Pname="CM33" name="__BL_0_P_T" offset="0x98000" parent="FLASH" security="n" size="0x0" userDefined="true"/>
+    <memory Pname="CM33" name="__BL_1_P_H" offset="0x98000" parent="FLASH" security="n" size="0x200" userDefined="true"/>
+    <memory Pname="CM33" name="FLASH_CM33_N" offset="0x98200" parent="FLASH" security="n" size="0x2FE00"/>
+    <memory Pname="CM33" name="__BL_1_P_T" offset="0xC8000" parent="FLASH" security="n" size="0x0" userDefined="true"/>
+    <memory Pname="CM33" name="__BL_1_S_H" offset="0xC8000" parent="FLASH" security="n" size="0x200" userDefined="true"/>
+    <memory Pname="CM33" name="__BL_1_S_I" offset="0xC8200" parent="FLASH" security="n" size="0x2FE00" userDefined="true"/>
+    <memory Pname="CM33" name="__BL_1_S_T" offset="0xF8000" parent="FLASH" security="n" size="0x0" userDefined="true"/>
+    <memory Pname="CM33" name="DATA_FLASH_CM33_S" offset="0x0" parent="DATA_FLASH" security="s" size="0x2000"/>
+    <memory Pname="CM33" name="DATA_FLASH_CM33_N" offset="0x2000" parent="DATA_FLASH" security="n" size="0x0"/>
     <memory Pname="CM33" name="QSPI_FLASH_CM33_S" offset="0x0" parent="QSPI_FLASH" security="s" size="0x2000000"/>
     <memory Pname="CM33" name="QSPI_FLASH_CM33_N" offset="0x2000000" parent="QSPI_FLASH" security="n" size="0x2000000"/>
     <memory Pname="CM33" name="OPTION_SETTING_OFS0_CM33_S" offset="0x0" parent="OPTION_SETTING_OFS0" security="s" size="0x4"/>
@@ -206,11 +206,6 @@
     <memory Pname="CM33" name="OPTION_SETTING_BANKSEL_SEL_CM33_S" offset="0x0" parent="OPTION_SETTING_BANKSEL_SEL" security="s" size="0x4"/>
     <memory Pname="CM33" name="OPTION_SETTING_BPS_SEL_CM33_S" offset="0x0" parent="OPTION_SETTING_BPS_SEL" security="s" size="0xC"/>
   </raPartitions>
-  <raSmartBundles>
-    <bundle>${workspace_loc:/ra6e1_solution_mcuboot}/Debug/ra6e1_solution_mcuboot.sbd</bundle>
-    <bundle>${workspace_loc:/ra6e1_solution_secure}/Debug/ra6e1_solution_secure.sbd</bundle>
-    <bundle>${workspace_loc:/ra6e1_solution_nonsecure}/Debug/ra6e1_solution_nonsecure.sbd</bundle>
-  </raSmartBundles>
   <raPinConfiguration>
     <symbolicName propertyId="p000.symbolic_name" value="ARDUINO_A0"/>
     <symbolicName propertyId="p001.symbolic_name" value="ARDUINO_A1"/>
@@ -256,15 +251,11 @@
       <configSetting altId="adc0.an004.p004" configurationId="adc0.an004"/>
       <configSetting altId="adc0.an008.p008" configurationId="adc0.an008"/>
       <configSetting altId="adc0.mode.custom.free" configurationId="adc0.mode"/>
-      <configSetting altId="irq.irq13.p015" configurationId="irq.irq13"/>
-      <configSetting altId="irq.irq1_dash_ds.p205" configurationId="irq.irq1_dash_ds"/>
-      <configSetting altId="irq.irq9.p304" configurationId="irq.irq9"/>
-      <configSetting altId="irq.mode.custom.free" configurationId="irq.mode"/>
       <configSetting altId="jtag_fslash_swd.mode.jtag.free" configurationId="jtag_fslash_swd.mode"/>
-      <configSetting altId="jtag_fslash_swd.tms.p108" configurationId="jtag_fslash_swd.tms"/>
-      <configSetting altId="jtag_fslash_swd.tdo.p109" configurationId="jtag_fslash_swd.tdo"/>
-      <configSetting altId="jtag_fslash_swd.tdi.p110" configurationId="jtag_fslash_swd.tdi"/>
       <configSetting altId="jtag_fslash_swd.tck.p300" configurationId="jtag_fslash_swd.tck"/>
+      <configSetting altId="jtag_fslash_swd.tdi.p110" configurationId="jtag_fslash_swd.tdi"/>
+      <configSetting altId="jtag_fslash_swd.tdo.p109" configurationId="jtag_fslash_swd.tdo"/>
+      <configSetting altId="jtag_fslash_swd.tms.p108" configurationId="jtag_fslash_swd.tms"/>
       <configSetting altId="p000.adc0.an000" configurationId="p000"/>
       <configSetting altId="p000.gpio_mode.gpio_mode_an" configurationId="p000.gpio_mode"/>
       <configSetting altId="p001.adc0.an001" configurationId="p001"/>
@@ -277,9 +268,6 @@
       <configSetting altId="p004.gpio_mode.gpio_mode_an" configurationId="p004.gpio_mode"/>
       <configSetting altId="p008.adc0.an008" configurationId="p008"/>
       <configSetting altId="p008.gpio_mode.gpio_mode_an" configurationId="p008.gpio_mode"/>
-      <configSetting altId="p015.irq.irq13" configurationId="p015"/>
-      <configSetting altId="p015.gpio_irq.gpio_irq_enabled" configurationId="p015.gpio_irq"/>
-      <configSetting altId="p015.gpio_mode.gpio_mode_irq" configurationId="p015.gpio_mode"/>
       <configSetting altId="p100.sci0.rxd0" configurationId="p100"/>
       <configSetting altId="p100.gpio_speed.gpio_speed_h" configurationId="p100.gpio_drivecapacity"/>
       <configSetting altId="p100.gpio_mode.gpio_mode_peripheral" configurationId="p100.gpio_mode"/>
@@ -321,9 +309,6 @@
       <configSetting altId="p113.output.low" configurationId="p113"/>
       <configSetting altId="p113.gpio_speed.gpio_speed_h" configurationId="p113.gpio_drivecapacity"/>
       <configSetting altId="p113.gpio_mode.gpio_mode_out.low" configurationId="p113.gpio_mode"/>
-      <configSetting altId="p205.irq.irq1_dash_ds" configurationId="p205"/>
-      <configSetting altId="p205.gpio_irq.gpio_irq_enabled" configurationId="p205.gpio_irq"/>
-      <configSetting altId="p205.gpio_mode.gpio_mode_irq" configurationId="p205.gpio_mode"/>
       <configSetting altId="p300.jtag_fslash_swd.tck" configurationId="p300"/>
       <configSetting altId="p300.gpio_speed.gpio_speed_h" configurationId="p300.gpio_drivecapacity"/>
       <configSetting altId="p300.gpio_mode.gpio_mode_peripheral" configurationId="p300.gpio_mode"/>
@@ -336,9 +321,6 @@
       <configSetting altId="p303.output.low" configurationId="p303"/>
       <configSetting altId="p303.gpio_speed.gpio_speed_h" configurationId="p303.gpio_drivecapacity"/>
       <configSetting altId="p303.gpio_mode.gpio_mode_out.low" configurationId="p303.gpio_mode"/>
-      <configSetting altId="p304.irq.irq9" configurationId="p304"/>
-      <configSetting altId="p304.gpio_irq.gpio_irq_enabled" configurationId="p304.gpio_irq"/>
-      <configSetting altId="p304.gpio_mode.gpio_mode_irq" configurationId="p304.gpio_mode"/>
       <configSetting altId="p400.output.low" configurationId="p400"/>
       <configSetting altId="p400.gpio_speed.gpio_speed_h" configurationId="p400.gpio_drivecapacity"/>
       <configSetting altId="p400.gpio_mode.gpio_mode_out.low" configurationId="p400.gpio_mode"/>
@@ -369,20 +351,25 @@
       <configSetting altId="sci0.sck0.p102" configurationId="sci0.sck0"/>
       <configSetting altId="sci0.txd0.p101" configurationId="sci0.txd0"/>
     </pincfg>
-    <pincfg active="false" name="R7FA6E10F2CFP.pincfg" symbol="">
-      <configSetting altId="p108.gpio_mode.gpio_mode_peripheral" configurationId="p108.gpio_mode"/>
-      <configSetting altId="p108.jtag_fslash_swd.tms" configurationId="p108"/>
-      <configSetting altId="p109.gpio_mode.gpio_mode_peripheral" configurationId="p109.gpio_mode"/>
-      <configSetting altId="p109.jtag_fslash_swd.tdo" configurationId="p109"/>
-      <configSetting altId="p110.gpio_mode.gpio_mode_peripheral" configurationId="p110.gpio_mode"/>
-      <configSetting altId="p110.jtag_fslash_swd.tdi" configurationId="p110"/>
-      <configSetting altId="p300.gpio_mode.gpio_mode_peripheral" configurationId="p300.gpio_mode"/>
-      <configSetting altId="p300.jtag_fslash_swd.tck" configurationId="p300"/>
+    <pincfg active="false" name="R7FA6E10F2CFP.pincfg" selected="false" symbol="">
       <configSetting altId="jtag_fslash_swd.mode.jtag.free" configurationId="jtag_fslash_swd.mode"/>
       <configSetting altId="jtag_fslash_swd.tck.p300" configurationId="jtag_fslash_swd.tck"/>
       <configSetting altId="jtag_fslash_swd.tdi.p110" configurationId="jtag_fslash_swd.tdi"/>
       <configSetting altId="jtag_fslash_swd.tdo.p109" configurationId="jtag_fslash_swd.tdo"/>
       <configSetting altId="jtag_fslash_swd.tms.p108" configurationId="jtag_fslash_swd.tms"/>
+      <configSetting altId="p108.jtag_fslash_swd.tms" configurationId="p108"/>
+      <configSetting altId="p108.gpio_mode.gpio_mode_peripheral" configurationId="p108.gpio_mode"/>
+      <configSetting altId="p109.jtag_fslash_swd.tdo" configurationId="p109"/>
+      <configSetting altId="p109.gpio_mode.gpio_mode_peripheral" configurationId="p109.gpio_mode"/>
+      <configSetting altId="p110.jtag_fslash_swd.tdi" configurationId="p110"/>
+      <configSetting altId="p110.gpio_mode.gpio_mode_peripheral" configurationId="p110.gpio_mode"/>
+      <configSetting altId="p300.jtag_fslash_swd.tck" configurationId="p300"/>
+      <configSetting altId="p300.gpio_mode.gpio_mode_peripheral" configurationId="p300.gpio_mode"/>
     </pincfg>
   </raPinConfiguration>
+  <raSmartBundles>
+    <bundle>${workspace_loc:/ra6e1_solution_mcuboot}/Debug/ra6e1_solution_mcuboot.sbd</bundle>
+    <bundle>${workspace_loc:/ra6e1_solution_secure}/Debug/ra6e1_solution_secure.sbd</bundle>
+    <bundle>${workspace_loc:/ra6e1_solution_nonsecure}/Debug/ra6e1_solution_nonsecure.sbd</bundle>
+  </raSmartBundles>
 </raSolution>

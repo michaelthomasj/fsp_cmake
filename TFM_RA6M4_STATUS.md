@@ -415,6 +415,46 @@ v8m config) is what marks the veneer region NSC; the RA IDAU only needs the coar
 Verify the SAU/veneer attribution on hardware; do NOT program an IDAU NSC region at 0x4F400.
 
 ## TODO (open)
+- [ ] **Code-flash P/E routines execute from code flash — in `tfm_s` and in `ra6m4_bl2.ld`.**
+      Found 2026-08-30 while fixing the same thing on RA6E1; **not reproduced on RA6M4 hardware**,
+      this is a code reading. `arm-none-eabi-nm -S bin/tfm_s.axf` shows `flash_hp_cf_write` at
+      `0x47380`, `flash_hp_cf_erase` `0x4745c`, `flash_hp_enter_pe_cf_mode` `0x47504`,
+      `flash_hp_pe_mode_exit` `0x46ed4`, `flash_hp_status_clear` `0x47040` — all code flash. FSP
+      marks these `PLACE_IN_RAM_SECTION` because the FCU makes the whole code flash unreadable
+      during a code-flash P/E; running them from there is a prefetch abort mid-operation with the
+      FCU left in P/E mode.
+
+      Latent for the same reason as RA6E1 — the secure image only ever drives data flash — but
+      armed, because `FLASH_HP_CFG_CODE_FLASH_PROGRAMMING_ENABLE` is `1` and
+      `R_FLASH_HP_Write`/`Erase` dispatch to the code-flash path on address.
+
+      Fix is the RA6E1 one, applied twice:
+      * `region_defs.h` — `S_RAM_CODE_SIZE`, `S_RAM_CODE_START` at the top of secure RAM,
+        `S_RAM_CODE_EXTRA_SECTION_NAME .ram_from_flash*`, and shrink `S_DATA_SIZE` to match. The
+        upstream `.ER_CODE_SRAM` / `CODE_RAM` machinery does the rest.
+      * the RA6M4 BL2 linker script — same `.ram_from_flash` relocation plus copy-table entry that
+        `ra6e1_bl2.ld` got on 2026-08-29. **This is the brick-hazard file**: keep the discrete
+        MEMORY regions, and re-check `readelf -l` after touching it.
+
+      Check whether RA6M4 also needs the `tfm_isolation_s.ld.template` reorder — it does only if
+      the port pins the veneers at an absolute address with `TFM_LINKER_VENEERS_LOCATION_END`. See
+      RA6E1_SOLUTION.md, "code-flash P/E routines run from RAM in `tfm_s`".
+- [ ] **PS and ITS block geometry gives `num_blocks == 1` — will fail init.** Found 2026-08-29 while
+      fixing the equivalent bug on RA6E1; **not yet reproduced on RA6M4 hardware**, so this is a
+      code reading, not an observed failure. `flash_layout.h` sets `TFM_HAL_PS_SECTORS_PER_BLOCK`
+      to `0xC00/64` with `FLASH_PS_AREA_SIZE` also `0xC00` — so `block_size == area` and
+      `num_blocks = 1`. Same for ITS (`0x800`/`0x800`). `its_flash_fs_validate_config()` rejects
+      `num_blocks < 2` outright, so `tfm_its_init()` returns `PSA_ERROR_INVALID_ARGUMENT` (-135) and
+      the SPM panics. The FS needs two blocks to rotate between on a write; RA6E1 derives
+      sectors-per-block as `(area / sector) / 2` for exactly this reason. Fix is to halve both, then
+      check `PS_MAX_OBJECT_SIZE` still fits `block_size - all_metadata_size` — at `0xC00/2 = 1536`
+      it does not, and `PS_MAX_ASSET_SIZE` has to drop (RA6E1 uses 512). Arithmetic in
+      `platform/ext/target/renesas/ra6e1/config_tfm_target.h`.
+- [x] **`__enable_irq()` + `stdio_init()` missing from `tfm_hal_platform_init()`** — DONE 2026-08-29.
+      Diagnosed on RA6E1, same defect here. Without the first, PRIMASK stays set from
+      `Reset_Handler` and the first `SVC` escalates to HardFault under the SFN backend; without the
+      second, `SEGGER_RTT_Init()` is never called and the RTT control block stays zeroed, so RTT
+      Viewer cannot find it.
 - [ ] **Program TrustZone/IDAU boundaries** (RFP): code-flash S/NS @ `0x50000`, SRAM S/NS @ `0x20020000`,
       data flash all-secure. **NSC/veneer window = `0x20C00`–`0x20C40`** (linker `Image$$ER_VENEER$$Base`),
       NOT `region_defs.h` `CMSE_VENEER_REGION_START` (`0x4F400`).

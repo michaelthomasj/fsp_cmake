@@ -135,4 +135,9 @@
       <configSetting altId="sci0.txd0.p101" configurationId="sci0.txd0" peripheral="SCI0"/>
     </pincfg>
   </raPinConfiguration>
+  <raSmartBundles>
+    <bundle>${workspace_loc:/ra6e1_solution_mcuboot}/Debug/ra6e1_solution_mcuboot.sbd</bundle>
+    <bundle>${workspace_loc:/ra6e1_solution_secure}/Debug/ra6e1_solution_secure.sbd</bundle>
+    <bundle>${workspace_loc:/ra6e1_solution_nonsecure}/Debug/ra6e1_solution_nonsecure.sbd</bundle>
+  </raSmartBundles>
 </raSolution>
