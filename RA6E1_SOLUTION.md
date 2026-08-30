@@ -327,6 +327,69 @@ Follow-up worth doing: handle `.ram_noinit` properly in the secure script rather
 it. It would return 110 bytes of flash and relieve the LMA pressure inside the NSC window described
 above.
 
+### ✅ RESOLVED — every secure service verified from non-secure (2026-08-30)
+
+Until this run the port had only ever been shown to BOOT. No PSA service had been called
+across the boundary: the NS app was `hal_entry.c` plus `hal_warmstart.c` and linked no
+client library at all. All 13 steps pass on hardware.
+
+```
+[NS] 1. psa_framework_version ............... ok  version=0x00000101
+[NS] 2. psa_version(crypto) ................. ok  version=0x00000001
+[NS] 3. psa_crypto_init ..................... ok
+[NS] 4. psa_generate_random (SCE9 TRNG) ..... ok
+[NS] 5. psa_hash_compute SHA-256 ............ ok
+[NS] 6-8.  psa_its_set / get+verify / remove  ok
+[NS] 9-11. psa_ps_set / get+verify / remove   ok   (AES-GCM)
+[NS] 12. psa_initial_attest_get_token_size .. ok  bytes=0x00000206
+[NS] 13. psa_version(platform) .............. ok
+[NS] ==== ALL PASSED ====
+```
+
+What each result actually establishes:
+
+* `version=0x00000101` - PSA Firmware Framework 1.1 negotiated across the boundary, not a
+  stale constant.
+* Step 4 - the SCE9 TRNG works through PSA's external-RNG hook (`sce_trng.c`). This port
+  deliberately does not use a stored NV seed, whose default provisioning value is a
+  constant shared by every device.
+* Steps 9-11 - PS round-trips with `PS_ENCRYPTION` ON, so AES-GCM runs *inside* the secure
+  side, exercising crypto from the secure caller rather than only from NS.
+* Steps 6-8 - ITS is healthy, confirming the `(area / sector) / 2` sectors-per-block
+  derivation. **The `num_blocks == 1` bug logged against RA6M4 does not affect RA6E1.**
+* `bytes=0x206` - a 518-byte token for a 32-byte challenge, so the attestation partition
+  is alive and `attest_hal.c` answers.
+
+**Scope, honestly.** This is a smoke test: one call per service, happy path only. It is not
+the official tf-m-tests regression suite, which still needs the split SPE/NSPE build. It
+proves the services function; it does not prove they are correct under error injection,
+concurrency, or boundary-case inputs.
+
+### ⚠ RTT is unreliable across the boot chain - by construction
+
+BL2, `tfm_s` and `tfm_ns` each have their **own** RTT control block, each in its own
+`.bss`, and they collide: `tfm_s`'s `.ER_TFM_SP_CRYPTO_BSS` spans `0x200022D8 + 0x7E14`,
+which **covers BL2's block at `0x20003480`**. Starting the secure image therefore zeroes
+the block the viewer is attached to - the viewer does not error, it just goes quiet.
+`tfm_s` then initialises a different block at `0x2000C138`, and `tfm_ns` a third at
+`0x20020494`. On top of that `SEGGER_RTT_MODE_NO_BLOCK_SKIP` silently drops writes when no
+viewer is draining.
+
+Consequence: one image per viewer session, and output written before the viewer attaches is
+gone. Attaching to the NS block after boot works fine - it is the handoff that breaks.
+
+Two mitigations are in place. The NS smoke test also records everything to
+`g_ns_test_results` (magic / steps_run / failures / per-step status / name of the running
+step), readable from a debugger with no host tooling; `magic` is written last so it only
+appears on a completed run, and `status[]` starts at `0x7FFFFFFF` rather than 0 because
+`PSA_SUCCESS` is 0 and a step that never ran must not read as a pass.
+
+The real fix, not yet done: one shared control block at a fixed address that no image
+zeroes, initialised once by BL2 and *adopted* by the later two. It has to live in
+non-secure RAM - the only region all three can write, since NS cannot touch secure RAM -
+which makes secure log text NS-readable. Acceptable for bring-up, must be off in
+production.
+
 ### TODO — strip the bring-up instrumentation
 
 Added 2026-08-29 to find the masked-SVCall HardFault. **Deliberately left in until the whole port
