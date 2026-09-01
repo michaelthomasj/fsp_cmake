@@ -30,18 +30,14 @@
     <stringAttribute key="com.renesas.cdt.launch.dsf.IO_MAP" value="${support_area_loc}"/>
     <booleanAttribute key="com.renesas.cdt.launch.dsf.USE_DEFAULT_IO_MAP" value="true"/>
     <listAttribute key="com.renesas.cdt.launch.dsf.downloadImages">
-        <listEntry value="${workspace_loc:/ra6e1_solution_secure}/Debug/ra6e1_solution_secure.elf|false|false|true|0|true|No core|INTERNAL_MEMORY||false"/>
-        <listEntry value="|false|false|true|0|true|No core|INTERNAL_MEMORY||false"/>
-        <listEntry value="${workspace_loc:\ra6e1_solution_mcuboot\Debug\ra6e1_solution_mcuboot.elf}|false|true|true|0|true|No core|INTERNAL_MEMORY||false"/>
-        <listEntry value="${workspace_loc:\ra6e1_solution_secure\Debug\ra6e1_solution_secure.bin.signed}|false|false|false|58000|true|No core|INTERNAL_MEMORY||true"/>
-        <listEntry value="${workspace_loc:\ra6e1_solution_nonsecure\Debug\ra6e1_solution_nonsecure.bin.signed}|false|false|false|98100|true|No core|INTERNAL_MEMORY||true"/>
+        <listEntry value="|false|false|true|0|false|No core|INTERNAL_MEMORY||false"/>
         <listEntry value="C:\Users\Michael\Renesas_work\repos\trusted-firmware-m\build_ra6e1\bin\bl2.elf|true|true|true|0|true|No core|INTERNAL_MEMORY||false"/>
         <listEntry value="C:\Users\Michael\Renesas_work\repos\trusted-firmware-m\build_ra6e1\bin\tfm_s_signed.bin|true|false|false|58000|true|No core|INTERNAL_MEMORY||true"/>
-        <listEntry value="C:\Users\Michael\Renesas_work\repos\trusted-firmware-m\build_ra6e1\bin\tfm_ns_signed.bin|true|false|false|98000|true|No core|INTERNAL_MEMORY||true"/>
+        <listEntry value="C:\Users\Michael\Renesas_work\repos\trusted-firmware-m\build_ra6e1_ns\bin\tfm_ns_signed.bin|true|false|false|98000|true|No core|INTERNAL_MEMORY||true"/>
         <listEntry value="C:\Users\Michael\Renesas_work\repos\trusted-firmware-m\build_ra6e1\bin\tfm_s.axf|true|false|true|0|true|No core|INTERNAL_MEMORY||false"/>
-        <listEntry value="C:\Users\Michael\Renesas_work\repos\trusted-firmware-m\build_ra6e1\bin\tfm_ns.axf|true|false|true|0|true|No core|INTERNAL_MEMORY||false"/>
-        <listEntry value="C:\Users\Michael\Renesas_work\repos\trusted-firmware-m\build_ra6e1\bin\tfm_s_signed_secondary.bin|true|false|false|18000|true|No core|INTERNAL_MEMORY||true"/>
-        <listEntry value="C:\Users\Michael\Renesas_work\repos\trusted-firmware-m\build_ra6e1\bin\tfm_ns_signed_secondary.bin|true|false|false|c8000|true|No core|INTERNAL_MEMORY||true"/>
+        <listEntry value="C:\Users\Michael\Renesas_work\repos\trusted-firmware-m\build_ra6e1_ns\bin\tfm_ns.axf|true|false|true|0|true|No core|INTERNAL_MEMORY||false"/>
+        <listEntry value="C:\Users\Michael\Renesas_work\repos\trusted-firmware-m\build_ra6e1\bin\tfm_s_signed_secondary.bin|false|false|false|18000|true|No core|INTERNAL_MEMORY||true"/>
+        <listEntry value="C:\Users\Michael\Renesas_work\repos\trusted-firmware-m\build_ra6e1\bin\tfm_ns_signed_secondary.bin|false|false|false|c8000|true|No core|INTERNAL_MEMORY||true"/>
     </listAttribute>
     <booleanAttribute key="com.renesas.cdt.launch.dsf.downloadImagesUpgradedV30" value="true"/>
     <listAttribute key="com.renesas.cdt.launch.dsf.externalFlashDestinationAddresses"/>
