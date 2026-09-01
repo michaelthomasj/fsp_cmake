@@ -453,48 +453,44 @@ non-secure RAM - the only region all three can write, since NS cannot touch secu
 which makes secure log text NS-readable. Acceptable for bring-up, must be off in
 production.
 
-### TODO — make the bring-up instrumentation a documented option (or strip it)
+### ✅ RESOLVED — the bring-up instrumentation is now a documented option
 
-Added 2026-08-29 to find the masked-SVCall HardFault. **Decision 2026-08-30: keep it in for
-now.** The preferred end state is no longer "delete before merge" but "turn it into a
-configurable, documented debug option" — it is the only thing that made a HardFault on this
-port diagnosable at all, and every port that follows will want it.
+Done 2026-08-30. What were hardcoded edits to two upstream SPM files are now one
+default-off option, `TFM_SPM_DEBUG_TRACE`, declared in `config/config_base.cmake` beside
+`TFM_EXCEPTION_INFO_DUMP` and plumbed to `tfm_spm` with the other SPM debug definitions.
 
-| Where | What | State |
-|---|---|---|
-| `secure_fw/spm/core/utilities.c` | `TFM_PANIC_TRACE` — logs `LR` in `tfm_core_panic()` | already `#if`-gated, just hardcoded `1` |
-| `secure_fw/spm/core/backend_sfn.c` | `[INIT]` / `[INIT FAIL]` partition-init logging | **unconditional — no guard at all** |
-| `.../ra6e1/tfm_hal_platform.c` | `"tfm_s: platform init"` probe write | port-local, superseded by the NS smoke test |
-| `build_ra6e1` CMake cache | `TFM_EXCEPTION_INFO_DUMP=ON` | set only in the build dir |
+It covers both halves: the `tfm_core_panic()` caller trace in `utilities.c` (previously
+`#define TFM_PANIC_TRACE 1`) and the partition-init logging in `backend_sfn.c` (previously
+unguarded). The `"tfm_s: platform init"` probe is gone — the NS smoke test proves more.
 
-The work is small and asymmetric:
+This changes what they are. As hardcoded edits they were a liability that must not reach a
+merge; as a default-off SPM option they are plausibly an upstream contribution, since TF-M
+has no equivalent and "every panic funnels to one spin with no detail" is not specific to
+this port.
 
-* `utilities.c` needs `#define TFM_PANIC_TRACE 1` replaced by an `#ifndef` default of 0, with
-  the value coming from CMake. One line.
-* `backend_sfn.c` needs the guard invented — the include and three `SPMLOG_ERRMSGVAL` calls
-  are currently unconditional.
-* Pick one option name for both, default OFF, documented. Something like
-  `TFM_SPM_DEBUG_TRACE`.
-* The probe in `tfm_hal_platform.c` can just go: the NS smoke test proves the same thing
-  and more.
-* Decide `TFM_EXCEPTION_INFO_DUMP` deliberately. It costs ~3.4 KB of secure text and is the
-  only reason the HardFault was diagnosable. If it is being kept, move it into
-  `platform/ext/target/renesas/ra6e1/config.cmake` — a clean reconfigure silently loses a
-  build-directory cache value.
+**The trap this exposed, and the guard for it.** `SPMLOG_ERRMSGVAL` compiles to
+`(void)(val)` below `TFM_SPM_LOG_LEVEL_ERROR`, and `TFM_SPM_LOG_LEVEL` defaults to
+**SILENCE outside a Debug build**. So the option could read `ON`, the build succeed, and
+nothing be traced. Hit while verifying this work, from a reconfigure that lost
+`-DCMAKE_BUILD_TYPE=Debug`. `check_config.cmake` now rejects the combination:
 
-**Why this is worth doing rather than deleting.** As hardcoded edits to two upstream files
-these are a liability: they must not reach a merge, and they make the fork harder to rebase.
-As a default-off SPM option they are plausibly an upstream contribution instead — TF-M has
-no equivalent today, and "every panic funnels to one spin with no detail" is not a problem
-unique to this port.
+```
+INVALID CONFIG: TFM_SPM_DEBUG_TRACE AND TFM_SPM_LOG_LEVEL = TFM_SPM_LOG_LEVEL_SILENCE
+```
 
-Until then the constraint is unchanged: `utilities.c` and `backend_sfn.c` are **upstream**
-files carrying non-fix edits, and in that state they must not reach a merge. The other
-upstream deltas (`wrapper.py` / `mcuboot_default_config.cmake` align-128, the two
-`tfm_*_s.ld.template` changes) are genuine fixes and should be kept and reported.
+**Both options are set in the port's `config.cmake`, not in a build directory's cache.** A
+cache value survives rebuilds but not a clean reconfigure, so the next person to configure
+would silently get a quieter build with no way to know why. `TFM_EXCEPTION_INFO_DUMP` costs
+~3.4 KB of secure text; the trace is a handful of log calls. Turn both off for production —
+the trace reports partition ids and status codes on the console.
 
-Keep the two permanent fixes from the same session regardless: `__enable_irq()` and
-`stdio_init()` in `tfm_hal_platform_init()`, on both ports. Those are not instrumentation.
+Verified both ways: `ON` emits the three trace strings, `OFF` emits none. Note that
+`tfm_s.bin` is the SAME SIZE either way — it spans to the pinned NSC window at `0x97800`,
+so it is dominated by padding and **is not a code-size metric on this port**. Check the
+strings, or ld's FLASH usage line, not the file size.
+
+The `__enable_irq()` and `stdio_init()` calls added in the same original session are
+permanent fixes, not instrumentation, and stay unconditionally.
 
 ### TODO — bundle a default project set inside the TF-M port
 An e2 build is now a prerequisite for building TF-M (the layout lives in
