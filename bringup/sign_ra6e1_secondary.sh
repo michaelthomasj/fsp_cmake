@@ -13,18 +13,24 @@
 # Re-signing rather than copying the primary .bin is required: the version lives in the image
 # header, which is covered by the signature, so it cannot be patched after the fact.
 #
+# SPLIT BUILD (since 2026-08-30): the two images come from two different build trees and are
+# signed with two different key/layout sets. The secure half still comes from the SPE build;
+# the non-secure half comes from the NSPE build and uses the signing material the SPE
+# EXPORTED into api_ns/image_signing/, which is what the NSPE build itself uses. Mirroring
+# each build rather than assuming they share paths is the point - if the keys ever diverge,
+# this follows instead of silently signing with the wrong one.
+#
 # Usage:  ./sign_ra6e1_secondary.sh [S_VERSION] [NS_VERSION]
-# Output: <build>/bin/tfm_s_signed_secondary.bin   -> flash at 0x00018000
-#         <build>/bin/tfm_ns_signed_secondary.bin  -> flash at 0x000C8000
+# Output: <spe>/bin/tfm_s_signed_secondary.bin      -> flash at 0x00018000  (0x40000)
+#         <nspe>/bin/tfm_ns_signed_secondary.bin    -> flash at 0x000C8000  (0x30000)
 set -eu
 
 TFM_DIR="C:/Users/Michael/Renesas_work/repos/trusted-firmware-m"
-BUILD_DIR="${TFM_DIR}/build_ra6e1"
+SPE_DIR="${TFM_DIR}/build_ra6e1"
+NSPE_DIR="${TFM_DIR}/build_ra6e1_ns"
+API_NS="${SPE_DIR}/api_ns"
 PYTHON="${PYTHON:-python3}"
 
-# Primaries are S 2.2.0 / NS 0.0.0 (MCUBOOT_IMAGE_VERSION_* in the CMake cache). These must be
-# strictly greater or MCUboot leaves the secondary alone and boots the primary unchanged - which
-# looks exactly like a failed upgrade.
 S_VERSION="${1:-2.3.0}"
 NS_VERSION="${2:-0.0.1}"
 
@@ -35,34 +41,74 @@ SEC_COUNTER=1
 # Dependency TLVs, copied from the generated build commands: image 0 requires image 1 >= this,
 # and vice versa. Both bumped versions still satisfy 0.0.0+0.
 DEP_S="(1,0.0.0+0)"
-DEP_NS="(0,0.0.0+0)"
+DEP_NS="(0, 0.0.0+0)"
 
-# wrapper.py imports the imgtool package from the current directory, so it must run from
-# mcuboot's scripts/ - the same WORKING_DIRECTORY the build uses.
-cd "${BUILD_DIR}/lib/ext/mcuboot-src/scripts"
+# --measured-boot-record is passed because the BUILD passes it, for both images. Note that
+# it is on despite the port's config.cmake setting MCUBOOT_MEASURED_BOOT OFF: config_base.cmake
+# force-sets it ON with a plain set() whenever CONFIG_TFM_BOOT_STORE_MEASUREMENTS and
+# CONFIG_TFM_BOOT_STORE_ENCODED_MEASUREMENTS are on, and a plain set() shadows the cache. The
+# secondary must be signed exactly like the primary apart from the version, so it matches the
+# build rather than the config.
+MEASURED_BOOT="--measured-boot-record"
 
-sign() {
-    img="$1"; ver="$2"; key="$3"; dep="$4"
-    echo "  ${img}: version ${ver}"
-    "${PYTHON}" "${TFM_DIR}/bl2/ext/mcuboot/scripts/wrapper/wrapper.py" \
-        -v "${ver}" \
-        --layout "${BUILD_DIR}/bl2/ext/mcuboot/CMakeFiles/signing_layout_${img#tfm_}.dir/./signing_layout_${img#tfm_}.o" \
-        -k "${TFM_DIR}/bl2/ext/mcuboot/${key}" \
-        --public-key-format hash \
-        --align 128 --pad --pad-header \
-        -H 0x200 -s "${SEC_COUNTER}" -L 128 \
-        -d "${dep}" \
-        --overwrite-only \
-        --measured-boot-record \
-        "${BUILD_DIR}/bin/${img}.bin" \
-        "${BUILD_DIR}/bin/${img}_signed_secondary.bin"
-}
+die() { echo "ERROR: $*" >&2; exit 1; }
 
-echo "Signing secondary-slot images (align 128):"
-sign tfm_s  "${S_VERSION}"  root-EC-P256.pem   "${DEP_S}"
-sign tfm_ns "${NS_VERSION}" root-EC-P256_1.pem "${DEP_NS}"
+[ -f "${SPE_DIR}/bin/tfm_s.bin" ] || \
+    die "${SPE_DIR}/bin/tfm_s.bin not found. Build the SPE first."
+[ -f "${NSPE_DIR}/bin/tfm_ns.bin" ] || \
+    die "${NSPE_DIR}/bin/tfm_ns.bin not found. The NS image moved to the NSPE build on
+       2026-08-30 - build it with 'cmake --build ${NSPE_DIR}'. See
+       platform/ext/target/renesas/ra6e1/ns_app/README.md."
+[ -d "${API_NS}/image_signing" ] || \
+    die "${API_NS}/image_signing not found. Run 'cmake --install ${SPE_DIR}' - that is the
+       step that exports the signing keys and layout files."
+
+# The primaries' versions, read from the build rather than assumed: the secondary version must
+# be STRICTLY GREATER or MCUboot leaves the secondary alone and boots the primary unchanged,
+# which looks exactly like a failed upgrade.
+prim_ver() { grep -oE "^$1:[^=]*=.*" "${SPE_DIR}/CMakeCache.txt" | cut -d= -f2; }
+echo "Primary versions in the build:  S $(prim_ver MCUBOOT_IMAGE_VERSION_S)  NS $(prim_ver MCUBOOT_IMAGE_VERSION_NS)"
+echo "Signing secondaries as:         S ${S_VERSION}  NS ${NS_VERSION}"
+echo
+
+# wrapper.py imports the imgtool package from the CURRENT DIRECTORY, so each invocation has to
+# run from a directory that contains one. The SPE build and the exported tree each ship their
+# own copy; use whichever belongs to the image being signed.
+
+echo "  tfm_s  -> ${S_VERSION}"
+cd "${SPE_DIR}/lib/ext/mcuboot-src/scripts"
+"${PYTHON}" "${TFM_DIR}/bl2/ext/mcuboot/scripts/wrapper/wrapper.py" \
+    -v "${S_VERSION}" \
+    --layout "${SPE_DIR}/bl2/ext/mcuboot/CMakeFiles/signing_layout_s.dir/./signing_layout_s.o" \
+    -k "${TFM_DIR}/bl2/ext/mcuboot/root-EC-P256.pem" \
+    --public-key-format hash \
+    --align 128 --pad --pad-header \
+    -H 0x200 -s "${SEC_COUNTER}" -L 128 \
+    -d "${DEP_S}" \
+    --overwrite-only \
+    ${MEASURED_BOOT} \
+    "${SPE_DIR}/bin/tfm_s.bin" \
+    "${SPE_DIR}/bin/tfm_s_signed_secondary.bin"
+
+echo "  tfm_ns -> ${NS_VERSION}"
+cd "${API_NS}/image_signing/scripts"
+"${PYTHON}" "${API_NS}/image_signing/scripts/wrapper/wrapper.py" \
+    --version "${NS_VERSION}" \
+    --layout "${API_NS}/image_signing/layout_files/signing_layout_ns.o" \
+    --key "${API_NS}/image_signing/keys/image_ns_signing_private_key.pem" \
+    --public-key-format hash \
+    --align 128 --pad --pad-header \
+    -H 0x200 -s "${SEC_COUNTER}" -L 128 \
+    -d "${DEP_NS}" \
+    --overwrite-only \
+    ${MEASURED_BOOT} \
+    "${NSPE_DIR}/bin/tfm_ns.bin" \
+    "${NSPE_DIR}/bin/tfm_ns_signed_secondary.bin"
 
 echo
 echo "Done. Flash to the SECONDARY slots:"
-echo "  ${BUILD_DIR}/bin/tfm_s_signed_secondary.bin   -> 0x00018000  (0x40000)"
-echo "  ${BUILD_DIR}/bin/tfm_ns_signed_secondary.bin  -> 0x000C8000  (0x30000)"
+echo "  ${SPE_DIR}/bin/tfm_s_signed_secondary.bin    -> 0x00018000  (0x40000)"
+echo "  ${NSPE_DIR}/bin/tfm_ns_signed_secondary.bin  -> 0x000C8000  (0x30000)"
+echo
+echo "Both rows are DISABLED in ra6e1_TFM.launch - enable them for the upgrade run, then"
+echo "disable them again, or every subsequent connect re-arms the same upgrade."
