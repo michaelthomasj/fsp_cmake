@@ -365,6 +365,69 @@ the official tf-m-tests regression suite, which still needs the split SPE/NSPE b
 proves the services function; it does not prove they are correct under error injection,
 concurrency, or boundary-case inputs.
 
+### ✅ RESOLVED — split SPE/NSPE build, all 13 services passing (2026-08-30)
+
+The non-secure image is now built by its own CMake project against the SPE's installed
+`api_ns/` tree, links `tfm_api_ns`, and is signed on the NS side. All 13 smoke-test steps
+pass on hardware from that build — same results as the single-build spike, so the
+restructuring changed how the image is produced and nothing about what it does.
+
+This was a prerequisite, not a preference: `tfm_api_ns` is created by the NSPE build from
+the installed tree and cannot exist in the SPE build, so NS code could not call a PSA API
+until the split existed. It is also what the official `tf-m-tests` regression suite builds
+against.
+
+Three commands instead of one — the install step is what produces `api_ns/`, and the SPE
+build directory is not a valid `CONFIG_SPE_PATH`:
+
+```sh
+cmake --build   build_ra6e1
+cmake --install build_ra6e1
+cmake -S platform/ext/target/renesas/ra6e1/ns_app -B build_ra6e1_ns -GNinja       -DCONFIG_SPE_PATH=<abs>/build_ra6e1/api_ns
+cmake --build   build_ra6e1_ns
+```
+
+`FSP_NS_APP_DIR` is not needed on the NS side: the SPE records which project it was built
+against and the NS build defaults to it. A *different* one is a hard error — the NS image
+is placed by that project's generated `memory_regions.ld`, so a mismatch links cleanly and
+boots nowhere.
+
+**Flash** `build_ra6e1/bin/bl2.srec`, `build_ra6e1/bin/tfm_s_signed.bin` @ `0x58000`, and
+`build_ra6e1_ns/bin/tfm_ns_signed.bin` @ `0x98000`. Note the changed directory for the last
+one; stale `tfm_ns*` in the SPE `bin/` are not regenerated and should be deleted, since a
+stale signed image sitting beside the real ones is what gets flashed by mistake.
+
+`RA6E1_NS_IN_SPE_BUILD=ON` restores the old single-build path — a plain FSP application
+making no secure calls, useful only for answering "does the S->NS jump still work" without
+the install step in between.
+
+**The combined `tfm_s_ns_signed.bin` is deliberately not built.** It was byte-for-byte the
+two signed images end to end, nothing consumed it (BL2 verifies two separate images in two
+separate slots), and as an extra row in the debug session's program list it carries no
+address of its own — entered at its SIZE (`0x70000`) instead of its start (`0x58000`) it
+overwrites the secure slot, the NSC veneers at `0x97800`, all of the non-secure slot and
+part of the non-secure secondary, and being last in the list it does so *after* the correct
+images have been written.
+
+Things the split needed that were missing or wrong, worth knowing before porting this to
+RA6M4:
+
+* `ns/CMakeLists.txt` and `ns/cpuarch_ns.cmake` were RA6M4 copies that had never been
+  exercised and could not have worked — the first included `cmake/modules/fsp_uart.cmake`,
+  which does not exist in this port; the second included `../cpuarch.cmake`, not where the
+  install puts it. Treat the RA6M4 pair as equally unproven.
+* `cpuarch_ns.cmake` must be included BEFORE `project()`, or every compile gets a bare
+  `-march=`.
+* `syscalls_ns.c` belongs in the executable, not in `platform_ns`: libc references `_write`
+  after the linker has finished with the archive, so `nosys.specs`' stubs win and warn — and
+  NS links with `-Wl,-fatal-warnings`.
+* `tfm_ns_signed_bin` is not an `ALL` target upstream. The NS image was signed only as a
+  side effect of the combined image depending on it, so dropping that stopped producing the
+  one file BL2 verifies. It is now an `ALL` target in its own right, via `add_dependencies`
+  on the target — a file-level `DEPENDS` does not cross into the SPE subdirectory scope.
+* `tfm_ns_interface_bare_metal.c` does NO locking. Correct for this single-threaded app,
+  wrong the moment a scheduler appears; `tfm_ns_interface_rtos.c` is the swap.
+
 ### ⚠ RTT is unreliable across the boot chain - by construction
 
 BL2, `tfm_s` and `tfm_ns` each have their **own** RTT control block, each in its own
