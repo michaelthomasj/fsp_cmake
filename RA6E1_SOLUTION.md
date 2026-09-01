@@ -453,32 +453,48 @@ non-secure RAM - the only region all three can write, since NS cannot touch secu
 which makes secure log text NS-readable. Acceptable for bring-up, must be off in
 production.
 
-### TODO — strip the bring-up instrumentation
+### TODO — make the bring-up instrumentation a documented option (or strip it)
 
-Added 2026-08-29 to find the masked-SVCall HardFault. **Deliberately left in until the whole port
-is tested** — remove only when hardware bring-up is signed off, not before.
+Added 2026-08-29 to find the masked-SVCall HardFault. **Decision 2026-08-30: keep it in for
+now.** The preferred end state is no longer "delete before merge" but "turn it into a
+configurable, documented debug option" — it is the only thing that made a HardFault on this
+port diagnosable at all, and every port that follows will want it.
 
-| Where | What | Action |
+| Where | What | State |
 |---|---|---|
-| `secure_fw/spm/core/utilities.c` | `TFM_PANIC_TRACE` — logs `LR` in `tfm_core_panic()` | delete; marked TEMPORARY in-file |
-| `secure_fw/spm/core/backend_sfn.c` | `[INIT]` / `[INIT FAIL]` partition-init logging | delete; marked TEMPORARY in-file |
-| `.../ra6e1/tfm_hal_platform.c` | `"tfm_s: platform init"` probe write | delete; marked TEMPORARY in-file |
-| `build_ra6e1` CMake cache | `TFM_EXCEPTION_INFO_DUMP=ON` | decide: keep or revert to `OFF` |
+| `secure_fw/spm/core/utilities.c` | `TFM_PANIC_TRACE` — logs `LR` in `tfm_core_panic()` | already `#if`-gated, just hardcoded `1` |
+| `secure_fw/spm/core/backend_sfn.c` | `[INIT]` / `[INIT FAIL]` partition-init logging | **unconditional — no guard at all** |
+| `.../ra6e1/tfm_hal_platform.c` | `"tfm_s: platform init"` probe write | port-local, superseded by the NS smoke test |
+| `build_ra6e1` CMake cache | `TFM_EXCEPTION_INFO_DUMP=ON` | set only in the build dir |
 
-`utilities.c` and `backend_sfn.c` are **upstream** files, and they are the only upstream edits in
-the tree that are not real fixes, so they must not survive into a merge. The other upstream deltas
-(`wrapper.py` / `mcuboot_default_config.cmake` align-128, `tfm_isolation_s.ld.template` section
-ordering) are genuine fixes and should be kept and reported. The rest of the table is port-local.
+The work is small and asymmetric:
 
-Keep the two permanent fixes that came out of the same session: `__enable_irq()` and `stdio_init()`
-in `tfm_hal_platform_init()` (both ports). Those are not instrumentation.
+* `utilities.c` needs `#define TFM_PANIC_TRACE 1` replaced by an `#ifndef` default of 0, with
+  the value coming from CMake. One line.
+* `backend_sfn.c` needs the guard invented — the include and three `SPMLOG_ERRMSGVAL` calls
+  are currently unconditional.
+* Pick one option name for both, default OFF, documented. Something like
+  `TFM_SPM_DEBUG_TRACE`.
+* The probe in `tfm_hal_platform.c` can just go: the NS smoke test proves the same thing
+  and more.
+* Decide `TFM_EXCEPTION_INFO_DUMP` deliberately. It costs ~3.4 KB of secure text and is the
+  only reason the HardFault was diagnosable. If it is being kept, move it into
+  `platform/ext/target/renesas/ra6e1/config.cmake` — a clean reconfigure silently loses a
+  build-directory cache value.
 
-On `TFM_EXCEPTION_INFO_DUMP`: it costs ~3.4 KB of secure text and it is the only reason the
-HardFault was diagnosable — every fault otherwise lands in the same `tfm_hal_system_halt()` spin
-with no detail. Recommend leaving it **ON** for the port's default config while bringing up, and
-making that an explicit decision rather than a leftover. Note it is currently set only in the build
-directory's cache, so a clean reconfigure silently loses it; if it is being kept, move it into
-`platform/ext/target/renesas/ra6e1/config.cmake`.
+**Why this is worth doing rather than deleting.** As hardcoded edits to two upstream files
+these are a liability: they must not reach a merge, and they make the fork harder to rebase.
+As a default-off SPM option they are plausibly an upstream contribution instead — TF-M has
+no equivalent today, and "every panic funnels to one spin with no detail" is not a problem
+unique to this port.
+
+Until then the constraint is unchanged: `utilities.c` and `backend_sfn.c` are **upstream**
+files carrying non-fix edits, and in that state they must not reach a merge. The other
+upstream deltas (`wrapper.py` / `mcuboot_default_config.cmake` align-128, the two
+`tfm_*_s.ld.template` changes) are genuine fixes and should be kept and reported.
+
+Keep the two permanent fixes from the same session regardless: `__enable_irq()` and
+`stdio_init()` in `tfm_hal_platform_init()`, on both ports. Those are not instrumentation.
 
 ### TODO — bundle a default project set inside the TF-M port
 An e2 build is now a prerequisite for building TF-M (the layout lives in
