@@ -98,7 +98,8 @@ boundary is bound by the 32 KB rule.
       Both (1) and (2) were present in the RA6M4 port too and are fixed there as well.
 - [x] **S→NS jump works** — was failing with a security error until the TrustZone boundaries were
       programmed. Root cause: nothing in the firmware ever sets them (DESIGN.md §7.1)
-- [ ] Non-secure application exercised beyond the jump
+- [x] **Non-secure application exercised beyond the jump** — all 13 services smoke-tested from
+      NS (2026-08-30), then the full `tf-m-tests` NS regression suite, 5/5 suites (2026-09-02)
 - [x] **Re-partition for TF-M sizing** — done; secure slot is now 255.25K (see Layout)
 - [x] **TF-M port builds against this project set** — 2026-08-26, all three images signed
 
@@ -492,6 +493,51 @@ strings, or ld's FLASH usage line, not the file size.
 The `__enable_irq()` and `stdio_init()` calls added in the same original session are
 permanent fixes, not instrumentation, and stay unconditionally.
 
+### ✅ RESOLVED — tf-m-tests regression suite, all 5 NS suites passing (2026-09-02)
+
+`TFM_NS_PS_TEST_1025` was the last failure and took three runs to pin down, because two
+plausible theories were both wrong: it fails identically at `PS_MAX_ASSET_SIZE` 512 and 448,
+and it fails just the same on freshly erased data flash.
+
+The real constraint is capacity, and it is a *sum*, not a per-object ceiling. PS runs with
+`num_blocks == 2`, so the flash FS keeps its metadata and logical data block 0 in the same
+physical block and every live object competes for one 1536-byte block:
+
+| | bytes at `PS_NUM_ASSETS` 10 |
+|---|---|
+| FS metadata, `8 + 12 + (N+3)*32` | 436 |
+| two object tables, `2 * (48 + (N+1)*32)` — both FS IDs always resident | 800 |
+| test 1004's write-once asset, `36 + 72` — unremovable by definition | 108 |
+| **left for one asset object** | **192** |
+
+1025's *smallest* cycle is `PS_MAX_ASSET_SIZE >> 2`, so 128 bytes plus 72 of object header
+= 200. It overflowed by 8 bytes on the first cycle. Lowering `PS_MAX_ASSET_SIZE` only moves
+which cycle overflows, which is exactly what the 448 bisect showed.
+
+Each asset costs **96 bytes** of fixed overhead — 32 of file metadata plus a 32-byte entry in
+each of the two tables — so free space is `1152 - 96*PS_NUM_ASSETS` and a full 512-byte asset
+needs 584. `PS_NUM_ASSETS` is therefore capped at **5**, and that is what the port now sets.
+`ra6e1_layout_checks.c` asserts the whole budget, derived from `TFM_HAL_PS_*` so it tracks a
+resized PS area rather than hard-coding today's numbers.
+
+Struct sizes were measured out of the built objects rather than derived by hand
+(`arm-none-eabi-nm -S` gives `ps_obj_table_ctx` 408 and `g_ps_object` 584) — the earlier
+hand-derived figures in `config_tfm_target.h` had the object table wrong.
+
+**Not fixed, and not fixable by this knob:** rewriting an existing max-size asset needs both
+copies resident, 1168 bytes, which does not fit at any `PS_NUM_ASSETS`. Growing an asset that
+is already near `PS_MAX_ASSET_SIZE` returns `PSA_ERROR_INSUFFICIENT_STORAGE` on this part.
+Raising that ceiling means giving PS more data flash, not retuning these two values.
+
+Erase data flash (`0x08000000`, 8 KB) before the first run after any `PS_NUM_ASSETS` change:
+the object table's entry count is baked into its on-flash layout and PS has no migration path.
+
+Passing: SFN backend (5), PS (20), ITS (24), Crypto (~35), Platform (1).
+
+Still not attempted: `TEST_S` (secure-side suites). `TEST_NS_ATTESTATION` stays disabled —
+it needs `attest.h` / `attest_token.h`, which are secure-side internal headers not exported
+to NS.
+
 ### TODO — bundle a default project set inside the TF-M port
 An e2 build is now a prerequisite for building TF-M (the layout lives in
 `<project>/Debug/bsp_linker_info.h`). So the port should ship a copy of this project set —
@@ -518,10 +564,11 @@ Beware `ld --print-memory-usage` on the secure image: it reports **99.85%** beca
 pinned at the top of FLASH, so the region always reads as full regardless of code size. Use
 `arm-none-eabi-size` for the real figure.
 
-Still open: **secure data flash is 4 KB**, and the RA6M4 port uses ~7 KB of 8 KB (NV counters 2K +
-PS 3K + ITS 2K). DESIGN.md §7 wants data flash all-secure; the solution gives half to NS. The port's
-`flash_layout.h` carries a `#error` that fires if the secure partition drops below 4 KB, and splits
-what it has proportionally — but there is no wear-levelling headroom at this size.
+Data flash is now **all 8 KB secure** (`BSP_PARTITION_DATA_FLASH_CPU0_N_SIZE` is 0), as DESIGN.md §7
+wants, split NV counters 2K + PS 3K + ITS 3K. The port's `flash_layout.h` still carries a `#error`
+that fires if the secure partition drops below 4 KB. At 3 KB the PS area is a two-block filesystem
+with no wear-levelling headroom, and its capacity is what caps `PS_NUM_ASSETS` — see the regression
+section below.
 
 Any further repartition changes the Code Secure boundary, so the Partition Manager values above must
 be recomputed **and re-checked against the 32 KB / 8 KB granularity rule**.
