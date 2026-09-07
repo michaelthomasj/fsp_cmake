@@ -5,11 +5,14 @@
 | | Original machine | This machine ("Renesas_work") |
 |---|---|---|
 | Repo root | `C:/Users/Michael/Documents/GitHub` | `C:/Users/Michael/Renesas_work/repos` |
-| In use | until ~2026-07-23, and again from ~2026-08-31 | **2026-08-10 → ~2026-08-31** |
-| Holds | unpushed post-07-23 work (see §2) | today's work (see §1) |
+| In use | until ~2026-07-23; available again 2026-09-07 | **2026-08-10 → present** |
+| Holds | unpushed post-07-23 work, unverified (see §2) | 34 commits (`trusted-firmware-m`) and 23 (`fsp_cmake`) past the 07-23 floor, pushed |
 
-The two lines of work **overlap** — both fix the OFS linker bug. Going back is a *reconciliation*,
-not a copy. Read §2 before merging anything.
+⚠ **§2 was rewritten on 2026-09-07 and now says the opposite of what it said on 2026-08-10.**
+When this file was written, this machine had no RA6E1 work and the original machine held the only
+copy. That is no longer true: the RA6E1 port was rebuilt here from scratch and is verified on
+hardware. Read §2 before merging anything — following the original checklist would discard the
+working port in favour of six-week-old bring-up.
 
 ---
 
@@ -47,7 +50,10 @@ All three "never re-add this" warnings are gone. Full rationale is now **DESIGN.
   `0x200004a0`+`0x70` ending exactly at `__bss_start__` `0x20000510`, `g_clock_freq` `0x200004a0`
   and `SystemCoreClock` `0x200004c8` both inside it, `Image$$ER_VENEER$$Base` = `0x4f400`.
 
-**Not verified on hardware** — no J-Link installed on this machine (see §3).
+**Update 2026-09-07.** J-Link is installed here now (§3), and the same discrete-region approach
+is hardware-verified on RA6E1 — `ra6e1_bl2.ld` carries the identical 13 regions and its BL2 boots
+and performs in-field upgrades. The **RA6M4** build itself still has not been flashed since this
+fix, so its OFS words remain verified only statically, as described above.
 
 ### 1.3 Documentation
 - **DESIGN.md §8 rewritten** into §8.1–§8.4. The code cites `DESIGN.md 8.1` and `DESIGN.md 8.4`;
@@ -71,37 +77,38 @@ All three "never re-add this" warnings are gone. Full rationale is now **DESIGN.
 
 ## 2. ⚠ Reconciling with the original machine
 
-The original machine is expected to contain **unpushed work done after 2026-07-23**, described from
-memory as:
+**Rewritten 2026-09-07, when the original machine became available again.** The direction of this
+reconciliation has inverted since the original version of this section, which assumed the original
+machine held the only RA6E1 work. Everything it listed as unique to that machine has since been
+redone here, and verified on hardware:
 
-1. **An OFS linker fix** — same bug, independently fixed there. **This will conflict with §1.1.**
-2. **RA6E1 bring-up** — got an RA6E1 booting, hit the same `FSP_ERR_FCLK`, resolved with the
-   early-init flag. There is **zero** RA6E1 code in either repo as of 2026-08-10.
-3. **DESIGN.md §8.1 / §8.4** — written there, never committed. §1.3 is an independent
-   reconstruction; the two will differ in wording and possibly in substance.
+| Expected on the original machine | Status here |
+|---|---|
+| An independent OFS linker fix | **Superseded.** Fixed here with discrete `MEMORY` regions and verified with `readelf -l` (§1.1/§1.2). Two EK-RA6M4 boards were destroyed learning this; do not adopt an unverified alternative. |
+| RA6E1 bring-up | **Superseded, by a long way.** A full RA6E1 TF-M port exists here: dual-image MCUboot solution, split SPE/NSPE build, 13 NS smoke tests and the `tf-m-tests` NS regression suite at 5/5 suites. See `RA6E1_SOLUTION.md`. |
+| `DESIGN.md` §8.1 / §8.4 | **Written here** and since expanded. |
 
-**Verified 2026-08-10:** no ref on any remote in either repo is newer than
-`trusted-firmware-m` `d7df90820` (2026-07-23) / `fsp_cmake` `661f49d` (2026-07-13). So none of the
-above was ever pushed.
+So the merge is no longer symmetric. **This machine's branches are the trunk.** Both are pushed, so
+the original machine can simply fetch them.
 
-### Reconciliation checklist (do this before writing any code on the old machine)
-1. **Don't fast-forward or force anything.** Fetch this machine's branch into a *separate* branch
-   and diff.
-2. **Compare the two OFS fixes.** Both should produce discrete per-group LOAD segments. The
-   decisive test is not which code looks nicer — run on each build:
-   `arm-none-eabi-readelf -l bin/bl2.axf` and compare the emitted OFS words against the known-good
-   values in §1.2. Keep whichever is verified; discard the other rather than merging both.
-3. **Keep the RA6E1 work from the old machine** — it does not exist here, so there is nothing to
-   merge, only to rebase onto whichever OFS fix wins.
-4. **DESIGN.md §8** — take the union. The old machine's version may contain hardware observations
-   (FAWMON reads, what RFP actually reported) that this reconstruction cannot have.
-5. **Re-path** `bringup/flash_ra6m4.jlink` back to `C:/Users/Michael/Documents/GitHub/...` (the
-   banner at the top of that file lists both roots) and **refresh the RTT addresses** from the
-   rebuilt images — they will have moved again.
+### Checklist (on the original machine)
+1. **Fetch, do not push.** `git fetch origin` and check out this machine's branches
+   (`FSPRA-5483_FSP_TFM_Cmake_framework`, `ra6m4_gen_6_1_TFM_ns_update`). Leave the local post-07-23
+   commits on their own branch; do not merge them into these.
+2. **Do not merge the old OFS fix.** It is redundant, and the brick hazard makes a wrong merge
+   expensive. Same for the old RA6E1 bring-up.
+3. **Mine the old branch for one thing only: hardware observations.** FAWMON reads, what RFP
+   actually reported, anything recorded during the July brick investigation. That is the only
+   category the reconstruction here cannot regenerate, and it belongs in `DESIGN.md` §8.4.
+4. **Re-path** `bringup/flash_ra6m4.jlink` if you build on the original machine (the banner at the
+   top lists both roots), and **refresh the RTT addresses** from the rebuilt images — they move on
+   almost every build.
+5. Erase data flash (`0x08000000`, 8 KB) before the first run of a build carrying a different
+   `PS_NUM_ASSETS`; PS has no migration path for its object table.
 
 ### If the old machine's work turns out to be gone
-Everything in §1 is self-contained and re-derivable. The only genuinely unrecoverable items are the
-RA6E1 port and any hardware observations from the July brick investigation.
+It no longer matters much. Everything in §1 is re-derivable and has been re-derived. The only
+genuine loss would be the July hardware observations in item 3.
 
 ---
 
@@ -118,7 +125,7 @@ inside the e2 studio bundle. `bringup/../..` scripts assume they are on `PATH`.
 | Git | 2.55.0 | `C:\Program Files\Git\cmd` |
 | Python | 3.14.7 | `C:\Users\Michael\AppData\Local\Python\bin` — TF-M `tools/requirements.txt` installed |
 | e2 studio / RASC | v2026-04.2, **FSP 6.5.0** | `C:\Renesas\RA\` |
-| **SEGGER J-Link** | **NOT INSTALLED** | required for `bringup_ra6m4.sh` and all RTT/flash work |
+| **SEGGER J-Link** | V9.66 + Ozone (installed since 2026-08-31) | `C:\Program Files\SEGGER\JLink_V966` — hardware bring-up works here |
 
 ⚠ **FSP version skew.** e2 studio here ships **FSP 6.5.0**; the port is built against the vendored
 **FSP 6.1.0** snapshot. The TF-M build is unaffected (it uses the in-tree snapshot), but a project
