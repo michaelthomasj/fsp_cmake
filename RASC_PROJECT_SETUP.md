@@ -57,7 +57,7 @@ the FCLK divider.
 carries them via J-Link/Ozone permanently bricks the part (`FSPR=0`) — it destroyed two boards
 (DESIGN.md §8/§8.4). If a RASC regeneration re-introduces `bl2_option_setting.c` or `.option_setting_*`
 linker placements, remove them. Option memory (watchdogs, etc.) is programmed **separately by RFP**, with
-a complete FSPR-preserving config, and verified by reading `FAWMON` back. `bringup/check_ofs.py` gates
+a complete FSPR-preserving config, and verified by reading `FAWMON` back. the OFS brick guard (now `platform/ext/target/renesas/common/check_ofs.py` in the TF-M tree, run automatically by both platform builds) gates
 this. For plain debugging no OFS is required.
 
 ---

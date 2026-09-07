@@ -52,4 +52,9 @@ Option-setting sections were removed from **all** TF-M images (linker + source +
 project requirement that BL2 never link OFS, and as a precaution that takes a security-sensitive region
 out of every debugger-flashed image. This is **not confirmed** to be the cause (see above). Prefer the
 **e2 studio / RFP** flashing flow over Ozone/raw-JLink for RA6M4, and verify state on hardware after any
-option/protection programming. See `../../DESIGN.md` §8.4 and `../check_ofs.py`.
+option/protection programming. See `../../DESIGN.md` §8.4 and, in the TF-M tree,
+`platform/ext/target/renesas/common/check_ofs.py`.
+
+**`bl2_BRICKED.elf` is the regression fixture for that guard - do not delete it.** The guard
+rejects it with `0x0100A100+388B` (388 = 0x184, the span itself), which is how the check is
+verified to actually fire rather than merely to pass.

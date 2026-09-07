@@ -593,18 +593,22 @@ Verify the SAU/veneer attribution on hardware; do NOT program an IDAU NSC region
 
 ## TODO (cleanup / hardening — lower priority)
 
-- [ ] Remove committed backup/scratch files in the TF-M port: `CMakeLists.txt.bak`,
+- [x] **Removed committed backup/scratch files** (2026-09-07): `CMakeLists.txt.bak`,
       `CMakeLists.txt.backup`, `flash_layout.h.bak`, `cmsis_drivers/Driver_Flash_original.c`,
-      `flash_temp.txt`, duplicate `README_FULL.md`. **All still present under `ra6m4/`, none
-      referenced by its CMakeLists** (checked 2026-09-07). The identical set was removed from
-      `ra6e1/` that day, so this is a straight repeat.
-- [ ] Decide on the dead `tfm_hal_isolation.c` (v7M-style, superseded by common `tfm_hal_isolation_v8m.c`).
-      Resolved for `ra6e1/` by deleting it; `ra6m4/` still has it.
-- [ ] **Wire `ra6m4/check_ofs.py` into the RA6M4 build** the way `ra6e1/CMakeLists.txt` now does it
-      (post-link `ALL` target per image, hard failure, no opt-out). RA6M4 is the part that was
-      actually bricked and it is the one still relying on someone remembering to run `readelf`.
-      Consolidating the three divergent copies of the script — `ra6e1/`, `ra6m4/` and
-      `bringup/check_ofs.py` — belongs with this.
+      `flash_temp.txt`, `README_FULL.md` (older and a strict subset of `README.md`'s headings),
+      and the dead `tfm_hal_isolation.c` — superseded by the shared `tfm_hal_isolation_v8m.c`,
+      and referenced by nothing. The same set had already been cleared from `ra6e1/`.
+- [x] **`check_ofs.py` wired into the RA6M4 build** (2026-09-07): post-link `ALL` target on `bl2`
+      and `tfm_s`, hard failure, no opt-out. The three divergent copies are consolidated into one
+      at `platform/ext/target/renesas/common/check_ofs.py`, shared with RA6E1.
+- [x] **Fixed: RA6M4 could not configure, and had silently lost NS signing** (2026-09-07). The
+      split-build commit guarded BL2's NS signing on `if(TARGET tfm_ns)` — evaluated in `bl2/`,
+      which the root CMakeLists adds *before* `platform/`, so for the in-tree NS model
+      (`FSP_NS_APP_DIR`) it was always false. Paired with a generate-time
+      `$<TARGET_EXISTS:tfm_ns>` on `signed_images`, the two disagreed and ninja aborted on a
+      dependency whose target was never created. The block is now deferred to the end of the
+      root scope so one condition serves both models. Verified: RA6M4 emits a signed
+      `tfm_ns_signed.bin` again, and the RA6E1 split build is unaffected.
 - [ ] Replace stubs before any production use: `tfm_platform_hal_ioctl` (returns NOT_SUPPORTED),
       `tfm_attest_hal_get_platform_config` (dummy `0xDEADBEEF`), flash-based NV counters, dummy provisioning.
 - [ ] Consider enabling RA6M4 HW crypto (SCE9/RSIP) instead of software mbedTLS.

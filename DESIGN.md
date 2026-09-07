@@ -251,9 +251,10 @@ The guard is verified against the real artifact rather than assumed to work:
 rejects it with `0x0100A100+388B` — 388 = `0x184`, the span itself. That file is the regression
 fixture for this check; do not delete it.
 
-Wired for **RA6E1 only** so far. The RA6M4 platform has its own copy of the script sitting unwired,
-and `bringup/check_ofs.py` is a third, manual copy — three copies of a brick guard that can drift
-apart is its own hazard, and consolidating them is outstanding.
+Wired on **both** platforms, from a single shared copy at
+`platform/ext/target/renesas/common/check_ofs.py`. The option-setting map is byte-identical on
+RA6M4 and RA6E1, and the three copies that existed had already drifted — the RA6E1 one claimed
+RA6E1 boards were bricked. One guard, one place.
 
 **Related:** `BSP_CFG_CLOCKS_SECURE = 1`. `bsp_mcu_ofs_cfg.h` computes
 `OFS1_SEL = 0xFFFFF8F8 | ((BSP_CFG_CLOCKS_SECURE == 0) ? 0xF00 : 0)`. With `0`, the clock-related
