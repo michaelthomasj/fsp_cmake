@@ -21,7 +21,7 @@
     <stringAttribute key="com.renesas.cdt.core.secondGDBExe" value="green_dsp-elf-gdb"/>
     <booleanAttribute key="com.renesas.cdt.core.secondGDBSupport" value="false"/>
     <intAttribute key="com.renesas.cdt.core.secondGdbPortNumber" value="61237"/>
-    <stringAttribute key="com.renesas.cdt.core.serverParam" value="-g SEGGERJLINKARM -t R7FA6E10F -uConnectionTimeout= 30 -uSelect= &quot;USB&quot; -uJLinkSetting= &quot;${workspace_loc:/${ProjName}}/${LaunchConfigName}.jlink&quot; -uJLinkLog= &quot;${workspace_loc:/${ProjName}}/JLinkLog.log&quot; -uLowPower= 0 -uInteface= &quot;SWD&quot; -uIfSpeed= &quot;4000&quot; -uResetBeginConnection= 1 -uNoReset= 1 -uResetBefDownload= 1 -uResetCon= 1 -uDisconnectionMode= &quot;2&quot; -uSWOcoreClock= &quot;0&quot; -uEnableSciBoot=  0 -uresetOnReload= 1 -n &quot;0&quot; -uFlashBp= 1 -uSimulation= 0 -ueraseRomOnDownload= 0 -ueraseDataRomOnDownload= 0 -uOSRestriction= 0 -uAllowCachingFlash= 1 -uCPUFrequency= &quot;0&quot; -uCECycle= 1 -uResetBehavior= &quot;Reset&quot;"/>
+    <stringAttribute key="com.renesas.cdt.core.serverParam" value="-g SEGGERJLINKARM -t R7FA6E10F -uConnectionTimeout= 30 -uSelect= &quot;USB&quot; -uJLinkSetting= &quot;${workspace_loc:/${ProjName}}/${LaunchConfigName}.jlink&quot; -uJLinkLog= &quot;${workspace_loc:/${ProjName}}/JLinkLog.log&quot; -uLowPower= 0 -uInteface= &quot;SWD&quot; -uIfSpeed= &quot;4000&quot; -uResetBeginConnection= 1 -uNoReset= 1 -uResetBefDownload= 1 -uResetCon= 1 -uDisconnectionMode= &quot;2&quot; -uSWOcoreClock= &quot;0&quot; -uEnableSciBoot=  0 -uresetOnReload= 1 -n &quot;0&quot; -uFlashBp= 1 -uSimulation= 0 -ueraseRomOnDownload= 0 -ueraseDataRomOnDownload= 1 -uOSRestriction= 0 -uAllowCachingFlash= 1 -uCPUFrequency= &quot;0&quot; -uCECycle= 1 -uResetBehavior= &quot;Reset&quot;"/>
     <booleanAttribute key="com.renesas.cdt.core.setResume" value="true"/>
     <booleanAttribute key="com.renesas.cdt.core.startServer" value="true"/>
     <stringAttribute key="com.renesas.cdt.core.targetDevice" value="R7FA6E10F"/>
@@ -31,11 +31,11 @@
     <booleanAttribute key="com.renesas.cdt.launch.dsf.USE_DEFAULT_IO_MAP" value="true"/>
     <listAttribute key="com.renesas.cdt.launch.dsf.downloadImages">
         <listEntry value="|false|false|true|0|false|No core|INTERNAL_MEMORY||false"/>
-        <listEntry value="C:\Users\Michael\Renesas_work\repos\trusted-firmware-m\build_ra6e1\bin\bl2.elf|true|true|true|0|true|No core|INTERNAL_MEMORY||false"/>
-        <listEntry value="C:\Users\Michael\Renesas_work\repos\trusted-firmware-m\build_ra6e1\bin\tfm_s_signed.bin|true|false|false|58000|true|No core|INTERNAL_MEMORY||true"/>
-        <listEntry value="C:\Users\Michael\Renesas_work\repos\trusted-firmware-m\build_ra6e1_ns\bin\tfm_ns_signed.bin|true|false|false|98000|true|No core|INTERNAL_MEMORY||true"/>
-        <listEntry value="C:\Users\Michael\Renesas_work\repos\trusted-firmware-m\build_ra6e1\bin\tfm_s.axf|true|false|true|0|true|No core|INTERNAL_MEMORY||false"/>
-        <listEntry value="C:\Users\Michael\Renesas_work\repos\trusted-firmware-m\build_ra6e1_ns\bin\tfm_ns.axf|true|false|true|0|true|No core|INTERNAL_MEMORY||false"/>
+        <listEntry value="C:\Users\Michael\Renesas_work\repos\build_test_spe\build-spe\bin\bl2.elf|true|true|true|0|true|No core|INTERNAL_MEMORY||false"/>
+        <listEntry value="C:\Users\Michael\Renesas_work\repos\build_test_spe\build-spe\bin\tfm_s_signed.bin|true|false|false|58000|true|No core|INTERNAL_MEMORY||true"/>
+        <listEntry value="C:\Users\Michael\Renesas_work\repos\build_test_ns\bin\tfm_ns_signed.bin|true|false|false|98000|true|No core|INTERNAL_MEMORY||true"/>
+        <listEntry value="C:\Users\Michael\Renesas_work\repos\build_test_spe\build-spe\bin\tfm_s.axf|true|false|true|0|true|No core|INTERNAL_MEMORY||false"/>
+        <listEntry value="C:\Users\Michael\Renesas_work\repos\build_test_ns\bin\tfm_ns.axf|true|false|true|0|true|No core|INTERNAL_MEMORY||false"/>
         <listEntry value="C:\Users\Michael\Renesas_work\repos\trusted-firmware-m\build_ra6e1\bin\tfm_s_signed_secondary.bin|false|false|false|18000|true|No core|INTERNAL_MEMORY||true"/>
         <listEntry value="C:\Users\Michael\Renesas_work\repos\trusted-firmware-m\build_ra6e1_ns\bin\tfm_ns_signed_secondary.bin|false|false|false|c8000|true|No core|INTERNAL_MEMORY||true"/>
     </listAttribute>
@@ -45,10 +45,10 @@
     <stringAttribute key="com.renesas.cdt.launch.dsf.launchSeqType" value="com.renesas.cdt.launch.dsf.launchSequence.e2GdbServer"/>
     <stringAttribute key="com.renesas.cdt.launch.dsf.serverPath" value="${renesas.support.targetLoc:com.renesas.ide.supportfiles.ra.debug.debugSupportFileTarget}\e2-server-gdb"/>
     <listAttribute key="com.renesas.cdt.launch.ui.address.mruList.memoryMonitorExpression">
+        <listEntry value="0x08000000"/>
         <listEntry value="0xc8000"/>
         <listEntry value="0x18000"/>
         <listEntry value="0x98000"/>
-        <listEntry value="0x58000"/>
     </listAttribute>
     <booleanAttribute key="com.renesas.hardwaredebug.arm.jlink.break.allowSimulation" value="false"/>
     <booleanAttribute key="com.renesas.hardwaredebug.arm.jlink.break.useFlashBreakpoints.resetorrepurposed" value="true"/>
@@ -74,7 +74,7 @@
     <stringAttribute key="com.renesas.hardwaredebug.arm.jlink.connection.swv.coreClockSpeed" value="0"/>
     <booleanAttribute key="com.renesas.hardwaredebug.arm.jlink.connection.wakeupallcores" value="false"/>
     <booleanAttribute key="com.renesas.hardwaredebug.arm.jlink.enable.hot.plug" value="false"/>
-    <booleanAttribute key="com.renesas.hardwaredebug.arm.jlink.eraseDataRomOnDownload" value="false"/>
+    <booleanAttribute key="com.renesas.hardwaredebug.arm.jlink.eraseDataRomOnDownload" value="true"/>
     <booleanAttribute key="com.renesas.hardwaredebug.arm.jlink.eraseRomOnDownload" value="false"/>
     <intAttribute key="com.renesas.hardwaredebug.arm.jlink.interface.speed" value="4000"/>
     <stringAttribute key="com.renesas.hardwaredebug.arm.jlink.interface.type" value="SWD"/>
@@ -127,7 +127,7 @@
     <intAttribute key="org.eclipse.cdt.debug.gdbjtag.core.delay" value="3"/>
     <booleanAttribute key="org.eclipse.cdt.debug.gdbjtag.core.doHalt" value="false"/>
     <booleanAttribute key="org.eclipse.cdt.debug.gdbjtag.core.doReset" value="false"/>
-    <stringAttribute key="org.eclipse.cdt.debug.gdbjtag.core.imageFileName" value="C:\Users\Michael\Renesas_work\repos\trusted-firmware-m\build_ra6e1\bin\bl2.elf"/>
+    <stringAttribute key="org.eclipse.cdt.debug.gdbjtag.core.imageFileName" value="C:\Users\Michael\Renesas_work\repos\build_test_spe\build-spe\bin\bl2.elf"/>
     <stringAttribute key="org.eclipse.cdt.debug.gdbjtag.core.imageOffset" value="0"/>
     <stringAttribute key="org.eclipse.cdt.debug.gdbjtag.core.initCommands" value=""/>
     <booleanAttribute key="org.eclipse.cdt.debug.gdbjtag.core.loadImage" value="true"/>
@@ -138,7 +138,7 @@
     <booleanAttribute key="org.eclipse.cdt.debug.gdbjtag.core.setResume" value="false"/>
     <booleanAttribute key="org.eclipse.cdt.debug.gdbjtag.core.setStopAt" value="true"/>
     <stringAttribute key="org.eclipse.cdt.debug.gdbjtag.core.stopAt" value="main"/>
-    <stringAttribute key="org.eclipse.cdt.debug.gdbjtag.core.symbolsFileName" value="C:\Users\Michael\Renesas_work\repos\trusted-firmware-m\build_ra6e1\bin\bl2.elf"/>
+    <stringAttribute key="org.eclipse.cdt.debug.gdbjtag.core.symbolsFileName" value="C:\Users\Michael\Renesas_work\repos\build_test_spe\build-spe\bin\bl2.elf"/>
     <stringAttribute key="org.eclipse.cdt.debug.gdbjtag.core.symbolsOffset" value="0"/>
     <booleanAttribute key="org.eclipse.cdt.debug.gdbjtag.core.useFileForImage" value="true"/>
     <booleanAttribute key="org.eclipse.cdt.debug.gdbjtag.core.useFileForSymbols" value="true"/>
@@ -163,6 +163,6 @@
     <stringAttribute key="org.eclipse.debug.core.source_locator_id" value="org.eclipse.cdt.debug.core.sourceLocator"/>
     <stringAttribute key="org.eclipse.debug.core.source_locator_memento" value="&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot; standalone=&quot;no&quot;?&gt;&#13;&#10;&lt;sourceLookupDirector&gt;&#13;&#10;    &lt;sourceContainers duplicates=&quot;false&quot;&gt;&#13;&#10;        &lt;container memento=&quot;&amp;lt;?xml version=&amp;quot;1.0&amp;quot; encoding=&amp;quot;UTF-8&amp;quot; standalone=&amp;quot;no&amp;quot;?&amp;gt;&amp;#13;&amp;#10;&amp;lt;directory nest=&amp;quot;true&amp;quot; path=&amp;quot;C:\Users\Michael\Renesas_work\repos\trusted-firmware-m&amp;quot;/&amp;gt;&amp;#13;&amp;#10;&quot; typeId=&quot;org.eclipse.debug.core.containerType.directory&quot;/&gt;&#13;&#10;        &lt;container memento=&quot;&amp;lt;?xml version=&amp;quot;1.0&amp;quot; encoding=&amp;quot;UTF-8&amp;quot; standalone=&amp;quot;no&amp;quot;?&amp;gt;&amp;#13;&amp;#10;&amp;lt;default/&amp;gt;&amp;#13;&amp;#10;&quot; typeId=&quot;org.eclipse.debug.core.containerType.default&quot;/&gt;&#13;&#10;    &lt;/sourceContainers&gt;&#13;&#10;&lt;/sourceLookupDirector&gt;&#13;&#10;"/>
     <booleanAttribute key="org.eclipse.debug.ui.ATTR_LAUNCH_IN_BACKGROUND" value="false"/>
-    <stringAttribute key="org.eclipse.dsf.launch.MEMORY_BLOCKS" value="&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot; standalone=&quot;no&quot;?&gt;&lt;memoryBlockExpressionList context=&quot;reserved-for-future-use&quot;&gt;&lt;gdbmemoryBlockExpression address=&quot;360448&quot; core_thread_id=&quot;1_i1&quot; label=&quot;0x58000&quot;&gt;&lt;memoryRendering id=&quot;org.eclipse.debug.ui.rendering.hexint&quot;&gt;&lt;renderingInstance containerId=&quot;org.eclipse.debug.ui.MemoryView.RenderingViewPane.1&quot; viewId=&quot;org.eclipse.debug.ui.MemoryView&quot; viewSecondaryId=&quot;&quot;/&gt;&lt;/memoryRendering&gt;&lt;/gdbmemoryBlockExpression&gt;&lt;gdbmemoryBlockExpression address=&quot;622592&quot; core_thread_id=&quot;1_i1&quot; label=&quot;0x98000&quot;&gt;&lt;memoryRendering id=&quot;org.eclipse.debug.ui.rendering.hexint&quot;&gt;&lt;renderingInstance containerId=&quot;org.eclipse.debug.ui.MemoryView.RenderingViewPane.1&quot; viewId=&quot;org.eclipse.debug.ui.MemoryView&quot; viewSecondaryId=&quot;&quot;/&gt;&lt;/memoryRendering&gt;&lt;/gdbmemoryBlockExpression&gt;&lt;gdbmemoryBlockExpression address=&quot;98304&quot; core_thread_id=&quot;1_i1&quot; label=&quot;0x18000&quot;&gt;&lt;memoryRendering id=&quot;org.eclipse.debug.ui.rendering.hexint&quot;&gt;&lt;renderingInstance containerId=&quot;org.eclipse.debug.ui.MemoryView.RenderingViewPane.1&quot; viewId=&quot;org.eclipse.debug.ui.MemoryView&quot; viewSecondaryId=&quot;&quot;/&gt;&lt;/memoryRendering&gt;&lt;/gdbmemoryBlockExpression&gt;&lt;gdbmemoryBlockExpression address=&quot;819200&quot; core_thread_id=&quot;1_i1&quot; label=&quot;0xc8000&quot;&gt;&lt;memoryRendering id=&quot;org.eclipse.debug.ui.rendering.hexint&quot;&gt;&lt;renderingInstance containerId=&quot;org.eclipse.debug.ui.MemoryView.RenderingViewPane.1&quot; viewId=&quot;org.eclipse.debug.ui.MemoryView&quot; viewSecondaryId=&quot;&quot;/&gt;&lt;/memoryRendering&gt;&lt;/gdbmemoryBlockExpression&gt;&lt;/memoryBlockExpressionList&gt;"/>
+    <stringAttribute key="org.eclipse.dsf.launch.MEMORY_BLOCKS" value="&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot; standalone=&quot;no&quot;?&gt;&lt;memoryBlockExpressionList context=&quot;reserved-for-future-use&quot;&gt;&lt;gdbmemoryBlockExpression address=&quot;360448&quot; core_thread_id=&quot;1_i1&quot; label=&quot;0x58000&quot;&gt;&lt;memoryRendering id=&quot;org.eclipse.debug.ui.rendering.hexint&quot;&gt;&lt;renderingInstance containerId=&quot;org.eclipse.debug.ui.MemoryView.RenderingViewPane.1&quot; viewId=&quot;org.eclipse.debug.ui.MemoryView&quot; viewSecondaryId=&quot;&quot;/&gt;&lt;/memoryRendering&gt;&lt;/gdbmemoryBlockExpression&gt;&lt;gdbmemoryBlockExpression address=&quot;622592&quot; core_thread_id=&quot;1_i1&quot; label=&quot;0x98000&quot;&gt;&lt;memoryRendering id=&quot;org.eclipse.debug.ui.rendering.hexint&quot;&gt;&lt;renderingInstance containerId=&quot;org.eclipse.debug.ui.MemoryView.RenderingViewPane.1&quot; viewId=&quot;org.eclipse.debug.ui.MemoryView&quot; viewSecondaryId=&quot;&quot;/&gt;&lt;/memoryRendering&gt;&lt;/gdbmemoryBlockExpression&gt;&lt;gdbmemoryBlockExpression address=&quot;98304&quot; core_thread_id=&quot;1_i1&quot; label=&quot;0x18000&quot;&gt;&lt;memoryRendering id=&quot;org.eclipse.debug.ui.rendering.hexint&quot;&gt;&lt;renderingInstance containerId=&quot;org.eclipse.debug.ui.MemoryView.RenderingViewPane.1&quot; viewId=&quot;org.eclipse.debug.ui.MemoryView&quot; viewSecondaryId=&quot;&quot;/&gt;&lt;/memoryRendering&gt;&lt;/gdbmemoryBlockExpression&gt;&lt;gdbmemoryBlockExpression address=&quot;819200&quot; core_thread_id=&quot;1_i1&quot; label=&quot;0xc8000&quot;&gt;&lt;memoryRendering id=&quot;org.eclipse.debug.ui.rendering.hexint&quot;&gt;&lt;renderingInstance containerId=&quot;org.eclipse.debug.ui.MemoryView.RenderingViewPane.1&quot; viewId=&quot;org.eclipse.debug.ui.MemoryView&quot; viewSecondaryId=&quot;&quot;/&gt;&lt;/memoryRendering&gt;&lt;/gdbmemoryBlockExpression&gt;&lt;gdbmemoryBlockExpression address=&quot;134217728&quot; core_thread_id=&quot;1_i1&quot; label=&quot;0x08000000&quot;&gt;&lt;memoryRendering id=&quot;org.eclipse.debug.ui.rendering.hexint&quot;&gt;&lt;renderingInstance containerId=&quot;org.eclipse.debug.ui.MemoryView.RenderingViewPane.1&quot; viewId=&quot;org.eclipse.debug.ui.MemoryView&quot; viewSecondaryId=&quot;&quot;/&gt;&lt;/memoryRendering&gt;&lt;/gdbmemoryBlockExpression&gt;&lt;/memoryBlockExpressionList&gt;"/>
     <stringAttribute key="process_factory_id" value="org.eclipse.cdt.dsf.gdb.GdbProcessFactory"/>
 </launchConfiguration>
