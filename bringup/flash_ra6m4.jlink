@@ -7,7 +7,27 @@
 //   tfm_s_signed.bin   -> 0x00020000 (secure primary slot, 192KB)
 //   tfm_ns_signed.bin  -> 0x00050000 (non-secure primary slot, 128KB)
 //
-// NOTE: paths below are absolute for this workspace - edit if the build dir moves.
+// ============================================================================
+// MACHINE-SPECIFIC PATHS - the only lines that need editing per machine.
+// J-Link Commander has no variables, so these are absolute.
+//   Renesas_work machine (2026-08-10 .. ~2026-08-31): C:/Users/Michael/Renesas_work/repos
+//   Original machine     (before/after that window):  C:/Users/Michael/Documents/GitHub
+// See fsp_cmake/MACHINE_HANDOFF.md before switching machines.
+// ============================================================================
+//
+// ⚠ FLASH bl2.hex - NEVER bl2.bin. Since OFS was restored (2026-08-10) the OFS
+//   words at 0x0100Axxx make `objcopy -O binary` pad bl2.bin out to ~16.8 MB.
+//   bl2.hex/bl2.srec carry only the real bytes.
+//
+// ⚠ This DOES program option memory: three 4-byte writes at 0x0100A100 / A200 /
+//   A280. That is intended and safe ONLY because ra6m4_bl2.ld places each in its
+//   own MEMORY region, so no FCU config bytes are zero-filled between them.
+//   Verify before every first flash of a new build:
+//       arm-none-eabi-readelf -l bin/bl2.axf
+//   Expect three separate LOAD segments of FileSiz 0x4 in the 0x0100Axxx range,
+//   and NEVER one segment spanning 0x1CC bytes. A spanning segment clears FSPR
+//   and permanently bricks the part (it cost two EK-RA6M4 boards on 2026-07-21).
+//   The srec/hex will NOT reveal the fill - only readelf -l does.
 si SWD
 speed 4000
 device R7FA6M4AF
@@ -16,9 +36,9 @@ r
 halt
 // Erase full code flash so no stale OFS/image/TZ state remains (fresh-chip behaviour).
 erase
-loadfile C:/Users/Michael/Documents/GitHub/trusted-firmware-m/build_ra6m4_boot/bin/bl2.hex
-loadbin C:/Users/Michael/Documents/GitHub/trusted-firmware-m/build_ra6m4_boot/bin/tfm_s_signed.bin 0x20000
-loadbin C:/Users/Michael/Documents/GitHub/trusted-firmware-m/build_ra6m4_boot/bin/tfm_ns_signed.bin 0x50000
+loadfile C:/Users/Michael/Renesas_work/repos/trusted-firmware-m/build_ra6m4_boot/bin/bl2.hex
+loadbin C:/Users/Michael/Renesas_work/repos/trusted-firmware-m/build_ra6m4_boot/bin/tfm_s_signed.bin 0x20000
+loadbin C:/Users/Michael/Renesas_work/repos/trusted-firmware-m/build_ra6m4_boot/bin/tfm_ns_signed.bin 0x50000
 // Verify a couple of key addresses were written
 mem32 0x00000000 4
 mem32 0x00020400 4

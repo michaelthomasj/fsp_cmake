@@ -6,8 +6,12 @@ against newer FSP and newer TF-M without re-deriving the reasoning. Day-to-day s
 memory map, and the open TODO list live in [TFM_RA6M4_STATUS.md](TFM_RA6M4_STATUS.md); this file is
 the stable "decisions" companion.
 
-> Status: **scaffold** (2026-07-13). Sections below capture the decisions made so far; expand as the
-> port matures and before upstreaming.
+> Status: **in progress** (updated 2026-08-10). Sections below capture the decisions made so far;
+> expand as the port matures and before upstreaming.
+>
+> **§8 was rewritten on 2026-08-10** after the July hardware bring-up. If you are reading a copy
+> where §8 has no subsections, it predates the brick post-mortem and its OFS guidance is unsafe —
+> see [MACHINE_HANDOFF.md](MACHINE_HANDOFF.md).
 
 ## 0. Goals (these drive every decision below)
 1. Upstream the RA6M4 port to the official TF-M repo.
@@ -26,11 +30,6 @@ the stable "decisions" companion.
   what keeps "update FSP" and "update TF-M" cheap.
 - **Corollary:** whenever a value/section could come from RASC config, source it from there
   (e.g. OFS values from `BSP_CFG_OPTION_SETTING_*`), even if the emitting shim is small.
-
-> **Recreating the RASC projects:** the concrete per-project RASC settings (device, clock tree, modules
-> to add, stack/heap, memory regions, and the required post-generation edits) are captured in
-> [RASC_PROJECT_SETUP.md](RASC_PROJECT_SETUP.md). This file explains the *why*; that one is the
-> *how-to-rebuild-the-inputs* reference.
 
 ## 2. Repositories
 - `fsp_cmake` — RASC-generated FSP projects (bl2 / s / ns / …) + modular CMake + this doc + status doc
@@ -79,233 +78,176 @@ the stable "decisions" companion.
   CMSE_VENEER_REGION_START` (both `#ifndef`-overridable). **No custom secure linker** — the
   nordic/laird upstream pattern. Fixed (not end-of-code) so the NSC is stable across firmware updates,
   which matters because RA TZ boundaries are set once at provisioning.
-### 7.1 RA6M4 TZ boundary hardware model + alignment rules (from the HW manual)
-Code flash is partitioned by two programmed values, **CFS1** and **CFS2**:
+- **Boundaries to program (RFP):** code flash S `0x0–0x4F3FF` / NSC `0x4F400–0x4F7FF` / NS `0x50000+`;
+  SRAM S `0x20000000–0x2001FFFF` / NS `0x20020000+`; data flash all-secure.
 
-| Region | Start | Size |
-|---|---|---|
-| Code flash secure | `0x00000000` | `CFS1 × 1 KB` |
-| Code flash non-secure callable | `CFS1 × 1 KB` | `CFS2 × 32 KB − CFS1 × 1 KB` |
-| Code flash non-secure | `CFS2 × 32 KB` | flash size − `CFS2 × 32 KB` |
+### 7.1 Boundary provisioning — the boundaries are NEVER set by our software
+`BSP_FEATURE_TZ_HAS_DLM = 1` on RA6M4/RA6E1, so this block in FSP's `R_BSP_SecurityInit()` is
+**compiled out**:
 
-**Alignment rules that follow (important — do not over-constrain):**
-- The secure size / **NSC start is 1 KB-granular** (`CFS1 × 1 KB`) — any whole KB is legal.
-- The **Secure→Non-secure boundary is 32 KB-granular** (`CFS2 × 32 KB`).
-- ⇒ **Design rule: `Code Secure + Code NSC` must be a multiple of 32 KB**, i.e. the **NS partition start
-  must be 32 KB-aligned**. The veneer/NSC start only needs 1 KB alignment.
-- This constrains the *memory map* (§3): pick `FLASH_AREA_1_OFFSET` (NS primary) on a 32 KB boundary.
-  Carry this rule to the RA8D2 port.
-
-**Our values** — veneers pinned at `0x4F400` (§7), NS partition at `0x50000`:
-`CFS1 = 317` (secure `0x0–0x4F3FF`), `CFS2 = 10` (`10 × 32 KB = 0x50000`), NSC size `= 320 − 317 = 3 KB`.
-Verified accepted by RFP.
-
-- **Boundaries to program (RFP fields):**
-
-| RFP field | Value |
-|---|---|
-| Code Secure (KB) | `317` |
-| Code NSC (KB) | `3` |
-| Data Secure (KB) | `8` (all data flash — ITS/PS/NV) |
-| SRAM Secure (KB) | `128` (`0x20000000–0x2001FFFF`; NS from `0x20020000`) |
-| SRAM NSC (KB) | `0` (veneers live in code flash) |
-| SiP Flash Secure (KB) | `0` (unused on EK-RA6M4) |
-
-## 8. OFS (option-setting memory) — BL2 only, per-word segments (the safe way)
-OFS **is** emitted into the BL2 image — but placed so it can never brick the part. The root-cause saga
-(removed entirely, then re-added correctly) is in §8.4; this is the resulting design.
-
-- **What was lethal:** *not* having OFS in the image, and *not* the OFS values — it was the **linker
-  section→segment layout**. The old `ra6m4_bl2.ld` placed the OFS words at absolute addresses in the
-  default region, so GNU ld coalesced them into **one PT_LOAD segment** spanning `0x0100A100–0x0100A284`
-  with the gaps **zero-filled**. A debugger flashes by program header, so it programmed `0x00000000` into
-  the gap words — including **PBPS (`0x0100A1E0`)**, the one-time Permanent Block Protect → permanent lock
-  → two bricked boards (§8.4).
-- **The fix — exactly as FSP's generated `fsp_gen.ld` does it:** each option word gets its **own,
-  exactly-sized `MEMORY` region** in `ra6m4_bl2.ld` (`OPTION_SETTING_OFS0 (r): ORIGIN=0x0100A100,
-  LENGTH=0x04`, …) and each `.option_setting_*` section is placed `> its own region`. Distinct regions ⇒
-  ld emits a **separate, tiny PT_LOAD segment per word** (4 or 12 bytes) ⇒ **no span, no gap-fill**. A
-  debugger writes only the configured words; PBPS is never in a segment. Verified: `readelf -l` shows
-  three discrete 4-byte segments (`A100`/`A200`/`A280`), identical to a safe FSP image.
-- **Emission:** `bl2_option_setting.c` emits `.option_setting_*` only for words configured in RASC
-  (`BSP_CFG_OPTION_SETTING_*`), compiled into the `bl2` executable (not a lib, or the linker wouldn't pull
-  it in). Unconfigured words emit nothing → their region stays empty → no segment. This mirrors FSP, whose
-  `fsp_gen.ld` only contains entries for configured OFS.
-- **BL2 only:** the secure/NS images are MCUboot-signed (imgtool needs a contiguous payload) and must not
-  carry OFS; two images programming OFS would also collide.
-- **Guard:** [`bringup/check_ofs.py`](bringup/check_ofs.py) is a **brick guard on the segment layout** — it
-  fails if any PT_LOAD segment across `0x0100A100–0x0100A2CF` exceeds 12 bytes (i.e. spans/zero-fills gaps).
-  Discrete per-word segments pass; the old 0x184 span fails. Run before every flash / in CI.
-- **`ra6m4_bl2.ld` stays forked** for the `.ram_noinit` FCLK fix (§8.1) **and** this per-region OFS block.
-  ⚠ **Never** collapse the OFS words into one region or place them at absolute addresses in a shared region
-  — that reintroduces the gap-filled span. Keep in sync with `fsp_gen.ld`'s per-region pattern on FSP bumps.
-
-## 8.1 FSP ↔ TF-M startup-order contract (.ram_noinit / BSP_CFG_EARLY_INIT)
-**This bit the first hardware bring-up — read before porting to another RA part.**
-
-TF-M's `Reset_Handler` (startup_ra6m4.c) does:
-```
-SystemInit();          /* FSP: bsp_clock_init() + SystemCoreClockUpdate() */
-__PROGRAM_START();     /* C-runtime init: copy .data, ZERO .bss, then main() */
-```
-i.e. **FSP's BSP is initialised *before* the C-runtime init**. Any FSP state that lands in `.bss` is
-therefore zeroed immediately after FSP computed it. FSP's own contract for this is:
-- `BSP_SECTION_NOINIT` → `.ram_noinit` (GCC; `.bss.ram_noinit` where `BSP_UNINIT_SECTION_PREFIX` is `.bss`)
-- `BSP_SECTION_EARLY_INIT` → `BSP_PLACE_IN_SECTION(BSP_SECTION_NOINIT)` **only if `BSP_CFG_EARLY_INIT == 1`**
-
-Affected variables: `SystemCoreClock`, `g_clock_freq[]`, `g_protect_counters[]`,
-`g_bsp_group_irq_sources[]`.
-
-**Symptom when it goes wrong:** BL2 dies in `boot_platform_init` → `ARM_Flash_Initialize` →
-`R_FLASH_HP_Open` with **`FSP_ERR_FCLK`**. `R_FSP_SystemClockHzGet()` is `SystemCoreClock >> divider`;
-with `SystemCoreClock == 0` FCLK reads 0, below the 4 MHz minimum. The clock *hardware* is fine
-(PLL 200 MHz, FCLK /4 = 50 MHz) — only the cached value was lost.
-
-**How the port fixes it (the FSP-native way):**
-1. **`BSP_CFG_EARLY_INIT = 1`** — FSP's own switch for "BSP is initialised early", which is precisely our
-   case. It makes `BSP_SECTION_EARLY_INIT` place `SystemCoreClock` et al. in `.ram_noinit`, and calls
-   `bsp_init_uninitialized_vars()` early in `SystemInit`. **Set in the vendored `fsp/` snapshot; external
-   RASC projects (`FSP_*_APP_DIR`) must set it too** — the port cannot enforce a RASC setting.
-2. **Linker (§8):** `ra6m4_bl2.ld` declares `.ram_noinit` explicitly — **before `.bss`** (so a
-   `.bss.ram_noinit` variant isn't swallowed by `*(.bss*)`) and **NOLOAD** (no flash image, never
-   copied or zeroed), outside `ADDR(.bss)..SIZEOF(.bss)`. Previously it was an *orphan* section ld
-   marked `LOAD/CONTENTS` — it survived only by luck.
-
-Verified after enabling both: BL2 `SystemCoreClock` = `0x200004c8`, inside `.ram_noinit`
-(`0x200004a0`–`0x2000050f`, `__bss_start__` = `0x20000510`) — safe by construction.
-
-**Do NOT put clock repair in a driver.** An earlier fix called `SystemCoreClockUpdate()` from
-`ARM_Flash_Initialize()`; that was the wrong layer (a driver entry point, invoked per flash device and
-re-entered on `FSP_ERR_ALREADY_OPEN`) for one-time system state, and it is redundant once 1+2 are in
-place. Removed.
-
-**Secure/NS images:** they use TF-M's *generated* linker (§7, unforked), which has no `.ram_noinit`
-rule, so `.ram_noinit` remains an **orphan** there (`SystemCoreClock` = `0x2000a038`, before
-`__bss_start__` = `0x2000a080` — outside the zeroed region, but by ld's orphan placement rather than by
-design, and the orphan is `LOAD/DATA` rather than NOLOAD). For that reason the one-time
-`SystemCoreClockUpdate()` in `tfm_hal_platform_init()` is **kept deliberately** as a guard against
-placement changing across TF-M versions. If the secure linker is ever forked, give it the same explicit
-`.ram_noinit` section and the guard can go.
-
-## 8.2 ⚠ OFS security attribution — `BSP_CFG_CLOCKS_SECURE`
-
-`bsp_mcu_ofs_cfg.h` computes:
 ```c
-OFS1_SEL = 0xFFFFF8F8 | ((BSP_CFG_CLOCKS_SECURE == 0) ? 0xF00 : 0)
+#if 0 == BSP_FEATURE_TZ_HAS_DLM   /* false on RA6M4/RA6E1 -> not compiled */
+    R_PSCU->CFSAMONA = ...  R_PSCU->CFSAMONB = ...
+    R_PSCU->SSAMONA  = ...  R_PSCU->SSAMONB  = ...  R_PSCU->DFSAMON = ...
+#endif
 ```
 
-| `BSP_CFG_CLOCKS_SECURE` | OFS1_SEL | LE bytes |
+`R_BSP_SAUInit()` still runs, but the **SAU only refines the IDAU** — an address is secure if *either*
+says so — and `BSP_FEATURE_TZ_NS_OFFSET = 0x00` means there is no separate non-secure alias for code
+flash. So IDAU attribution, burned into the device, is the only thing that makes the NS slot
+non-secure. An unprogrammed part faults on the S→NS `BLXNS` with **SecureFault / `INVEP`**
+(`SCB->SFSR` @ `0xE000EDE4`, bit 0) — the S→NS jump is the first thing that can possibly notice.
+
+**Register granularities differ, and two are coarse.** A layout is only programmable if the sums land
+on them:
+
+| Boundary | Register | Granularity |
 |---|---|---|
-| `1` (correct here) | `0xFFFFF8F8` | `f8f8ffff` |
-| `0` (RASC default) | `0xFFFFFFF8` | `f8ffffff` |
+| Code flash S → NSC | `CFSAMONB.CFS1` | 1 KB |
+| Code flash NSC → NS | `CFSAMONA.CFS2` | **32 KB** |
+| SRAM S → NSC | `SSAMONB.SS1` | 1 KB |
+| SRAM NSC → NS | `SSAMONA.SS2` | **8 KB** |
+| Data flash S → NS | `DFSAMON.DFS` | 1 KB |
 
-OFS1_SEL is a **security-attribution** register: the differing bits (8-10) select whether the
-corresponding OFS1 fields are secure or non-secure. BL2 and the secure image own the clocks on this
-port, so **`BSP_CFG_CLOCKS_SECURE` must be 1** — set in the vendored `fsp/` snapshot, and **external
-RASC projects must set Clocks = Secure in the RASC BSP config**. Fixed in TF-M `7b99ce397`; both
-values now match a known-good RA6M4 image byte-for-byte.
+So *Code Secure + Code NSC* must be a multiple of 32 KB, and *SRAM Secure + SRAM NSC* a multiple of
+8 KB. Check this when choosing partition sizes in RASC — a layout that fails it cannot be programmed
+at all and must be repartitioned, not worked around.
 
-> **Scope note (do not repeat an earlier mistake):** this is a misconfiguration, **not** a lockout
-> mechanism. OFS1_SEL does not disable debug or lock flash, and option memory is erasable. During
-> bring-up this diff was wrongly reported as the cause of a board that would no longer erase; that
-> symptom is a DLM/TrustZone permission state — see 8.3. Keep the two separate.
+Programmed with the **Renesas Device Partition Manager** (e2 studio → Run → Renesas Debug Tools),
+which takes **KB**. Expect it to erase the part and require SSD lifecycle state — re-flash all images
+afterwards. Verify by reading `CFSAMONA`/`CFSAMONB` back.
 
-**Process rule that does generalise:** never program OFS values that haven't been diffed against a
-known-good image for that device (`arm-none-eabi-objdump -s` on a working ELF). The config macros can
-be identical while the emitted words differ. And when reporting such a diff, state whether each value
-was **observed in a binary** or **derived from macros** — mixing them silently is how a wrong root
-cause gets locked in.
+### 7.2 ⚠ Disable the debugger's automatic TZ-boundary programming
+e2 studio debug configurations carry:
 
-### 8.3 Recovering a "connects but won't erase" board — RDPM GUI Initialize
+```xml
+<booleanAttribute key="com.renesas.hardwaredebug.arm.jlink.setTZBoundaries" value="false"/>
+```
 
-If the board **connects and reads but refuses erase/program**, the flash is not dead — the device is
-in a restricted TrustZone **DLM state** (e.g. NSECSD), where the debugger is limited to non-secure
-regions and erasing the secure area (`0x0-0x4F3FF`, where BL2 lives) is refused. RFP over SWD cannot
-undo this.
+**Default is enabled, and it must be `false` for this port.** The tooling derives the boundaries from
+the symbols of the project being launched, and it does not understand a bootloader *and* a secure
+image both living in the secure region. Launched against the bootloader — which has no TrustZone
+knowledge at all — it marks **everything secure**, silently undoing a correct partition. The next
+S→NS jump then fails with the `INVEP` SecureFault above, on a board that was working minutes earlier.
 
-**What works (verified on this bench):** the **Renesas Device Partition Manager GUI → "Initialize
-device", connection = J-Link**. Menu: *Run → Renesas Debug Tools → Renesas Device Partition Manager*
-in e2 studio or RASC. This drives **J-Link's native RA DLM support over the normal SWD debug
-connection** — **no boot-mode jumper**, no RFP. It erases all flash and resets the memory partitions
-and DLM state to factory. After it, the reset vector at `0x0` and OFS at `0x0100A100/A200/A280` all
-read `0xFFFFFFFF`; DLM state is back to SSD; re-flash normally.
+This bites TF-M exactly as hard as the standalone solution: BL2 is precisely such a
+TrustZone-unaware bootloader ahead of the secure image. Set the boundaries once with the Partition
+Manager and keep this option off in **every** launch configuration.
 
-**What does NOT work here (and why the earlier recovery script was wrong):** the RDPM **command-line**
-tool (`RenesasDevicePartitionManagerCmd.exe`) reaches the device only through **boot firmware**
-(`-bootInterface SCI|SWD`). On the EK-RA6M4 with its on-board J-Link, boot mode is not reachable that
-way even with the `J16` (MD) jumper fitted — it fails with *"Unable to retrieve device's boot code"*.
-**This was observed on a known-good board too**, so that failure is not evidence of a brick. The CLI
-is only useful in a production fixture that actually wires up SCI/USB boot mode. Use the GUI on the
-bench. [`bringup/recover_ra6m4.sh`](bringup/recover_ra6m4.sh) now only does read-only J-Link
-status + prints the GUI steps.
+## 8. The BL2 image: linker, runtime state, and option memory
 
-**On observed OFS1_SEL values (don't re-theorise from these):** three states were seen — erased/factory
-`0xFFFFFFFF` (confirmed on a J-Link-erased board), a programmed board reading `0x00000000`, and what
-our ELF *writes* (`0xFFFFF8F8`, §8.2). These differ because option-memory bits program `1→0` and are
-only reset to `1` by erase; the on-silicon value depends on program/erase history, not just our image.
-None of this is a lockout mechanism — see the §8.2 scope note.
+BL2 is the one image where TF-M's startup model and FSP's expectations collide. All four
+sub-decisions below came out of hardware bring-up in July 2026 and cost real boards; treat them
+as load-bearing.
 
-**Recoverability guard:** `INITIALIZE` is refused in CM state and is **permanently** disabled by
-permanent block protection (PBPS). This port emits only `ofs0` / `ofs1_sec` / `ofs1_sel` — **never**
-`bps`/`pbps`/`osis` — which is what keeps recovery possible at all. Do not add those sections without a
-very good reason.
+### 8.1 `.ram_noinit` and the FCLK / `SystemCoreClock` hazard
+TF-M's `Reset_Handler` calls `SystemInit()` (→ `bsp_clock_init()`) **before** `__PROGRAM_START()`
+runs the C-runtime init. FSP does not expect that ordering: anything `SystemInit` computes that
+lands in `.bss` is zeroed immediately afterwards. `SystemCoreClock` was the casualty —
+`R_FLASH_HP_Open` derives FCLK from it, read 0, and failed with `FSP_ERR_FCLK`.
 
-### 8.4 The brick — CONFIRMED root cause: OFS words merged into one gap-filled segment
+FSP's own mechanism for this is `BSP_CFG_EARLY_INIT`, which places such state in `.ram_noinit`.
+Decisions:
+- Set **`BSP_CFG_EARLY_INIT = 1`** in the vendored FSP snapshot (and in any external RASC/e2
+  project used via `FSP_*_APP_DIR` — this does not flow automatically).
 
-Two EK-RA6M4 boards were permanently bricked. The confirmed cause is the **linker section->segment
-layout of the BL2 image**, proven byte-for-byte against a bricked board's config memory.
+**Which images need it — it is not all three.** The hazard exists only where *TF-M's* startup runs,
+because it is TF-M's `Reset_Handler` that inverts FSP's ordering:
 
-**Mechanism.** The old `ra6m4_bl2.ld` placed the OFS words (`.option_setting_ofs0/_sec/_sel`) at absolute
-addresses in the default output region. GNU `ld` coalesced them into **one PT_LOAD segment** spanning
-`0x0100A100-0x0100A284` (`0x184` bytes), with the gaps between the words **zero-filled** in the segment's
-file image (`p_filesz == p_memsz == 0x184`). Debuggers (Ozone / J-Link) flash an ELF by **program header**,
-so they wrote the whole `0x184` span - zeros included - into option memory. The zero at `0x0100A1E0` is
-**PBPS**, the one-time-programmable **Permanent Block Protect Setting** (`0 = protected`, permanent) - so
-all covered blocks became permanently erase/write-protected -> RDPM `Initialize` returns `0xDA` -> unrecoverable.
+| Image | Startup | Needs `BSP_CFG_EARLY_INIT = 1`? |
+|---|---|---|
+| Secure | TF-M's (`startup_ra6xx.c`) | **Yes** |
+| BL2 | TF-M's (`startup_ra6xx.c`) | **Yes** — see below |
+| Non-secure | **FSP's own** `startup.c` | **No.** FSP's Reset_Handler does the C-runtime init in the order FSP expects, so nothing is zeroed after `SystemInit` computed it. |
 
-**Byte-exact proof** - the TF-M BL2 segment's contents == the bricked board's config dump:
+Set on RA6E1 (2026-08-26): secure only. **BL2 is still exposed.** It uses TF-M's startup and it is
+the image that actually failed in July: MCUboot → `ARM_Flash_Initialize` → `R_FLASH_HP_Open` reads
+`SystemCoreClock` as 0 and returns `FSP_ERR_FCLK`. Nothing restores it on the BL2 path —
+`SystemCoreClockUpdate()` lives in `tfm_hal_platform_init()`, which is an SPM hook the **secure**
+image calls and BL2 never does. (A comment in the RA6E1 `tfm_hal_platform.c` claims `Driver_Flash.c`
+also does it defensively; it does not.)
 
-| addr | value |
-|---|---|
-| `A100` OFS0 | `ffffffff` |
-| `A130` SECMPU / `A1C0` BPS / **`A1E0` PBPS** | **`00000000`** (zero-filled gap) |
-| `A200` OFS1_SEC | `fffdffff` |
-| `A280` OFS1_SEL | `f8f8ffff` |
+Two ways to close it, pick one:
+1. `BSP_CFG_EARLY_INIT = 1` in the bootloader project too — but that project is shared with the
+   standalone e2 bootloader build, so it changes something outside the TF-M port.
+2. Override the `__WEAK boot_platform_post_init()` in the port and call `SystemCoreClockUpdate()`
+   there. `bl2_main.c` runs it after `boot_platform_init()` and before `boot_go_for_image_id()`
+   touches flash, so it is early enough, it is one-time system state at the right layer, and it
+   leaves the e2 project untouched. **This is the preferred fix** — it makes BL2 correct whatever
+   the RASC config says.
 
-**Why the `.srec` never showed it (and misled us for days).** `objcopy -O srec/ihex` is **section-based**:
-one record per loadable *section*. The image has only three OFS *sections* (4 bytes each); the gaps belong
-to no section, so the SREC has three discrete records and **no gap bytes**. The danger exists only in the
-**program-header/segment** view (`readelf -l`, `objcopy -O binary`), which spans the gaps with zeros - and
-that is what a debugger flashes. Our long "bricked `.srec` == der `.srec`" comparison was reading the
-*section* view (identical) and was blind to the *segment* layout (bricked = one span, der = discrete).
+Note that option 2 is *not* the thing rejected below: the rejection is about `ARM_Flash_Initialize`,
+a driver entry point re-entered per device, not about a one-shot boot hook.
+- Declare `.ram_noinit` **explicitly** in `ra6m4_bl2.ld`: **before `.bss`** (so the prefixed
+  `.bss.ram_noinit` variant isn't swallowed by `*(.bss*)`) and **`NOLOAD`** (so it emits no flash
+  image and is neither copied nor zeroed), placed **outside** `ADDR(.bss)..SIZEOF(.bss)` so the
+  zero table never covers it. As an orphan section it survived only by luck of ld's placement and
+  wasted flash.
+- Keep the one-time `SystemCoreClockUpdate()` in `tfm_hal_platform_init()`. Not redundant: the
+  **secure** image uses TF-M's *generated* linker, which has no `.ram_noinit` rule, so its
+  `.ram_noinit` is still an orphan whose placement isn't guaranteed across TF-M versions.
+  Rejected: calling it from `ARM_Flash_Initialize` — wrong layer (a driver entry point, re-entered
+  per device and on `FSP_ERR_ALREADY_OPEN`) for one-time system state.
 
-**Why FSP images (and the RA6E1 proxy) are safe.** FSP's generated `fsp_gen.ld` gives each option word its
-**own MEMORY region** -> `ld` emits a separate tiny PT_LOAD per word -> no span, no gap-fill. A sacrificial
-**RA6E1** (identical config-area map) ran the *whole* process - RDPM boundaries + Ozone flash, even
-TZ-provisioned with the RA6M4 boundaries - and stayed healthy (`PBPS = FFFFFFFF`), because its FSP
-bootloader has discrete segments. That exoneration (tool, device family, provisioning) is what isolated
-the cause to the **image's segment layout**.
+Verify: `.ram_noinit` NOBITS, ending exactly where `__bss_start__` begins, with `g_clock_freq` and
+`SystemCoreClock` inside it.
 
-**The fix (§8).** `ra6m4_bl2.ld` now uses the FSP per-word-region pattern -> three discrete 4-byte segments
-(verified via `readelf -l`). The build-wired guard (§8.5) fails on any spanning segment.
+### 8.2 `ra6m4_bl2.ld` is the ONE forked linker
+A copy of TF-M's `tfm_common_bl2.ld` plus §8.1 and §8.4. Forked because GNU ld `INSERT` cannot
+augment a `-T` main script from a second `-T` fragment. Keep it in sync with TF-M on version
+bumps. The secure/NS side stays on TF-M's generated linker (§7), unforked.
 
-**Detour that was wrong (kept as a warning).** An interim diagnosis blamed `FSPR` / `FAWMON @ 0x407FE0DC`.
-That register/feature **does not exist on RA6M4** (`BSP_FEATURE_FLASH_SUPPORTS_ACCESS_WINDOW = 0`) - it is
-an RA6M3-class thing. The real lock is **PBPS** (block protection, in the config area); the lifecycle state
-is **`DLMMON @ 0x400E002C`** (bricked boards read `SSD` - not a DLM lock). Do not read FAWMON on this die.
+### 8.3 BL2 lives at the base of flash
+`BL2_CODE_START` derives from `FLASH_BASE_ADDRESS`, **not** `S_ROM_ALIAS_BASE`. The latter is the
+*secure image* base (`0x20000` when BL2 is on), so it linked the bootloader into the secure slot:
+nothing at the reset vector, and the flash step for `tfm_s_signed.bin` landed on top of the
+misplaced bootloader. The device never ran BL2 at all — which is why a run of earlier fixes
+appeared to change nothing. Verify: `__Vectors` at `0x0` in `bl2.axf`.
 
-**Lessons.** (1) A debugger flashes by **segment**, not the `.srec`/section view - audit `readelf -l`.
-(2) Place option words in **per-word regions** so `ld` cannot span+zero-fill them. (3) Do not assert a
-hardware cause from a register unconfirmed for the exact die. Evidence: [`bringup/bricking_evidence/`](bringup/bricking_evidence/).
+### 8.4 OFS (option-setting memory) — BL2 only, DISCRETE regions
+OFS (`0x0100A100`–`0x0100A2CC`) is emitted into the **BL2 image only**. Reasons: (a) the secure/NS
+images are MCUboot-signed and imgtool needs a **contiguous** payload — OFS is non-contiguous with
+code flash; (b) two images programming OFS would collide. FSP's `bsp_linker.c` gates OFS on
+`#ifndef BSP_BOOTLOADED_APPLICATION` (bootloader only) for the same reason.
 
-### 8.5 Automatic OFS brick guard — `check_ofs.py`
-The guard runs **automatically on every BL2 build**: a `bl2_ofs_guard` target in `ALL` (wired in the port
-`CMakeLists.txt`) runs `platform/ext/target/renesas/ra6m4/check_ofs.py` on the linked `bl2` and **fails the
-build** if any PT_LOAD segment across `0x0100A100-0x0100A2CF` exceeds 12 bytes - i.e. a gap-filled span
-(§8.4). Discrete per-word segments pass. It reads **program headers** (`readelf -l`), not the SREC, because
-the SREC is blind to the segment layout (§8.4). A mirror copy in [`bringup/check_ofs.py`](bringup/check_ofs.py)
-is for manual runs (`python check_ofs.py <image.elf ...>`; exit 1 = spanning segment). Verified: PASS on the
-per-region build, FAIL on the preserved `bl2_BRICKED.elf`.
+**Implementation:** `bl2_option_setting.c` emits `.option_setting_*` with values from the RASC
+config (`BSP_CFG_OPTION_SETTING_*`), compiled straight into the `bl2` executable — *not* a static
+lib, since nothing references the OFS symbols and the linker would never pull the object out of an
+archive (`KEEP` only helps once linked).
+
+**⚠ The critical decision — one MEMORY region per option group.** The option-setting map is
+**sparse**: thirteen register groups holding 92 bytes of real data spread across a 460-byte span.
+The 368 bytes between them are other FCU configuration, including the **FSPR permanence word**, and
+are not ours to write.
+
+- **Correct** (what FSP's generated `fsp_gen.ld` does, and what we now do): declare thirteen
+  discrete `MEMORY` regions, each sized to exactly its group, and assign every section with
+  `> OPTION_SETTING_xxx`. ld then emits **one PT_LOAD per group** and physically cannot fill
+  between them.
+- **Fatal** (what we did until 2026-07-21): bare addressed sections with no `> REGION`
+  — `.option_setting_ofs0 0x0100A100 : { ... }`. ld coalesces all thirteen into **one PT_LOAD**
+  spanning the full 460 bytes and **zero-fills the gaps**. A debugger loading the ELF writes that
+  whole span, clearing FSPR → **the part is permanently bricked**. This destroyed two EK-RA6M4
+  boards.
+
+**The zero fill is invisible in the srec.** It lives in the program header, not in any section, and
+`objcopy -O srec` emits from sections. This is why the srec-diff approach (the premise of the
+"always emit .srec" build change) cannot catch a regression here. The only valid check is:
+
+```
+arm-none-eabi-readelf -l bin/bl2.axf
+```
+Expect small separate LOAD segments (`FileSiz` 0x4 or 0xc) in the `0x0100Axxx` range and **never**
+one segment spanning `0x1CC`. Confirm the values match a known-good image before flashing.
+
+**Related:** `BSP_CFG_CLOCKS_SECURE = 1`. `bsp_mcu_ofs_cfg.h` computes
+`OFS1_SEL = 0xFFFFF8F8 | ((BSP_CFG_CLOCKS_SECURE == 0) ? 0xF00 : 0)`. With `0`, the clock-related
+OFS1 fields are marked **non-secure**; on a TZ part with boundaries programmed that attribution
+mismatch can lock out the debug interface. BL2 and the secure image own the clocks, so clocks must
+be secure. External RASC projects must set this in the RASC BSP configuration too.
+
+**Note on `bl2.bin`:** because OFS sits at `0x0100Axxx`, `objcopy -O binary` pads `bl2.bin` to
+~16.8 MB. **Flash `bl2.hex` or `bl2.srec`, never `bl2.bin`.**
 
 ## 9. Console / logging — SEGGER RTT (switchable)
 - `RA6M4_STDOUT_RTT` (default ON): routes TF-M/MCUboot stdout to SEGGER RTT over J-Link (no UART wiring,
@@ -324,119 +266,11 @@ per-region build, FAIL on the preserved `bl2_BRICKED.elf`.
   IAR (`.icf`) too: an IAR BL2 linker with the OFS sections, and confirmation/porting of the veneer
   macros for TF-M's IAR isolation linker. Design compiler-agnostically from the start (§7/§8).
 
-## 11.1 ⚠ Build gotcha — signed images are NOT produced by a plain `cmake --build`
-Bit us on the first bring-up: **a 10-day-old `tfm_s_signed.bin` was being flashed** while `tfm_s.axf`
-was current, so none of the fixes were actually on the device.
-
-- The signed images come from `add_custom_command(OUTPUT tfm_s_signed.bin DEPENDS tfm_s_bin ...)`.
-  The dependency is on the **target** `tfm_s_bin`, not on the file `tfm_s.bin`, and the custom targets
-  are **not reached by the default `all`** target.
-- Consequence: `tfm_s.axf`/`tfm_s.bin` relink, but the signing does not re-run — ninja reports
-  "no work to do" while `bin/tfm_s_signed.bin` stays stale. Deleting only the copy in `bin/` does not
-  help either, because the **intermediate** `<build>/bl2/ext/mcuboot/tfm_s_signed.bin` still satisfies it.
-
-**Always regenerate before flashing:**
-```
-rm -f <build>/bl2/ext/mcuboot/tfm_*_signed.bin      # if in doubt
-cmake --build <build> --target signed_images
-```
-and sanity-check the timestamps/sizes of `bin/tfm_s_signed.bin` (0x30000) and `bin/tfm_ns_signed.bin`
-(0x20000). Worth fixing properly later by making the signing depend on the binary and adding it to `all`.
-
 ## 12. Bring-up
 - `fsp_cmake/bringup/` — J-Link flash + RTT scripts. Images are Debug builds (full symbols for
-  GDB/Ozone). Flash from an erased chip; program the TZ boundaries (§7) via RFP. **No image carries OFS**
-  (§8); option memory is programmed separately by RFP only.
-
-## 13. Open issues / architectural risks — MUST resolve before upstreaming
-
-These are unresolved concerns about **dual ownership of startup and security config between FSP's BSP and
-TF-M**. None is the confirmed brick cause (§8.4), but each is a correctness/security risk for the port.
-
-### 13.1 SAU/IDAU config is an empty stub — FSP silently owns it
-`target_cfg.c::sau_and_idau_cfg()` is **empty** on RA6M4:
-```c
-void sau_and_idau_cfg(void) { /* "handled by TF-M's common ARMv8-M isolation framework" */ }
-```
-But the common framework's *only* SAU action is to **call this stub** (`tfm_hal_isolation_v8m.c:275`), so
-from the TF-M side **nothing configures the SAU**. On ST (the reference), `sau_and_idau_cfg()` fully
-programs SAU regions from `memory_regions` and **locks** it (`SYSCFG_CSLCKR_LOCKSAU`). On RA6M4 the SAU is
-instead configured by **FSP's `R_BSP_SecurityInit()`** (from `SystemInit`, bsp_security.c:280-336), driven
-by FSP's `BSP_PARTITION_*` config — a **different source of truth** than TF-M's `region_defs.h`. The stub's
-comment is circular and the "RA6M4 has no IDAU" comment is misleading (RA attributes via the RFP-programmed
-CFS boundaries). **Fix:** either implement `sau_and_idau_cfg()` from `region_defs.h` like ST, or make the
-stub honestly document that FSP owns it *and* reconcile `BSP_PARTITION_*` against `region_defs.h`.
-
-### 13.2 Startup ordering — FSP runs first and wins; TF-M believes it is in control
-Boot order per image (secure/BL2):
-```
-Reset_Handler (startup_ra6m4.c) -> SystemInit() -> R_BSP_SecurityInit()  [FSP: SAU, PSCU/CPSCU periph
-   security, clocks, cache]  -> __PROGRAM_START (C runtime) -> main() -> ... -> sau_and_idau_cfg() [STUB]
-   -> tfm_hal_isolation (MPU)
-```
-So **FSP configures the security state before TF-M's `main` even runs**, and TF-M then executes its HAL
-*assuming it owns that setup*. Concrete risks from this split:
-- **Config-source drift:** FSP SAU/peripheral-security from RASC (`BSP_PARTITION_*`, `BSP_TZ_CFG_PSARB/C/D/E`)
-  vs TF-M MPU/isolation from `region_defs.h`. Two files that must agree by hand and can silently diverge on
-  any RASC regen or memory-map change.
-- **Peripheral security double-config:** FSP sets `PSARB/C/D/E`/`MSSAR` from RASC; TF-M has its own
-  peripheral security model (`target_cfg.c`, `tfm_peripherals_def.c`). If they disagree on a peripheral's
-  S/NS attribution, behaviour is whichever ran last / whatever isn't re-set.
-- **Lock/re-entrancy:** if FSP locks a security register (as ST deliberately does for SAU), later TF-M
-  writes fault or are silently dropped.
-- **No verification:** some TF-M platforms (an521) run `fih_verify_sau_and_idau_cfg()` as a security
-  self-check. RA6M4 cannot — it never set the SAU — so a SAU regression goes undetected.
-- **NS transition:** the jump to NS relies on SAU/IDAU NS attribution matching where TF-M placed the NS
-  image; that attribution came from FSP's config, not TF-M's.
-This is the same class of bug as §8.1 (FSP computing `SystemCoreClock` before the C-runtime zeroed it):
-**FSP's BSP assumes it is the sole owner of a standalone FSP TrustZone app; under TF-M it is not.** Decide a
-single owner of each security facet and make the other side explicitly defer, with the config reconciled.
-
-### 13.3 One `startup_ra6m4.c` vs ST's three (bl2 / s / ns)
-ST ships **three** startup files (`startup_stm32l5xx_{bl2,s,ns}.c`) — each with its own vector table and a
-`Reset_Handler` body tailored to the image (the secure one does more setup; NS does not reconfigure
-clocks/security). RA6M4 uses **one** `startup_ra6m4.c` compiled three times. The per-image differences are
-handled **implicitly by macros** rather than by separate files:
-- `startup_ra6m4.c` itself only branches on `__ARM_FEATURE_CMSE == 3` (secure vs non-secure: stack seal,
-  `MSPLIM`), not on BL2/S/NS directly.
-- The real per-image behaviour lives in **FSP's `SystemInit`** (system.c), which branches heavily on
-  `BSP_TZ_NONSECURE_BUILD` / `BSP_TZ_SECURE_BUILD` / `BSP_TZ_CFG_SKIP_INIT` / `BSP_CFG_BOOT_IMAGE` — e.g. the
-  NS build **skips** clock/security init because the secure world already did it.
-- The 496-entry `__VECTOR_TABLE` is common; per-image handler bodies resolve at link time (weak → each
-  image's own implementations), and secure-only vectors (SecureFault) are harmless-but-present in NS.
-
-**This works only if each image is compiled with the correct TZ macros** (`BL2`; `BSP_TZ_SECURE_BUILD` for S;
-`BSP_TZ_NONSECURE_BUILD` for NS). It is functionally equivalent to ST's three files but **harder to audit** —
-a wrong/missing macro silently gives an image the wrong init path (e.g. an NS build that re-runs secure clock
-init, or a secure build that skips it). **Action:** verify the exact TZ macro set passed to each of the three
-builds (BL2/S/NS), and document them (RASC_PROJECT_SETUP.md), or split into per-image startups like ST for
-auditability before upstreaming.
-
-### 13.4 REVISIT (long-term direction) — a TF-M Solution Template so RASC owns the partitions
-The recurring root cause behind §13.1, §13.2, and the `bsp_security.c` build failure is the **same**: our flat
-RASC project defines **no `BSP_PARTITION_*` macros**. Those normally come from an FSP **Solution Project**, where
-the user lays out the S / NSC / NS / data-flash partitions in the RASC GUI and RASC generates `bsp_linker_info.h`
-(the `BSP_PARTITION_*` set + the MCUboot `bsp_linker_info` struct). Because RASC has no Solution-Project template
-for TF-M today, the memory map is instead hand-authored in TF-M's `flash_layout.h` / `region_defs.h`, and the two
-sources (FSP BSP vs TF-M) must be reconciled by hand and can silently drift.
-
-**Symptoms this explains:**
-- `bsp_security.c` falls into FSP's legacy `gp_ddsc_*` tail-chaining path (no `BSP_PARTITION_*`) → the secure
-  `fsp_bsp` fails to compile. **Near-term workaround:** exclude `bsp_security.c` from the secure BSP glob (TF-M
-  does its own S→NS transition and never calls `R_BSP_NonSecureEnter`), same pattern as `startup.c`/`bsp_linker.c`.
-- FSP's `R_BSP_SecurityInit()` configures the SAU from `BSP_PARTITION_*` while TF-M's `region_defs.h` is a
-  *different* source of truth (§13.1/§13.2).
-
-**Long-term fix (planned):** build a **TF-M Solution Template for RASC**. Users would define the TF-M partitions
-(BL2 / S / NSC / NS / data-flash areas) once in the RASC GUI; RASC generates `bsp_linker_info.h` and the
-`BSP_PARTITION_*` macros; TF-M's `flash_layout.h`/`region_defs.h` then *derive from* (or are validated against)
-that single GUI-owned source instead of being hand-maintained. This is strictly better for users (partitions set
-in the GUI, no hand-edited linker math) and collapses §13.1/§13.2 into one source of truth — the whole point of
-"§1: consume RASC config, don't fork." Until the template exists, keep the hand-authored map + the `bsp_security.c`
-exclusion, and treat the FSP↔TF-M reconciliation as a manual step on every RASC regen.
+  GDB/Ozone). Flash from an erased chip; program the TZ boundaries (§7) via RFP; OFS (§8) is in `bl2.hex`.
 
 ---
 _Maintainer note: when bumping TF-M, re-check §5 (bootutil glue), §7 (veneer macros still honored by the
-generated linker), §8 (`ra6m4_bl2.ld` vs the new `tfm_common_bl2.ld`), and §13 (SAU/startup ownership vs the
-reference platforms). When bumping FSP, the RASC config (§1) flows through; re-verify clock/flash-geometry
-assumptions (§4) and the §13.2 config-source reconciliation._
+generated linker), and §8 (`ra6m4_bl2.ld` vs the new `tfm_common_bl2.ld`). When bumping FSP, the RASC
+config (§1) flows through; re-verify OFS (§8) and clock/flash-geometry assumptions (§4)._

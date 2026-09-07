@@ -200,6 +200,55 @@ cd trusted-firmware-m
 cmake --build build_ra6m4
 ```
 
+### Constraints specific to the TF-M build
+
+The module mechanics are in `cmake/modules/ADD_NEW_MODULE.md`. These rules apply on top of it and
+only to the TF-M port — a standalone FSP project is free to add any of the modules below.
+
+**Never link these into `platform_s` or `platform_bl2`.** TF-M supplies its own implementation, so
+declaring a module for one of them puts two implementations in a single image:
+
+| FSP module | Why | Reference |
+|---|---|---|
+| `r_sce` | SCE9 hardware crypto. TF-M builds `CRYPTO_HW_ACCELERATOR OFF` with its own mbedcrypto. | DESIGN.md §6 |
+| `rm_psa_crypto`, `ra/arm/mbedtls` | FSP's mbedTLS is entangled with the FSP MCUboot config in `bsp_linker_info.h`. | DESIGN.md §6 |
+| `rm_mcuboot_port` | Carries FSP's own flash identity (`FLASH_AREA_*_ID`, single-image assumptions) and conflicts with TF-M's dual-image flash_map. Grafting it is what failed on RA6M4. | DESIGN.md §4, §5 |
+
+Note `ADD_NEW_MODULE.md`'s "Common FSP Modules" table lists `fsp_sce.cmake` — valid for a standalone
+project, not here. Re-enabling the SCE path is the future hardware-crypto switch, a deliberate
+project rather than a module addition.
+
+Their **headers** must stay on the include path: the generated `ra_gen/common_data.h` and
+`hal_data.h` include them unconditionally. Nothing links against them.
+
+**Linking into `platform_s` puts the module in the signed secure image.** Add it there only if the
+secure world actually uses it; otherwise link it to the non-secure application instead.
+
+**`ra_gen/hal_data.c` belongs in `fsp_bsp`.** It instantiates the control structs for every enabled
+module and must link exactly once. RA6M4 currently attaches it to `fsp_flash`, so dropping the flash
+module would silently take the HAL instance data with it — worth fixing when that file is next
+touched.
+
+**Files excluded from the FSP tree by image role** — not modules, but the same class of decision:
+
+| File | Secure | BL2 | Non-secure |
+|---|---|---|---|
+| `ra_gen/main.c` | excluded | excluded | **kept** — the NS image is a whole FSP application; TF-M has no `main` to replace it |
+| `.../Device/RENESAS/Source/startup.c` | excluded | excluded | **kept** — FSP's `Reset_Handler`, which FSP's linker script expects |
+| `bsp/mcu/*/bsp_linker.c` | excluded | excluded | **kept** — its option-setting sections compile out under `BSP_TZ_NONSECURE_BUILD` |
+
+`bsp_linker.c` must never reach the secure or BL2 image. OFS goes into BL2 only, from
+`bl2_option_setting.c`, with discrete per-group MEMORY regions (DESIGN.md §8.4).
+
+**If the change touched BL2, re-run the OFS check before flashing:**
+
+```bash
+arm-none-eabi-readelf -l bin/bl2.axf
+```
+
+Expect small discrete LOAD segments in `0x0100Axxx`, **never** one spanning `0x1CC`. A clean `.srec`
+does not prove this.
+
 ---
 
 ## Testing
