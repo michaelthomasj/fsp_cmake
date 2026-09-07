@@ -595,8 +595,16 @@ Verify the SAU/veneer attribution on hardware; do NOT program an IDAU NSC region
 
 - [ ] Remove committed backup/scratch files in the TF-M port: `CMakeLists.txt.bak`,
       `CMakeLists.txt.backup`, `flash_layout.h.bak`, `cmsis_drivers/Driver_Flash_original.c`,
-      `flash_temp.txt`, duplicate `README_FULL.md`.
+      `flash_temp.txt`, duplicate `README_FULL.md`. **All still present under `ra6m4/`, none
+      referenced by its CMakeLists** (checked 2026-09-07). The identical set was removed from
+      `ra6e1/` that day, so this is a straight repeat.
 - [ ] Decide on the dead `tfm_hal_isolation.c` (v7M-style, superseded by common `tfm_hal_isolation_v8m.c`).
+      Resolved for `ra6e1/` by deleting it; `ra6m4/` still has it.
+- [ ] **Wire `ra6m4/check_ofs.py` into the RA6M4 build** the way `ra6e1/CMakeLists.txt` now does it
+      (post-link `ALL` target per image, hard failure, no opt-out). RA6M4 is the part that was
+      actually bricked and it is the one still relying on someone remembering to run `readelf`.
+      Consolidating the three divergent copies of the script — `ra6e1/`, `ra6m4/` and
+      `bringup/check_ofs.py` — belongs with this.
 - [ ] Replace stubs before any production use: `tfm_platform_hal_ioctl` (returns NOT_SUPPORTED),
       `tfm_attest_hal_get_platform_config` (dummy `0xDEADBEEF`), flash-based NV counters, dummy provisioning.
 - [ ] Consider enabling RA6M4 HW crypto (SCE9/RSIP) instead of software mbedTLS.

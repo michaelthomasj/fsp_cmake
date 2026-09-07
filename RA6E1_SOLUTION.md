@@ -538,6 +538,37 @@ Still not attempted: `TEST_S` (secure-side suites). `TEST_NS_ATTESTATION` stays 
 it needs `attest.h` / `attest_token.h`, which are secure-side internal headers not exported
 to NS.
 
+### ✅ RESOLVED — merged the original machine's branch, then cleaned up after it (2026-09-07)
+
+The original machine's post-07-23 work was merged and pushed from there, and pulled here as a clean
+fast-forward: 6 files into `trusted-firmware-m`, 734 into `fsp_cmake`, **zero deletions**. Nothing
+of the port was overwritten. Re-verified after the merge: 13 discrete OFS regions in both
+`*_bl2.ld`, three discrete `PT_LOAD`s at `0x0100A100`/`0x0100A200`/`0x0100A280` carrying
+`ffffffff`/`fffdffff`/`f8f8ffff` (byte-identical to the known-good values), both trees building
+clean, and the layout assertions passing.
+
+One merge change was worth keeping: `cmake/install.cmake` now guards the NS signing install on
+`TARGET signing_layout_ns`, so a BL2-first bring-up with `MCUBOOT_IMAGE_NUMBER > 1` and no NS target
+configures instead of erroring. `signing_layout_ns` does exist in this split build, so `api_ns/`
+still receives both layout objects and all four keys — checked, because a silent skip there would
+have broken NS signing.
+
+**Removed as superseded:**
+
+* `FSP_Project_ra6e1_bl2/` (718 files) — the standalone FSP 6.1 BL2 project from the original
+  machine's bring-up. The live project set is the **solution**: `ra6e1_solution`, `ra6e1_mcuboot`,
+  `ra6e1_secure`, `ra6e1_nonsecure` at FSP 6.6.0-beta2. A standalone BL2 project cannot produce the
+  `__BL_0/1_*` partition symbols the layout depends on, which is the whole reason for the solution.
+* `bringup/ra6e1_hand_edits/` — existed only to re-apply hand edits to that project after a RASC
+  regen. Its preserved `hal_entry.c` is FSP's stock `rm_mcuboot_port` template, superseded by
+  `ra6e1_mcuboot/src/hal_entry.c`.
+* Three orphan sources the merge added to the TF-M platform, none referenced by any CMakeLists:
+  `tfm_hal_isolation.c` (this port uses the shared `tfm_hal_isolation_v8m.c`),
+  `cmsis_drivers/Driver_Flash_original.c`, and `cmake/modules/fsp_uart.cmake`. The Driver_Flash one
+  was the real trap — an unused near-copy sitting beside the live driver.
+
+**Kept and now wired:** `check_ofs.py`, the OFS brick guard. See DESIGN.md §8.4.
+
 ### TODO — bundle a default project set inside the TF-M port
 An e2 build is now a prerequisite for building TF-M (the layout lives in
 `<project>/Debug/bsp_linker_info.h`). So the port should ship a copy of this project set —

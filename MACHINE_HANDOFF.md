@@ -91,6 +91,11 @@ redone here, and verified on hardware:
 So the merge is no longer symmetric. **This machine's branches are the trunk.** Both are pushed, so
 the original machine can simply fetch them.
 
+**✅ Done 2026-09-07.** The merge was made and pushed from the original machine and pulled here as
+a clean fast-forward — zero deletions, nothing of the port overwritten. Post-merge verification and
+the cleanup that followed are in `RA6E1_SOLUTION.md`. The checklist below is kept as the record of
+what was done, and as the procedure if either machine diverges again.
+
 ### Checklist (on the original machine)
 1. **Fetch, do not push.** `git fetch origin` and check out this machine's branches
    (`FSPRA-5483_FSP_TFM_Cmake_framework`, `ra6m4_gen_6_1_TFM_ns_update`). Leave the local post-07-23

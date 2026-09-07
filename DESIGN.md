@@ -240,6 +240,21 @@ arm-none-eabi-readelf -l bin/bl2.axf
 Expect small separate LOAD segments (`FileSiz` 0x4 or 0xc) in the `0x0100Axxx` range and **never**
 one segment spanning `0x1CC`. Confirm the values match a known-good image before flashing.
 
+**This is now enforced by the build, not by remembering to run it.** `check_ofs.py` in the TF-M
+platform directory runs after every `bl2` and `tfm_s` link and fails the build if any `PT_LOAD`
+overlapping `0x0100A100`-`0x0100A2CF` exceeds 12 bytes (the largest single option word). It is a
+hard error with no opt-out switch — the failure it guards is silent, instant and unrecoverable, so
+a warning that scrolls past would be worth nothing. `tfm_s` is checked too and must report CLEAN.
+
+The guard is verified against the real artifact rather than assumed to work:
+`bringup/bricking_evidence/bl2_BRICKED.elf` is the image that destroyed the boards, and the guard
+rejects it with `0x0100A100+388B` — 388 = `0x184`, the span itself. That file is the regression
+fixture for this check; do not delete it.
+
+Wired for **RA6E1 only** so far. The RA6M4 platform has its own copy of the script sitting unwired,
+and `bringup/check_ofs.py` is a third, manual copy — three copies of a brick guard that can drift
+apart is its own hazard, and consolidating them is outstanding.
+
 **Related:** `BSP_CFG_CLOCKS_SECURE = 1`. `bsp_mcu_ofs_cfg.h` computes
 `OFS1_SEL = 0xFFFFF8F8 | ((BSP_CFG_CLOCKS_SECURE == 0) ? 0xF00 : 0)`. With `0`, the clock-related
 OFS1 fields are marked **non-secure**; on a TZ part with boundaries programmed that attribution
