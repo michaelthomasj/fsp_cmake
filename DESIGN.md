@@ -52,6 +52,12 @@ the stable "decisions" companion.
   flash_map/area-IDs. **Rejected:** grafting FSP's `rm_mcuboot_port/flash_map.c` — the RASC BL2 project
   is **single-image** (`MCUBOOT_IMAGE_NUMBER 1`, FSP area IDs) and incompatible with TF-M's dual-image
   bootutil; it cascaded into config/`flash_device_base`/linker-symbol conflicts and would not boot.
+- **Correction, 2026-09-08.** The single-image half of that reason is spent. It described the old
+  standalone RASC BL2 project (since removed). The **RA6E1 solution** is `MCUBOOT_IMAGE_NUMBER 2`, and
+  the `flash_map[]` in its generated `bsp_linker_info.h` carries all four areas at the same offsets
+  as this port, derived from the same `BSP_PARTITION___BL_*` macros. The decision to keep TF-M's map
+  stands, but on the narrower grounds in DECISIONS.md D013 — colliding `flash_map[]` definitions and a
+  different area-ID convention — not on a dual-image incompatibility.
 
 ## 5. MCUboot / BL2
 - **Bootutil:** TF-M's downloaded Renesas MCUboot fork. It is byte-identical to the copy RASC ships, and
