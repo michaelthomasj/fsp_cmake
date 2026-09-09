@@ -32,3 +32,8 @@ JLinkLog.log
 # build emits it with --out-implib and the non-secure image links against it to resolve
 # the veneers. Tracked deliberately.
 !FSP_Project_ra6m4_ns/secure.o
+
+# Python bytecode. imgtool is invoked from ra6e1_mcuboot/ra/mcu-tools during
+# signing, which leaves __pycache__ inside the vendored MCUboot copy.
+__pycache__/
+*.pyc
