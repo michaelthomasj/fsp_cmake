@@ -479,3 +479,34 @@ carries the same ongoing-maintenance expectation TF-M does. The RA6E1 target is 
 **Consequence.** Anyone reproducing the RA6E1 results needs the local target plus the ten fetch_repo
 patches applied by hand, exactly as D014 describes. That reproduction gap is accepted for the
 development vehicle and must not be carried into the RA6M5 contribution.
+
+---
+
+## D018 — One RA-family PSA Arch target, named `tgt_dev_apis_tfm_renesas_ra`
+
+**Date:** 2026-09-09 · **Status:** Accepted · **Refines:** D017
+
+**Context.** The target was first written as `tgt_dev_apis_tfm_ra6e1`, matching the name
+`tests_psa_arch` derives from the TF-M platform basename. Reviewing it for upstreaming showed
+nothing in it is device-specific: UART and watchdog are declared unused, nvmem is a runtime
+accessor, and printing goes through `tfm_log_printf`. The only build-dependent files are
+`pal_crypto_config.h`, which tracks the TF-M *crypto configuration* rather than the silicon, and
+`pal_storage_config.h`, whose UID size tracks `PS_MAX_ASSET_SIZE`.
+
+**Decision.** One directory for the RA family, `tgt_dev_apis_tfm_renesas_ra`, selected with
+`-DPSA_API_TEST_TARGET=renesas_ra`.
+
+**Rationale.** Vendor+family is the honest scope: it covers RA4/RA6/RA8 without asserting a
+maintenance claim beyond what is verified, and it matches the one upstream precedent for a shared
+target, `tgt_ff_tfm_nrf_common`. The cost is that every NS build must pass `PSA_API_TEST_TARGET`,
+since the default derivation would look for the device name.
+
+**Rejected.** `ra6_ra4_cm33` — mixes two axes and asserts every Cortex-M33 device, which is untrue
+in general: the core is not what the target depends on, the TF-M crypto config is. An RA8 on
+Cortex-M85 works unchanged; an M33 with a different crypto config does not.
+`tgt_dev_apis_tfm_ra6m5` — device-specific, exactly upstream convention, and no override needed;
+rejected because a second RA device would then need a duplicate directory or a rename.
+
+**Consequence.** D017 stands: this is the directory that gets upstreamed once RA6M5 is verified, and
+the `Verified on:` line in `target.cfg` is the place that records which parts have actually been
+run — RA6E1 today, RA6M5 to be added.
