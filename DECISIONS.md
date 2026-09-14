@@ -510,3 +510,87 @@ rejected because a second RA device would then need a duplicate directory or a r
 **Consequence.** D017 stands: this is the directory that gets upstreamed once RA6M5 is verified, and
 the `Verified on:` line in `target.cfg` is the place that records which parts have actually been
 run — RA6E1 today, RA6M5 to be added.
+
+## D019 — The IAR secure image reaches FSP's sections through an included ICF fragment, not a section-name macro
+
+**Context.** The GNU secure template takes vendor section names as preprocessor macros:
+`S_RAM_CODE_EXTRA_SECTION_NAME` (upstream, 53c10c111) expands into `KEEP(*(...))`, and
+`S_DATA_EXTRA_NOINIT_SECTION_NAME` (added here, fbc84be86) into `.TFM_NOINIT`. The obvious move was
+to give `tfm_isolation_s.icf.template` the same two hooks and reuse the macros. It cannot be done.
+iccarm re-emits a macro expansion token by token, and `.ram_from_flash` is two preprocessing tokens
+(`.` and the identifier — `.r` is not a valid pp-number), so the expansion arrives at ILINK as
+`. ram_from_flash` and the parse fails with `syntax error, unexpected 'ram'`.
+
+Three spellings were tried and all fail:
+- every `--preprocess` variant (`n`, `cn`, `l`, `sn`, `s`) inserts the space — it is not a flag choice;
+- a quoted name, `section ".ram_from_flash*"`, is refused by the grammar: `no_tick_identifier`,
+  and IAR's own shipped `.icf` files contain no quoted selector anywhere;
+- keeping the `.` literal in the template and putting only the identifier in the macro still yields
+  `. ram_from_flash`, because the space is inserted ahead of the expansion result, not inside it.
+
+Literal text is unaffected. `ra6e1_bl2.icf`, which spells these same sections out, preprocesses and
+links correctly through the identical pipeline — that contrast is what identified the cause.
+
+**Decision.** The platform names one file, `S_ICF_PLATFORM_SECTIONS` = `"ra6e1_fsp_sections.icf"`.
+`tfm_isolation_s.icf.template` includes it at four hooks, each with a different `TFM_ICF_HOOK_*`
+defined around the `#include`, so a single platform file serves every insertion point:
+`RAM_CODE_INIT` (inside `initialize by copy`), `RAM_CODE_MEMBERS` (inside `ER_CODE_SRAM`),
+`DIRECTIVES` (top level, `do not initialize`), and `DATA_MEMBERS` (inside the `DATA` block).
+
+A second finding is recorded with it, because it is not discoverable from the ICF documentation and
+cost two wrong builds: the selector must be `ro section` in the `initialize by copy` directive and
+`rw section` in the block. That directive *splits* the section — the flash half becomes initialiser
+bytes, the RAM half flips to `rw`. Naming `ro` in the block captures the initialiser and leaves the
+block empty (0 bytes, code still in flash); naming `rw` in the directive matches nothing, so no copy
+is set up and the code stays in flash. Both were observed on the way to this. The template's own
+pre-existing `ro object *libflash_drivers*` / `rw section .text` pair works the same way.
+
+**Rationale.** The hook keeps the shape the common template already uses: optional, guarded, with no
+platform name anywhere in it. The text ILINK sees is the text the platform wrote, which is the only
+arrangement the preprocessor cannot corrupt. One file per platform rather than one per hook keeps the
+platform side to a single addition.
+
+**Rejected.** Quoted section names — refused by the ICF grammar. A dot-literal template with a
+dot-less macro — still splits. Forking `tfm_isolation_s.icf.template` into the platform directory —
+a 460-line upstream file to re-sync on every TF-M update, for two sections; the GNU side deliberately
+took upstream hooks instead, and this follows it.
+
+**Consequence.** The GNU macros are unchanged and still drive the GNU build; the fragment and the
+macros name the same two sections and must be kept in step — a section that matters under one
+toolchain matters under both. Verified on the RA6E1 secure image: `flash_hp_cf_write` at
+`0x2001f2c9`, `flash_hp_cf_erase` at `0x2001f399` and `flash_hp_enter_pe_cf_mode` at `0x2001f64b`,
+all at `S_RAM_CODE_START` with flash veneers branching to them, the initialiser left in flash at
+`0x7397c`, and all five `.ram_noinit` contributors `uninit` at `0x2000ca38`, where `SystemCoreClock`
+also resolves. The RA6M5 port needs the same fragment.
+
+## D020 — `g_main_stack` is redirected, not defined, under IAR; one response file serves both images
+
+**Context.** D010 records why FSP's `g_main_stack` is aliased to TF-M's stack with a GNU `--defsym`
+through a response file. IAR needs the same result by a different route: ILINK has no block-address
+expression, so there is nothing in the `.icf` to alias a symbol *to*, and the link fails with
+`Error[Li005]: no definition for "g_main_stack"`. Other TF-M ports were checked first, as none of
+them solve this with linker aliasing — TF-M maps `__STACK_LIMIT`/`__INITIAL_SP` per toolchain in
+`cmsis_override.h`, onto the same `ARM_LIB_STACK$Base` symbol ILINK creates for the `.icf` block.
+
+**Decision.** Redirect the *reference* instead of defining the symbol:
+`--redirect g_main_stack=ARM_LIB_STACK$Base`, written to a response file for the same reason D010
+gives — `file(WRITE)` emits the bytes verbatim, so no CMake/Ninja `$`-escaping layer can disagree.
+The response file is defined once, next to the GNU one, and applied to both `tfm_s` and `bl2`.
+
+**Rationale.** It targets the symbol ILINK already creates for the stack block, which is the same one
+TF-M's own `cmsis_override.h` uses for IAR, so the two agree on which stack the CPU is running on.
+
+**Consequence.** D010 stands for GNU and is unchanged. Both mechanisms now cover both images.
+
+## D021 — FSP 6.6 `.icf` files need `with alignment preservation` removed to build under IAR 9.50.2
+
+**Context.** The RASC solution generates `initialize manually with alignment preservation {rw};` in
+`fsp_gen.icf`. IAR 9.50.2's ILINK rejects it: `Error[Lc003]: expected "copy routine", "packing",
+"complex", or "simple"`. The clause is newer than that toolchain.
+
+**Decision.** Remove `with alignment preservation` when building an FSP-generated `.icf` under
+9.50.2. Confirmed to build after the edit.
+
+**Consequence.** Affects the e2 studio reference projects used as templates, not the TF-M `.icf`
+files written here, which do not use the clause. Anyone regenerating from RASC on a newer FSP with an
+older IAR hits it again.
