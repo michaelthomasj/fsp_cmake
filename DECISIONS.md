@@ -594,3 +594,132 @@ TF-M's own `cmsis_override.h` uses for IAR, so the two agree on which stack the 
 **Consequence.** Affects the e2 studio reference projects used as templates, not the TF-M `.icf`
 files written here, which do not use the clause. Anyone regenerating from RASC on a newer FSP with an
 older IAR hits it again.
+
+## D022 — The non-secure image under IAR: four toolchain branches, not a fork
+
+**Context.** The NS image is the only one of the three that links FSP's own generated linker
+script (D005), so it is the only one where the toolchain difference reaches outside TF-M. Four
+things differ between GNU and IAR, and each could have been "solved" by forking the NS build.
+
+**Decision.** Four narrow branches, all keyed on `CMAKE_C_COMPILER_ID`:
+
+- `ns/CMakeLists.txt` selects `script/fsp.icf` instead of `script/fsp.ld` for
+  `INTERFACE_LINK_DEPENDS`. Read with `get_target_property()` and tested with `EXISTS` at
+  CONFIGURE time, so it cannot be a generator expression - it has to be an `if()`.
+- `--config_search <dir>` replaces `-L <dir>`. `fsp.icf` is a two-line stub that includes
+  `memory_regions.icf` and `fsp_gen.icf` by bare name; `--config_search` is ILINK's exact
+  counterpart to ld's `-L` for resolving those.
+- `--wrap hal_entry` replaces `-Wl,--wrap=hal_entry`. ILINK has `--wrap` with the same
+  `__wrap_`/`__real_` convention, verified on the linked image: `main` calls
+  `__wrap_hal_entry`, which calls the real `hal_entry`. `rtt_ns_init.c` is unchanged between
+  toolchains - only the spelling of the option differs.
+- The `memory_regions.ld` existence guard in `ns_app/CMakeLists.txt` looks for
+  `memory_regions.icf` under IAR. A GCC solution emits `.ld`, an IAR one `.icf`.
+
+`ns/syscalls_ns.c` is split differently, because it is a source file rather than an option:
+the newlib syscall family (`_close`/`_fstat`/`_isatty`/`_lseek`/`_read`/`_write`, and
+`<sys/stat.h>`) stays under `#else`, and an `__ICCARM__` branch provides DLIB's
+`__write`/`__read` from `<LowLevelIOInterface.h>`. `<sys/stat.h>` does not exist anywhere in
+the IAR installation, so it cannot be included conditionally - it has to be out of the branch
+entirely. The weak stubs are shared: TF-M's IAR builds pass `-e`, so the GCC
+`__attribute__((weak))` spelling is accepted by iccarm. Without `-e` it is not (Pe079/Pe130).
+
+**Rationale.** Every difference is a spelling of the same intent, so a branch at the point of
+difference is smaller and more honest than a parallel build. The alternative - a separate NS
+CMake project per toolchain - duplicates the consistency checks that exist precisely because
+the NS image must come from the same solution as the secure one.
+
+**Consequence.** `RA6E1_IAR_nonsecure` must be regenerated from the partitioned solution: the
+first one supplied was the unpartitioned whole-device map (`RAM 0x20000000/0x40000`,
+`FLASH 0x0/0x100000`, non-zero `OPTION_SETTING_*` lengths), which would have placed the NS
+image on top of BL2 and emitted option words from the NS image. The regenerated one reads
+`RAM 0x20020000/0x20000`, `FLASH 0x00098200/0x2fe00`, all option lengths 0. Verified: NS image
+at `0x00098200`, NS RAM at `0x20020000`, zero symbols in secure RAM, OFS guard passes.
+
+## D023 — The IAR stack-seal block must name a section, not merely reserve space
+
+**Context.** With the seal misplaced, the secure image reset in a loop before `main()` with
+nothing on the console. `Reset_Handler` seals `&__STACK_SEAL`, an ordinary C object the port
+places in `.msp_stack_seal_res`. The GNU script anchors that section immediately above the
+stack (`__StackSeal = ADDR(.msp_stack_seal_res)` -> `0x20001760`). The IAR template had
+`define block STACKSEAL with size = STACKSEAL_SIZE { };` - 8 bytes reserved, no section named -
+so the object was never placed there. ILINK swept it to `0x20009ca0`, on top of `ER_TFM_DATA`.
+The seal was written onto live partition data, `__iar_data_init3` overwrote it moments later,
+the SPM seal check failed, and `tfm_core_panic()` called `tfm_hal_system_reset()`.
+
+That is why it presented as a reset loop rather than a hang: `HardFault_Handler` in
+`startup_ra6e1.c` is `while(1)`, but panic reboots.
+
+**Decision.** `define block STACKSEAL with size = STACKSEAL_SIZE { section .msp_stack_seal_res };`
+in `platform/ext/common/iar/tfm_isolation_s.icf.template`. `.msp_stack_seal_res` is a TF-M-wide
+convention (`tfm_common_bl2.ld`, `tfm_common_s.ld.template`, `tfm_isolation_s.ld.template`,
+mps4, rp2350), not a Renesas name, so it belongs in the common template.
+
+**Rationale.** Fixing it in the template rather than the platform: any IAR platform that seals
+its stack hits this, and the failure is silent - no build error, no diagnostic, just a reboot
+before the first line of output.
+
+**Consequence.** Verified: `STACKSEAL$$Base` = `0x20001760`, map ordering
+`ARM_LIB_STACK 0x20000760 (0x1000)` -> `STACKSEAL 0x20001760 (0x8)` ->
+`ER_TFM_SP_ITS_RWZI 0x20001768`, and `Reset_Handler`'s seal literal now reads `0x20001760`
+instead of `0x20009ca0`. Filed in [UPSTREAM_CHANGES.md](UPSTREAM_CHANGES.md) item 1.
+
+## D024 — CMSE veneers are pinned at the NSC window under IAR too
+
+**Context.** With the seal fixed the secure image booted and handed off, and the first
+non-secure PSA call hard-faulted: `SFSR = 0x1` (INVEP - a Non-secure to Secure call that did
+not land on an `SG`), `PC = 0x00058418`, called from NS at `0x00098EC9`. The veneers were
+correct - `e97f e97f` is the `SG` encoding - but at `0x58400`, immediately after the vector
+table, while the hardware NSC window is at `0x97800`.
+
+The GNU template selects between an inline `VENEERS()` and an end-located one on
+`TFM_LINKER_VENEERS_LOCATION_END`, honouring `TFM_LINKER_VENEERS_START`. `region_defs.h`
+already set both (D-series work for the RA6M4, commit `93ce7d6de`). The IAR template honoured
+neither and hardcoded `block ER_VENEER` inline in `LR_CODE`.
+
+**Decision.** Mirror the GNU contract in the IAR template: guard the inline placement with
+`!defined(TFM_LINKER_VENEERS_LOCATION_END)`, and add
+`place at address TFM_LINKER_VENEERS_START { block ER_VENEER, block VENEER_ALIGN };` with a
+`keep`. The platform supplies the address; no platform file changed.
+
+**Rationale.** A platform whose NSC window is fixed by hardware - SAU/IDAU, or a vendor
+partition table - cannot use the default placement at all. This is not a tuning preference,
+it is the difference between working and faulting on every NS-to-S call.
+
+**Consequence.** Verified: `tfm_psa_framework_version_veneer` at `0x97818` (it was `0x58418`,
+exactly the faulting PC), `sg` followed by `b.w` into the secure implementation, NS relinked
+against the regenerated import library and calling `0x97801`/`0x97819`/`0x97821`. Two clean
+LOAD segments, code ending at `0x75fe0` with ~134 KB before the window, and 64 of the 2048
+NSC bytes used. Filed in [UPSTREAM_CHANGES.md](UPSTREAM_CHANGES.md) item 2.
+
+## D025 — RTT under IAR needs `--keep __write`, and each image has its own control block
+
+**Context.** Two separate reasons the console was silent under IAR, found while chasing the
+above.
+
+`rtt_stdout.c` defined `_write()` under `#if defined(__GNUC__)` only. IAR's DLIB calls
+`__write()`, so BL2 - whose `BOOT_LOG_*` macros expand to `printf()` - had no backend at all
+and fell through to the semihosting stub, silent without a debugger. Adding `__write()` was
+not enough: TF-M's IAR toolchain links with `--redirect __write=__write_buffered`, which
+leaves *zero* references to `__write`, so ILINK garbage-collected the definition. It was
+present in `rtt_stdout.o` and absent from the image.
+
+Separately, the secure image was silent because that build was configured
+`TFM_SPM_LOG_LEVEL_SILENCE` while GNU used `DEBUG` - nothing called the logger, so the whole
+path was GC'd. That is configuration, not a defect.
+
+**Decision.** `--keep __write` on the IAR link for `bl2` and `tfm_s`, alongside the
+`__ICCARM__` branch in `rtt_stdout.c`. Verify after any toolchain change:
+`readelf -sW bin/bl2.axf | grep " __write$"` present, and `SEGGER_RTT_Write` pulled in behind
+it.
+
+**Rationale.** The redirect is an upstream toolchain choice and cannot be removed per target;
+`--keep` is the narrow answer that leaves it intact.
+
+**Consequence.** BL2 `__write` `0x3abb`, `stdio_output_string` `0x3aa5`, `SEGGER_RTT_Write`
+`0x4803`. Note that the three images have three separate RTT control blocks and a viewer sees
+only the one it is attached to - bl2 `0x20002ccc`, tfm_s `0x2000b6dc`, tfm_ns `0x200204a0`.
+`tfm_service_tests.c` records every result to `g_ns_test_results` for exactly this reason, so
+a debugger can read the outcome with no host tooling. Filed in
+[UPSTREAM_CHANGES.md](UPSTREAM_CHANGES.md) item 8 (the `rtt_stdout.c` half is platform code
+and stays here).

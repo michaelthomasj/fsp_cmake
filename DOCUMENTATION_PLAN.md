@@ -42,6 +42,7 @@ Two more found while surveying:
 | `DECISIONS.md` | 369 | Decision log (append-only) |
 | `DESIGN.md` | 298 | Architecture + rationale |
 | `TRUSTZONE_FREERTOS_REQUIREMENTS.md` | 231 | Reference — TZ/RTOS constraints |
+| `UPSTREAM_CHANGES.md` | 226 | **Patch queue** — changes to common TF-M files, destined for TrustedFirmware-M |
 | `RA6E1_TEMPLATE_CHECKLIST.md` | 208 | Checklist — what a RASC template must emit |
 | `RA8x2_DUAL_CORE_DESIGN.md` | 185 | Forward design |
 | `MACHINE_HANDOFF.md` | 171 | **Transient** — retire once the two machines are reconciled |
