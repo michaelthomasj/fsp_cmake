@@ -46,4 +46,8 @@ include(${CMAKE_CURRENT_LIST_DIR}/cmake/GeneratedCfg.cmake)
 
 # If required user can amend RASC generated flags here, e.g. list(REMOVE_ITEM RASC_CMAKE_C_FLAGS "-Wall")
 
-include(${CMAKE_CURRENT_LIST_DIR}/cmake/GeneratedSrc.cmake)
+# Use modular build system (comment out to use original monolithic build)
+include(${CMAKE_CURRENT_LIST_DIR}/cmake/GeneratedSrc_Modular.cmake)
+
+# Original monolithic build (uncomment to use)
+# include(${CMAKE_CURRENT_LIST_DIR}/cmake/GeneratedSrc.cmake)
