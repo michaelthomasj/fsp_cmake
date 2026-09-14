@@ -723,3 +723,130 @@ only the one it is attached to - bl2 `0x20002ccc`, tfm_s `0x2000b6dc`, tfm_ns `0
 a debugger can read the outcome with no host tooling. Filed in
 [UPSTREAM_CHANGES.md](UPSTREAM_CHANGES.md) item 8 (the `rtt_stdout.c` half is platform code
 and stays here).
+
+## D026 — Run the PSA Arch suites under IAR with `TOOLCHAIN=INHERIT`, not an IAR port of psa-arch-tests
+
+**Date:** 2026-09-14 · **Status:** Accepted
+
+**Context.** `psa-arch-tests` ships toolchain files for ARMCLANG, GNUARM, GCC_LINUX and
+HOST_GCC only - there is no IAR support anywhere in its tools, its CMakeLists or the Renesas
+target. Worse, the defaulting is silent: `tests_psa_arch/CMakeLists.txt` maps
+`CMAKE_C_COMPILER_ID` GNU->GNUARM and ARMClang->ARMCLANG but leaves `TOOLCHAIN` **unset** for
+IAR, and `api-tests/CMakeLists.txt` then defaults it to GNUARM and includes
+`compiler/GNUARM.cmake`, which hardcodes `arm-none-eabi-gcc`. Left alone, an IAR run either
+fails or quietly compiles the suite with GCC.
+
+**Decision.** Pass `-DTOOLCHAIN=INHERIT` to the NSPE build. `INHERIT` is listed in both
+`PSA_TOOLCHAIN_SUPPORT` and `CROSS_COMPILE_TOOLCHAIN_SUPPORT`, and `INHERIT.cmake` sets no
+compiler at all - it only forwards `ARCH_TEST_EXTERNAL_DEFS`. Because the suite is pulled in
+with `add_subdirectory` from the NSPE build, it then compiles with the iccarm already selected
+by `toolchain_ns_IARARM.cmake`. The `-DCPU_ARCH` requirement is gated to ARMCLANG/GNUARM and
+does not apply.
+
+**Rationale.** The mechanism exists for exactly this case. Writing an `IAR.cmake` for
+psa-arch-tests would be a second, redundant place to describe the compiler, and would have to
+be maintained upstream in a repo we are already patching as little as possible (D014, D017).
+
+**Consequence.** No change to psa-arch-tests is needed for IAR, so this does not add to the
+upstreaming burden. Results on RA6E1, IAR 10.10.2, `profile_large` / isolation 3 / IPC, all
+matching the GNU baselines: attestation 1/1; storage 17 tests, 11 passed, 6 skipped (the
+optional PS `set_extended`/`create` APIs TF-M does not implement, skip code 0x2b), 0 failed;
+crypto 64/64, 0 failed. Test 242 check 13 (`PSA_ALG_RSA_PSS_ANY_SALT`) passes, confirming the
+`fetch_repo` patches of D014 are applied in this clone.
+
+## D027 — The NSPE test build must set `CMAKE_BUILD_TYPE` explicitly
+
+**Date:** 2026-09-14 · **Status:** Accepted
+
+**Context.** `tests_psa_arch`'s NSPE project does not default `CMAKE_BUILD_TYPE`. Left empty,
+the arch-test objects compile with no optimisation flag at all - the compile lines carry
+`--cpu cortex-m33 --fpu=none -e -e --dlib_config=full ...` and no `-Ohz`. The secure side is
+unaffected; TF-M's own build sets `MinSizeRel`.
+
+**Cost of finding out.** The crypto NS image came to 205,364 bytes against a 196,096-byte
+slot - `Error[Lp011]: section placement failed ... total estimated minimum size of 0x32234
+bytes in <[0x98200-0xc7fff]> (total space 0x2fe00)`. The attestation and storage images fit
+anyway at 27,136 and 50,688, so only the largest suite exposed it. Diagnosing this as a
+capacity problem rather than a layout problem needed the map's overcommit line.
+
+**Decision.** Always pass `-DCMAKE_BUILD_TYPE=MinSizeRel` to the NSPE configure, matching what
+the GNU runs used.
+
+**Consequence.** attestation 27,136 -> 23,040; storage 50,688 -> 39,424; crypto 205,364 ->
+159,232, which fits with ~36 KB spare and lands within 2% of the GNU image (156,032). The
+2% agreement is the evidence that the overflow was the missing flag and not IAR codegen.
+
+## D028 — Two host-environment constraints on the PSA Arch test builds
+
+**Date:** 2026-09-14 · **Status:** Accepted
+
+**Context.** Two failures that look like code problems and are not.
+
+*The database generator needs a host compiler.* `psa_generate_database` is an
+`ExternalProject` that builds and runs `TargetConfigGen` on the build machine. It passes no
+compiler, so CMake must discover one; commit `55cd71c` in the psa-arch-tests clone
+deliberately lets it identify the host compiler rather than inheriting the cross settings.
+With no host compiler on PATH the sub-build fails at `project()` with
+`CMAKE_C_COMPILER-NOTFOUND`. The GNU runs used MSVC 14.29.30133, and with the Ninja generator
+CMake needs the full MSVC environment, not just `cl.exe` on PATH.
+
+*Windows MAX_PATH.* The crypto SPE failed with
+`Error[Ms003]: could not open file "...intermedia_tfm_internal_trusted_storage.o.d" for
+writing` - a 259-character path. CMake's four "cannot be safely placed under this directory"
+warnings at configure time are the advance notice.
+
+**Decision.** Drive the NSPE builds from a shell that has run `vcvars64.bat`. Keep the SPE
+build directory names short: `build_spe_ra6e1_iar_cry`, not `..._crypto`. Three characters
+is the entire margin at the current checkout path.
+
+**Rationale.** Both are properties of this machine's layout rather than of the port, so they
+belong in a decision record rather than in the build files - a shorter checkout path or a
+different host toolchain makes either disappear.
+
+**Consequence.** The RA6M5 work should start from a short build root (`C:\b\...` or similar)
+rather than inheriting `tests_psa_arch/build_*`: the platform name is longer and the margin is
+already three characters. Deferred deliberately for RA6E1 so the existing layout and launch
+configs keep working.
+
+## D029 — OPEN DEFECT: `.ram_from_flash` is excluded from copy-init at `profile_large` / L3
+
+**Date:** 2026-09-14 · **Status:** Open - diagnosed, not fixed
+
+**Context.** In the isolation-1 secure image the FSP code-flash program/erase routines are
+relocated to RAM as intended: `ER_CODE_SRAM` at `0x2001f200` (0x500), `.ram_from_flash inited`,
+`flash_hp_cf_write` at `0x2001f2c9`. In every `profile_large` / isolation-3 SPE - attestation,
+storage and crypto alike - the same source, the same `r_flash_hp.o` (byte-identical section
+attributes) and an ICF differing only by the `TFM_SP_META_PTR` block produce
+`flash_hp_cf_write` at `0x0006ee2d`, in flash, with `ER_CODE_SRAM` empty and no initialiser.
+
+The maps differ by exactly one line in the "No sections matched" list: at L3,
+`rw section .ram_from_flash in block ER_CODE_SRAM` is listed as unmatched, so the copy split
+never happened and the `ro` original fell through to the `ER_TFM_CODE { ro code }` catch-all.
+
+`--log initialization` gives ILINK's reason verbatim:
+
+```
+++ The following sections would have been initialized by copy but were
+   excluded because they were  marked as possibly 'needed for init':
+     .ram_from_flash (r_flash_hp.o(libfsp_flash_s.a) #24)
+```
+
+Note that the same log shows copy batch C4 (`ER_RO_DATA -> ER_TFM_DATA`) with first match
+`.data (r_flash_hp.o ...)`, which is the likely route by which r_flash_hp enters ILINK's
+init-dependency closure at L3 and not at L1.
+
+**Why it is not urgent.** The FCU makes code flash unreadable only during a *code*-flash
+program/erase. The secure image instantiates Driver_FLASH1 (data flash) and the PSA Arch
+storage suite exercises ITS and PS on data flash, which FSP deliberately leaves un-relocated.
+All three suites pass with the defect present; that is not evidence it is harmless.
+
+**Why it matters.** `FLASH_HP_CFG_CODE_FLASH_PROGRAMMING_ENABLE` is 1 in `ra6e1_secure`, so
+`R_FLASH_HP_Write/Erase` dispatch to the code-flash path on address. Any secure image that
+programs code flash at isolation 3 takes a prefetch abort mid-operation with the FCU left in
+P/E mode - a hang, not a fault. See [[D012]] and `region_defs.h`.
+
+**Next step.** Establish what drags `r_flash_hp` into the init closure at L3 and break it -
+candidates are excluding the section from the `ER_TFM_DATA` initialiser batch, placing it with
+`initialize manually` and copying it in `tfm_hal_platform_init()`, or marking the routines
+`__ramfunc` so ILINK treats them as `.textrw`. The isolation-1 build is unaffected and ships
+correctly.

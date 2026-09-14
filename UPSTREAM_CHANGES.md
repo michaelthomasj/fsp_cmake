@@ -222,5 +222,9 @@ when two EK-RA6M4 boards were lost. Keep local or drop before submitting.
   `psa_generate_random` (SCE9 TRNG), `psa_hash_compute`, ITS set/get/remove, PS set/get/remove
   (AES-GCM), `psa_initial_attest_get_token_size`. GNU is additionally verified against the PSA
   Arch tests (crypto, storage, attestation).
+- Both toolchains now pass the PSA Arch suites on EK-RA6E1 at `profile_large` / isolation 3 /
+  IPC: attestation 1/1, storage 17 (11 passed, 6 optional-PS skips), crypto 64/64, zero
+  failures under either. That is the strongest evidence these template changes are correct -
+  the suites exercise placement far harder than a boot test does. See DECISIONS.md D026.
 - Before submitting, re-run the `git diff --stat` above: anything appearing there and not
   listed in this file is an untracked divergence from upstream.
