@@ -1,6 +1,6 @@
 # RA6M5 Solution Project — layout, TrustZone boundaries, project requirements
 
-Device: **R7FA6M5BH3CFC** (EK-RA6M5 / `board.ra6m5ckv2`) — 2 MB code flash, 512 KB SRAM,
+Device: **R7FA6M5BH3CFC** on the **CK-RA6M5 V2** (`board.ra6m5ckv2`) — 2 MB code flash, 512 KB SRAM,
 8 KB data flash, SCE9, Cortex-M33.
 
 Companion docs: `RA6E1_SOLUTION.md` (the port this is derived from), `DESIGN.md` (why),
@@ -83,7 +83,8 @@ Three projects, as on RA6E1 — `ra6m5_mcuboot`, `ra6m5_secure`, `ra6m5_nonsecur
 `RA6E1_TEMPLATE_CHECKLIST.md` contract applies unchanged. RA6M5-specific points, all of
 them learned from the first `ra6m5_gcc_*` generation:
 
-All of these were missing in the first `ra6m5_gcc_*` generation and are now in place:
+All of these were missing in the first `ra6m5_gcc_*` generation. All but the last are now in
+place:
 
 | Project | Requirement |
 |---|---|
@@ -92,11 +93,19 @@ All of these were missing in the first `ra6m5_gcc_*` generation and are now in p
 | `ra6m5_gcc_secure` | `BSP_CFG_STACK_MAIN_BYTES` = 0x1000 |
 | `ra6m5_gcc_mcuboot` | flash instance named **`g_flash0`**, not `g_flashRA_NOT_DEFINED` |
 | all | the partitioning above, with `__BL_*_T` sizes **0** |
-| all | `BSP_CFG_EARLY_INIT` = 1 for secure and BL2 |
+| `ra6m5_gcc_secure`, `ra6m5_gcc_mcuboot` | **`BSP_CFG_EARLY_INIT` = 1** — still 0; BSP tab → Early BSP Initialization |
 
 The flash instance name is not cosmetic: `cmsis_drivers/Driver_Flash.c` refers to
 `g_flash0_ctrl` / `g_flash0_cfg` by name, and those come from the generated
 `ra_gen/hal_data.c`.
+
+**`BSP_CFG_EARLY_INIT` is load-bearing.** TF-M's `Reset_Handler` runs `SystemInit()` before
+the C runtime zeroes `.bss`. With early init off, FSP leaves `SystemCoreClock` in `.bss`, so it
+is wiped right after `SystemInit()` computed it, `R_FLASH_HP_Open()` derives FCLK = 0 and fails
+with `FSP_ERR_FCLK` — BL2 first, since MCUboot opens the flash before anything else. The port
+keeps `.ram_noinit` out of `.bss`, but early init is what puts the clock state there. This was
+missed on the first RA6M5 hardware run (2026-09-21); `ra6m5_layout_checks.c` and
+`bl2_option_setting.c` now `#error` on it, so it fails the build instead of the board.
 
 `S_MSP_STACK_SIZE` in `region_defs.h` is `BSP_CFG_STACK_MAIN_BYTES + STACKSEAL_SIZE` and is
 asserted at build time, so the project and the port have to agree. 0x1000 matches RA6E1.
@@ -107,7 +116,10 @@ asserted at build time, so the project and the port have to agree. 0x1000 matche
 
 **2026-09-21 — all three images build for RA6M5 on GNUARM**, from the `ra6m5_gcc_*` projects
 now carried in this repo: modules added, partitions set to the layout above, regenerated and
-built in e2. Nothing has run on silicon; no board yet.
+built in e2.
+
+First hardware run (2026-09-21, CK-RA6M5 V2): `FSP_ERR_FCLK` from `R_FLASH_HP_Open` —
+`BSP_CFG_EARLY_INIT` was 0 in both secure and bootloader projects. See below.
 
 Build it with:
 

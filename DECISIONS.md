@@ -970,3 +970,33 @@ silicon.
 **Still open:** the projects are not copied into `fsp_cmake/ra6m5_*`, so the build points at
 `e2_studio/workspace66`. Nothing has run on hardware. IAR is untouched — `ra6m5_iar`'s solution
 still selects GCC.
+
+---
+
+## D034 — `BSP_CFG_EARLY_INIT` is asserted at build time, in both secure and BL2
+
+**Date:** 2026-09-21 · **Status:** Accepted
+
+**What happened.** The first RA6M5 hardware run failed `R_FLASH_HP_Open` with `FSP_ERR_FCLK` —
+the July 2026 RA6E1/RA6M4 failure, recorded in `DESIGN.md` §8.1. The port's linker half of the
+fix carried over (`.ram_noinit` / `.TFM_NOINIT` are NOBITS and outside `.bss` in both images);
+the project half did not. `BSP_CFG_EARLY_INIT` was 0 in `ra6m5_gcc_secure` and
+`ra6m5_gcc_mcuboot`, so `SystemCoreClock` sat in `.bss` (`0x2000D2BC` in `tfm_s`, `0x200045EC`
+in BL2) and was zeroed after `SystemInit()`. On RA6E1 it sits at the start of `.TFM_NOINIT`.
+
+The requirement was already written down twice — `RA6E1_TEMPLATE_CHECKLIST.md` §5 and the
+RA6M5 requirements table — and was still missed, including by the build verification in
+[[D033]], which checked modules, stack size, instance names and layout but not this.
+
+**Decision.** `#error` when `BSP_CFG_EARLY_INIT` is 0: in `ra6m5_layout_checks.c` for the
+secure image, in `bl2_option_setting.c` for BL2 (BL2-only, and it already includes
+`bsp_api.h`). Verified: both fire against the current projects.
+
+**Rejected:** overriding `boot_platform_post_init()` to call `SystemCoreClockUpdate()` in BL2,
+which `DESIGN.md` §8.1 names as the preferred BL2 fix. It repairs `SystemCoreClock` but not the
+other state early init moves out of `.bss` (`g_protect_counters`, `g_bsp_group_irq_sources`),
+and it would leave the secure image depending on the project setting anyway. One rule, checked
+in both images, matches what RA6E1 actually runs with.
+
+**Follow-up:** the RA6E1 port has the same exposure with no guard; its projects happen to be
+correct. Same two checks apply there.
