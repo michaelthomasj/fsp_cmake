@@ -210,13 +210,21 @@ declaring a module for one of them puts two implementations in a single image:
 
 | FSP module | Why | Reference |
 |---|---|---|
-| `r_sce` | SCE9 hardware crypto. TF-M builds `CRYPTO_HW_ACCELERATOR OFF` with its own mbedcrypto. | DESIGN.md §6 |
-| `rm_psa_crypto`, `ra/arm/mbedtls` | FSP's mbedTLS is entangled with the FSP MCUboot config in `bsp_linker_info.h`. | DESIGN.md §6 |
+| `rm_psa_crypto`, `ra/arm/mbedtls` | FSP's mbedTLS is entangled with the FSP MCUboot config in `bsp_linker_info.h`, and its stock stacking wires PSA ITS to LittleFS, which fights `TFM_PARTITION_INTERNAL_TRUSTED_STORAGE`. | DESIGN.md §6 |
 | `rm_mcuboot_port` | Carries FSP's own flash identity (`FLASH_AREA_*_ID`, single-image assumptions) and conflicts with TF-M's dual-image flash_map. Grafting it is what failed on RA6M4. | DESIGN.md §4, §5 |
 
-Note `ADD_NEW_MODULE.md`'s "Common FSP Modules" table lists `fsp_sce.cmake` — valid for a standalone
-project, not here. Re-enabling the SCE path is the future hardware-crypto switch, a deliberate
-project rather than a module addition.
+**`r_sce` is no longer on that list.** It was, while `CRYPTO_HW_ACCELERATOR` being OFF was read as
+"do not build the module at all". The RA6E1 and RA6M5 ports **do** build it into `platform_s`, through
+`cmake/modules/fsp_sce.cmake`, for one reason: `sce_trng.c` calls `HW_SCE_RNG_Read()` to back PSA's
+external RNG. Without it the secure image falls back to the shared hard-coded NV seed, which is
+unusable for attestation or PS. `--gc-sections` keeps the cost to 8.9 KB (measured on RA6M5,
+2026-09-21) because nothing but the TRNG path is reachable.
+
+It stays out of `platform_bl2`: BL2 verifies signatures and never needs randomness, so the bootloader
+role does not declare the module even though its e2 project contains `r_sce`.
+
+Ciphers are still software. Wiring the SCE9 `*_ALT` path is a separate project —
+`platform/ext/accelerator/renesas/sce9` in P4 of `PROJECT_PLAN.md` — not a module addition.
 
 Their **headers** must stay on the include path: the generated `ra_gen/common_data.h` and
 `hal_data.h` include them unconditionally. Nothing links against them.

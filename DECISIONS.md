@@ -850,3 +850,123 @@ candidates are excluding the section from the `ER_TFM_DATA` initialiser batch, p
 `initialize manually` and copying it in `tfm_hal_platform_init()`, or marking the routines
 `__ramfunc` so ILINK treats them as `.textrw`. The isolation-1 build is unaffected and ships
 correctly.
+
+---
+
+## D030 — RA6M5 uses the whole 2 MB, with a reserved secure scratch block
+
+**Date:** 2026-09-21 · **Status:** Accepted
+
+**Decision.** BL2 96 KB, a 32 KB **secure** scratch block at `0x18000`, secure slots 512 KB
+each, non-secure slots 448 KB each. Full table in `RA6M5_SOLUTION.md`.
+
+**Why a reserved block rather than a bigger BL2.** Every slot boundary above `0x10000` has to
+land on a 32 KB erase block. From `0x18000` there are 61 such units, an odd count, which cannot
+be split into two secure plus two non-secure slots. The two ways to absorb it are a 128 KB BL2
+or a separate 32 KB partition. The partition wins: `FLASH_CM33_B` stays at 96 KB so a BL2 that
+outgrows its budget fails at link instead of quietly eating the spare block, and a later switch
+to swap-using-scratch is then an MCUboot configuration change with no repartition and no
+re-provisioning of the TrustZone boundaries.
+
+**Why the scratch is secure.** During a swap the scratch holds fragments of the **secure**
+image. In the non-secure region that is both an exposure and something NS code could corrupt.
+Rejected: placing it at the top of flash after the NS secondary slot, which reads more
+naturally but puts it in the NS region for exactly that reason.
+
+**Split 512/448 rather than 480/480.** The secure side is what grows — SCE9 ciphers,
+`profile_large`, and FSP's crypto stack — while the largest non-secure image measured so far
+is the 159 KB PSA Arch crypto test. Both divisions are legal; this one puts the headroom where
+the pressure is.
+
+**Data flash is 8 KB, all secure** — carried over from RA6E1 ([[D019]] territory): NV counters
+2048 B, PS 3072 B, ITS 3072 B, and `PS_MAX_ASSET_SIZE` / `PS_NUM_ASSETS` derive from the
+resulting 1536-byte FS block. The stock template's 4/4 KB split does not fit these services.
+
+**Partition Manager values:** code flash Secure 1150 KB, NSC 2 KB, SRAM Secure 255 KB, NSC
+1 KB, data flash Secure 8 KB.
+
+---
+
+## D031 — The RA6M5 port was verified against a staged project set, not the e2 projects
+
+**Date:** 2026-09-21 · **Status:** Provisional - re-verify once the e2 projects are regenerated
+
+**Context.** `platform/ext/target/renesas/ra6m5` is the RA6E1 port with the device deltas
+applied (wider `BPS`/`PBPS` OFS words, 2 MB `FLASH_TOTAL_SIZE`, the new layout). The
+`ra6m5_gcc_*` e2 projects cannot drive it yet: the secure project has neither `r_flash_hp` nor
+`r_sce`, its `BSP_CFG_STACK_MAIN_BYTES` is 0x400, the bootloader's flash instance generated as
+`g_flashRA_NOT_DEFINED` instead of `g_flash0`, and all three still carry the RA6E1 1 MB
+partitioning.
+
+**Decision.** Verify the port against a **staged copy** of the three projects with those four
+gaps filled in by hand, rather than editing the user's e2 projects or hand-editing
+`configuration.xml` and regenerating with a RASC whose FSP version (6.6.0-beta.1 installed)
+does not match what generated them (6.6.0-rc1).
+
+**Result.** All three images build on GNUARM: bl2 54.2 KB, tfm_s 174.8 KB, tfm_ns 6.1 KB.
+Veneers at `0x11F800`, discrete OFS LOAD segments, SCE9 TRNG linked, layout and orphan checks
+pass.
+
+**What this does not prove.** That a regenerated project produces the same generated files.
+The staging is a build-level check of the port, not of the solution. `RA6M5_SOLUTION.md`
+carries the list of e2 changes that have to be made for real.
+
+**Rejected:** copying the projects into `fsp_cmake/ra6m5_*` now. They have to be regenerated
+first, and committing the current state would put a wrong layout in the repo under names that
+look authoritative.
+
+*Superseded by D033.*
+
+---
+
+## D032 — CORRECTION to the SCE9 size figures quoted on 2026-09-21
+
+**Date:** 2026-09-21 · **Status:** Accepted
+
+**The error.** An earlier answer in the same session sized FSP's SCE9 stack from the
+`ra6m4_der_conversion` linker map as `r_sce` 264.8 KB, `rm_psa_crypto` 34.6 KB, FSP mbedTLS
+93.9 KB, and concluded the driver could not fit in an RA6E1 secure slot. The parse summed the
+**discarded-section list** at the top of the GNU map along with the linked sections.
+
+**Corrected figures**, counting only what appears after `Linker script and memory map`:
+
+| Component | Flash | RAM |
+|---|---|---|
+| `r_sce` | 58.5 KB | 0.1 KB |
+| `rm_psa_crypto` | 12.8 KB | 1.5 KB |
+| FSP mbedTLS | 29.3 KB | 2.0 KB |
+
+That is ~100 KB for a project exercising RSA, ECC and AES through PSA — which **does** fit the
+78–134 KB of RA6E1 secure-slot headroom, where the earlier figure said it could not. The TRNG
+alone costs 8.9 KB in the RA6M5 secure image, consistent with the ~8 KB measured on RA6E1.
+
+**Rule that follows.** Size any FSP module from a map only after skipping to
+`Linker script and memory map`; `--gc-sections` makes the head of the file misleading by an
+order of magnitude. Noted in `fsp_sce.cmake`.
+
+---
+
+## D033 — RA6M5 builds against the real e2 projects
+
+**Date:** 2026-09-21 · **Status:** Accepted · **Supersedes:** D031
+
+The four project-side gaps D031 listed were fixed in e2 — `r_flash_hp` and `r_sce` added to
+`ra6m5_gcc_secure`, `BSP_CFG_STACK_MAIN_BYTES` raised to 0x1000, the bootloader's flash
+instance renamed to `g_flash0`, and the solution repartitioned to the 2 MB layout of [[D030]]
+with `__BL_*_T` sizes 0 and all 8 KB of data flash secure.
+
+All three images now build on GNUARM from the generated projects, with no staging: bl2 54.2 KB,
+tfm_s 174.8 KB, tfm_ns 6.1 KB. Veneers at `0x11F800`, signed images padding to the full 512 KB
+and 448 KB slots, discrete OFS LOAD segments, SCE9 TRNG linked, layout and orphan checks
+passing.
+
+**What the staged pass was worth.** Every one of those four gaps was found by building against
+a staged copy before the projects were touched, and each surfaced as a specific error rather
+than a runtime symptom — the missing flash module at configure time, the stack size and the
+partitioning as static assertions. The stale partitioning alone would otherwise have produced
+`BOOT_EFLASH`, a wrong-address erase on upgrade, and `PSA_ERROR_INSUFFICIENT_STORAGE`, all on
+silicon.
+
+**Still open:** the projects are not copied into `fsp_cmake/ra6m5_*`, so the build points at
+`e2_studio/workspace66`. Nothing has run on hardware. IAR is untouched — `ra6m5_iar`'s solution
+still selects GCC.

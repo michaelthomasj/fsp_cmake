@@ -1,0 +1,312 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<azone>
+    <rzone name="R7FA6M5BH3CFC.rzone"/>
+    <partition>
+        <memory parent="RAM" name="RAM_CM33_S" size="0x3FC00" offset="0x0" security="s" Pname="CM33"/>
+        <memory parent="RAM" name="RAM_CM33_C" size="0x400" offset="0x3FC00" security="c" Pname="CM33"/>
+        <memory parent="RAM" name="RAM_CM33_N" size="0x40000" offset="0x40000" security="n" Pname="CM33"/>
+        <memory parent="FLASH" name="FLASH_CM33_B" size="0x18000" offset="0x0" security="s" Pname="CM33"/>
+        <memory parent="FLASH" name="UNUSED_SCRAtTCH" size="0x8000" offset="0x18000" security="s" Pname="CM33" info="@user"/>
+        <memory parent="FLASH" name="__BL_0_S_H" size="0x200" offset="0x20000" security="s" Pname="CM33" info="@user"/>
+        <memory parent="FLASH" name="__BL_0_S_I" size="0x7FE00" offset="0x20200" security="s" Pname="CM33" info="@user"/>
+        <memory parent="FLASH" name="__BL_0_S_T" size="0x0" offset="0xA0000" security="s" Pname="CM33" info="@user"/>
+        <memory parent="FLASH" name="__BL_0_P_H" size="0x200" offset="0xA0000" security="s" Pname="CM33" info="@user"/>
+        <memory parent="FLASH" name="FLASH_CM33_S" size="0x7F600" offset="0xA0200" security="s" Pname="CM33"/>
+        <memory parent="FLASH" name="FLASH_CM33_C" size="0x800" offset="0x11F800" security="c" Pname="CM33"/>
+        <memory parent="FLASH" name="__BL_0_P_T" size="0x0" offset="0x120000" security="n" Pname="CM33" info="@user"/>
+        <memory parent="FLASH" name="__BL_1_P_H" size="0x200" offset="0x120000" security="n" Pname="CM33" info="@user"/>
+        <memory parent="FLASH" name="FLASH_CM33_N" size="0x6FE00" offset="0x120200" security="n" Pname="CM33"/>
+        <memory parent="FLASH" name="__BL_1_P_T" size="0x0" offset="0x190000" security="n" Pname="CM33" info="@user"/>
+        <memory parent="FLASH" name="__BL_1_S_H" size="0x200" offset="0x190000" security="n" Pname="CM33" info="@user"/>
+        <memory parent="FLASH" name="__BL_1_S_I" size="0x6FE00" offset="0x190200" security="n" Pname="CM33" info="@user"/>
+        <memory parent="FLASH" name="__BL_1_S_T" size="0x0" offset="0x200000" security="n" Pname="CM33" info="@user"/>
+        <memory parent="DATA_FLASH" name="DATA_FLASH_CM33_S" size="0x2000" offset="0x0" security="s" Pname="CM33"/>
+        <memory parent="DATA_FLASH" name="DATA_FLASH_CM33_N" size="0x0" offset="0x2000" security="n" Pname="CM33"/>
+        <memory parent="QSPI_FLASH" name="QSPI_FLASH_CM33_S" size="0x2000000" offset="0x0" security="s" Pname="CM33"/>
+        <memory parent="QSPI_FLASH" name="QSPI_FLASH_CM33_N" size="0x2000000" offset="0x2000000" security="n" Pname="CM33"/>
+        <memory parent="OSPI0_CS0" name="OSPI0_CS0_CM33_S" size="0x4000000" offset="0x0" security="s" Pname="CM33"/>
+        <memory parent="OSPI0_CS0" name="OSPI0_CS0_CM33_N" size="0x4000000" offset="0x4000000" security="n" Pname="CM33"/>
+        <memory parent="OSPI0_CS1" name="OSPI0_CS1_CM33_S" size="0x8000000" offset="0x0" security="s" Pname="CM33"/>
+        <memory parent="OSPI0_CS1" name="OSPI0_CS1_CM33_N" size="0x8000000" offset="0x8000000" security="n" Pname="CM33"/>
+        <memory parent="OPTION_SETTING_OFS0" name="OPTION_SETTING_OFS0_CM33_S" size="0x4" offset="0x0" security="s" Pname="CM33"/>
+        <memory parent="OPTION_SETTING_DUALSEL" name="OPTION_SETTING_DUALSEL_CM33_S" size="0x4" offset="0x0" security="s" Pname="CM33"/>
+        <memory parent="OPTION_SETTING_OFS1" name="OPTION_SETTING_OFS1_CM33_S" size="0x2" offset="0x0" security="s" Pname="CM33"/>
+        <memory parent="OPTION_SETTING_OFS1" name="OPTION_SETTING_OFS1_CM33_N" size="0x2" offset="0x2" security="n" Pname="CM33"/>
+        <memory parent="OPTION_SETTING_BANKSEL" name="OPTION_SETTING_BANKSEL_CM33_S" size="0x2" offset="0x0" security="s" Pname="CM33"/>
+        <memory parent="OPTION_SETTING_BANKSEL" name="OPTION_SETTING_BANKSEL_CM33_N" size="0x2" offset="0x2" security="n" Pname="CM33"/>
+        <memory parent="OPTION_SETTING_BPS" name="OPTION_SETTING_BPS_CM33_S" size="0x8" offset="0x0" security="s" Pname="CM33"/>
+        <memory parent="OPTION_SETTING_BPS" name="OPTION_SETTING_BPS_CM33_N" size="0x8" offset="0x8" security="n" Pname="CM33"/>
+        <memory parent="OPTION_SETTING_PBPS" name="OPTION_SETTING_PBPS_CM33_S" size="0x8" offset="0x0" security="s" Pname="CM33"/>
+        <memory parent="OPTION_SETTING_PBPS" name="OPTION_SETTING_PBPS_CM33_N" size="0x8" offset="0x8" security="n" Pname="CM33"/>
+        <memory parent="OPTION_SETTING_OFS1_SEC" name="OPTION_SETTING_OFS1_SEC_CM33_S" size="0x4" offset="0x0" security="s" Pname="CM33"/>
+        <memory parent="OPTION_SETTING_BANKSEL_SEC" name="OPTION_SETTING_BANKSEL_SEC_CM33_S" size="0x4" offset="0x0" security="s" Pname="CM33"/>
+        <memory parent="OPTION_SETTING_BPS_SEC" name="OPTION_SETTING_BPS_SEC_CM33_S" size="0x10" offset="0x0" security="s" Pname="CM33"/>
+        <memory parent="OPTION_SETTING_PBPS_SEC" name="OPTION_SETTING_PBPS_SEC_CM33_S" size="0x10" offset="0x0" security="s" Pname="CM33"/>
+        <memory parent="OPTION_SETTING_OFS1_SEL" name="OPTION_SETTING_OFS1_SEL_CM33_S" size="0x4" offset="0x0" security="s" Pname="CM33"/>
+        <memory parent="OPTION_SETTING_BANKSEL_SEL" name="OPTION_SETTING_BANKSEL_SEL_CM33_S" size="0x4" offset="0x0" security="s" Pname="CM33"/>
+        <memory parent="OPTION_SETTING_BPS_SEL" name="OPTION_SETTING_BPS_SEL_CM33_S" size="0x10" offset="0x0" security="s" Pname="CM33"/>
+        <peripheral name="PORT0.CM33" group="PORT">
+            <slot name="P000.CM33" secure="true"/>
+            <slot name="P001.CM33" secure="true"/>
+            <slot name="P002.CM33" secure="true"/>
+            <slot name="P003.CM33" secure="true"/>
+            <slot name="P004.CM33" secure="true"/>
+            <slot name="P005.CM33" secure="true"/>
+            <slot name="P006.CM33" secure="true"/>
+            <slot name="P008.CM33" secure="true"/>
+            <slot name="P014.CM33" secure="true"/>
+            <slot name="P015.CM33" secure="true"/>
+        </peripheral>
+        <peripheral name="PORT1.CM33" group="PORT">
+            <slot name="P100.CM33" secure="true"/>
+            <slot name="P101.CM33" secure="true"/>
+            <slot name="P104.CM33" secure="true"/>
+            <slot name="P105.CM33" secure="true"/>
+            <slot name="P108.CM33" secure="true"/>
+            <slot name="P109.CM33" secure="true"/>
+            <slot name="P110.CM33" secure="true"/>
+            <slot name="P111.CM33" secure="true"/>
+            <slot name="P112.CM33" secure="true"/>
+            <slot name="P113.CM33" secure="true"/>
+            <slot name="P114.CM33" secure="true"/>
+            <slot name="P115.CM33" secure="true"/>
+        </peripheral>
+        <peripheral name="PORT2.CM33" group="PORT">
+            <slot name="P200.CM33" secure="true"/>
+            <slot name="P201.CM33" secure="true"/>
+            <slot name="P202.CM33" secure="true"/>
+            <slot name="P203.CM33" secure="true"/>
+            <slot name="P204.CM33" secure="true"/>
+            <slot name="P205.CM33" secure="true"/>
+            <slot name="P206.CM33" secure="true"/>
+            <slot name="P207.CM33" secure="true"/>
+            <slot name="P208.CM33" secure="true"/>
+            <slot name="P210.CM33" secure="true"/>
+            <slot name="P211.CM33" secure="true"/>
+            <slot name="P214.CM33" secure="true"/>
+        </peripheral>
+        <peripheral name="PORT3.CM33" group="PORT">
+            <slot name="P300.CM33" secure="true"/>
+            <slot name="P301.CM33" secure="true"/>
+            <slot name="P302.CM33" secure="true"/>
+            <slot name="P303.CM33" secure="true"/>
+            <slot name="P306.CM33" secure="true"/>
+            <slot name="P307.CM33" secure="true"/>
+            <slot name="P311.CM33" secure="true"/>
+        </peripheral>
+        <peripheral name="PORT4.CM33" group="PORT">
+            <slot name="P400.CM33" secure="true"/>
+            <slot name="P401.CM33" secure="true"/>
+            <slot name="P402.CM33" secure="true"/>
+            <slot name="P403.CM33" secure="true"/>
+            <slot name="P404.CM33" secure="true"/>
+            <slot name="P405.CM33" secure="true"/>
+            <slot name="P406.CM33" secure="true"/>
+            <slot name="P407.CM33" secure="true"/>
+            <slot name="P409.CM33" secure="true"/>
+            <slot name="P410.CM33" secure="true"/>
+            <slot name="P411.CM33" secure="true"/>
+            <slot name="P412.CM33" secure="true"/>
+            <slot name="P413.CM33" secure="true"/>
+            <slot name="P414.CM33" secure="true"/>
+            <slot name="P415.CM33" secure="true"/>
+        </peripheral>
+        <peripheral name="PORT5.CM33" group="PORT">
+            <slot name="P501.CM33" secure="true"/>
+            <slot name="P502.CM33" secure="true"/>
+            <slot name="P503.CM33" secure="true"/>
+            <slot name="P504.CM33" secure="true"/>
+            <slot name="P505.CM33" secure="true"/>
+            <slot name="P506.CM33" secure="true"/>
+            <slot name="P511.CM33" secure="true"/>
+            <slot name="P512.CM33" secure="true"/>
+        </peripheral>
+        <peripheral name="PORT6.CM33" group="PORT">
+            <slot name="P601.CM33" secure="true"/>
+            <slot name="P602.CM33" secure="true"/>
+            <slot name="P603.CM33" secure="true"/>
+            <slot name="P604.CM33" secure="true"/>
+            <slot name="P605.CM33" secure="true"/>
+            <slot name="P608.CM33" secure="true"/>
+            <slot name="P609.CM33" secure="true"/>
+            <slot name="P610.CM33" secure="true"/>
+            <slot name="P611.CM33" secure="true"/>
+            <slot name="P615.CM33" secure="true"/>
+        </peripheral>
+        <peripheral name="PORT7.CM33" group="PORT">
+            <slot name="P700.CM33" secure="true"/>
+            <slot name="P701.CM33" secure="true"/>
+            <slot name="P702.CM33" secure="true"/>
+            <slot name="P703.CM33" secure="true"/>
+            <slot name="P704.CM33" secure="true"/>
+            <slot name="P705.CM33" secure="true"/>
+            <slot name="P706.CM33" secure="true"/>
+            <slot name="P707.CM33" secure="true"/>
+            <slot name="P708.CM33" secure="true"/>
+        </peripheral>
+        <peripheral name="PORT8.CM33" group="PORT">
+            <slot name="P800.CM33" secure="true"/>
+            <slot name="P802.CM33" secure="true"/>
+            <slot name="P803.CM33" secure="true"/>
+            <slot name="P804.CM33" secure="true"/>
+        </peripheral>
+        <peripheral name="PORTA.CM33" group="PORT">
+            <slot name="PA08.CM33" secure="true"/>
+        </peripheral>
+        <memory parent="RAM" name="RAM_CM33_B" size="0x1C00" offset="0x0" security="s" Pname="CM33"/>
+        <memory parent="DATA_FLASH" name="DATA_FLASH_CM33_B" size="0x0" offset="0x0" security="s" Pname="CM33"/>
+        <memory parent="QSPI_FLASH" name="QSPI_FLASH_CM33_B" size="0x0" offset="0x0" security="s" Pname="CM33"/>
+        <memory parent="OSPI0_CS0" name="OSPI0_CS0_CM33_B" size="0x0" offset="0x0" security="s" Pname="CM33"/>
+        <memory parent="OSPI0_CS1" name="OSPI0_CS1_CM33_B" size="0x0" offset="0x0" security="s" Pname="CM33"/>
+        <memory parent="OPTION_SETTING_OFS0" name="OPTION_SETTING_OFS0_CM33_B" size="0x4" offset="0x0" security="s" Pname="CM33"/>
+        <memory parent="OPTION_SETTING_DUALSEL" name="OPTION_SETTING_DUALSEL_CM33_B" size="0x0" offset="0x0" security="s" Pname="CM33"/>
+        <memory parent="OPTION_SETTING_OFS1" name="OPTION_SETTING_OFS1_CM33_B" size="0x0" offset="0x0" security="s" Pname="CM33"/>
+        <memory parent="OPTION_SETTING_BANKSEL" name="OPTION_SETTING_BANKSEL_CM33_B" size="0x0" offset="0x0" security="s" Pname="CM33"/>
+        <memory parent="OPTION_SETTING_BPS" name="OPTION_SETTING_BPS_CM33_B" size="0x0" offset="0x0" security="s" Pname="CM33"/>
+        <memory parent="OPTION_SETTING_PBPS" name="OPTION_SETTING_PBPS_CM33_B" size="0x0" offset="0x0" security="s" Pname="CM33"/>
+        <memory parent="OPTION_SETTING_OFS1_SEC" name="OPTION_SETTING_OFS1_SEC_CM33_B" size="0x4" offset="0x0" security="s" Pname="CM33"/>
+        <memory parent="OPTION_SETTING_BANKSEL_SEC" name="OPTION_SETTING_BANKSEL_SEC_CM33_B" size="0x0" offset="0x0" security="s" Pname="CM33"/>
+        <memory parent="OPTION_SETTING_BPS_SEC" name="OPTION_SETTING_BPS_SEC_CM33_B" size="0x0" offset="0x0" security="s" Pname="CM33"/>
+        <memory parent="OPTION_SETTING_PBPS_SEC" name="OPTION_SETTING_PBPS_SEC_CM33_B" size="0x0" offset="0x0" security="s" Pname="CM33"/>
+        <memory parent="OPTION_SETTING_OFS1_SEL" name="OPTION_SETTING_OFS1_SEL_CM33_B" size="0x4" offset="0x0" security="s" Pname="CM33"/>
+        <memory parent="OPTION_SETTING_BANKSEL_SEL" name="OPTION_SETTING_BANKSEL_SEL_CM33_B" size="0x0" offset="0x0" security="s" Pname="CM33"/>
+        <memory parent="OPTION_SETTING_BPS_SEL" name="OPTION_SETTING_BPS_SEL_CM33_B" size="0x0" offset="0x0" security="s" Pname="CM33"/>
+    </partition>
+    <zones>
+        <zone name="CM33_S" Pname="CM33" security="s">
+            <assign memory="RAM_CM33_S"/>
+            <assign memory="RAM_CM33_C"/>
+            <assign memory="FLASH_CM33_B"/>
+            <assign memory="UNUSED_SCRAtTCH"/>
+            <assign memory="__BL_0_S_H"/>
+            <assign memory="__BL_0_S_I"/>
+            <assign memory="__BL_0_S_T"/>
+            <assign memory="__BL_0_P_H"/>
+            <assign memory="FLASH_CM33_S"/>
+            <assign memory="FLASH_CM33_C"/>
+            <assign memory="DATA_FLASH_CM33_S"/>
+            <assign memory="QSPI_FLASH_CM33_S"/>
+            <assign memory="OSPI0_CS0_CM33_S"/>
+            <assign memory="OSPI0_CS1_CM33_S"/>
+            <assign memory="OPTION_SETTING_OFS0_CM33_S"/>
+            <assign memory="OPTION_SETTING_DUALSEL_CM33_S"/>
+            <assign memory="OPTION_SETTING_OFS1_CM33_S"/>
+            <assign memory="OPTION_SETTING_BANKSEL_CM33_S"/>
+            <assign memory="OPTION_SETTING_BPS_CM33_S"/>
+            <assign memory="OPTION_SETTING_PBPS_CM33_S"/>
+            <assign memory="OPTION_SETTING_OFS1_SEC_CM33_S"/>
+            <assign memory="OPTION_SETTING_BANKSEL_SEC_CM33_S"/>
+            <assign memory="OPTION_SETTING_BPS_SEC_CM33_S"/>
+            <assign memory="OPTION_SETTING_PBPS_SEC_CM33_S"/>
+            <assign memory="OPTION_SETTING_OFS1_SEL_CM33_S"/>
+            <assign memory="OPTION_SETTING_BANKSEL_SEL_CM33_S"/>
+            <assign memory="OPTION_SETTING_BPS_SEL_CM33_S"/>
+            <assign memory="RAM_CM33_B"/>
+            <assign memory="DATA_FLASH_CM33_B"/>
+            <assign memory="QSPI_FLASH_CM33_B"/>
+            <assign memory="OSPI0_CS0_CM33_B"/>
+            <assign memory="OSPI0_CS1_CM33_B"/>
+            <assign memory="OPTION_SETTING_OFS0_CM33_B"/>
+            <assign memory="OPTION_SETTING_DUALSEL_CM33_B"/>
+            <assign memory="OPTION_SETTING_OFS1_CM33_B"/>
+            <assign memory="OPTION_SETTING_BANKSEL_CM33_B"/>
+            <assign memory="OPTION_SETTING_BPS_CM33_B"/>
+            <assign memory="OPTION_SETTING_PBPS_CM33_B"/>
+            <assign memory="OPTION_SETTING_OFS1_SEC_CM33_B"/>
+            <assign memory="OPTION_SETTING_BANKSEL_SEC_CM33_B"/>
+            <assign memory="OPTION_SETTING_BPS_SEC_CM33_B"/>
+            <assign memory="OPTION_SETTING_PBPS_SEC_CM33_B"/>
+            <assign memory="OPTION_SETTING_OFS1_SEL_CM33_B"/>
+            <assign memory="OPTION_SETTING_BANKSEL_SEL_CM33_B"/>
+            <assign memory="OPTION_SETTING_BPS_SEL_CM33_B"/>
+            <assign group="PORT" peripheral="PORT0.P000"/>
+            <assign group="PORT" peripheral="PORT0.P001"/>
+            <assign group="PORT" peripheral="PORT0.P002"/>
+            <assign group="PORT" peripheral="PORT0.P003"/>
+            <assign group="PORT" peripheral="PORT0.P004"/>
+            <assign group="PORT" peripheral="PORT0.P005"/>
+            <assign group="PORT" peripheral="PORT0.P006"/>
+            <assign group="PORT" peripheral="PORT0.P008"/>
+            <assign group="PORT" peripheral="PORT0.P014"/>
+            <assign group="PORT" peripheral="PORT0.P015"/>
+            <assign group="PORT" peripheral="PORT1.P100"/>
+            <assign group="PORT" peripheral="PORT1.P101"/>
+            <assign group="PORT" peripheral="PORT1.P104"/>
+            <assign group="PORT" peripheral="PORT1.P105"/>
+            <assign group="PORT" peripheral="PORT1.P108"/>
+            <assign group="PORT" peripheral="PORT1.P109"/>
+            <assign group="PORT" peripheral="PORT1.P110"/>
+            <assign group="PORT" peripheral="PORT1.P111"/>
+            <assign group="PORT" peripheral="PORT1.P112"/>
+            <assign group="PORT" peripheral="PORT1.P113"/>
+            <assign group="PORT" peripheral="PORT1.P114"/>
+            <assign group="PORT" peripheral="PORT1.P115"/>
+            <assign group="PORT" peripheral="PORT2.P200"/>
+            <assign group="PORT" peripheral="PORT2.P201"/>
+            <assign group="PORT" peripheral="PORT2.P202"/>
+            <assign group="PORT" peripheral="PORT2.P203"/>
+            <assign group="PORT" peripheral="PORT2.P204"/>
+            <assign group="PORT" peripheral="PORT2.P205"/>
+            <assign group="PORT" peripheral="PORT2.P206"/>
+            <assign group="PORT" peripheral="PORT2.P207"/>
+            <assign group="PORT" peripheral="PORT2.P208"/>
+            <assign group="PORT" peripheral="PORT2.P210"/>
+            <assign group="PORT" peripheral="PORT2.P211"/>
+            <assign group="PORT" peripheral="PORT2.P214"/>
+            <assign group="PORT" peripheral="PORT3.P300"/>
+            <assign group="PORT" peripheral="PORT3.P301"/>
+            <assign group="PORT" peripheral="PORT3.P302"/>
+            <assign group="PORT" peripheral="PORT3.P303"/>
+            <assign group="PORT" peripheral="PORT3.P306"/>
+            <assign group="PORT" peripheral="PORT3.P307"/>
+            <assign group="PORT" peripheral="PORT3.P311"/>
+            <assign group="PORT" peripheral="PORT4.P400"/>
+            <assign group="PORT" peripheral="PORT4.P401"/>
+            <assign group="PORT" peripheral="PORT4.P402"/>
+            <assign group="PORT" peripheral="PORT4.P403"/>
+            <assign group="PORT" peripheral="PORT4.P404"/>
+            <assign group="PORT" peripheral="PORT4.P405"/>
+            <assign group="PORT" peripheral="PORT4.P406"/>
+            <assign group="PORT" peripheral="PORT4.P407"/>
+            <assign group="PORT" peripheral="PORT4.P409"/>
+            <assign group="PORT" peripheral="PORT4.P410"/>
+            <assign group="PORT" peripheral="PORT4.P411"/>
+            <assign group="PORT" peripheral="PORT4.P412"/>
+            <assign group="PORT" peripheral="PORT4.P413"/>
+            <assign group="PORT" peripheral="PORT4.P414"/>
+            <assign group="PORT" peripheral="PORT4.P415"/>
+            <assign group="PORT" peripheral="PORT5.P501"/>
+            <assign group="PORT" peripheral="PORT5.P502"/>
+            <assign group="PORT" peripheral="PORT5.P503"/>
+            <assign group="PORT" peripheral="PORT5.P504"/>
+            <assign group="PORT" peripheral="PORT5.P505"/>
+            <assign group="PORT" peripheral="PORT5.P506"/>
+            <assign group="PORT" peripheral="PORT5.P511"/>
+            <assign group="PORT" peripheral="PORT5.P512"/>
+            <assign group="PORT" peripheral="PORT6.P601"/>
+            <assign group="PORT" peripheral="PORT6.P602"/>
+            <assign group="PORT" peripheral="PORT6.P603"/>
+            <assign group="PORT" peripheral="PORT6.P604"/>
+            <assign group="PORT" peripheral="PORT6.P605"/>
+            <assign group="PORT" peripheral="PORT6.P608"/>
+            <assign group="PORT" peripheral="PORT6.P609"/>
+            <assign group="PORT" peripheral="PORT6.P610"/>
+            <assign group="PORT" peripheral="PORT6.P611"/>
+            <assign group="PORT" peripheral="PORT6.P615"/>
+            <assign group="PORT" peripheral="PORT7.P700"/>
+            <assign group="PORT" peripheral="PORT7.P701"/>
+            <assign group="PORT" peripheral="PORT7.P702"/>
+            <assign group="PORT" peripheral="PORT7.P703"/>
+            <assign group="PORT" peripheral="PORT7.P704"/>
+            <assign group="PORT" peripheral="PORT7.P705"/>
+            <assign group="PORT" peripheral="PORT7.P706"/>
+            <assign group="PORT" peripheral="PORT7.P707"/>
+            <assign group="PORT" peripheral="PORT7.P708"/>
+            <assign group="PORT" peripheral="PORT8.P800"/>
+            <assign group="PORT" peripheral="PORT8.P802"/>
+            <assign group="PORT" peripheral="PORT8.P803"/>
+            <assign group="PORT" peripheral="PORT8.P804"/>
+            <assign group="PORT" peripheral="PORTA.PA08"/>
+        </zone>
+    </zones>
+</azone>
