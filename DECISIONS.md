@@ -1360,3 +1360,51 @@ stopped mid-test, which read as a hang. It was RTT dropping output under load - 
 whole tests missing from the transcript while the final report counts them as passed - and the tail
 of that run, pasted later, showed 236 and 237 passing before a reflash interrupted it at 238. A
 truncated RTT capture is not evidence of a hang; wait for the suite report.
+
+## D046 — RA6M5 PSA Arch on GCC and IAR: crypto, attestation, storage; RTT made lossless
+
+**Date:** 2026-09-23 · **Status:** Accepted · Extends [D045]
+
+**Result.** All three PSA Arch suites run on hardware from both toolchains, on FSP 6.7.0-beta0
+with the SCE9 accelerator and FSP's Mbed TLS. Identical results, zero failures:
+
+| Suite | GCC | IAR |
+|---|---|---|
+| crypto | 63 pass / 0 fail / 1 skip | 63 / 0 / 1 |
+| attestation | 1 / 0 / 0 | 1 / 0 / 0 |
+| storage (ITS + PS) | 11 / 0 / 6 | 11 / 0 / 6 |
+
+Both skips are expected: deterministic ECDSA, which FSP does not support ([D040]), and the
+optional PS APIs (`psa_ps_create`/`set_extended`), which TF-M does not implement - test 414
+passes by confirming they refuse correctly.
+
+**One SPE per toolchain serves all three suites.** profile_large has crypto, ITS, PS,
+attestation and platform all enabled, which is what the suites need; only the NS app differs.
+This follows the RA6E1 GCC arrangement. Build directories: `m5cry` + `m5cryns`/`m5att`/`m5sto`
+(GCC), `m5icry` + `m5icryns`/`m5iatt`/`m5isto` (IAR).
+
+**What an IAR build needs that a GCC one does not.** Four things, none obvious from an error
+message:
+- IAR on `PATH` - `toolchain_IARARM.cmake` names `iccarm` without a path;
+- `-DCMAKE_ASM_COMPILER_ARCHITECTURE_ID=ARM` - CMake 4.1's IAR-ASM module cannot detect it and
+  aborts the *re-configure*, after the first configure has succeeded;
+- `-DTFM_TOOLCHAIN_FILE=<spe>/api_ns/cmake/toolchain_ns_IARARM.cmake` on the NS build, or it
+  silently uses GNUARM and fails looking for `script/fsp.ld` in an IAR project;
+- `-DTOOLCHAIN=INHERIT`, or psa-arch-tests compiles with arm-none-eabi-gcc while being handed
+  IAR flags.
+
+The IAR projects also needed the same `BSP_CFG_EARLY_INIT` and main-stack settings the GCC
+ones did; the build-time guards from [D034] caught both at compile time rather than on the
+board.
+
+**RTT no longer drops output: `RA6M5_RTT_BLOCKING`** (default OFF). SEGGER's default
+`SEGGER_RTT_MODE_NO_BLOCK_SKIP` discards a whole write when the 4 KB up-buffer is full, so a
+fast talker loses entire lines and whole tests from the transcript while the run itself is
+fine - which is what made a truncated capture look like a hang and cost two flash cycles
+([D045]). ON selects `BLOCK_IF_FIFO_FULL` for BL2, the secure image and the NS app, and is
+carried to NS builds through the exported platform config.
+
+Test builds only, hence the default: with no viewer attached nothing drains the buffer and the
+first write past 4 KB blocks forever. The define has to be applied in `ns/CMakeLists.txt` as
+well as the main one - `platform_ns` compiles `SEGGER_RTT.c` there, and patching only the
+secure-side list leaves the NS transcript still lossy.

@@ -121,6 +121,10 @@ built in e2.
 First hardware run (2026-09-21, CK-RA6M5 V2): `FSP_ERR_FCLK` from `R_FLASH_HP_Open` —
 `BSP_CFG_EARLY_INIT` was 0 in both secure and bootloader projects. See below.
 
+**2026-09-23 — all three PSA Arch suites pass from both toolchains** (profile_large, isolation
+3, IPC), on FSP 6.7.0-beta0 — crypto 63/0/1, attestation 1/0/0, storage 11/0/6, identical on
+GCC and IAR, zero failures ([[D046]]). Launches for all six are in `ra6m5_gcc_nonsecure/`.
+
 **2026-09-22 — SCE9 acceleration validated on hardware: PSA Arch crypto 63 passed, 0 failed,
 1 skipped** (profile_large, isolation 3, IPC). The skip is deterministic ECDSA, which FSP does not
 support ([[D040]]). TF-M's crypto is built from FSP's Mbed TLS ([[D042]]) with FSP's SCE9 ALT set
