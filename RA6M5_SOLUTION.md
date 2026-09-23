@@ -188,6 +188,14 @@ real build: see [[D031]].
 
 ## Open items
 
+- **TODO — `psa_arch_spe.bat` fix is stranded on the RA8 branch.** `39e0597` quotes the
+  compiler path so the default `GCC_BIN` (`C:/Program Files (x86)/...`) stops breaking the
+  script: unquoted, the `)` in `(x86)` closed the enclosing `if not exist (` block early, so
+  cmake never ran, the script printed `/Arm was unexpected at this time` **and exited 0**. It
+  affects the RA6M5 PSA Arch build too, but it was committed after PR #4 and so is not on
+  `main`. If RA6 work is picked up before `ra8m2_gen_6_7_TFM` merges back,
+  cherry-pick it: `git cherry-pick 39e0597`.
+
 - **Toolchain.** `ra6m5_iar` is named for IAR but its solution selects `gcc-arm-embedded`.
   RASC can generate an IAR CMake project (`ToolchainIarCMakeGenerator`,
   `template/cmake/iar.cmake` in the SC 2026-07 plugin set) — set the solution toolchain to
