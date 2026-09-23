@@ -1,11 +1,11 @@
 # TF-M on Renesas RA — RA6E1 → RA6M5 → RA8x2 (single-core), FSP 6.6, GNUARM + IAR
 
-**Project plan · Firmware security · revised 2026-09-21**
+**Project plan · Firmware security · revised 2026-09-23**
 
-RA6E1 is **complete on both toolchains** and validated well beyond the original
-bar. The remaining work is two sequential pieces: **RA6M5** (the device intended
-for upstream, and the first with hardware crypto wired in) and **RA8x2
-single-core**.
+RA6E1 and **RA6M5 are both complete on both toolchains**, validated well beyond
+the original bar — RA6M5 is also the first platform here with hardware crypto
+actually doing the work rather than only supplying entropy. The remaining piece
+is **RA8x2 single-core**, which opens 2026-10-19.
 
 **TF-M 2.3 is future work (revised 2026-09-21).** TF-M 2.3 replaces Mbed TLS with
 TF-PSA-Crypto, which has no `*_ALT` mechanism. It moves to the end of the plan,
@@ -48,11 +48,19 @@ dates rather than cutting scope.
 - Three upstream TF-M defects found and fixed along the way (IAR stack seal,
   CMSE veneer placement, vendor-section hooks) — see `UPSTREAM_CHANGES.md`.
 
-**Now — RA6M5 (~mid Oct)**
-- Port to the device intended for upstream submission.
-- **2026-09-21:** GNUARM boots BL2 → S → NS on a CK-RA6M5 V2.
-- **SCE9 hardware crypto wired in** — the first platform here to use it for
-  ciphers rather than entropy alone.
+**Done — RA6M5, both toolchains (2026-09-23, M4 met ~3 weeks early)**
+- Full chain **BL2 → S → NS** on a CK-RA6M5 V2, GNUARM and IAR, on FSP 6.7.0-beta0.
+- **SCE9 hardware crypto active** — the first platform here to use it for ciphers,
+  hashes and ECC rather than entropy alone. BL2 hashes images on the engine too.
+- TF-M's crypto is built from **FSP's own Mbed TLS**, not upstream, because FSP's
+  `*_ALT` sources depend on its PSA core (DECISIONS D042).
+- **PSA Arch on both toolchains** — crypto 63/0/1, attestation 1/0/0, storage 11/0/6,
+  identical results, zero failures (D046).
+- Three defects found in FSP's `*_ALT` sources, two now fixed in the pack
+  (D041, D043, D044).
+
+**Next — RA8x2 single-core (P5 opens Oct 19)**
+- Hardware procurement is the gating item; the board must be in hand before P5.
 
 **Primary goal — RA8x2 single-core (~late Nov)**
 - TrustZone configuration + BSP update on FSP 6.6, GNUARM + IAR.
@@ -73,7 +81,7 @@ dates rather than cutting scope.
 | **P1** | RA6E1 secure image (tfm_s) — GNUARM | 2026-07-28 | 2026-08-14 | ✅ done |
 | **P2** | RA6E1 non-secure · full boot · crypto NSC app (GNUARM) | 2026-08-17 | 2026-09-04 | ✅ done |
 | **P3** | IAR toolchain for RA6E1 | 2026-09-07 | **2026-09-14** | ✅ done, 11d early |
-| **P4** | RA6M5 port + SCE9 crypto acceleration | 2026-09-15 | 2026-10-16 | RA6M5 |
+| **P4** | RA6M5 port + SCE9 crypto acceleration | 2026-09-15 | **2026-09-23** | ✅ done, 23d early |
 | **P5** | RA8x2 single-core — TrustZone cfg + BSP | 2026-10-19 | 2026-11-27 | RA8x2 (key) |
 | **P6** | *Stretch* — upstream to Arm TF-M | 2027-01-11 | 2027-03-26 | Stretch |
 | **P7** | *Future* — TF-M 2.3 / TF-PSA-Crypto | after rsip7 | — | Future |
@@ -96,21 +104,25 @@ rebase that sat ahead of RA8x2 is now future work. P7 is undated.
 - PSA Arch suites, both toolchains.
 - **SCE9 crypto acceleration** — RA6M5 has SCE9, the same engine as RA6E1/RA6M4
   (FSP namespaces it `BSP_FEATURE_RSIP_SCE9_SUPPORTED`; true RSIP parts are RA8).
-  Today only the TRNG is hardware; ciphers run in TF-M's software mbedcrypto with
-  `CRYPTO_HW_ACCELERATOR OFF`.
-  - **Route: FSP `rm_psa_crypto` `*_ALT` sources** built into TF-M's Mbed TLS
-    3.6.3 — AES, AES-GCM, SHA-256, ECDSA/ECDH P-256, plaintext keys. The Renesas
-    wrapped-key vendor driver stays out: it depends on FSP's patched Mbed TLS.
-  - New `platform/ext/accelerator/renesas/sce9/` implementing TF-M's `crypto_hw.h`,
-    with `cc312` as the structural template. **Per-engine directory on purpose** —
-    RA8's RSIP is a different driver API and will land beside it as
-    `renesas/rsip`, not as a variant of this one.
-  - Untangle `FSP_MODULES_NEVER_BUILT` (`r_sce`, `rm_psa_crypto`, FSP's mbedTLS)
-    so FSP's crypto stack can be built without colliding with TF-M's mbedcrypto.
-    This exclusion is load-bearing today; it is the first real task, not a flag flip.
-  - Regression gate: the PSA Arch crypto suite, against the existing 64/64
-    software baseline.
-- **Exit M4** — RA6M5 full chain + crypto app, both toolchains, SCE9 ciphers active.
+  - **Route: FSP `rm_psa_crypto` `*_ALT` sources**, in
+    `platform/ext/accelerator/renesas/sce9/` against TF-M's `crypto_hw.h`, with `cc312`
+    as the structural template. **Per-engine directory on purpose** — RA8's RSIP is a
+    different driver API and lands beside it as `renesas/rsip`. The Renesas wrapped-key
+    vendor driver stays out: it depends on FSP's patched Mbed TLS.
+  - **Built against FSP's Mbed TLS 3.6.6, not upstream** (D042). Pairing the ALT sources
+    with upstream left multi-part GCM broken — FSP's changes live in the PSA core its
+    ALTs are written against — so the port overlays FSP's `include/` and `library/` on
+    upstream scaffolding of the same version.
+  - Accelerated: cipher, AES, GCM, CMAC, SHA-256, ECP/ECDSA, RSA, and SHA-256 for BL2's
+    image hash. **CCM stays in software** — FSP's SCE9 CCM caps associated data at
+    110 B and Protected Storage exceeds it (D043).
+  - `FSP_MODULES_NEVER_BUILT` (`r_sce`, `rm_psa_crypto`, FSP's mbedTLS) untangled, which
+    was the substance of the work rather than a flag flip.
+  - Regression gate met: PSA Arch crypto 63 passed / 0 failed / 1 skipped, the skip being
+    deterministic ECDSA, which FSP does not support (D040).
+- ✅ **Exit M4 met 2026-09-23** — RA6M5 full chain + crypto app on silicon, GNUARM and
+  IAR, SCE9 ciphers active, all three PSA Arch suites passing on both toolchains (D046).
+  Projects are on FSP 6.7.0-beta0; this plan still names 6.6 elsewhere.
 
 > **Sequencing note.** The ALT route is Mbed TLS 3.6-only. It is built now because
 > TF-M 2.3 is deferred to P7, where SCE9 is redone as a PSA transparent driver.
@@ -157,7 +169,7 @@ rebase that sat ahead of RA8x2 is now future work. P7 is undated.
 | M1 | 2026-08-14 | ✅ RA6E1 BL2 → tfm_s boots on silicon |
 | M2 | 2026-09-04 | ✅ Full RA6E1 boot + crypto NSC app (GNUARM) |
 | M3 | **2026-09-14** | ✅ RA6E1 full chain + crypto app, GNUARM **and** IAR |
-| M4 | ~2026-10-16 | RA6M5 full chain, both toolchains, SCE9 ciphers active |
+| M4 | **2026-09-23** | ✅ RA6M5 full chain, both toolchains, SCE9 ciphers active — 23 days early |
 | **M5** | **~2026-11-27** | **RA8x2 single-core full chain + crypto app, GNUARM + IAR** (primary goal) |
 | M6 | ~2027 Q1–Q2 | *Stretch* — merged into Arm TF-M upstream (port waits on M7) |
 | M7 | future | *Future* — TF-M 2.3 / TF-PSA-Crypto, after the rsip7 update |
@@ -169,7 +181,7 @@ rebase that sat ahead of RA8x2 is now future work. P7 is undated.
 | Severity | Risk |
 |---|---|
 | **High** | **RA8x2 new silicon on FSP 6.6.** First bring-up — M85 PACBTI/FPU, RSIP-E51A, TrustZone config. Concentrated in P5. |
-| Med | **SCE9 cipher wiring.** FSP's crypto stack and TF-M's mbedcrypto currently cannot coexist (`FSP_MODULES_NEVER_BUILT`); untangling that is the substance of the accelerator work. The ALT route is Mbed TLS 3.6-only — redone as a PSA driver in P7. |
+| ~~Med~~ | ~~**SCE9 cipher wiring.**~~ **Retired 2026-09-23.** FSP's crypto stack and TF-M's mbedcrypto now coexist; the port builds TF-M's crypto from FSP's Mbed TLS. The ALT route remains Mbed TLS 3.6-only — redone as a PSA driver in P7, and every FSP ALT fix carried here is debt against that rebase. |
 | Med | **IAR replication, round 2.** RA8x2 `.icf` / startup. Materially de-risked — the RA6E1 round is done and the patterns, hooks and three upstream fixes transfer. |
 | Med | **Hardware.** An EK-RA8x2 must be procured before P5 — **Oct 19**, three weeks earlier than the previous plan. The RA6M5 board is in hand. 2× EK-RA6M4 bricked (RA6E1 was the RA6 vehicle). |
 | Med | **TF-M 2.3 debt grows while deferred.** Every change to a shared file adds to the eventual P7 rebase, and upstream submission of the port waits on it. |

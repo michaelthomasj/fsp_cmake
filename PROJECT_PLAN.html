@@ -136,6 +136,7 @@
   .sev.hi{background:color-mix(in srgb,var(--risk) 15%,transparent);color:var(--risk)}
   .sev.md{background:color-mix(in srgb,var(--active) 16%,transparent);color:var(--active)}
   .sev.lo{background:color-mix(in srgb,var(--muted) 18%,transparent);color:var(--muted)}
+  .sev.ok{background:color-mix(in srgb,var(--done) 15%,transparent);color:var(--done)}
   .rk .body{font-size:13px;color:var(--ink-2);line-height:1.45}
   .rk .body b{color:var(--ink);font-weight:600}
   .descoped{margin-top:16px;background:var(--surface-2);border:1px solid var(--line);border-left:4px solid var(--stretch);border-radius:10px;padding:15px 17px;font-size:13.5px;color:var(--ink-2)}
@@ -151,10 +152,10 @@
   <header class="head">
     <div class="eyebrow">Project Plan · Revised 2026-09-14 · RA8x2 descoped to single-core</div>
     <h1>TF-M on Renesas RA — RA6E1 → RA6M5 → RA8x2 (single-core), FSP 6.6, GNUARM + IAR</h1>
-    <p class="sub"><b>RA6E1 is complete on both toolchains</b> and validated beyond the original bar — the PSA Arch attestation, storage and crypto suites all pass under GNUARM and IAR. Remaining work is sequential: <b>RA6M5</b> (the upstream vehicle, and the first platform with hardware crypto wired in), then <b>RA8x2 single-core</b>. The <b>TF-M 2.3 update is future work</b>, after the rsip7 update — 2.3 replaces Mbed TLS with TF-PSA-Crypto. Dual-core and the inter-core mailbox HAL are <b>descoped</b>, removing a whole phase and both High risks. All dates are targets.</p>
+    <p class="sub"><b>RA6E1 and RA6M5 are both complete on both toolchains</b> and validated beyond the original bar — the PSA Arch attestation, storage and crypto suites all pass under GNUARM and IAR on both parts. RA6M5 is the upstream vehicle and the first platform here with <b>SCE9 hardware crypto active</b>. Remaining work is <b>RA8x2 single-core</b>, opening 2026-10-19. The <b>TF-M 2.3 update is future work</b>, after the rsip7 update — 2.3 replaces Mbed TLS with TF-PSA-Crypto. Dual-core and the inter-core mailbox HAL are <b>descoped</b>, removing a whole phase and both High risks. All dates are targets.</p>
     <div class="metarow">
       <div class="meta ok"><div class="k">RA6E1 · GNUARM + IAR</div><div class="v">done 2026-09-14</div></div>
-      <div class="meta"><div class="k">RA6M5 · upstream vehicle</div><div class="v">~2026-10-16</div></div>
+      <div class="meta ok"><div class="k">RA6M5 · upstream vehicle</div><div class="v">done 2026-09-23</div></div>
       <div class="meta mvp"><div class="k">RA8x2 single-core goal</div><div class="v">~2026-11-27</div></div>
       <div class="meta"><div class="k">TF-M 2.3 · TF-PSA-Crypto</div><div class="v">future · after rsip7</div></div>
       <div class="meta"><div class="k">Toolchains</div><div class="v">GNUARM + IAR</div></div>
@@ -228,7 +229,7 @@
 
       <div class="g-lab" style="grid-row:5"><span class="id">P4</span><span class="tx">RA6M5 port + SCE9 crypto</span></div>
       <div class="g-track" style="grid-row:5"></div>
-      <div class="bar ra6" style="grid-row:5;grid-column:7/9">RA6M5 + SCE9<span class="ms">M4</span></div>
+      <div class="bar ok" style="grid-row:5;grid-column:7/9">RA6M5 + SCE9<span class="ms">M4 ✓</span></div>
 
       <div class="g-lab" style="grid-row:6"><span class="id">P5</span><span class="tx">RA8x2 single-core · TZ cfg + BSP</span></div>
       <div class="g-track" style="grid-row:6"></div>
@@ -268,19 +269,21 @@
       <div class="exit">Exit <b class="ok">M1 · M2 · M3</b> — all met; M3 eleven days early.</div>
     </div>
 
-    <div class="ph ra6">
-      <div class="ph-top"><span class="ph-id">P4</span><span class="ph-dates">2026-09-15 → 2026-10-16</span></div>
+    <div class="ph ok">
+      <div class="ph-top"><span class="ph-id">P4</span><span class="ph-dates">2026-09-15 → 2026-09-23 · 23d early</span></div>
       <h3>RA6M5 port + SCE9 crypto acceleration</h3>
       <ul>
         <li>RASC solution projects on FSP 6.6; <span class="mono">platform/ext/target/renesas/ra6m5</span>.</li>
         <li>Memory map, <span class="mono">region_defs.h</span>, linker scripts (<span class="mono">.ld</span> + <span class="mono">.icf</span>), OFS guard.</li>
-        <li>Boot chain + crypto NSC app + PSA Arch suites, GNUARM and IAR.</li>
+        <li>Boot chain + crypto NSC app + PSA Arch suites, GNUARM and IAR — crypto 63/0/1, attestation 1/0/0, storage 11/0/6, identical on both toolchains.</li>
         <li><b>SCE9 ciphers</b> — RA6M5 carries SCE9, as RA6E1/RA6M4 do (FSP namespaces it <span class="mono">BSP_FEATURE_RSIP_SCE9_SUPPORTED</span>; true RSIP is RA8).</li>
         <li>New <span class="mono">platform/ext/accelerator/renesas/sce9/</span> implementing <span class="mono">crypto_hw.h</span>, with <span class="mono">cc312</span> as template — <b>per-engine by design</b>, RSIP lands as <span class="mono">renesas/rsip</span>.</li>
-        <li>Route: FSP <span class="mono">rm_psa_crypto</span> <span class="mono">*_ALT</span> sources built into TF-M's Mbed TLS 3.6.3 — AES, AES-GCM, SHA-256, ECDSA/ECDH P-256, plaintext keys. Untangling <span class="mono">FSP_MODULES_NEVER_BUILT</span> is the first real task.</li>
-        <li><b>2026-09-21:</b> RA6M5 GNUARM boots BL2 → S → NS on a CK-RA6M5 V2.</li>
+        <li>Route: FSP <span class="mono">rm_psa_crypto</span> <span class="mono">*_ALT</span> sources, built against <b>FSP's Mbed TLS 3.6.6</b> rather than upstream — the ALTs depend on FSP's PSA core, and pairing them with upstream left multi-part GCM broken (D042). <span class="mono">FSP_MODULES_NEVER_BUILT</span> untangled.</li>
+        <li>Accelerated: cipher, AES, GCM, CMAC, SHA-256, ECP/ECDSA, RSA, and SHA-256 for BL2's image hash. <b>CCM stays in software</b> — FSP's SCE9 CCM caps associated data at 110 B and Protected Storage exceeds it (D043).</li>
+        <li><b>2026-09-21:</b> GNUARM boots BL2 → S → NS on a CK-RA6M5 V2. <b>2026-09-23:</b> IAR does too, with SCE9 active.</li>
+        <li>Three defects found in FSP's <span class="mono">*_ALT</span> sources; two are fixed in the pack, the third is not an FSP API (D041, D043, D044).</li>
       </ul>
-      <div class="exit">Exit <b>M4</b> — RA6M5 full chain, both toolchains, SCE9 ciphers active.</div>
+      <div class="exit">Exit <b class="ok">M4</b> — met 2026-09-23, 23 days early. RA6M5 full chain, both toolchains, SCE9 ciphers active. Projects are on FSP 6.7.0-beta0; this plan still names 6.6.</div>
     </div>
 
     <div class="ph key">
@@ -329,7 +332,7 @@
         <tr class="ok"><td class="id">M1 ✓</td><td class="date">2026-08-14</td><td class="gate">RA6E1 BL2 → tfm_s boots on silicon</td></tr>
         <tr class="ok"><td class="id">M2 ✓</td><td class="date">2026-09-04</td><td class="gate">Full RA6E1 boot + crypto NSC app (GNUARM)</td></tr>
         <tr class="ok"><td class="id">M3 ✓</td><td class="date">2026-09-14</td><td class="gate"><b>RA6E1 full chain + crypto app, GNUARM and IAR</b> — 11 days early</td></tr>
-        <tr><td class="id">M4</td><td class="date">~2026-10-16</td><td class="gate">RA6M5 full chain, both toolchains, SCE9 ciphers active</td></tr>
+        <tr class="ok"><td class="id">M4 ✓</td><td class="date">2026-09-23</td><td class="gate">RA6M5 full chain, both toolchains, SCE9 ciphers active — 23 days early</td></tr>
         <tr class="key"><td class="id">M5</td><td class="date">~2026-11-27</td><td class="gate"><b>RA8x2 single-core full chain + crypto app, GNUARM + IAR</b> — primary goal</td></tr>
         <tr class="stretch"><td class="id">M6</td><td class="date">~2027 Q1–Q2</td><td class="gate"><i>Stretch</i> — merged into Arm TF-M upstream (port waits on M7)</td></tr>
         <tr class="stretch"><td class="id">M7</td><td class="date">future</td><td class="gate"><i>Future</i> — TF-M 2.3 / TF-PSA-Crypto, after the rsip7 update</td></tr>
@@ -340,7 +343,7 @@
   <h2>Risks &amp; buffer</h2>
   <div class="risks">
     <div class="rk"><div class="sev hi">High</div><div class="body"><b>RA8x2 new silicon on FSP 6.6.</b> First bring-up — M85 PACBTI/FPU, RSIP-E51A, TrustZone configuration. Concentrated in P5.</div></div>
-    <div class="rk"><div class="sev md">Med</div><div class="body"><b>SCE9 cipher wiring.</b> FSP's crypto stack and TF-M's mbedcrypto cannot currently coexist (<span class="mono">FSP_MODULES_NEVER_BUILT</span>); untangling that is the substance of the accelerator work. The ALT route is Mbed TLS 3.6-only — it is redone as a PSA driver in P7.</div></div>
+    <div class="rk"><div class="sev ok">Retired</div><div class="body"><b>SCE9 cipher wiring.</b> Closed 2026-09-23. FSP's crypto stack and TF-M's mbedcrypto now coexist: TF-M's crypto is built from FSP's own Mbed TLS, with <span class="mono">FSP_MODULES_NEVER_BUILT</span> untangled. The ALT route remains Mbed TLS 3.6-only — redone as a PSA driver in P7, and every FSP ALT fix carried here is debt against that rebase.</div></div>
     <div class="rk"><div class="sev md">Med</div><div class="body"><b>IAR replication, round 2.</b> RA8x2 <span class="mono">.icf</span> / startup. Materially de-risked — the RA6E1 round is done and the patterns, hooks and three upstream fixes transfer directly.</div></div>
     <div class="rk"><div class="sev md">Med</div><div class="body"><b>Hardware.</b> An EK-RA8x2 must be procured before P5 — <b>Oct 19</b>, three weeks earlier than the previous plan. The RA6M5 board is in hand. Procurement lead time is not absorbed by schedule slack. 2× EK-RA6M4 bricked; RA6E1 was the RA6 vehicle.</div></div>
     <div class="rk"><div class="sev md">Med</div><div class="body"><b>TF-M 2.3 debt grows while deferred.</b> Every change to a shared file adds to the eventual P7 rebase, and upstream submission of the port waits on it.</div></div>
