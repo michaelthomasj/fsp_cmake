@@ -97,8 +97,8 @@ FSP Configuration
     
   RA6M5 event data
   RA Common
-    Main stack size (bytes): 0x400
-    Heap size (bytes): 0
+    Main stack size (bytes): 0x1000
+    Heap size (bytes): 0x1500
     Bootloader Secondary XIP: Disabled
     MCU Vcc (mV): 3300
     Parameter checking: Disabled
@@ -107,7 +107,7 @@ FSP Configuration
     Main Oscillator Populated: Not Populated
     PFS Protect: Enabled
     C Runtime Initialization : Enabled
-    Early BSP Initialization : Disabled
+    Early BSP Initialization : Enabled
     Main Oscillator Clock Source: Crystal or Resonator
     Subclock Populated: Not Populated
     Subclock Drive (Drive capacitance availability varies by MCU): Standard/Normal mode
@@ -513,6 +513,316 @@ FSP Configuration
     Parameter Checking: Default (BSP)
     CCD Support: Not Supported
     
+  Module "Flash (r_flash_hp)"
+    Parameter Checking: Default (BSP)
+    Code Flash Programming Enable: Enabled
+    Data Flash Programming Enable: Enabled
+    
+  Module "MbedTLS (Crypto Only)"
+    Hardware Acceleration: TRNG: Enabled
+    Hardware Acceleration: Key Format: AES: Plaintext and Wrapped (Vendor)
+    Hardware Acceleration: Key Format: ECC: Plaintext and Wrapped (Vendor)
+    Hardware Acceleration: Key Format: RSA: Plaintext and Wrapped (Vendor)
+    Hardware Acceleration: Hash: SHA256/224: Use Hardware
+    Hardware Acceleration: Hash: SHA512/384: Use Software
+    Hardware Acceleration: Hash: SHA3_224/256/384/512: Use Software
+    Hardware Acceleration: Cipher: AES: Use Hardware
+    Hardware Acceleration: Public Key Cryptography (PKC): ECC: Use Hardware
+    Hardware Acceleration: Public Key Cryptography (PKC): ECDSA : Use Hardware
+    Hardware Acceleration: Public Key Cryptography (PKC): ECDH : Use Hardware
+    Hardware Acceleration: Public Key Cryptography (PKC): RSA 1024: Use Software
+    Hardware Acceleration: Public Key Cryptography (PKC): RSA 2048: Use Hardware
+    Hardware Acceleration: Public Key Cryptography (PKC): RSA 3072: Key Generation: Disabled
+    Hardware Acceleration: Public Key Cryptography (PKC): RSA 3072: Signing: Disabled
+    Hardware Acceleration: Public Key Cryptography (PKC): RSA 3072: Verification: Disabled
+    Hardware Acceleration: Public Key Cryptography (PKC): RSA 4096: Key Generation: Disabled
+    Hardware Acceleration: Public Key Cryptography (PKC): RSA 4096: Signing: Disabled
+    Hardware Acceleration: Public Key Cryptography (PKC): RSA 4096: Verification: Disabled
+    Hardware Acceleration: Crypto Engine Initialization: Enabled
+    Platform: MBEDTLS_HAVE_ASM: Undefine
+    Platform: MBEDTLS_NO_UDBL_DIVISION: Undefine
+    Platform: MBEDTLS_NO_64BIT_MULTIPLICATION: Undefine
+    Platform: MBEDTLS_HAVE_SSE2: Undefine
+    Platform: MBEDTLS_HAVE_TIME: Undefine
+    Platform: MBEDTLS_HAVE_TIME_DATE: Undefine
+    Platform: MBEDTLS_PLATFORM_MEMORY: Undefine
+    Platform: MBEDTLS_PLATFORM_NO_STD_FUNCTIONS: Undefine
+    Platform: Alternate: MBEDTLS_PLATFORM_SETBUF_ALT: Undefine
+    Platform: Alternate: MBEDTLS_PLATFORM_EXIT_ALT: Undefine
+    Platform: Alternate: MBEDTLS_PLATFORM_TIME_ALT: Undefine
+    Platform: Alternate: MBEDTLS_PLATFORM_FPRINTF_ALT: Undefine
+    Platform: Alternate: MBEDTLS_PLATFORM_PRINTF_ALT: Undefine
+    Platform: Alternate: MBEDTLS_PLATFORM_SNPRINTF_ALT: Undefine
+    Platform: Alternate: MBEDTLS_PLATFORM_VSNPRINTF_ALT: Undefine
+    Platform: Alternate: MBEDTLS_PLATFORM_NV_SEED_ALT: Undefine
+    Platform: Alternate: MBEDTLS_PLATFORM_MS_TIME_ALT: Undefine
+    General: MBEDTLS_PSA_CRYPTO_DRIVERS: Undefine
+    General: MBEDTLS_DEPRECATED_WARNING: Undefine
+    General: MBEDTLS_DEPRECATED_REMOVED: Define
+    Platform: MBEDTLS_TIMING_ALT: Undefine
+    Cipher: Alternate: MBEDTLS_ARIA_ALT: Undefine
+    Cipher: Alternate: MBEDTLS_CAMELLIA_ALT: Undefine
+    Cipher: Alternate: MBEDTLS_CCM_ALT: Define
+    Cipher: Alternate: MBEDTLS_CHACHA20_ALT: Use Software
+    Cipher: Alternate: MBEDTLS_CHACHAPOLY_ALT: Use Software
+    Cipher: Alternate: MBEDTLS_CMAC_ALT: Define
+    Cipher: Alternate: MBEDTLS_DES_ALT: Undefine
+    Public Key Cryptography (PKC): DHM: Alternate: MBEDTLS_DHM_ALT: Undefine
+    Public Key Cryptography (PKC): ECC: Alternate: MBEDTLS_ECJPAKE_ALT: Undefine
+    Cipher: Alternate: MBEDTLS_GCM_ALT: Define
+    Cipher: Alternate: MBEDTLS_NIST_KW_ALT: Undefine
+    Hash: Alternate: MBEDTLS_MD5_ALT: Undefine
+    Message Authentication Code (MAC): Alternate: MBEDTLS_POLY1305_ALT: Undefine
+    Hash: Alternate: MBEDTLS_RIPEMD160_ALT: Undefine
+    Hash: Alternate: MBEDTLS_SHA1_ALT: Undefine
+    Hash: Alternate: MBEDTLS_MD5_PROCESS_ALT: Undefine
+    Hash: Alternate: MBEDTLS_RIPEMD160_PROCESS_ALT: Undefine
+    Hash: Alternate: MBEDTLS_SHA1_PROCESS_ALT: Undefine
+    Cipher: Alternate: MBEDTLS_DES_SETKEY_ALT: Undefine
+    Cipher: Alternate: MBEDTLS_DES_CRYPT_ECB_ALT: Undefine
+    Cipher: Alternate: MBEDTLS_DES3_CRYPT_ECB_ALT: Undefine
+    Public Key Cryptography (PKC): ECC: MBEDTLS_ECDH_GEN_PUBLIC_ALT: Undefine
+    Public Key Cryptography (PKC): ECC: MBEDTLS_ECDH_COMPUTE_SHARED_ALT: Undefine
+    Public Key Cryptography (PKC): ECC: Alternate: MBEDTLS_ECDSA_GENKEY_ALT: Undefine
+    Public Key Cryptography (PKC): ECC: Alternate: MBEDTLS_ECP_INTERNAL_ALT: Undefine
+    Public Key Cryptography (PKC): ECC: MBEDTLS_ECP_NO_FALLBACK: Undefine
+    Public Key Cryptography (PKC): ECC: Alternate: MBEDTLS_ECP_RANDOMIZE_JAC_ALT: Undefine
+    Public Key Cryptography (PKC): ECC: Alternate: MBEDTLS_ECP_ADD_MIXED_ALT: Undefine
+    Public Key Cryptography (PKC): ECC: Alternate: MBEDTLS_ECP_DOUBLE_JAC_ALT: Undefine
+    Public Key Cryptography (PKC): ECC: Alternate: MBEDTLS_ECP_NORMALIZE_JAC_MANY_ALT: Undefine
+    Public Key Cryptography (PKC): ECC: Alternate: MBEDTLS_ECP_NORMALIZE_JAC_ALT: Undefine
+    Public Key Cryptography (PKC): ECC: Alternate: MBEDTLS_ECP_DOUBLE_ADD_MXZ_ALT: Undefine
+    Public Key Cryptography (PKC): ECC: Alternate: MBEDTLS_ECP_RANDOMIZE_MXZ_ALT: Undefine
+    Public Key Cryptography (PKC): ECC: Alternate: MBEDTLS_ECP_NORMALIZE_MXZ_ALT: Undefine
+    Cipher: AES: MBEDTLS_AES_ROM_TABLES: Undefine
+    Cipher: AES: MBEDTLS_AES_FEWER_TABLES: Undefine
+    Cipher: AES: MBEDTLS_AES_ONLY_128_BIT_KEY_LENGTH: Undefine
+    Cipher: MBEDTLS_CAMELLIA_SMALL_MEMORY: Undefine
+    General: MBEDTLS_CHECK_RETURN_WARNING: Undefine
+    Cipher: MBEDTLS_CIPHER_MODE_CBC: Define
+    Cipher: MBEDTLS_CIPHER_MODE_CFB: Define
+    Cipher: MBEDTLS_CIPHER_MODE_CTR: Define
+    Cipher: MBEDTLS_CIPHER_MODE_OFB: Undefine
+    Cipher: MBEDTLS_CIPHER_MODE_XTS: Undefine
+    Cipher: MBEDTLS_CIPHER_NULL_CIPHER: Undefine
+    Cipher: MBEDTLS_CIPHER_PADDING_PKCS7: Define
+    Cipher: MBEDTLS_CIPHER_PADDING_ONE_AND_ZEROS: Define
+    Cipher: MBEDTLS_CIPHER_PADDING_ZEROS_AND_LEN: Define
+    Cipher: MBEDTLS_CIPHER_PADDING_ZEROS: Define
+    Public Key Cryptography (PKC): ECC: Curves: MBEDTLS_ECP_DP_SECP192R1_ENABLED: Undefine
+    Public Key Cryptography (PKC): ECC: Curves: MBEDTLS_ECP_DP_SECP224R1_ENABLED: Undefine
+    Public Key Cryptography (PKC): ECC: Curves: MBEDTLS_ECP_DP_SECP256R1_ENABLED: Define
+    Public Key Cryptography (PKC): ECC: Curves: MBEDTLS_ECP_DP_SECP384R1_ENABLED: Undefine
+    Public Key Cryptography (PKC): ECC: Curves: MBEDTLS_ECP_DP_SECP521R1_ENABLED: Undefine
+    Public Key Cryptography (PKC): ECC: Curves: MBEDTLS_ECP_DP_SECP192K1_ENABLED: Undefine
+    Public Key Cryptography (PKC): ECC: Curves: MBEDTLS_ECP_DP_SECP224K1_ENABLED: Undefine
+    Public Key Cryptography (PKC): ECC: Curves: MBEDTLS_ECP_DP_SECP256K1_ENABLED: Undefine
+    Public Key Cryptography (PKC): ECC: Curves: MBEDTLS_ECP_DP_BP256R1_ENABLED: Undefine
+    Public Key Cryptography (PKC): ECC: Curves: MBEDTLS_ECP_DP_BP384R1_ENABLED: Undefine
+    Public Key Cryptography (PKC): ECC: Curves: MBEDTLS_ECP_DP_BP512R1_ENABLED: Undefine
+    Public Key Cryptography (PKC): ECC: Curves: MBEDTLS_ECP_DP_CURVE25519_ENABLED: Undefine
+    Public Key Cryptography (PKC): ECC: Curves: MBEDTLS_ECP_DP_CURVE448_ENABLED: Undefine
+    Public Key Cryptography (PKC): ECC: MBEDTLS_ECP_NIST_OPTIM: Undefine
+    Public Key Cryptography (PKC): ECC: MBEDTLS_ECP_RESTARTABLE: Undefine
+    Public Key Cryptography (PKC): ECC: MBEDTLS_ECDSA_DETERMINISTIC: Undefine
+    Public Key Cryptography (PKC): ECC: MBEDTLS_PK_PARSE_EC_COMPRESSED: Undefine
+    Public Key Cryptography (PKC): ECC: MBEDTLS_PK_PARSE_EC_EXTENDED: Undefine
+    General: MBEDTLS_ERROR_STRERROR_DUMMY: Define
+    Public Key Cryptography (PKC): MBEDTLS_GENPRIME: Define
+    Storage: MBEDTLS_FS_IO: Undefine
+    RNG: MBEDTLS_NO_DEFAULT_ENTROPY_SOURCES: Undefine
+    Platform: MBEDTLS_NO_PLATFORM_ENTROPY: Define
+    RNG: MBEDTLS_ENTROPY_FORCE_SHA256: Undefine
+    RNG: MBEDTLS_ENTROPY_NV_SEED: Undefine
+    Key Configuration: MBEDTLS_PSA_CRYPTO_KEY_ID_ENCODES_OWNER: Undefine
+    General: MBEDTLS_MEMORY_DEBUG: Undefine
+    General: MBEDTLS_MEMORY_BACKTRACE: Undefine
+    Public Key Cryptography (PKC): RSA: MBEDTLS_PK_RSA_ALT_SUPPORT: Undefine
+    Public Key Cryptography (PKC): MBEDTLS_PKCS1_V15: Define
+    Public Key Cryptography (PKC): MBEDTLS_PKCS1_V21: Define
+    Key Configuration: MBEDTLS_PSA_CRYPTO_BUILTIN_KEYS: Undefine
+    Key Configuration: PSA_CRYPTO_DRIVER_TFM_BUILTIN_KEY_LOADER: Undefine
+    General: MBEDTLS_PSA_CRYPTO_CLIENT: Undefine
+    RNG: MBEDTLS_PSA_CRYPTO_EXTERNAL_RNG: Undefine
+    General: MBEDTLS_PSA_CRYPTO_SPM: Undefine
+    General: MBEDTLS_PSA_KEY_STORE_DYNAMIC: Undefine
+    RNG: MBEDTLS_PSA_INJECT_ENTROPY: Undefine
+    General: MBEDTLS_PSA_ASSUME_EXCLUSIVE_BUFFERS: Undefine
+    Public Key Cryptography (PKC): RSA: MBEDTLS_RSA_NO_CRT: Define
+    General: MBEDTLS_SELF_TEST: Undefine
+    Hash: MBEDTLS_SHA256_SMALLER: Undefine
+    Hash: MBEDTLS_SHA512_SMALLER: Undefine
+    General: MBEDTLS_THREADING_ALT: Undefine
+    General: MBEDTLS_THREADING_PTHREAD: Undefine
+    General: MBEDTLS_USE_PSA_CRYPTO: Undefine
+    General: MBEDTLS_VERSION_FEATURES: Define
+    Cipher: MBEDTLS_AES_C: Define
+    Public Key Cryptography (PKC): MBEDTLS_ASN1_PARSE_C: Define
+    Public Key Cryptography (PKC): MBEDTLS_ASN1_WRITE_C: Define
+    Public Key Cryptography (PKC): MBEDTLS_BASE64_C: Define
+    Cipher: MBEDTLS_BLOCK_CIPHER_NO_DECRYPT: Undefine
+    Public Key Cryptography (PKC): MBEDTLS_BIGNUM_C: Define
+    Cipher: MBEDTLS_CAMELLIA_C: Undefine
+    Cipher: MBEDTLS_ARIA_C: Undefine
+    Cipher: MBEDTLS_CCM_C: Define
+    Cipher: MBEDTLS_CHACHA20_C: Undefine
+    Cipher: MBEDTLS_CHACHAPOLY_C: Undefine
+    Cipher: MBEDTLS_CIPHER_C: Define
+    Message Authentication Code (MAC): MBEDTLS_CMAC_C: Undefine
+    RNG: MBEDTLS_CTR_DRBG_C: Define
+    RNG: MBEDTLS_CTR_DRBG_C_ALT: Define
+    Cipher: MBEDTLS_DES_C: Undefine
+    Public Key Cryptography (PKC): DHM: MBEDTLS_DHM_C: Undefine
+    Public Key Cryptography (PKC): ECC: MBEDTLS_ECDH_C: Undefine
+    Public Key Cryptography (PKC): ECC: MBEDTLS_ECDSA_C: Define
+    Public Key Cryptography (PKC): ECC: MBEDTLS_ECP_C: Define
+    Public Key Cryptography (PKC): ECC: MBEDTLS_ECJPAKE_C: Undefine
+    Platform: MBEDTLS_ENTROPY_C: Define
+    General: MBEDTLS_ERROR_C: Define
+    Cipher: MBEDTLS_GCM_C: Define
+    Cipher: MBEDTLS_GCM_LARGE_TABLE: Undefine
+    Message Authentication Code (MAC): MBEDTLS_HKDF_C: Define
+    Message Authentication Code (MAC): MBEDTLS_HMAC_DRBG_C: Undefine
+    Public Key Cryptography (PKC): MBEDTLS_LMS_C: Define
+    Public Key Cryptography (PKC): MBEDTLS_LMS_PRIVATE: Undefine
+    Cipher: MBEDTLS_NIST_KW_C: Undefine
+    Hash: MBEDTLS_MD_C: Define
+    Hash: MBEDTLS_MD5_C: Define
+    General: MBEDTLS_MEMORY_BUFFER_ALLOC_C: Undefine
+    Post Quantum Cryptography (PQC): MBEDTLS_MLKEM_C: Undefine
+    Post Quantum Cryptography (PQC): MBEDTLS_ML_DSA_C: Undefine
+    Public Key Cryptography (PKC): MBEDTLS_OID_C: Define
+    Public Key Cryptography (PKC): MBEDTLS_PEM_PARSE_C: Define
+    Public Key Cryptography (PKC): MBEDTLS_PEM_WRITE_C: Define
+    Public Key Cryptography (PKC): MBEDTLS_PK_C: Define
+    Public Key Cryptography (PKC): MBEDTLS_PK_PARSE_C: Define
+    Public Key Cryptography (PKC): MBEDTLS_PK_WRITE_C: Define
+    Public Key Cryptography (PKC): MBEDTLS_PKCS5_C: Define
+    Public Key Cryptography (PKC): MBEDTLS_PKCS7_C: Undefine
+    Public Key Cryptography (PKC): MBEDTLS_PKCS12_C: Define
+    Platform: MBEDTLS_PLATFORM_C: Define
+    Message Authentication Code (MAC): MBEDTLS_POLY1305_C: Undefine
+    General: MBEDTLS_PSA_CRYPTO_C: Define
+    General: MBEDTLS_PSA_CRYPTO_SE_C: Undefine
+    Storage: MBEDTLS_PSA_CRYPTO_STORAGE_C: Undefine
+    Storage: MBEDTLS_PSA_ITS_FILE_C: Undefine
+    Storage: MBEDTLS_PSA_STATIC_KEY_SLOTS: Undefine
+    Hash: MBEDTLS_RIPEMD160_C: Undefine
+    Public Key Cryptography (PKC): RSA: MBEDTLS_RSA_C: Define
+    Public Key Cryptography (PKC): RSA: MBEDTLS_RSA_GEN_KEY_MIN_BITS: Undefine
+    Public Key Cryptography (PKC): RSA: MBEDTLS_RSA_GEN_KEY_MIN_BITS value: 1024
+    Hash: MBEDTLS_SHA1_C: Define
+    Hash: MBEDTLS_SHA3_C: Undefine
+    Hash: MBEDTLS_SHA224_C: Define
+    Hash: MBEDTLS_SHA256_C: Define
+    Hash: MBEDTLS_SHA384_C: Undefine
+    Hash: MBEDTLS_SHA512_C: Undefine
+    General: MBEDTLS_THREADING_C: Undefine
+    General: MBEDTLS_TIMING_C: Undefine
+    General: MBEDTLS_VERSION_C: Define
+    Public Key Cryptography (PKC): MBEDTLS_MPI_WINDOW_SIZE: Undefine
+    Public Key Cryptography (PKC): MBEDTLS_MPI_WINDOW_SIZE value: 6
+    Public Key Cryptography (PKC): MBEDTLS_MPI_MAX_SIZE: Undefine
+    Public Key Cryptography (PKC): MBEDTLS_MPI_MAX_SIZE value: 1024
+    RNG: MBEDTLS_CTR_DRBG_ENTROPY_LEN: Undefine
+    RNG: MBEDTLS_CTR_DRBG_ENTROPY_LEN value: 48
+    RNG: MBEDTLS_CTR_DRBG_RESEED_INTERVAL: Undefine
+    RNG: MBEDTLS_CTR_DRBG_RESEED_INTERVAL value: 10000
+    RNG: MBEDTLS_CTR_DRBG_MAX_INPUT: Undefine
+    RNG: MBEDTLS_CTR_DRBG_MAX_INPUT value: 256
+    RNG: MBEDTLS_CTR_DRBG_MAX_REQUEST: Undefine
+    RNG: MBEDTLS_CTR_DRBG_MAX_REQUEST value: 1024
+    RNG: MBEDTLS_CTR_DRBG_MAX_SEED_INPUT: Undefine
+    RNG: MBEDTLS_CTR_DRBG_MAX_SEED_INPUT value: 384
+    RNG: MBEDTLS_CTR_DRBG_USE_128_BIT_KEY: Undefine
+    RNG: MBEDTLS_HMAC_DRBG_RESEED_INTERVAL: Undefine
+    RNG: MBEDTLS_HMAC_DRBG_RESEED_INTERVAL value: 10000
+    RNG: MBEDTLS_HMAC_DRBG_MAX_INPUT: Undefine
+    RNG: MBEDTLS_HMAC_DRBG_MAX_INPUT value: 256
+    RNG: MBEDTLS_HMAC_DRBG_MAX_REQUEST: Undefine
+    RNG: MBEDTLS_HMAC_DRBG_MAX_REQUEST value: 1024
+    RNG: MBEDTLS_HMAC_DRBG_MAX_SEED_INPUT: Undefine
+    RNG: MBEDTLS_HMAC_DRBG_MAX_SEED_INPUT value: 384
+    Public Key Cryptography (PKC): ECC: MBEDTLS_ECP_WINDOW_SIZE: Undefine
+    Public Key Cryptography (PKC): ECC: MBEDTLS_ECP_WINDOW_SIZE value: 6
+    Public Key Cryptography (PKC): ECC: MBEDTLS_ECP_FIXED_POINT_OPTIM: Undefine
+    Public Key Cryptography (PKC): ECC: MBEDTLS_ECP_FIXED_POINT_OPTIM value: 1
+    RNG: MBEDTLS_ENTROPY_MAX_SOURCES: Undefine
+    RNG: MBEDTLS_ENTROPY_MAX_SOURCES value: 20
+    RNG: MBEDTLS_ENTROPY_MAX_GATHER: Undefine
+    RNG: MBEDTLS_ENTROPY_MAX_GATHER value: 128
+    RNG: MBEDTLS_ENTROPY_MIN_HARDWARE: Undefine
+    RNG: MBEDTLS_ENTROPY_MIN_HARDWARE value: 32
+    General: MBEDTLS_MEMORY_ALIGN_MULTIPLE: Undefine
+    General: MBEDTLS_MEMORY_ALIGN_MULTIPLE value: 4
+    Platform: MBEDTLS_PLATFORM_STD_CALLOC: Undefine
+    Platform: MBEDTLS_PLATFORM_STD_CALLOC value: calloc
+    Platform: MBEDTLS_PLATFORM_STD_FREE: Undefine
+    Platform: MBEDTLS_PLATFORM_STD_FREE value: free
+    Platform: MBEDTLS_PLATFORM_STD_SETBUF: Undefine
+    Platform: MBEDTLS_PLATFORM_STD_SETBUF value: setbuf
+    Platform: MBEDTLS_PLATFORM_STD_EXIT: Undefine
+    Platform: MBEDTLS_PLATFORM_STD_EXIT value: exit
+    Platform: MBEDTLS_PLATFORM_STD_TIME: Undefine
+    Platform: MBEDTLS_PLATFORM_STD_TIME value: time
+    Platform: MBEDTLS_PLATFORM_STD_FPRINTF: Undefine
+    Platform: MBEDTLS_PLATFORM_STD_FPRINTF value: fprintf
+    Platform: MBEDTLS_PLATFORM_STD_PRINTF: Undefine
+    Platform: MBEDTLS_PLATFORM_STD_PRINTF value: printf
+    Platform: MBEDTLS_PLATFORM_STD_SNPRINTF: Undefine
+    Platform: MBEDTLS_PLATFORM_STD_SNPRINTF value: snprintf
+    Platform: MBEDTLS_PLATFORM_STD_EXIT_SUCCESS: Undefine
+    Platform: MBEDTLS_PLATFORM_STD_EXIT_SUCCESS value: 0
+    Platform: MBEDTLS_PLATFORM_STD_EXIT_FAILURE: Undefine
+    Platform: MBEDTLS_PLATFORM_STD_EXIT_FAILURE value: 1
+    Platform: MBEDTLS_PLATFORM_STD_NV_SEED_READ: Undefine
+    Platform: MBEDTLS_PLATFORM_STD_NV_SEED_READ value: mbedtls_platform_std_nv_seed_read
+    Platform: MBEDTLS_PLATFORM_STD_NV_SEED_WRITE: Undefine
+    Platform: MBEDTLS_PLATFORM_STD_NV_SEED_WRITE value: mbedtls_platform_std_nv_seed_write
+    Platform: MBEDTLS_PLATFORM_STD_NV_SEED_FILE: Undefine
+    Platform: MBEDTLS_PLATFORM_STD_NV_SEED_FILE value: 
+    Platform: MBEDTLS_PLATFORM_CALLOC_MACRO: Undefine
+    Platform: MBEDTLS_PLATFORM_CALLOC_MACRO value: calloc
+    Platform: MBEDTLS_PLATFORM_FREE_MACRO: Undefine
+    Platform: MBEDTLS_PLATFORM_FREE_MACRO value: free
+    Platform: MBEDTLS_PLATFORM_EXIT_MACRO: Undefine
+    Platform: MBEDTLS_PLATFORM_EXIT_MACRO value: exit
+    Platform: MBEDTLS_PLATFORM_SETBUF_MACRO: Define
+    Platform: MBEDTLS_PLATFORM_SETBUF_MACRO value: dummy_setbuf
+    Platform: MBEDTLS_PLATFORM_TIME_MACRO: Undefine
+    Platform: MBEDTLS_PLATFORM_TIME_MACRO value: time
+    Platform: MBEDTLS_PLATFORM_TIME_TYPE_MACRO: Undefine
+    Platform: MBEDTLS_PLATFORM_TIME_TYPE_MACRO value: time_t
+    Platform: MBEDTLS_PLATFORM_MS_TIME_TYPE_MACRO: Undefine
+    Platform: MBEDTLS_PLATFORM_MS_TIME_TYPE_MACRO value: int64_t
+    Platform: MBEDTLS_PRINTF_MS_TIME: Undefine
+    Platform: MBEDTLS_PLATFORM_DEV_RANDOM: Undefine
+    Platform: MBEDTLS_PRINTF_MS_TIME value: PRId64
+    Platform: MBEDTLS_PLATFORM_FPRINTF_MACRO: Undefine
+    Platform: MBEDTLS_PLATFORM_FPRINTF_MACRO value: fprintf
+    Platform: MBEDTLS_PLATFORM_PRINTF_MACRO: Undefine
+    Platform: MBEDTLS_PLATFORM_PRINTF_MACRO value: printf
+    Platform: MBEDTLS_PLATFORM_SNPRINTF_MACRO: Undefine
+    Platform: MBEDTLS_PLATFORM_SNPRINTF_MACRO value: snprintf
+    Platform: MBEDTLS_PLATFORM_VSNPRINTF_MACRO: Undefine
+    Platform: MBEDTLS_PLATFORM_VSNPRINTF_MACRO value: vsnprintf
+    Platform: MBEDTLS_PLATFORM_NV_SEED_READ_MACRO: Undefine
+    Platform: MBEDTLS_PLATFORM_NV_SEED_READ_MACRO value: mbedtls_platform_std_nv_seed_read
+    Platform: MBEDTLS_PLATFORM_NV_SEED_WRITE_MACRO: Undefine
+    Platform: MBEDTLS_PLATFORM_NV_SEED_WRITE_MACRO value: mbedtls_platform_std_nv_seed_write
+    General: MBEDTLS_CHECK_RETURN: Define
+    General: MBEDTLS_IGNORE_RETURN: Undefine
+    HMAC: MBEDTLS_PSA_HMAC_DRBG_MD_TYPE: Define
+    Platform: Alternate: MBEDTLS_PLATFORM_ZEROIZE_ALT: Undefine
+    Key Configuration: MBEDTLS_PSA_KEY_SLOT_COUNT: Undefine
+    Key Configuration: MBEDTLS_PSA_KEY_SLOT_COUNT value: 32
+    Key Configuration: MBEDTLS_PSA_STATIC_KEY_SLOT_BUFFER_SIZE value: 256
+    Platform: Alternate: MBEDTLS_PLATFORM_GMTIME_R_ALT: Undefine
+    Public Key Cryptography (PKC): ECC: MBEDTLS_ECDH_VARIANT_EVEREST_ENABLED: Undefine
+    General: MBEDTLS_PSA_CRYPTO_CONFIG: Undefine
+    
+  Module "MbedTLS Crypto Port (rm_psa_crypto)"
+  Module "SCE Compatibility Mode"
   HAL
     Instance "g_ioport I/O Port (r_ioport)"
       Name: g_ioport
@@ -522,3 +832,13 @@ FSP Configuration
       4th Port ELC Trigger Source: Disabled
       Pin Configuration Name: g_bsp_pin_cfg
       
+    Instance "g_flash0 Flash (r_flash_hp)"
+      Name: g_flash0
+      Data Flash Background Operation: Disabled
+      Callback: NULL
+      Flash Ready Interrupt Priority: Disabled
+      Flash Error Interrupt Priority: Disabled
+      
+    Instance "MbedTLS (Crypto Only)"
+      Instance "MbedTLS Crypto Port (rm_psa_crypto)"
+        Instance "SCE Compatibility Mode"
