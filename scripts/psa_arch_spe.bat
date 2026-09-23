@@ -26,7 +26,7 @@ if "%SUITE%"=="" echo usage: %~nx0 ^<build-dir^> ^<TEST_PSA_API^> & exit /b 2
 
 if not exist "%BUILD%\CMakeCache.txt" (
   cmake -S %TFM_TESTS%\tests_psa_arch\spe -B %BUILD% -GNinja ^
-    -DCMAKE_C_COMPILER=%GCC_BIN%/arm-none-eabi-gcc.exe ^
+    -DCMAKE_C_COMPILER="%GCC_BIN%/arm-none-eabi-gcc.exe" ^
     -DCONFIG_TFM_SOURCE_PATH=%TFM_SRC% ^
     -DTFM_TOOLCHAIN_FILE=%TFM_SRC%/toolchain_GNUARM.cmake ^
     -DTFM_PLATFORM=renesas/ra6m5 ^
