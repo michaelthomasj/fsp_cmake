@@ -275,6 +275,16 @@ void mbedtls_cipher_free(mbedtls_cipher_context_t *ctx)
 
 #if defined(MBEDTLS_CMAC_C)
     if (ctx->cmac_ctx) {
+#if defined(MBEDTLS_CMAC_ALT)
+        /* Close any open SCE CMAC session that were left unfinished. */
+        if (SCE_MBEDTLS_CMAC_OPERATION_STATE_UPDATE ==
+            ((mbedtls_cmac_context_t *) ctx->cmac_ctx)->MBEDTLS_PRIVATE(vendor_state))
+        {
+            unsigned char scratch_mac[MBEDTLS_CMAC_MAX_BLOCK_SIZE];
+            (void) mbedtls_cipher_cmac_finish(ctx, scratch_mac);
+            mbedtls_platform_zeroize(scratch_mac, sizeof(scratch_mac));
+        }
+ #endif                                 /* MBEDTLS_CMAC_ALT */
         mbedtls_zeroize_and_free(ctx->cmac_ctx,
                                  sizeof(mbedtls_cmac_context_t));
             }

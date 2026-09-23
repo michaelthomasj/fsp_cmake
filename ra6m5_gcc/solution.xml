@@ -3,7 +3,7 @@
   <generalSettings>
     <option key="#Board#" value="board.ra6m5ckv2"/>
     <option key="#TargetName#" value="R7FA6M5BH3CFC"/>
-    <option key="#FSPVersion#" value="6.6.0-rc1+20260825.12bcfa5e"/>
+    <option key="#FSPVersion#" value="6.7.0-beta0+20260922.be8f27e2"/>
     <option key="#SELECTED_TOOLCHAIN#" value="gcc-arm-embedded"/>
     <option key="#ToolchainVersion#" value="13.2.1.arm-13-7"/>
   </generalSettings>

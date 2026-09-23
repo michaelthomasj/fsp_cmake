@@ -238,6 +238,7 @@
 #define BSP_FEATURE_DMAC_HAS_DELSR                                      (0UL)           // DELSRn registers are available in the DMA peripheral block.
 #define BSP_FEATURE_DMAC_HAS_DMCTL                                      (0UL)           // DMCTL register is available in the DMA peripheral block.
 #define BSP_FEATURE_DMAC_HAS_REPEAT_BLOCK_MODE                          (1UL)           // DMTMD register's MD bit-field allows repeat-block transfers (value: 0b11).
+#define BSP_FEATURE_DMAC_HAS_TRANSFER_KEEP                              (1UL)           // DMTMD register's TKP bit-field is available for Free-running support.
 #define BSP_FEATURE_DMAC_NUM_CHANNELS                                   (8UL)           // Number of DMAC channels available.
 #define BSP_FEATURE_DMAC_SUPPORT_TRANSFER_8_BYTE                        (0UL)           // DMAC Support 64 bit transfer size.
 
@@ -350,6 +351,7 @@
 #define BSP_FEATURE_I3C_IS_AVAILABLE                                    (0UL)
 #define BSP_FEATURE_I3C_HAS_CLOCK                                       (0UL)           // Feature not available on this device.
 #define BSP_FEATURE_I3C_HAS_HDR_MODE                                    (0UL)           // Feature not available on this device.
+#define BSP_FEATURE_I3C_HAS_OUTCTL_SDHDCYC                              (0UL)           // Feature not available on this device.
 #define BSP_FEATURE_I3C_MAX_DEV_COUNT                                   (0UL)           // Feature not available on this device.
 #define BSP_FEATURE_I3C_MSTP_OFFSET                                     (0UL)           // Feature not available on this device.
 #define BSP_FEATURE_I3C_NTDTBP0_DEPTH                                   (0UL)           // Feature not available on this device.

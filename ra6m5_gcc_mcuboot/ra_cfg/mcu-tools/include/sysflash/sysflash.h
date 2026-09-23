@@ -7,7 +7,11 @@
 #include "mcuboot_config/mcuboot_config.h"
 
 #ifdef RM_MCUBOOT_PORT_CFG_SECONDARY_USE_OSPI_B
-#include "mcuboot_config/mcuboot_ospi_b_config.h"
+  #include "mcuboot_config/mcuboot_ospi_b_config.h"
+#endif
+
+#ifdef RM_MCUBOOT_PORT_CFG_SECONDARY_USE_QSPI
+  #include "mcuboot_config/mcuboot_qspi_config.h"
 #endif
 
 #include "bsp_api.h"

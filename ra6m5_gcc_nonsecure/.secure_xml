@@ -9,7 +9,8 @@
     <option key="#DeviceCommand#" value="R7FA6M5BH"/>
     <option key="#RTOS#" value="_none"/>
     <option key="#pinconfiguration#" value="R7FA6M5BH3CFC.pincfg"/>
-    <option key="#FSPVersion#" value="6.6.0-rc1+20260825.12bcfa5e"/>
+    <option key="#FSPVersion#" value="6.7.0-beta0+20260922.be8f27e2"/>
+    <option key="#ConfigurationFragments#" value="Renesas##BSP##Board##ra6m5_ck_v2##"/>
     <option key="#SELECTED_TOOLCHAIN#" value="gcc-arm-embedded"/>
     <option key="#ToolchainVersion#" value="13.2.1.arm-13-7"/>
   </generalSettings>
@@ -65,11 +66,12 @@
     <node id="board.clock.cecclk.display" option="board.clock.cecclk.display.value"/>
   </raClockConfiguration>
   <raPinConfiguration>
-    <pincfg active="true" name="" symbol="">
-      <configSetting altId="debug0.tck.p300" configurationId="debug0.tck" peripheral="DEBUG0"/>
-      <configSetting altId="debug0.tdi.p110" configurationId="debug0.tdi" peripheral="DEBUG0"/>
-      <configSetting altId="debug0.tdo.p109" configurationId="debug0.tdo" peripheral="DEBUG0"/>
-      <configSetting altId="debug0.tms.p108" configurationId="debug0.tms" peripheral="DEBUG0"/>
+    <pincfg active="true" name="" symbol=""/>
+    <pincfg active="false" name="solution" symbol="">
+      <configSetting altId="debug0.tck.p300" configurationId="debug0.tck" isUsedByDriver="true" peripheral="DEBUG0"/>
+      <configSetting altId="debug0.tdi.p110" configurationId="debug0.tdi" isUsedByDriver="true" peripheral="DEBUG0"/>
+      <configSetting altId="debug0.tdo.p109" configurationId="debug0.tdo" isUsedByDriver="true" peripheral="DEBUG0"/>
+      <configSetting altId="debug0.tms.p108" configurationId="debug0.tms" isUsedByDriver="true" peripheral="DEBUG0"/>
       <configSetting altId="etherc0.rmii.crs_dv.p705" configurationId="etherc0.rmii.crs_dv" peripheral="ETHERC_RMII0"/>
       <configSetting altId="etherc0.rmii.linksta.p208" configurationId="etherc0.rmii.linksta" peripheral="ETHERC_RMII0"/>
       <configSetting altId="etherc0.rmii.mdc.p214" configurationId="etherc0.rmii.mdc" peripheral="ETHERC_RMII0"/>

@@ -10016,20 +10016,21 @@ typedef struct                         /*!< (@ 0x4011F000) R_I3C0 Structure     
 
     union
     {
-        __IOM uint32_t OUTCTL;         /*!< (@ 0x00000088) Output Control Register                                    */
+        __IOM uint32_t OUTCTL;          /*!< (@ 0x00000088) Output Control Register                                    */
 
         struct
         {
-            __IOM uint32_t SDOC   : 1; /*!< [0..0] SDA Output Control                                                 */
-            __IOM uint32_t SCOC   : 1; /*!< [1..1] SCL Output Control                                                 */
-            __OM uint32_t  SOCWP  : 1; /*!< [2..2] SCL/SDA Output Control Write Protect                               */
-            uint32_t              : 1;
-            __IOM uint32_t EXCYC  : 1; /*!< [4..4] Extra SCL Clock Cycle Output                                       */
-            uint32_t              : 3;
-            __IOM uint32_t SDOD   : 3; /*!< [10..8] SDA Output Delay                                                  */
-            uint32_t              : 4;
-            __IOM uint32_t SDODCS : 1; /*!< [15..15] SDA Output Delay Clock Source Selection                          */
-            uint32_t              : 16;
+            __IOM uint32_t SDOC    : 1; /*!< [0..0] SDA Output Control                                                 */
+            __IOM uint32_t SCOC    : 1; /*!< [1..1] SCL Output Control                                                 */
+            __OM uint32_t  SOCWP   : 1; /*!< [2..2] SCL/SDA Output Control Write Protect                               */
+            uint32_t               : 1;
+            __IOM uint32_t EXCYC   : 1; /*!< [4..4] Extra SCL Clock Cycle Output                                       */
+            uint32_t               : 3;
+            __IOM uint32_t SDOD    : 3; /*!< [10..8] SDA Output Delay                                                  */
+            uint32_t               : 4;
+            __IOM uint32_t SDODCS  : 1; /*!< [15..15] SDA Output Delay Clock Source Selection                          */
+            __IOM uint32_t SDHDCYC : 2; /*!< [17..16] SDA Hold Cycle                                                   */
+            uint32_t               : 14;
         } OUTCTL_b;
     };
 
@@ -25130,6 +25131,8 @@ typedef struct                         /*!< (@ 0x407FC000) R_FLAD Structure     
  #define R_I3C0_OUTCTL_SDOD_Msk         (0x700UL)      /*!< SDOD (Bitfield-Mask: 0x07)                            */
  #define R_I3C0_OUTCTL_SDODCS_Pos       (15UL)         /*!< SDODCS (Bit 15)                                       */
  #define R_I3C0_OUTCTL_SDODCS_Msk       (0x8000UL)     /*!< SDODCS (Bitfield-Mask: 0x01)                          */
+ #define R_I3C0_OUTCTL_SDHDCYC_Pos      (16UL)         /*!< SDHDCYC (Bit 16)                                      */
+ #define R_I3C0_OUTCTL_SDHDCYC_Msk      (0x30000UL)    /*!< SDHDCYC (Bitfield-Mask: 0x03)                         */
 /* =========================================================  INCTL  ========================================================= */
  #define R_I3C0_INCTL_DNFS_Pos          (0UL)          /*!< DNFS (Bit 0)                                          */
  #define R_I3C0_INCTL_DNFS_Msk          (0xfUL)        /*!< DNFS (Bitfield-Mask: 0x0f)                            */
