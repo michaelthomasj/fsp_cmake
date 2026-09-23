@@ -185,7 +185,7 @@ rebase that sat ahead of RA8x2 is now future work. P7 is undated.
 | Med | **IAR replication, round 2.** RA8x2 `.icf` / startup. Materially de-risked — the RA6E1 round is done and the patterns, hooks and three upstream fixes transfer. |
 | Med | **Hardware.** An EK-RA8x2 must be procured before P5 — **Oct 19**, three weeks earlier than the previous plan. The RA6M5 board is in hand. 2× EK-RA6M4 bricked (RA6E1 was the RA6 vehicle). |
 | Med | **TF-M 2.3 debt grows while deferred.** Every change to a shared file adds to the eventual P7 rebase, and upstream submission of the port waits on it. |
-| Low | **Open defects.** `.ram_from_flash` not relocated at isolation 3 (DECISIONS D029 — the shipping isolation-1 build is correct); `.srec` rule missing from the IAR NS toolchain. |
+| ~~Low~~ | ~~**Open defects.**~~ **Both closed 2026-09-23.** `.ram_from_flash` now relocates at every isolation level under both toolchains ([[D048]]); the IAR NS toolchain emits `.srec` ([[D049]]). Remaining: the IAR NS build produces no `.map`. |
 
 ### Descoped 2026-09-14 — dual-core
 

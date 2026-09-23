@@ -347,7 +347,7 @@
     <div class="rk"><div class="sev md">Med</div><div class="body"><b>IAR replication, round 2.</b> RA8x2 <span class="mono">.icf</span> / startup. Materially de-risked — the RA6E1 round is done and the patterns, hooks and three upstream fixes transfer directly.</div></div>
     <div class="rk"><div class="sev md">Med</div><div class="body"><b>Hardware.</b> An EK-RA8x2 must be procured before P5 — <b>Oct 19</b>, three weeks earlier than the previous plan. The RA6M5 board is in hand. Procurement lead time is not absorbed by schedule slack. 2× EK-RA6M4 bricked; RA6E1 was the RA6 vehicle.</div></div>
     <div class="rk"><div class="sev md">Med</div><div class="body"><b>TF-M 2.3 debt grows while deferred.</b> Every change to a shared file adds to the eventual P7 rebase, and upstream submission of the port waits on it.</div></div>
-    <div class="rk"><div class="sev lo">Low</div><div class="body"><b>Open defects.</b> <span class="mono">.ram_from_flash</span> not relocated at isolation 3 (DECISIONS D029 — the shipping isolation-1 build is correct); <span class="mono">.srec</span> rule missing from the IAR NS toolchain.</div></div>
+    <div class="rk"><div class="sev ok">Closed</div><div class="body"><b>Open defects.</b> Both closed 2026-09-23: <span class="mono">.ram_from_flash</span> now relocates at every isolation level under both toolchains (D048), and the IAR NS toolchain emits <span class="mono">.srec</span> (D049). Remaining: the IAR NS build produces no <span class="mono">.map</span>.</div></div>
   </div>
 
   <div class="descoped">

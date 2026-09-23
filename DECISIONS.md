@@ -1420,3 +1420,53 @@ version when RA8x2 projects are generated in P5.
 
 6.7 is therefore the baseline for the remaining work. Mbed TLS is unchanged at 3.6.6 between
 the two, so the FSP Mbed TLS overlay ([D042]) is unaffected.
+
+## D048 — `.ram_from_flash` is copied by the platform, not by ILINK — closes [D029]
+
+**Date:** 2026-09-23 · **Status:** Accepted · Resolves the open defect in [D029]
+
+**The defect, reproduced on RA6M5.** IAR at isolation 3 left FSP's code-flash program/erase
+routines in flash: `.ram_from_flash` at `0x000B0120`, listed under "No sections matched", with
+`ER_CODE_SRAM` empty. Isolation 1 relocated them correctly from the same sources. GNUARM was
+correct at both levels. So the defect is ILINK-specific and isolation-dependent, exactly as
+diagnosed on RA6E1.
+
+**Fix.** Stop asking ILINK to do the copy. The ICF declares
+`initialize manually { section .ram_from_flash }`, and `ra_ram_code_init()` in
+`tfm_hal_platform.c` copies the section as the first act of `tfm_hal_platform_init()`, before
+anything can reach the flash driver. `__DSB`/`__ISB` follow the copy, since the bytes are then
+executed. The initialiser ILINK leaves behind, `.ram_from_flash_init`, is read-only data and is
+swept into `ER_RO_DATA` by its `ro data` catch-all - no placement directive needed.
+
+**Result** - all four configurations now place `flash_hp_cf_write` in RAM at `0x2003f200`:
+IAR L1, IAR L3, GNUARM L1, GNUARM L3.
+
+**Why this shape rather than the alternatives in D029.** Excluding the section from a copy batch
+argues with a decision ILINK makes for itself and would have to be re-checked at every isolation
+level and toolchain version; `__ramfunc` means editing generated FSP source. Doing the copy
+ourselves is the same code path at every isolation level, so the two can no longer diverge
+silently - which was the real defect. The section stayed in flash with nothing in the build to
+say so; only reading the map showed it.
+
+**Still true:** the GNU build reaches the same result through the linker script and needs none
+of this. Keep the two in step - a section that matters under one toolchain matters under both.
+
+## D049 — The IAR NS toolchain emits `.srec` — closes the second open defect
+
+**Date:** 2026-09-23 · **Status:** Accepted
+
+`platform/ns/toolchain_ns_GNUARM.cmake` builds `.bin`, `.elf`, `.hex` and `.srec` for the
+non-secure application; `toolchain_ns_IARARM.cmake` built the first three. The Renesas debug
+launches flash S-records, so an NS application built with IAR had nothing to hand a launch
+configuration that a GNU one did - the two toolchains disagreed about what a build produces.
+
+Added the `${target}_srec` target and its dependency, using `ielftool --srec` as the other
+conversions there use `ielftool`. Verified from a clean IAR NS build: `tfm_ns.srec` is emitted
+alongside the rest.
+
+**Shared file.** This is `platform/ns/`, not the RA6M5 port - it affects every IAR NS build, so
+it belongs in `UPSTREAM_CHANGES.md` with the other shared-file changes and is a candidate for
+the P6 Gerrit submissions.
+
+**Still missing on the IAR NS side:** no `.map` is produced, so `_SEGGER_RTT` has to be read
+out of the ELF with `nm`. Same family, not fixed here.
