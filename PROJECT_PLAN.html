@@ -151,7 +151,7 @@
 <div class="wrap">
   <header class="head">
     <div class="eyebrow">Project Plan · Revised 2026-09-14 · RA8x2 descoped to single-core</div>
-    <h1>TF-M on Renesas RA — RA6E1 → RA6M5 → RA8x2 (single-core), FSP 6.6, GNUARM + IAR</h1>
+    <h1>TF-M on Renesas RA — RA6E1 → RA6M5 → RA8x2 (single-core), FSP 6.7, GNUARM + IAR</h1>
     <p class="sub"><b>RA6E1 and RA6M5 are both complete on both toolchains</b> and validated beyond the original bar — the PSA Arch attestation, storage and crypto suites all pass under GNUARM and IAR on both parts. RA6M5 is the upstream vehicle and the first platform here with <b>SCE9 hardware crypto active</b>. Remaining work is <b>RA8x2 single-core</b>, opening 2026-10-19. The <b>TF-M 2.3 update is future work</b>, after the rsip7 update — 2.3 replaces Mbed TLS with TF-PSA-Crypto. Dual-core and the inter-core mailbox HAL are <b>descoped</b>, removing a whole phase and both High risks. All dates are targets.</p>
     <div class="metarow">
       <div class="meta ok"><div class="k">RA6E1 · GNUARM + IAR</div><div class="v">done 2026-09-14</div></div>
@@ -186,7 +186,7 @@
     <div class="card goal">
       <h3>Primary goal · RA8x2 single-core · ~late Nov</h3>
       <ul>
-        <li><b>TrustZone configuration + BSP update</b> on FSP 6.6.</li>
+        <li><b>TrustZone configuration + BSP update</b> on FSP 6.7.</li>
         <li>Memory map, RSIP crypto driver, Cortex-M85 PACBTI / FPU-in-SPE.</li>
         <li>Boot chain + crypto NSC app; GNUARM + IAR.</li>
       </ul>
@@ -273,7 +273,7 @@
       <div class="ph-top"><span class="ph-id">P4</span><span class="ph-dates">2026-09-15 → 2026-09-23 · 23d early</span></div>
       <h3>RA6M5 port + SCE9 crypto acceleration</h3>
       <ul>
-        <li>RASC solution projects on FSP 6.6; <span class="mono">platform/ext/target/renesas/ra6m5</span>.</li>
+        <li>RASC solution projects on FSP 6.7; <span class="mono">platform/ext/target/renesas/ra6m5</span>.</li>
         <li>Memory map, <span class="mono">region_defs.h</span>, linker scripts (<span class="mono">.ld</span> + <span class="mono">.icf</span>), OFS guard.</li>
         <li>Boot chain + crypto NSC app + PSA Arch suites, GNUARM and IAR — crypto 63/0/1, attestation 1/0/0, storage 11/0/6, identical on both toolchains.</li>
         <li><b>SCE9 ciphers</b> — RA6M5 carries SCE9, as RA6E1/RA6M4 do (FSP namespaces it <span class="mono">BSP_FEATURE_RSIP_SCE9_SUPPORTED</span>; true RSIP is RA8).</li>
@@ -283,14 +283,14 @@
         <li><b>2026-09-21:</b> GNUARM boots BL2 → S → NS on a CK-RA6M5 V2. <b>2026-09-23:</b> IAR does too, with SCE9 active.</li>
         <li>Three defects found in FSP's <span class="mono">*_ALT</span> sources; two are fixed in the pack, the third is not an FSP API (D041, D043, D044).</li>
       </ul>
-      <div class="exit">Exit <b class="ok">M4</b> — met 2026-09-23, 23 days early. RA6M5 full chain, both toolchains, SCE9 ciphers active. Projects are on FSP 6.7.0-beta0; this plan still names 6.6.</div>
+      <div class="exit">Exit <b class="ok">M4</b> — met 2026-09-23, 23 days early. RA6M5 full chain, both toolchains, SCE9 ciphers active. Built and validated on FSP 6.7.0-beta0 (D047).</div>
     </div>
 
     <div class="ph key">
       <div class="ph-top"><span class="ph-id">P5</span><span class="ph-dates">2026-10-19 → 2026-11-27</span></div>
       <h3>RA8x2 single-core — TrustZone cfg + BSP</h3>
       <ul>
-        <li>New <span class="mono">platform/ext/target/renesas/ra8x2</span>; RASC projects on FSP 6.6.</li>
+        <li>New <span class="mono">platform/ext/target/renesas/ra8x2</span>; RASC projects on FSP 6.7.</li>
         <li>TrustZone configuration (<span class="mono">target_cfg.c</span> — SAU/PPC/MPC), isolation HAL, DDSC bridge.</li>
         <li>BSP update: memory map, RSIP crypto driver, entropy source.</li>
         <li>Cortex-M85 PACBTI / FPU-in-SPE; linker scripts for both toolchains.</li>
@@ -342,7 +342,7 @@
 
   <h2>Risks &amp; buffer</h2>
   <div class="risks">
-    <div class="rk"><div class="sev hi">High</div><div class="body"><b>RA8x2 new silicon on FSP 6.6.</b> First bring-up — M85 PACBTI/FPU, RSIP-E51A, TrustZone configuration. Concentrated in P5.</div></div>
+    <div class="rk"><div class="sev hi">High</div><div class="body"><b>RA8x2 new silicon on FSP 6.7.</b> First bring-up — M85 PACBTI/FPU, RSIP-E51A, TrustZone configuration. Concentrated in P5.</div></div>
     <div class="rk"><div class="sev ok">Retired</div><div class="body"><b>SCE9 cipher wiring.</b> Closed 2026-09-23. FSP's crypto stack and TF-M's mbedcrypto now coexist: TF-M's crypto is built from FSP's own Mbed TLS, with <span class="mono">FSP_MODULES_NEVER_BUILT</span> untangled. The ALT route remains Mbed TLS 3.6-only — redone as a PSA driver in P7, and every FSP ALT fix carried here is debt against that rebase.</div></div>
     <div class="rk"><div class="sev md">Med</div><div class="body"><b>IAR replication, round 2.</b> RA8x2 <span class="mono">.icf</span> / startup. Materially de-risked — the RA6E1 round is done and the patterns, hooks and three upstream fixes transfer directly.</div></div>
     <div class="rk"><div class="sev md">Med</div><div class="body"><b>Hardware.</b> An EK-RA8x2 must be procured before P5 — <b>Oct 19</b>, three weeks earlier than the previous plan. The RA6M5 board is in hand. Procurement lead time is not absorbed by schedule slack. 2× EK-RA6M4 bricked; RA6E1 was the RA6 vehicle.</div></div>

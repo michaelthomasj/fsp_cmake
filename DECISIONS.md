@@ -1408,3 +1408,15 @@ Test builds only, hence the default: with no viewer attached nothing drains the 
 first write past 4 KB blocks forever. The define has to be applied in `ns/CMakeLists.txt` as
 well as the main one - `platform_ns` compiles `SEGGER_RTT.c` there, and patching only the
 secure-side list leaves the NS transcript still lossy.
+
+## D047 — FSP 6.7 is the baseline
+
+**Date:** 2026-09-23 · **Status:** Accepted · Supersedes the FSP 6.6 target in the plan
+
+The RA6E1 solutions were already on 6.7.0-beta0 and the RA6M5 projects moved there on
+2026-09-22, where M4 was met: full chain on both toolchains, SCE9 active, all three PSA Arch
+suites passing. Carrying a plan that names 6.6 while every project is on 6.7 invites a third
+version when RA8x2 projects are generated in P5.
+
+6.7 is therefore the baseline for the remaining work. Mbed TLS is unchanged at 3.6.6 between
+the two, so the FSP Mbed TLS overlay ([D042]) is unaffected.

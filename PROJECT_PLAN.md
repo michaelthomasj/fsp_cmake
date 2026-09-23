@@ -1,4 +1,4 @@
-# TF-M on Renesas RA — RA6E1 → RA6M5 → RA8x2 (single-core), FSP 6.6, GNUARM + IAR
+# TF-M on Renesas RA — RA6E1 → RA6M5 → RA8x2 (single-core), FSP 6.7, GNUARM + IAR
 
 **Project plan · Firmware security · revised 2026-09-23**
 
@@ -63,7 +63,7 @@ dates rather than cutting scope.
 - Hardware procurement is the gating item; the board must be in hand before P5.
 
 **Primary goal — RA8x2 single-core (~late Nov)**
-- TrustZone configuration + BSP update on FSP 6.6, GNUARM + IAR.
+- TrustZone configuration + BSP update on FSP 6.7, GNUARM + IAR.
 
 **Future — TF-M 2.3 / TF-PSA-Crypto (after the rsip7 update)**
 - Rebase from the v2.2.0 fork point; SCE9 redone as a PSA transparent driver.
@@ -96,7 +96,7 @@ rebase that sat ahead of RA8x2 is now future work. P7 is undated.
 ## Phases
 
 ### P4 · RA6M5 port + SCE9 crypto acceleration (Sep 15 – Oct 16)
-- RA6M5 RASC solution projects on FSP 6.6 (BL2 / secure / non-secure), partitioned,
+- RA6M5 RASC solution projects on FSP 6.7 (BL2 / secure / non-secure), partitioned,
   MCUboot dual-image — the RA6E1 pattern.
 - `platform/ext/target/renesas/ra6m5`: memory map, `region_defs.h`, linker scripts
   (`.ld` + `.icf`), OFS guard.
@@ -122,13 +122,13 @@ rebase that sat ahead of RA8x2 is now future work. P7 is undated.
     deterministic ECDSA, which FSP does not support (D040).
 - ✅ **Exit M4 met 2026-09-23** — RA6M5 full chain + crypto app on silicon, GNUARM and
   IAR, SCE9 ciphers active, all three PSA Arch suites passing on both toolchains (D046).
-  Projects are on FSP 6.7.0-beta0; this plan still names 6.6 elsewhere.
+  Built and validated on FSP 6.7.0-beta0 ([[D047]]).
 
 > **Sequencing note.** The ALT route is Mbed TLS 3.6-only. It is built now because
 > TF-M 2.3 is deferred to P7, where SCE9 is redone as a PSA transparent driver.
 
 ### P5 · RA8x2 single-core — TrustZone cfg + BSP (Oct 19 – Nov 27)
-- New `platform/ext/target/renesas/ra8x2`; RASC projects on FSP 6.6.
+- New `platform/ext/target/renesas/ra8x2`; RASC projects on FSP 6.7 ([[D047]]).
 - TrustZone configuration (`target_cfg.c` — SAU/PPC/MPC), isolation HAL, DDSC bridge.
 - BSP update: memory map, RSIP crypto driver, entropy source, Cortex-M85
   PACBTI / FPU-in-SPE.
@@ -180,7 +180,7 @@ rebase that sat ahead of RA8x2 is now future work. P7 is undated.
 
 | Severity | Risk |
 |---|---|
-| **High** | **RA8x2 new silicon on FSP 6.6.** First bring-up — M85 PACBTI/FPU, RSIP-E51A, TrustZone config. Concentrated in P5. |
+| **High** | **RA8x2 new silicon on FSP 6.7.** First bring-up — M85 PACBTI/FPU, RSIP-E51A, TrustZone config. Concentrated in P5. |
 | ~~Med~~ | ~~**SCE9 cipher wiring.**~~ **Retired 2026-09-23.** FSP's crypto stack and TF-M's mbedcrypto now coexist; the port builds TF-M's crypto from FSP's Mbed TLS. The ALT route remains Mbed TLS 3.6-only — redone as a PSA driver in P7, and every FSP ALT fix carried here is debt against that rebase. |
 | Med | **IAR replication, round 2.** RA8x2 `.icf` / startup. Materially de-risked — the RA6E1 round is done and the patterns, hooks and three upstream fixes transfer. |
 | Med | **Hardware.** An EK-RA8x2 must be procured before P5 — **Oct 19**, three weeks earlier than the previous plan. The RA6M5 board is in hand. 2× EK-RA6M4 bricked (RA6E1 was the RA6 vehicle). |
