@@ -68,6 +68,10 @@ dates rather than cutting scope.
 **Future — TF-M 2.3 / TF-PSA-Crypto (after the rsip7 update)**
 - Rebase from the v2.2.0 fork point; SCE9 redone as a PSA transparent driver.
 
+**Future — NS image in OSPI, executed in place (last, after TF-M 2.3)**
+- Relieves the RA8x2 MRAM budget: 1 MB cannot hold four slots plus the PSA Arch
+  crypto suite with usable headroom.
+
 **Out of scope**
 - **Dual-core / inter-core mailbox** — descoped 2026-09-14.
 - ARMCLANG toolchain.
@@ -85,6 +89,7 @@ dates rather than cutting scope.
 | **P5** | RA8x2 single-core — TrustZone cfg + BSP | 2026-10-19 | 2026-11-27 | RA8x2 (key) |
 | **P6** | *Stretch* — upstream to Arm TF-M | 2027-01-11 | 2027-03-26 | Stretch |
 | **P7** | *Future* — TF-M 2.3 / TF-PSA-Crypto | after rsip7 | — | Future |
+| **P8** | *Future* — NS image in OSPI (XIP) | after P7 | — | Future |
 
 Critical path: **P4 → P5** (sequential under one engineer).
 
@@ -160,6 +165,32 @@ rebase that sat ahead of RA8x2 is now future work. P7 is undated.
 - **Exit M7** — RA6E1, RA6M5 and RA8x2 on 2.3.x with PSA-driver acceleration,
   both toolchains, suites green.
 
+### P8 · Future — NS image in OSPI, executed in place (after P7)
+
+**Why.** RA8x2 has 1 MB of MRAM and no data flash. Four MCUboot slots, BL2 and the
+ITS/PS/NV-counter area exhaust it, and the PSA Arch crypto suite is the largest NS
+image we build. Moving image 1 out of MRAM returns both NS slots to the secure side
+and removes the squeeze rather than trimming a configuration to fit it.
+
+**Scope.**
+- Image 1 primary + secondary slots move to OSPI; MRAM keeps BL2, the secure slots
+  and the storage area.
+- NS executes in place from OSPI — `ospi_b` configured and the flash mapped before
+  BL2 verifies image 1, so the OSPI bring-up moves into BL2, not just the SPE.
+- A third `Driver_FLASH` instance for OSPI, and `flash_layout.h` gains a per-area
+  driver mapping (one device per area is assumed in several places today).
+- SAU/IDAU: the OSPI window is partitioned in the azone already
+  (`OSPI0_CS1_CPU0_S` / `_N`) — image 1 sits in the NS half.
+- XIP performance and cache behaviour on M85 are open: OSPI fetch latency against
+  MRAM, and whether the NS image needs the I-cache warmed or a critical path copied
+  to RAM.
+
+**Why last.** It touches `flash_layout.h`, the flash driver layer and BL2 — all of
+which P7 rewrites against TF-PSA-Crypto. Doing it first would be done twice.
+
+- **Exit M8** — RA8x2 boots with image 1 resident in and executed from OSPI, both
+  toolchains, PSA Arch suites green with MRAM headroom restored.
+
 ---
 
 ## Milestones
@@ -173,6 +204,7 @@ rebase that sat ahead of RA8x2 is now future work. P7 is undated.
 | **M5** | **~2026-11-27** | **RA8x2 single-core full chain + crypto app, GNUARM + IAR** (primary goal) |
 | M6 | ~2027 Q1–Q2 | *Stretch* — merged into Arm TF-M upstream (port waits on M7) |
 | M7 | future | *Future* — TF-M 2.3 / TF-PSA-Crypto, after the rsip7 update |
+| M8 | future | *Future* — RA8x2 NS image in OSPI, executed in place (after M7) |
 
 ---
 
@@ -180,10 +212,11 @@ rebase that sat ahead of RA8x2 is now future work. P7 is undated.
 
 | Severity | Risk |
 |---|---|
-| **High** | **RA8x2 new silicon on FSP 6.7.** First bring-up — M85 PACBTI/FPU, RSIP-E51A, TrustZone config. Concentrated in P5. |
+| **High** | **RA8x2 new silicon on FSP 6.7.** First bring-up — M85 PACBTI/FPU, RSIP-E50D, TrustZone config. Concentrated in P5. |
 | ~~Med~~ | ~~**SCE9 cipher wiring.**~~ **Retired 2026-09-23.** FSP's crypto stack and TF-M's mbedcrypto now coexist; the port builds TF-M's crypto from FSP's Mbed TLS. The ALT route remains Mbed TLS 3.6-only — redone as a PSA driver in P7, and every FSP ALT fix carried here is debt against that rebase. |
 | Med | **IAR replication, round 2.** RA8x2 `.icf` / startup. Materially de-risked — the RA6E1 round is done and the patterns, hooks and three upstream fixes transfer. |
 | Med | **Hardware.** An EK-RA8x2 must be procured before P5 — **Oct 19**, three weeks earlier than the previous plan. The RA6M5 board is in hand. 2× EK-RA6M4 bricked (RA6E1 was the RA6 vehicle). |
+| Med | **RA8x2 MRAM budget.** 1 MB total, no data flash. Four slots + BL2 + the ITS/PS/NV area leave the secure slot and the PSA Arch crypto suite competing for the last 32 KB; a fit depends on `tfm_s` at MinSizeRel, not yet measured. Relieved properly by P8 (NS in OSPI). |
 | Med | **TF-M 2.3 debt grows while deferred.** Every change to a shared file adds to the eventual P7 rebase, and upstream submission of the port waits on it. |
 | ~~Low~~ | ~~**Open defects.**~~ **Both closed 2026-09-23.** `.ram_from_flash` now relocates at every isolation level under both toolchains ([[D048]]); the IAR NS toolchain emits `.srec` ([[D049]]). Remaining: the IAR NS build produces no `.map`. |
 
@@ -204,4 +237,4 @@ Everything is sequential under one engineer.
 
 ---
 
-*Revised 2026-09-21 · RA6E1 done · RA6M5 ~2026-10-16 · RA8x2 single-core ~2026-11-27 · TF-M 2.3 after rsip7*
+*Revised 2026-09-21 · RA6E1 done · RA6M5 ~2026-10-16 · RA8x2 single-core ~2026-11-27 · TF-M 2.3 after rsip7 · NS-in-OSPI last*

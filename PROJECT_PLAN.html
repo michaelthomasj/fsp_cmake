@@ -158,6 +158,7 @@
       <div class="meta ok"><div class="k">RA6M5 · upstream vehicle</div><div class="v">done 2026-09-23</div></div>
       <div class="meta mvp"><div class="k">RA8x2 single-core goal</div><div class="v">~2026-11-27</div></div>
       <div class="meta"><div class="k">TF-M 2.3 · TF-PSA-Crypto</div><div class="v">future · after rsip7</div></div>
+      <div class="meta"><div class="k">NS image in OSPI</div><div class="v">future · last, after P7</div></div>
       <div class="meta"><div class="k">Toolchains</div><div class="v">GNUARM + IAR</div></div>
       <div class="meta"><div class="k">Resourcing</div><div class="v">1 engineer</div></div>
     </div>
@@ -192,7 +193,7 @@
       </ul>
     </div>
   </div>
-  <div class="deferbar"><b>Out of scope</b><span>dual-core / inter-core mailbox HAL (descoped 2026-09-14) · ARMCLANG · upstream merge → stretch · TF-M 2.3 → future, after rsip7</span></div>
+  <div class="deferbar"><b>Out of scope</b><span>dual-core / inter-core mailbox HAL (descoped 2026-09-14) · ARMCLANG · upstream merge → stretch · TF-M 2.3 → future, after rsip7 · NS-in-OSPI → last, after P7</span></div>
 
   <h2>Timeline</h2>
   <div class="gantt-scroll">
@@ -242,6 +243,10 @@
       <div class="g-lab" style="grid-row:8"><span class="id">P7</span><span class="tx">Future — TF-M 2.3 / TF-PSA-Crypto</span></div>
       <div class="g-track" style="grid-row:8"></div>
       <div class="bar future" style="grid-row:8;grid-column:20/22">after rsip7<span class="ms">M7</span></div>
+
+      <div class="g-lab" style="grid-row:9"><span class="id">P8</span><span class="tx">Future — NS image in OSPI (XIP)</span></div>
+      <div class="g-track" style="grid-row:9"></div>
+      <div class="bar future" style="grid-row:9;grid-column:20/22">after P7<span class="ms">M8</span></div>
     </div>
   </div>
   <div class="legend">
@@ -253,7 +258,7 @@
     <div class="lg"><span class="sw future"></span>future · undated</div>
     <div class="lg"><span class="sw dia"></span>milestone</div>
   </div>
-  <div class="gnote">Critical path: <b>P4 → P5</b>, sequential under one engineer. The primary goal moves forward three weeks, to ~Nov 27, because the TF-M 2.3 rebase that sat ahead of RA8x2 is now future work (DECISIONS D035). P7 is undated: it follows the rsip7 update.</div>
+  <div class="gnote">Critical path: <b>P4 → P5</b>, sequential under one engineer. The primary goal moves forward three weeks, to ~Nov 27, because the TF-M 2.3 rebase that sat ahead of RA8x2 is now future work (DECISIONS D035). P7 is undated: it follows the rsip7 update. P8 follows P7, because it touches the same files P7 rewrites.</div>
 
   <h2>Phases</h2>
   <div class="phases">
@@ -322,6 +327,21 @@
       </ul>
       <div class="exit">Exit <b>M7</b> — RA6E1, RA6M5 and RA8x2 on 2.3.x with PSA-driver acceleration, both toolchains, suites green.</div>
     </div>
+
+    <div class="ph future">
+      <div class="ph-top"><span class="ph-id">P8</span><span class="ph-dates">future &middot; after P7</span></div>
+      <h3>Future — NS image in OSPI, executed in place</h3>
+      <ul>
+        <li><b>Why.</b> RA8x2 has 1&nbsp;MB of MRAM and <b>no data flash</b>. Four MCUboot slots, BL2 and the ITS/PS/NV-counter area exhaust it, and the PSA Arch crypto suite is the largest NS image built. Moving image 1 out of MRAM returns both NS slots to the secure side instead of trimming a configuration to fit.</li>
+        <li>Image 1 primary + secondary move to OSPI; MRAM keeps BL2, the secure slots and the storage area.</li>
+        <li>NS executes in place from OSPI — <span class="mono">ospi_b</span> configured and mapped <i>before</i> BL2 verifies image 1, so OSPI bring-up moves into BL2, not just the SPE.</li>
+        <li>A third <span class="mono">Driver_FLASH</span> instance, and <span class="mono">flash_layout.h</span> gains a per-area driver mapping — one device per area is assumed in several places today.</li>
+        <li>SAU/IDAU: the OSPI window is already partitioned in the azone (<span class="mono">OSPI0_CS1_CPU0_S</span> / <span class="mono">_N</span>); image 1 sits in the NS half.</li>
+        <li><b>Open:</b> XIP fetch latency against MRAM on M85, and whether the NS image needs the I-cache warmed or a critical path copied to RAM.</li>
+        <li><b>Why last.</b> It touches <span class="mono">flash_layout.h</span>, the flash driver layer and BL2 — all of which P7 rewrites against TF-PSA-Crypto. Doing it first would be doing it twice.</li>
+      </ul>
+      <div class="exit">Exit <b>M8</b> — RA8x2 boots with image 1 resident in and executed from OSPI, both toolchains, PSA Arch suites green with MRAM headroom restored.</div>
+    </div>
   </div>
 
   <h2>Milestones</h2>
@@ -336,16 +356,18 @@
         <tr class="key"><td class="id">M5</td><td class="date">~2026-11-27</td><td class="gate"><b>RA8x2 single-core full chain + crypto app, GNUARM + IAR</b> — primary goal</td></tr>
         <tr class="stretch"><td class="id">M6</td><td class="date">~2027 Q1–Q2</td><td class="gate"><i>Stretch</i> — merged into Arm TF-M upstream (port waits on M7)</td></tr>
         <tr class="stretch"><td class="id">M7</td><td class="date">future</td><td class="gate"><i>Future</i> — TF-M 2.3 / TF-PSA-Crypto, after the rsip7 update</td></tr>
+        <tr class="stretch"><td class="id">M8</td><td class="date">future</td><td class="gate"><i>Future</i> — RA8x2 NS image in OSPI, executed in place (after M7)</td></tr>
       </tbody>
     </table>
   </div>
 
   <h2>Risks &amp; buffer</h2>
   <div class="risks">
-    <div class="rk"><div class="sev hi">High</div><div class="body"><b>RA8x2 new silicon on FSP 6.7.</b> First bring-up — M85 PACBTI/FPU, RSIP-E51A, TrustZone configuration. Concentrated in P5.</div></div>
+    <div class="rk"><div class="sev hi">High</div><div class="body"><b>RA8x2 new silicon on FSP 6.7.</b> First bring-up — M85 PACBTI/FPU, RSIP-E50D, TrustZone configuration. Concentrated in P5.</div></div>
     <div class="rk"><div class="sev ok">Retired</div><div class="body"><b>SCE9 cipher wiring.</b> Closed 2026-09-23. FSP's crypto stack and TF-M's mbedcrypto now coexist: TF-M's crypto is built from FSP's own Mbed TLS, with <span class="mono">FSP_MODULES_NEVER_BUILT</span> untangled. The ALT route remains Mbed TLS 3.6-only — redone as a PSA driver in P7, and every FSP ALT fix carried here is debt against that rebase.</div></div>
     <div class="rk"><div class="sev md">Med</div><div class="body"><b>IAR replication, round 2.</b> RA8x2 <span class="mono">.icf</span> / startup. Materially de-risked — the RA6E1 round is done and the patterns, hooks and three upstream fixes transfer directly.</div></div>
     <div class="rk"><div class="sev md">Med</div><div class="body"><b>Hardware.</b> An EK-RA8x2 must be procured before P5 — <b>Oct 19</b>, three weeks earlier than the previous plan. The RA6M5 board is in hand. Procurement lead time is not absorbed by schedule slack. 2× EK-RA6M4 bricked; RA6E1 was the RA6 vehicle.</div></div>
+    <div class="rk"><div class="sev md">Med</div><div class="body"><b>RA8x2 MRAM budget.</b> 1&nbsp;MB total, no data flash. Four slots + BL2 + the ITS/PS/NV area leave the secure slot and the PSA Arch crypto suite competing for the last 32&nbsp;KB. Measured: <span class="mono">tfm_s</span> is 245&nbsp;KB at MinSizeRel but 315&nbsp;KB at Debug, so the fit turns on the application build type. Relieved properly by P8.</div></div>
     <div class="rk"><div class="sev md">Med</div><div class="body"><b>TF-M 2.3 debt grows while deferred.</b> Every change to a shared file adds to the eventual P7 rebase, and upstream submission of the port waits on it.</div></div>
     <div class="rk"><div class="sev ok">Closed</div><div class="body"><b>Open defects.</b> Both closed 2026-09-23: <span class="mono">.ram_from_flash</span> now relocates at every isolation level under both toolchains (D048), and the IAR NS toolchain emits <span class="mono">.srec</span> (D049). Remaining: the IAR NS build produces no <span class="mono">.map</span>.</div></div>
   </div>
@@ -361,7 +383,7 @@
 
   <footer>
     <span>Revised 2026-09-21 · TF-M 2.3 moved to future work</span>
-    <span>RA6E1 done · RA6M5 ~10-16 · RA8x2 ~11-27 · TF-M 2.3 after rsip7</span>
+    <span>RA6E1 done · RA6M5 ~10-16 · RA8x2 ~11-27 · TF-M 2.3 after rsip7 · NS-in-OSPI last</span>
   </footer>
 </div>
 </body>
