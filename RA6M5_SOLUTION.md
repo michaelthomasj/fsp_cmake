@@ -121,6 +121,21 @@ built in e2.
 First hardware run (2026-09-21, CK-RA6M5 V2): `FSP_ERR_FCLK` from `R_FLASH_HP_Open` —
 `BSP_CFG_EARLY_INIT` was 0 in both secure and bootloader projects. See below.
 
+**2026-09-22 — SCE9 acceleration validated on hardware: PSA Arch crypto 63 passed, 0 failed,
+1 skipped** (profile_large, isolation 3, IPC). The skip is deterministic ECDSA, which FSP does not
+support ([[D040]]). TF-M's crypto is built from FSP's Mbed TLS ([[D042]]) with FSP's SCE9 ALT set
+minus CCM ([[D043]]); BL2 hashes images on the SCE9 too.
+
+Accelerated: cipher, AES, GCM, CMAC, SHA-256, ECP/ECDSA, RSA. In software: CCM, because FSP's
+SCE9 CCM caps associated data at 110 B and Protected Storage exceeds it — CCM still reaches the
+engine per block through the cipher and AES ALTs.
+
+Re-confirmed the same day on **FSP 6.7.0-beta0** with no port-local patches at all ([[D045]]).
+Two defects found here — both of the shape "an abandoned operation leaves the SCE mid-session and
+wedges every later user" — are fixed in the pack itself: `mbedtls_aes_free()` ([[D041]]) and
+`mbedtls_cipher_free()` for CMAC ([[D043]]). A third fix, to `mbedtls_aes_crypt_ctr()`, was
+reverted: that function is not an FSP API and is unreachable through PSA ([[D044]]).
+
 Build it with:
 
 ```sh
@@ -174,7 +189,13 @@ real build: see [[D031]].
   `template/cmake/iar.cmake` in the SC 2026-07 plugin set) — set the solution toolchain to
   IAR before doing the IAR leg, so the flags come from RASC rather than being carried over
   from RA6E1 by hand.
-- **FSP version drift.** `ra6m5_gcc` is on 6.6.0-rc1, the RA6E1 solutions on 6.7.0-beta0.
-  The plan targets 6.6.
-- SCE9 **cipher** acceleration is not wired: `CRYPTO_HW_ACCELERATOR` is OFF and only the TRNG
-  is taken from hardware. That is P4 of `PROJECT_PLAN.md`, as `platform/ext/accelerator/renesas/sce9`.
+- **FSP version drift.** `ra6m5_gcc` is now on 6.7.0-beta0, matching the RA6E1 solutions. The
+  plan targets 6.6, so either the plan or the projects should move.
+- **CCM associated-data limit.** FSP's SCE9 CCM caps associated data at 110 B, and reports the
+  overflow as a plain `PSA_ERROR_INVALID_ARGUMENT`. A software fallback above the threshold, or a
+  documented limit, would make SCE9 CCM usable from PSA ([[D043]]). The two session-leak fixes are
+  already in the pack.
+- **Open question — acceleration delta.** How does the acceleration actually differ between
+  this approach (FSP's Mbed TLS + FSP's `*_ALT` set) and the previous one (ARM's Mbed TLS
+  accelerated with the same ALT sources)? Which operations changed hands, and where does the
+  PSA core route differently. To be answered with measurements, not inspection.
