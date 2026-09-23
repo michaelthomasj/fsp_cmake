@@ -1,131 +1,164 @@
-# TF-M on Renesas RA — RA6 → RA8x2 (dual-core), FSP 6.6, GNUARM + IAR
+# TF-M on Renesas RA — RA6E1 → RA6M5 → RA8x2 (single-core), FSP 6.7, GNUARM + IAR
 
-**Project plan · Firmware security · revised after stakeholder review**
+**Project plan · Firmware security · revised 2026-09-23**
 
-Stakeholders want **RA8x2 (dual-core)** running Trusted Firmware-M — which means
-binding **FSP's inter-core communication to TF-M's mailbox HAL**, the project's
-biggest technical unknown. IAR is required. RA6 is finished first (both
-toolchains) as the foundation.
+RA6E1 and **RA6M5 are both complete on both toolchains**, validated well beyond
+the original bar — RA6M5 is also the first platform here with hardware crypto
+actually doing the work rather than only supplying entropy. The remaining piece
+is **RA8x2 single-core**, which opens 2026-10-19.
 
-**Validation is deliberately light: a simple boot test plus a basic-crypto app
-that exercises a Non-Secure-Callable (NSC) entry** — enough to prove the
-S → NS split and the veneer path end to end. No psa-arch-tests / formal
-conformance suite in this plan.
+**TF-M 2.3 is future work (revised 2026-09-21).** TF-M 2.3 replaces Mbed TLS with
+TF-PSA-Crypto, which has no `*_ALT` mechanism. It moves to the end of the plan,
+after the rsip7 update — SCE9 acceleration is built on the 3.6 ALT route now and
+redone as a PSA driver then. See DECISIONS D035.
 
-**All dates below are targets, not commitments.** With the engineer out the
-first and last weeks of August, and delivering real dual-core RA8x2 valued over
-hitting a fixed date, an overrun shifts subsequent dates rather than cutting
-scope.
+**Scope change — RA8x2 is single-core.** The previous revision built the whole
+RA8x2 leg around dual-core operation and binding FSP's inter-core comms to
+TF-M's mailbox HAL. That is **descoped**: RA8x2 work is now the TrustZone
+configuration and BSP update for a single-core part. This removes an entire
+phase and **both High risks** from the register — see *Descoped* below.
+
+**All dates below are targets, not commitments.** An overrun shifts subsequent
+dates rather than cutting scope.
 
 > A rendered version of this plan is in [`PROJECT_PLAN.html`](PROJECT_PLAN.html).
 
 | | |
 |---|---|
-| **RA6 working (GNUARM + IAR)** | **~2026-09-25 (target)** |
-| **Primary goal — RA8x2 dual-core** | **~2026-12-18 (target)** |
-| Revised | 2026-07-28 |
+| **RA6E1 (GNUARM + IAR)** | **done 2026-09-14** (target was ~09-25) |
+| **RA6M5 — upstream vehicle** | **~2026-10-16 (target)** |
+| **Primary goal — RA8x2 single-core** | **~2026-11-27 (target)** |
+| TF-M 2.3 / TF-PSA-Crypto | future — after the rsip7 update |
+| Revised | 2026-09-21 |
 | Toolchains | GNUARM + IAR |
-| Validation | boot test + basic-crypto NSC app |
-| Resourcing | 1 engineer (out Aug 3–7 and Aug 24–28) |
+| Validation | boot + crypto NSC app; PSA Arch suites where available |
+| Resourcing | 1 engineer |
 
 ---
 
 ## Snapshot
 
-**Done — baseline**
-- **RA6E1 BL2 boots on silicon** (TF-M v2.2, FSP 6.1): flash init, NV-counter init, MCUboot image search.
-- **Flash driver** ported (data-flash NV counters working); OFS brick-guard in place.
-- **DDSC blocker solved** — `bsp_security.c` compiles via a `gp_ddsc_*` bridge valued from `region_defs.h` (`ra6e1_ddsc.c`), no FSP `bsp_linker.c` / `__ddsc_*` needed.
+**Done — RA6E1, both toolchains**
+- Full secure boot chain **BL2 → S → NS** on silicon, GNUARM and IAR.
+- **PSA Arch suites pass on both toolchains** — attestation 1/1, storage 17
+  (11 passed, 6 optional-PS skips), crypto 64/64, zero failures. This is
+  conformance evidence the original plan did not ask for.
+- Split SPE/NSPE build, OFS brick-guard, DDSC bridge, SCE9 TRNG as the PSA
+  entropy source.
+- Three upstream TF-M defects found and fixed along the way (IAR stack seal,
+  CMSE veneer placement, vendor-section hooks) — see `UPSTREAM_CHANGES.md`.
 
-**RA6 target (~late Sept)**
-- Full secure boot chain **BL2 → S → NS** on silicon.
-- **Basic-crypto NSC app** (existing test app) run to verify the veneer / NSC path.
-- **GNUARM then IAR**, both building / booting.
-- Stays on the current **FSP 6.1** baseline (no rebase) to save time.
+**Done — RA6M5, both toolchains (2026-09-23, M4 met ~3 weeks early)**
+- Full chain **BL2 → S → NS** on a CK-RA6M5 V2, GNUARM and IAR, on FSP 6.7.0-beta0.
+- **SCE9 hardware crypto active** — the first platform here to use it for ciphers,
+  hashes and ECC rather than entropy alone. BL2 hashes images on the engine too.
+- TF-M's crypto is built from **FSP's own Mbed TLS**, not upstream, because FSP's
+  `*_ALT` sources depend on its PSA core (DECISIONS D042).
+- **PSA Arch on both toolchains** — crypto 63/0/1, attestation 1/0/0, storage 11/0/6,
+  identical results, zero failures (D046).
+- Three defects found in FSP's `*_ALT` sources, two now fixed in the pack
+  (D041, D043, D044).
 
-**Primary goal — RA8x2 dual-core (~Dec)**
-- **RA8x2** on **FSP 6.6**: SPE on one core, NSPE on the other.
-- **FSP inter-core comms bound to TF-M's mailbox HAL** (`tfm_hal_multi_core_*` / `platform_mailbox`); PSA calls marshaled across cores.
-- Same light validation (boot + crypto NSC app); GNUARM + IAR.
+**Next — RA8x2 single-core (P5 opens Oct 19)**
+- Hardware procurement is the gating item; the board must be in hand before P5.
+
+**Primary goal — RA8x2 single-core (~late Nov)**
+- TrustZone configuration + BSP update on FSP 6.7, GNUARM + IAR.
+
+**Future — TF-M 2.3 / TF-PSA-Crypto (after the rsip7 update)**
+- Rebase from the v2.2.0 fork point; SCE9 redone as a PSA transparent driver.
 
 **Out of scope**
-- psa-arch-tests / formal PSA conformance (validation is boot + the crypto NSC app).
-- Upstream merge to Arm TF-M → stretch (P7).
+- **Dual-core / inter-core mailbox** — descoped 2026-09-14.
 - ARMCLANG toolchain.
 
 ---
 
 ## Timeline
 
-Engineer out: **Aug 3–7** and **Aug 24–28** (reflected in the phase dates).
-
 | Phase | Work | Start | End | Track |
 |---|---|---|---|---|
-| **P1** | RA6 secure image (tfm_s) — GNUARM, FSP 6.1 | 2026-07-28 | 2026-08-14 | RA6 |
-| **P2** | RA6 non-secure · full boot · crypto NSC app (GNUARM) | 2026-08-17 | 2026-09-04 | RA6 |
-| **P3** | IAR toolchain for RA6 | 2026-09-07 | 2026-09-25 | RA6 (key) |
-| **P4** | RA8x2 base port — BL2 + SPE on primary core (FSP 6.6) | 2026-09-28 | 2026-10-23 | RA8x2 |
-| **P5** | Dual-core — FSP ICC ↔ TF-M mailbox HAL | 2026-10-26 | 2026-11-20 | RA8x2 |
-| **P6** | RA8x2 NS + IAR + crypto NSC app → **primary goal** | 2026-11-23 | 2026-12-18 | RA8x2 (key) |
-| **P7** | *Stretch* — upstream to Arm TF-M | 2027-01-11 | 2027-03-26 | Stretch |
+| **P1** | RA6E1 secure image (tfm_s) — GNUARM | 2026-07-28 | 2026-08-14 | ✅ done |
+| **P2** | RA6E1 non-secure · full boot · crypto NSC app (GNUARM) | 2026-08-17 | 2026-09-04 | ✅ done |
+| **P3** | IAR toolchain for RA6E1 | 2026-09-07 | **2026-09-14** | ✅ done, 11d early |
+| **P4** | RA6M5 port + SCE9 crypto acceleration | 2026-09-15 | **2026-09-23** | ✅ done, 23d early |
+| **P5** | RA8x2 single-core — TrustZone cfg + BSP | 2026-10-19 | 2026-11-27 | RA8x2 (key) |
+| **P6** | *Stretch* — upstream to Arm TF-M | 2027-01-11 | 2027-03-26 | Stretch |
+| **P7** | *Future* — TF-M 2.3 / TF-PSA-Crypto | after rsip7 | — | Future |
 
-Critical path: **P1 → P2 → P3 → P4 → P5 → P6** (sequential under one engineer).
+Critical path: **P4 → P5** (sequential under one engineer).
+
+The primary goal moves forward three weeks, to ~Nov 27, because the TF-M 2.3
+rebase that sat ahead of RA8x2 is now future work. P7 is undated.
 
 ---
 
 ## Phases
 
-### P1 · RA6 secure image (tfm_s) — GNUARM, FSP 6.1 (Jul 28 – Aug 14, spans Aug 3–7 out)
-- Generate the RA6E1 secure RASC project (full set); wire it as `FSP_S_APP_DIR`.
-- **DDSC** resolved: `gp_ddsc_*` provided from `region_defs.h` (`ra6e1_ddsc.c`, force-included decls); FSP `bsp_linker.c` excluded — proven, `bsp_security.o` compiles.
-- Resolve remaining secure-BSP wiring (crypto-stack includes from the generated `common_data`); build + sign tfm_s; BL2 chainloads it.
-- **Exit M1** — RA6 BL2 → tfm_s boots on silicon.
+### P4 · RA6M5 port + SCE9 crypto acceleration (Sep 15 – Oct 16)
+- RA6M5 RASC solution projects on FSP 6.7 (BL2 / secure / non-secure), partitioned,
+  MCUboot dual-image — the RA6E1 pattern.
+- `platform/ext/target/renesas/ra6m5`: memory map, `region_defs.h`, linker scripts
+  (`.ld` + `.icf`), OFS guard.
+- Full boot chain + crypto NSC app on silicon, **GNUARM and IAR**.
+- PSA Arch suites, both toolchains.
+- **SCE9 crypto acceleration** — RA6M5 has SCE9, the same engine as RA6E1/RA6M4
+  (FSP namespaces it `BSP_FEATURE_RSIP_SCE9_SUPPORTED`; true RSIP parts are RA8).
+  - **Route: FSP `rm_psa_crypto` `*_ALT` sources**, in
+    `platform/ext/accelerator/renesas/sce9/` against TF-M's `crypto_hw.h`, with `cc312`
+    as the structural template. **Per-engine directory on purpose** — RA8's RSIP is a
+    different driver API and lands beside it as `renesas/rsip`. The Renesas wrapped-key
+    vendor driver stays out: it depends on FSP's patched Mbed TLS.
+  - **Built against FSP's Mbed TLS 3.6.6, not upstream** (D042). Pairing the ALT sources
+    with upstream left multi-part GCM broken — FSP's changes live in the PSA core its
+    ALTs are written against — so the port overlays FSP's `include/` and `library/` on
+    upstream scaffolding of the same version.
+  - Accelerated: cipher, AES, GCM, CMAC, SHA-256, ECP/ECDSA, RSA, and SHA-256 for BL2's
+    image hash. **CCM stays in software** — FSP's SCE9 CCM caps associated data at
+    110 B and Protected Storage exceeds it (D043).
+  - `FSP_MODULES_NEVER_BUILT` (`r_sce`, `rm_psa_crypto`, FSP's mbedTLS) untangled, which
+    was the substance of the work rather than a flag flip.
+  - Regression gate met: PSA Arch crypto 63 passed / 0 failed / 1 skipped, the skip being
+    deterministic ECDSA, which FSP does not support (D040).
+- ✅ **Exit M4 met 2026-09-23** — RA6M5 full chain + crypto app on silicon, GNUARM and
+  IAR, SCE9 ciphers active, all three PSA Arch suites passing on both toolchains (D046).
+  Built and validated on FSP 6.7.0-beta0 ([[D047]]).
 
-### P2 · RA6 non-secure · full boot · crypto NSC app — GNUARM (Aug 17 – Sep 4, spans Aug 24–28 out)
-- NS RASC project downstream of secure; veneer / CMSE import library; `ns/CMakeLists.txt`, `cpuarch_ns.cmake`.
-- Full BL2 → S → NS boot, proven over RTT.
-- **Run the basic-crypto NSC app** to verify a PSA crypto call across the veneer / NSC boundary.
-- **Exit M2** — full RA6 boot + crypto NSC app verified (GNUARM).
+> **Sequencing note.** The ALT route is Mbed TLS 3.6-only. It is built now because
+> TF-M 2.3 is deferred to P7, where SCE9 is redone as a PSA transparent driver.
 
-### P3 · IAR toolchain for RA6 (Sep 7 – Sep 25)
-- IAR linker `.icf` for BL2 / S / NS: replicate per-word OFS, veneer / NSC placement, TZ regions (GCC `.ld` → IAR `.icf`).
-- IAR startup + toolchain CMake; build BL2 → S → NS under IAR; boot + crypto NSC app on RA6E1.
-- **Exit M3** — RA6 full chain + crypto app on GNUARM **and** IAR.
+### P5 · RA8x2 single-core — TrustZone cfg + BSP (Oct 19 – Nov 27)
+- New `platform/ext/target/renesas/ra8x2`; RASC projects on FSP 6.7 ([[D047]]).
+- TrustZone configuration (`target_cfg.c` — SAU/PPC/MPC), isolation HAL, DDSC bridge.
+- BSP update: memory map, RSIP crypto driver, entropy source, Cortex-M85
+  PACBTI / FPU-in-SPE.
+- Linker scripts for both toolchains; boot chain + crypto NSC app.
+- **Exit M5** — RA8x2 single-core full chain + crypto app, GNUARM + IAR.
 
-### P4 · RA8x2 base port — BL2 + SPE on primary core, FSP 6.6 (Sep 28 – Oct 23)
-- New `platform/ext/target/renesas/ra8x2`; RASC projects on FSP 6.6; reuse RA6 patterns (DDSC bridge, secure project, isolation, veneer).
-- **Spike first: settle core topology** (never examined) — which core runs SPE vs NSPE; TZ-on-M85 + M33-as-NS vs pure multi-core (drives the mailbox design).
-- RA8x2 specifics: memory map, RSIP crypto, Cortex-M85 PACBTI / FPU-in-SPE.
-- **Exit M4** — RA8x2 SPE boots on the primary core.
+### P6 · Stretch — upstream to the Arm TF-M repository (Jan 11 – Mar 26, 2027)
+- **Submission is via Gerrit** (`review.trustedfirmware.org`), not a GitHub PR —
+  `docs/contributing/contributing_process.rst`. The GitHub repo is a mirror.
+- The 12 shared-file fixes as individual Gerrit changes; several
+  (BL2 signing dependency, `MCUBOOT_ALIGN_VAL` cap) are platform-independent and
+  can go early.
+- `psa-arch-tests` target via GitHub PR — that repo *does* take PRs.
+- Docs tree; accept the deprecation policy's maintenance commitment.
+- **Gerrit changes target `main`, which is TF-PSA-Crypto.** Platform-independent
+  fixes can go on their own; the port itself — and its SCE9 ALT wiring — is
+  submittable only after P7. Items 9 and 11 are already fixed upstream; item 10 is
+  obsolete there.
+- **Exit M6** — RA6M5 (+ RA8x2) merged upstream. The port waits on P7.
 
-### P5 · Dual-core — FSP ICC ↔ TF-M mailbox HAL (Oct 26 – Nov 20)
-- Implement `tfm_hal_multi_core_*` / `platform_mailbox` over FSP inter-core communication (shared memory + semaphore/IPC).
-- NS mailbox agent on the NSPE core; marshal PSA client calls across cores; boot both cores.
-- **Exit M5** — a PSA call marshaled NSPE-core → SPE-core over FSP ICC completes.
-
-### P6 · RA8x2 NS + IAR + crypto NSC app → primary goal (Nov 23 – Dec 18)
-- NSPE application on the second core; end-to-end dual-core boot + the crypto NSC app.
-- IAR `.icf` / startup for RA8x2 (both cores); build + boot under IAR.
-- Consolidation + stakeholder sign-off.
-- **Exit M6** — RA8x2 dual-core full chain + crypto app, GNUARM + IAR.
-
-### P7 · Stretch — upstream to the Arm TF-M repository (Jan 11 – Mar 26, 2027)
-- Docs tree (vendor + per-platform `index.rst`, `platform_introduction.rst`); accept the deprecation policy's ongoing-maintenance commitment; maintainer sign-off + CI.
-- Submit via review.trustedfirmware.org (Gerrit). Not mandatory for this customer — bounded by external review latency.
-- **Exit M7** — RA6 + RA8x2 merged upstream (review-latency dependent).
-
----
-
-## Platform HAL surface — what each target must implement
-
-| Area | Items |
-|---|---|
-| **Boot & isolation** | startup + linker, OFS (BL2); `target_cfg.c` (SAU/PPC/MPC); `tfm_hal_isolation.c` + static boundaries; DDSC bridge (`gp_ddsc_*`) |
-| **Multi-core (RA8x2)** | `tfm_hal_multi_core_*` + `platform_mailbox` over FSP ICC; NS mailbox agent; PSA call marshaling |
-| **Storage** | `Driver_FLASH0/1` (code + data); `its_flash_fs` HAL (ITS); `ps_nv_counters` (PS) |
-| **Crypto & entropy** | RSIP crypto driver; entropy / TRNG source; crypto key HAL (exercised by the NSC app) |
-| **Identity & provisioning** | OTP HAL + lifecycle state; IAK + BL2 ROTPKs (dummy for dev); NV counters backend |
-| **Platform service & NS** | system reset, IOCTL, NV-counter API; NS `ns/CMakeLists` + `cpuarch_ns`; veneer / CMSE import library |
+### P7 · Future — TF-M 2.3 / TF-PSA-Crypto (after the rsip7 update)
+- TF-M 2.3.0 pins TF-PSA-Crypto v1.1.0, 2.3.1 pins v1.1.1 — no Mbed TLS, no
+  `*_ALT`. CC312's legacy ALT path is gone in 2.3.0.
+- SCE9 acceleration redone as a PSA transparent driver — the rsip7 CM driver
+  model, which is why this follows that update.
+- Rebase from `dd2b7de19`: 10 of 20 shared files conflict; SPM logging rewritten
+  (`lib/tfm_log`), so the trace option and RTT backend need porting; item 6 still
+  needed at the moved `scripts/wrapper.py`. Detail in DECISIONS D035.
+- **Exit M7** — RA6E1, RA6M5 and RA8x2 on 2.3.x with PSA-driver acceleration,
+  both toolchains, suites green.
 
 ---
 
@@ -133,13 +166,13 @@ Critical path: **P1 → P2 → P3 → P4 → P5 → P6** (sequential under one e
 
 | ID | Date (target) | Gate |
 |---|---|---|
-| M1 | ~2026-08-14 | RA6 BL2 → tfm_s boots on silicon |
-| M2 | ~2026-09-04 | Full RA6 boot BL2 → S → NS + crypto NSC app verified (GNUARM) |
-| **M3** | **~2026-09-25** | **RA6 full chain + crypto app on GNUARM and IAR** |
-| M4 | ~2026-10-23 | RA8x2 SPE boots on the primary core (FSP 6.6) |
-| M5 | ~2026-11-20 | RA8x2 dual-core: PSA call marshaled NSPE-core → SPE-core over FSP ICC |
-| **M6** | **~2026-12-18** | **RA8x2 dual-core full chain + crypto app, GNUARM + IAR** (primary goal) |
-| M7 | ~2027 Q1–Q2 | *Stretch* — RA6 + RA8x2 merged into Arm TF-M upstream |
+| M1 | 2026-08-14 | ✅ RA6E1 BL2 → tfm_s boots on silicon |
+| M2 | 2026-09-04 | ✅ Full RA6E1 boot + crypto NSC app (GNUARM) |
+| M3 | **2026-09-14** | ✅ RA6E1 full chain + crypto app, GNUARM **and** IAR |
+| M4 | **2026-09-23** | ✅ RA6M5 full chain, both toolchains, SCE9 ciphers active — 23 days early |
+| **M5** | **~2026-11-27** | **RA8x2 single-core full chain + crypto app, GNUARM + IAR** (primary goal) |
+| M6 | ~2027 Q1–Q2 | *Stretch* — merged into Arm TF-M upstream (port waits on M7) |
+| M7 | future | *Future* — TF-M 2.3 / TF-PSA-Crypto, after the rsip7 update |
 
 ---
 
@@ -147,18 +180,28 @@ Critical path: **P1 → P2 → P3 → P4 → P5 → P6** (sequential under one e
 
 | Severity | Risk |
 |---|---|
-| **High** | **Dual-core mailbox integration.** Binding FSP inter-core comms to TF-M's `tfm_hal_multi_core` / `platform_mailbox` is the biggest unknown; no RA reference exists. Concentrated in P5. |
-| **High** | **RA8x2 core-topology is an open unknown.** SPE vs NSPE core, and TZ-on-M85 + M33-as-NS vs pure multi-core, set the entire mailbox design — never examined. Needs an early spike (P4 start). |
-| **High** | **IAR replication.** OFS / veneer / TZ placement + startup as IAR `.icf`; IAR TZ/veneer handling differs from GCC. Two rounds (RA6 P3, RA8x2 P6). |
-| **High** | **FSP 6.6 for RA8x2.** First use for dual-core + SAU-reach-NS + RA8 support; regen churn and unverified dual-core generation. |
-| Med | **RA6 secure/NS integration.** DDSC blocker is solved (`bsp_security.o` compiles); remaining is wiring the regenerated RA6E1 secure/NS projects (crypto-stack includes, veneer, NS transition). |
-| Med | **New silicon.** First RA8x2 bring-up — M85 PACBTI/FPU, RSIP, dual-core boot. |
-| Med | **Hardware.** An EK-RA8x2 (dual-core) board must be procured before P4; 2× EK-RA6M4 bricked (RA6E1 is the RA6 vehicle). |
+| **High** | **RA8x2 new silicon on FSP 6.7.** First bring-up — M85 PACBTI/FPU, RSIP-E51A, TrustZone config. Concentrated in P5. |
+| ~~Med~~ | ~~**SCE9 cipher wiring.**~~ **Retired 2026-09-23.** FSP's crypto stack and TF-M's mbedcrypto now coexist; the port builds TF-M's crypto from FSP's Mbed TLS. The ALT route remains Mbed TLS 3.6-only — redone as a PSA driver in P7, and every FSP ALT fix carried here is debt against that rebase. |
+| Med | **IAR replication, round 2.** RA8x2 `.icf` / startup. Materially de-risked — the RA6E1 round is done and the patterns, hooks and three upstream fixes transfer. |
+| Med | **Hardware.** An EK-RA8x2 must be procured before P5 — **Oct 19**, three weeks earlier than the previous plan. The RA6M5 board is in hand. 2× EK-RA6M4 bricked (RA6E1 was the RA6 vehicle). |
+| Med | **TF-M 2.3 debt grows while deferred.** Every change to a shared file adds to the eventual P7 rebase, and upstream submission of the port waits on it. |
+| ~~Low~~ | ~~**Open defects.**~~ **Both closed 2026-09-23.** `.ram_from_flash` now relocates at every isolation level under both toolchains ([[D048]]); the IAR NS toolchain emits `.srec` ([[D049]]). Remaining: the IAR NS build produces no `.map`. |
 
-**Validation is intentionally shallow** — boot + a single crypto NSC path, not conformance. Stakeholders have accepted this; psa-arch-tests remain a possible future addition beyond this plan.
+### Descoped 2026-09-14 — dual-core
 
-**Buffer.** Dates are targets, not commitments — an overrun shifts subsequent dates rather than cutting scope. The RA8x2 leg (P4–P6) carries ~20–25% internal buffer and holds Dec 21 – Jan 2 as contingency. Everything is sequential under one engineer.
+The previous revision made **RA8x2 dual-core** the primary goal, with P5 dedicated
+to binding FSP inter-core communication to TF-M's `tfm_hal_multi_core_*` /
+`platform_mailbox`, an NS mailbox agent, and PSA call marshaling across cores.
+It carried the two highest risks in the register: the mailbox integration itself
+("no RA reference exists") and the unexamined core-topology question.
+
+All of it is removed. RA8x2 is a single-core part for this project. Retained from
+that leg: the base port, TrustZone config, BSP, and the NS + IAR + crypto-app work,
+now consolidated into P5.
+
+**Buffer.** Dates are targets. The RA8x2 leg holds Nov 30 – Dec 18 as contingency.
+Everything is sequential under one engineer.
 
 ---
 
-*Revised 2026-07-28 · RA6 (GNUARM+IAR) target ~2026-09-25 · RA8x2 dual-core goal ~2026-12-18 · validation: boot + crypto NSC app*
+*Revised 2026-09-21 · RA6E1 done · RA6M5 ~2026-10-16 · RA8x2 single-core ~2026-11-27 · TF-M 2.3 after rsip7*

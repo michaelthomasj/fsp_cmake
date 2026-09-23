@@ -49,6 +49,8 @@
   .meta .v{font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-size:14px;font-weight:600;color:var(--ink);margin-top:2px}
   .meta.mvp{border-color:var(--milestone);background:color-mix(in srgb,var(--milestone) 8%,var(--surface))}
   .meta.mvp .v{color:var(--milestone)}
+  .meta.ok{border-color:var(--done);background:color-mix(in srgb,var(--done) 8%,var(--surface))}
+  .meta.ok .v{color:var(--done)}
   h2{font-size:13px;font-family:var(--font-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-2);font-weight:600;margin:44px 0 16px;display:flex;align-items:center;gap:10px}
   h2::before{content:"";width:7px;height:7px;background:var(--accent);border-radius:2px;transform:rotate(45deg)}
 
@@ -82,21 +84,28 @@
   .bar .ms{background:rgba(255,255,255,.22);border-radius:4px;padding:1px 5px;font-size:9px;letter-spacing:.02em}
   .bar::after{content:"";position:absolute;right:-7px;top:50%;width:11px;height:11px;transform:translateY(-50%) rotate(45deg);background:var(--milestone);border:1.5px solid var(--surface);z-index:4}
   .bar.ra6{background:var(--ra6)} .bar.ra8{background:var(--ra8)} .bar.key{background:var(--milestone)}
+  .bar.ok{background:var(--done)} .bar.ok::after{background:var(--done)}
+  .bar.shared{background:var(--shared)}
   .bar.stretch{background:repeating-linear-gradient(135deg,var(--stretch),var(--stretch) 6px,transparent 6px,transparent 11px),var(--surface-3);color:var(--ink-2);border:1px dashed var(--stretch);box-shadow:none}
   .bar.stretch::after{background:var(--stretch)}
+  .bar.future{background:transparent;color:var(--ink-3);border:1px dashed var(--muted);box-shadow:none}
+  .bar.future::after{background:var(--muted)}
+  .bar.future .ms{background:color-mix(in srgb,var(--muted) 25%,transparent);color:var(--ink-3)}
   .bar.stretch .ms{background:color-mix(in srgb,var(--stretch) 30%,transparent);color:var(--ink-2)}
   .legend{display:flex;flex-wrap:wrap;gap:8px 18px;margin-top:14px;padding:0 2px}
   .lg{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--ink-2);font-family:var(--font-mono)}
   .sw{width:15px;height:11px;border-radius:3px}
   .sw.ra6{background:var(--ra6)} .sw.ra8{background:var(--ra8)} .sw.key{background:var(--milestone)}
+  .sw.ok{background:var(--done)} .sw.shared{background:var(--shared)}
   .sw.stretch{background:repeating-linear-gradient(135deg,var(--stretch),var(--stretch) 4px,transparent 4px,transparent 7px),var(--surface-3);border:1px dashed var(--stretch)}
+  .sw.future{background:transparent;border:1px dashed var(--muted)}
   .sw.dia{width:11px;height:11px;transform:rotate(45deg);background:var(--milestone);border-radius:2px}
   .gnote{margin-top:8px;font-size:12px;color:var(--ink-3);font-family:var(--font-mono)}
   .gnote b{color:var(--risk)}
 
   .phases{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
   .ph{background:var(--surface);border:1px solid var(--line);border-radius:11px;padding:16px 18px;box-shadow:var(--shadow);border-left:4px solid var(--shared)}
-  .ph.ra6{border-left-color:var(--ra6)} .ph.ra8{border-left-color:var(--ra8)} .ph.key{border-left-color:var(--milestone)} .ph.stretch{border-left-color:var(--stretch)}
+  .ph.ra6{border-left-color:var(--ra6)} .ph.ra8{border-left-color:var(--ra8)} .ph.key{border-left-color:var(--milestone)} .ph.stretch{border-left-color:var(--stretch)} .ph.ok{border-left-color:var(--done)} .ph.future{border-left-color:var(--muted);border-left-style:dashed}
   .ph-top{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:4px}
   .ph-id{font-family:var(--font-mono);font-weight:700;font-size:13px;color:var(--ink)}
   .ph-dates{font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-size:11px;color:var(--ink-3);white-space:nowrap}
@@ -106,6 +115,7 @@
   .ph li::before{content:"–";position:absolute;left:0;color:var(--ink-3)}
   .ph .exit{font-size:12px;color:var(--ink-2);border-top:1px dashed var(--line-2);padding-top:9px;margin-top:2px}
   .ph .exit b{font-family:var(--font-mono);color:var(--milestone);font-weight:700}
+  .ph .exit b.ok{color:var(--done)}
 
   .twrap{overflow-x:auto;border:1px solid var(--line);border-radius:11px;box-shadow:var(--shadow)}
   table{border-collapse:collapse;width:100%;min-width:560px;background:var(--surface);font-size:13.5px}
@@ -117,6 +127,7 @@
   td.gate b{color:var(--ink);font-weight:600}
   tr.key td{background:color-mix(in srgb,var(--milestone) 9%,var(--surface))}
   tr.key td.id,tr.key td.date{color:var(--milestone)}
+  tr.ok td.id,tr.ok td.date{color:var(--done)}
   tr.stretch td{color:var(--ink-2)} tr.stretch td.id{color:var(--stretch)}
 
   .risks{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
@@ -124,8 +135,13 @@
   .rk .sev{flex:none;width:52px;font-family:var(--font-mono);font-size:9.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:3px 0;text-align:center;border-radius:5px;margin-top:1px}
   .sev.hi{background:color-mix(in srgb,var(--risk) 15%,transparent);color:var(--risk)}
   .sev.md{background:color-mix(in srgb,var(--active) 16%,transparent);color:var(--active)}
+  .sev.lo{background:color-mix(in srgb,var(--muted) 18%,transparent);color:var(--muted)}
+  .sev.ok{background:color-mix(in srgb,var(--done) 15%,transparent);color:var(--done)}
   .rk .body{font-size:13px;color:var(--ink-2);line-height:1.45}
   .rk .body b{color:var(--ink);font-weight:600}
+  .descoped{margin-top:16px;background:var(--surface-2);border:1px solid var(--line);border-left:4px solid var(--stretch);border-radius:10px;padding:15px 17px;font-size:13.5px;color:var(--ink-2)}
+  .descoped h4{margin:0 0 8px;font-size:12px;font-family:var(--font-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--stretch);font-weight:700}
+  .descoped b{color:var(--ink)}
   .buffer{margin-top:16px;background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:15px 17px;font-size:13.5px;color:var(--ink-2)}
   .buffer b{color:var(--ink)} .buffer .mono{color:var(--ink)}
   footer{margin-top:40px;padding-top:18px;border-top:1px solid var(--line);font-size:12px;color:var(--ink-3);font-family:var(--font-mono);display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
@@ -134,47 +150,49 @@
 
 <div class="wrap">
   <header class="head">
-    <div class="eyebrow">Project Plan · Revised after stakeholder review</div>
-    <h1>TF-M on Renesas RA — RA6 → RA8x2 (dual-core), FSP 6.6, GNUARM + IAR</h1>
-    <p class="sub">Stakeholders want <b>RA8x2 (dual-core)</b> running Trusted Firmware-M — which means binding FSP inter-core communication to TF-M's mailbox HAL. IAR is required; RA6 is finished first on both toolchains as the foundation. Validation is deliberately light — a <b>boot test plus a basic-crypto NSC app</b> to prove the S → NS / veneer path — not a psa-arch-tests suite. All dates are targets; a slip is preferred to cutting the dual-core scope.</p>
+    <div class="eyebrow">Project Plan · Revised 2026-09-14 · RA8x2 descoped to single-core</div>
+    <h1>TF-M on Renesas RA — RA6E1 → RA6M5 → RA8x2 (single-core), FSP 6.7, GNUARM + IAR</h1>
+    <p class="sub"><b>RA6E1 and RA6M5 are both complete on both toolchains</b> and validated beyond the original bar — the PSA Arch attestation, storage and crypto suites all pass under GNUARM and IAR on both parts. RA6M5 is the upstream vehicle and the first platform here with <b>SCE9 hardware crypto active</b>. Remaining work is <b>RA8x2 single-core</b>, opening 2026-10-19. The <b>TF-M 2.3 update is future work</b>, after the rsip7 update — 2.3 replaces Mbed TLS with TF-PSA-Crypto. Dual-core and the inter-core mailbox HAL are <b>descoped</b>, removing a whole phase and both High risks. All dates are targets.</p>
     <div class="metarow">
-      <div class="meta mvp"><div class="k">RA6 working · GNUARM + IAR</div><div class="v">~2026-09-25</div></div>
-      <div class="meta mvp"><div class="k">RA8x2 dual-core goal</div><div class="v">~2026-12-18</div></div>
-      <div class="meta"><div class="k">Revised</div><div class="v">2026-07-28</div></div>
+      <div class="meta ok"><div class="k">RA6E1 · GNUARM + IAR</div><div class="v">done 2026-09-14</div></div>
+      <div class="meta ok"><div class="k">RA6M5 · upstream vehicle</div><div class="v">done 2026-09-23</div></div>
+      <div class="meta mvp"><div class="k">RA8x2 single-core goal</div><div class="v">~2026-11-27</div></div>
+      <div class="meta"><div class="k">TF-M 2.3 · TF-PSA-Crypto</div><div class="v">future · after rsip7</div></div>
       <div class="meta"><div class="k">Toolchains</div><div class="v">GNUARM + IAR</div></div>
-      <div class="meta"><div class="k">Validation</div><div class="v">boot + crypto NSC app</div></div>
-      <div class="meta"><div class="k">Resourcing</div><div class="v">1 eng · Aug 3–7, 24–28 out</div></div>
+      <div class="meta"><div class="k">Resourcing</div><div class="v">1 engineer</div></div>
     </div>
   </header>
 
   <h2>Snapshot</h2>
   <div class="cards">
     <div class="card done">
-      <h3>Done — baseline</h3>
+      <h3>Done — RA6E1, both toolchains</h3>
       <ul>
-        <li><b>RA6E1 BL2 boots on silicon</b> (TF-M v2.2, FSP 6.1): flash init, NV-counter init, MCUboot image search.</li>
-        <li><b>Flash driver</b> ported (data-flash NV counters working); OFS brick-guard in place.</li>
-        <li><b>DDSC blocker solved</b> — <span class="mono">bsp_security.c</span> compiles via a <span class="mono">gp_ddsc_*</span> bridge from <span class="mono">region_defs.h</span>.</li>
+        <li>Full secure boot chain <b>BL2 → S → NS</b> on silicon, GNUARM and IAR.</li>
+        <li><b>PSA Arch suites pass on both</b> — attestation 1/1, storage 17 (11 pass, 6 optional-PS skips), crypto 64/64, zero failures.</li>
+        <li>Split SPE/NSPE build, OFS brick-guard, DDSC bridge, SCE9 TRNG as PSA entropy.</li>
+        <li><b>Three upstream TF-M defects</b> found and fixed — IAR stack seal, CMSE veneer placement, vendor-section hooks.</li>
       </ul>
     </div>
     <div class="card chk">
-      <h3>RA6 target · ~late Sept</h3>
+      <h3>Next — RA6M5 · ~mid Oct</h3>
       <ul>
-        <li>Full secure boot chain <b>BL2 → S → NS</b> on silicon.</li>
-        <li><b>Basic-crypto NSC app</b> (existing test app) run to verify the veneer / NSC path.</li>
-        <li><b>GNUARM then IAR</b>; stays on FSP 6.1 to save time.</li>
+        <li>Port to the device intended for <b>upstream submission</b>.</li>
+        <li><b>SCE9 hardware crypto</b> wired for ciphers, not entropy alone.</li>
+        <li>New <span class="mono">accelerator/renesas/sce9/</span> — per-engine, so RA8's RSIP lands beside it.</li>
+        <li>Boot + crypto NSC app + PSA Arch suites, both toolchains.</li>
       </ul>
     </div>
     <div class="card goal">
-      <h3>Primary goal · RA8x2 dual-core · ~Dec</h3>
+      <h3>Primary goal · RA8x2 single-core · ~late Nov</h3>
       <ul>
-        <li><b>RA8x2</b> on <b>FSP 6.6</b>: SPE on one core, NSPE on the other.</li>
-        <li><b>FSP inter-core comms bound to TF-M's mailbox HAL</b>; PSA calls across cores.</li>
-        <li>Same light validation; GNUARM + IAR.</li>
+        <li><b>TrustZone configuration + BSP update</b> on FSP 6.7.</li>
+        <li>Memory map, RSIP crypto driver, Cortex-M85 PACBTI / FPU-in-SPE.</li>
+        <li>Boot chain + crypto NSC app; GNUARM + IAR.</li>
       </ul>
     </div>
   </div>
-  <div class="deferbar"><b>Out of scope</b><span>psa-arch-tests / formal conformance (validation is boot + the crypto NSC app) · upstream → stretch · ARMCLANG</span></div>
+  <div class="deferbar"><b>Out of scope</b><span>dual-core / inter-core mailbox HAL (descoped 2026-09-14) · ARMCLANG · upstream merge → stretch · TF-M 2.3 → future, after rsip7</span></div>
 
   <h2>Timeline</h2>
   <div class="gantt-scroll">
@@ -195,155 +213,115 @@
       <div class="vline" style="grid-column:12"></div><div class="vline" style="grid-column:14"></div>
       <div class="vline" style="grid-column:16"></div><div class="vline" style="grid-column:18"></div>
       <div class="vline" style="grid-column:20"></div>
-      <div class="today" style="grid-column:3"><span class="tlab">TODAY</span></div>
+      <div class="today" style="grid-column:7"><span class="tlab">TODAY</span></div>
 
-      <div class="g-lab" style="grid-row:2"><span class="id">P1</span><span class="tx">RA6 secure image (tfm_s)</span></div>
+      <div class="g-lab" style="grid-row:2"><span class="id">P1</span><span class="tx">RA6E1 secure image (tfm_s)</span></div>
       <div class="g-track" style="grid-row:2"></div>
-      <div class="bar ra6" style="grid-row:2;grid-column:3/5">RA6 secure<span class="ms">M1</span></div>
+      <div class="bar ok" style="grid-row:2;grid-column:3/5">RA6E1 secure<span class="ms">M1 ✓</span></div>
 
-      <div class="g-lab" style="grid-row:3"><span class="id">P2</span><span class="tx">RA6 NS · full boot · crypto app</span></div>
+      <div class="g-lab" style="grid-row:3"><span class="id">P2</span><span class="tx">RA6E1 NS · full boot · crypto app</span></div>
       <div class="g-track" style="grid-row:3"></div>
-      <div class="bar ra6" style="grid-row:3;grid-column:5/6">NS+app<span class="ms">M2</span></div>
+      <div class="bar ok" style="grid-row:3;grid-column:5/6">NS+app<span class="ms">M2 ✓</span></div>
 
-      <div class="g-lab" style="grid-row:4"><span class="id">P3</span><span class="tx">IAR toolchain for RA6</span></div>
+      <div class="g-lab" style="grid-row:4"><span class="id">P3</span><span class="tx">IAR toolchain for RA6E1</span></div>
       <div class="g-track" style="grid-row:4"></div>
-      <div class="bar key" style="grid-row:4;grid-column:6/8">RA6 · IAR<span class="ms">M3</span></div>
+      <div class="bar ok" style="grid-row:4;grid-column:6/7">RA6E1 · IAR<span class="ms">M3 ✓</span></div>
 
-      <div class="g-lab" style="grid-row:5"><span class="id">P4</span><span class="tx">RA8x2 base port · BL2 + SPE</span></div>
+      <div class="g-lab" style="grid-row:5"><span class="id">P4</span><span class="tx">RA6M5 port + SCE9 crypto</span></div>
       <div class="g-track" style="grid-row:5"></div>
-      <div class="bar ra8" style="grid-row:5;grid-column:8/10">RA8x2 base<span class="ms">M4</span></div>
+      <div class="bar ok" style="grid-row:5;grid-column:7/9">RA6M5 + SCE9<span class="ms">M4 ✓</span></div>
 
-      <div class="g-lab" style="grid-row:6"><span class="id">P5</span><span class="tx">Dual-core · FSP ICC ↔ mailbox</span></div>
+      <div class="g-lab" style="grid-row:6"><span class="id">P5</span><span class="tx">RA8x2 single-core · TZ cfg + BSP</span></div>
       <div class="g-track" style="grid-row:6"></div>
-      <div class="bar ra8" style="grid-row:6;grid-column:10/12">Dual-core mailbox<span class="ms">M5</span></div>
+      <div class="bar key" style="grid-row:6;grid-column:9/12">RA8x2 single-core<span class="ms">M5</span></div>
 
-      <div class="g-lab" style="grid-row:7"><span class="id">P6</span><span class="tx">RA8x2 NS + IAR + app → goal</span></div>
+      <div class="g-lab" style="grid-row:7"><span class="id">P6</span><span class="tx">Stretch — upstream to Arm TF-M</span></div>
       <div class="g-track" style="grid-row:7"></div>
-      <div class="bar key" style="grid-row:7;grid-column:12/14">RA8x2 goal<span class="ms">M6</span></div>
+      <div class="bar stretch" style="grid-row:7;grid-column:14/20">upstream (Gerrit)<span class="ms">M6</span></div>
 
-      <div class="g-lab" style="grid-row:8"><span class="id">P7</span><span class="tx">Stretch — upstream to Arm TF-M</span></div>
+      <div class="g-lab" style="grid-row:8"><span class="id">P7</span><span class="tx">Future — TF-M 2.3 / TF-PSA-Crypto</span></div>
       <div class="g-track" style="grid-row:8"></div>
-      <div class="bar stretch" style="grid-row:8;grid-column:14/19">Upstream<span class="ms">M7</span></div>
+      <div class="bar future" style="grid-row:8;grid-column:20/22">after rsip7<span class="ms">M7</span></div>
     </div>
   </div>
   <div class="legend">
-    <div class="lg"><span class="sw ra6"></span>RA6</div>
-    <div class="lg"><span class="sw ra8"></span>RA8x2</div>
-    <div class="lg"><span class="sw key"></span>Key deliverable</div>
-    <div class="lg"><span class="sw stretch"></span>Stretch</div>
-    <div class="lg"><span class="sw dia"></span>Milestone</div>
+    <div class="lg"><span class="sw ok"></span>complete</div>
+    <div class="lg"><span class="sw ra6"></span>RA6M5</div>
+    <div class="lg"><span class="sw shared"></span>shared / toolchain</div>
+    <div class="lg"><span class="sw key"></span>primary goal</div>
+    <div class="lg"><span class="sw stretch"></span>stretch</div>
+    <div class="lg"><span class="sw future"></span>future · undated</div>
+    <div class="lg"><span class="sw dia"></span>milestone</div>
   </div>
-  <div class="gnote">Engineer <b>out Aug 3–7 and Aug 24–28</b> — reflected in the phase dates. All dates are targets.</div>
+  <div class="gnote">Critical path: <b>P4 → P5</b>, sequential under one engineer. The primary goal moves forward three weeks, to ~Nov 27, because the TF-M 2.3 rebase that sat ahead of RA8x2 is now future work (DECISIONS D035). P7 is undated: it follows the rsip7 update.</div>
 
   <h2>Phases</h2>
   <div class="phases">
-    <div class="ph ra6">
-      <div class="ph-top"><span class="ph-id">P1 · RA6 secure</span><span class="ph-dates">Jul 28 – Aug 14</span></div>
-      <h3>RA6 secure image (tfm_s) — GNUARM, FSP 6.1</h3>
+    <div class="ph ok">
+      <div class="ph-top"><span class="ph-id">P1 – P3</span><span class="ph-dates">2026-07-28 → 2026-09-14</span></div>
+      <h3>RA6E1 — complete, both toolchains</h3>
       <ul>
-        <li>Generate the RA6E1 secure RASC project (full set); wire it as <span class="mono">FSP_S_APP_DIR</span></li>
-        <li><b>DDSC solved</b>: <span class="mono">gp_ddsc_*</span> from <span class="mono">region_defs.h</span> (<span class="mono">ra6e1_ddsc.c</span>); FSP <span class="mono">bsp_linker.c</span> excluded — <span class="mono">bsp_security.o</span> compiles</li>
-        <li>Finish secure-BSP wiring (crypto-stack includes from generated <span class="mono">common_data</span>); build + sign tfm_s; BL2 chainloads it</li>
+        <li>Secure image, DDSC bridge, flash driver, OFS brick-guard.</li>
+        <li>NS project, CMSE veneers, split SPE/NSPE build against installed <span class="mono">api_ns</span>.</li>
+        <li>IAR <span class="mono">.icf</span> for BL2 / S / NS — per-word OFS, stack seal, veneers at the NSC window.</li>
+        <li>PSA Arch suites on both toolchains — <b>beyond the original validation bar</b>.</li>
       </ul>
-      <div class="exit">Exit <b>M1</b> — RA6 BL2 → tfm_s boots (spans Aug 3–7 out)</div>
+      <div class="exit">Exit <b class="ok">M1 · M2 · M3</b> — all met; M3 eleven days early.</div>
     </div>
 
-    <div class="ph ra6">
-      <div class="ph-top"><span class="ph-id">P2 · RA6 boot</span><span class="ph-dates">Aug 17 – Sep 4</span></div>
-      <h3>RA6 non-secure · full boot · crypto NSC app (GNUARM)</h3>
+    <div class="ph ok">
+      <div class="ph-top"><span class="ph-id">P4</span><span class="ph-dates">2026-09-15 → 2026-09-23 · 23d early</span></div>
+      <h3>RA6M5 port + SCE9 crypto acceleration</h3>
       <ul>
-        <li>NS RASC project downstream of secure; veneer / CMSE import lib; <span class="mono">ns/CMakeLists</span>, <span class="mono">cpuarch_ns</span></li>
-        <li>Full BL2 → S → NS boot, proven over RTT</li>
-        <li><b>Run the basic-crypto NSC app</b> — a PSA crypto call across the veneer / NSC boundary</li>
+        <li>RASC solution projects on FSP 6.7; <span class="mono">platform/ext/target/renesas/ra6m5</span>.</li>
+        <li>Memory map, <span class="mono">region_defs.h</span>, linker scripts (<span class="mono">.ld</span> + <span class="mono">.icf</span>), OFS guard.</li>
+        <li>Boot chain + crypto NSC app + PSA Arch suites, GNUARM and IAR — crypto 63/0/1, attestation 1/0/0, storage 11/0/6, identical on both toolchains.</li>
+        <li><b>SCE9 ciphers</b> — RA6M5 carries SCE9, as RA6E1/RA6M4 do (FSP namespaces it <span class="mono">BSP_FEATURE_RSIP_SCE9_SUPPORTED</span>; true RSIP is RA8).</li>
+        <li>New <span class="mono">platform/ext/accelerator/renesas/sce9/</span> implementing <span class="mono">crypto_hw.h</span>, with <span class="mono">cc312</span> as template — <b>per-engine by design</b>, RSIP lands as <span class="mono">renesas/rsip</span>.</li>
+        <li>Route: FSP <span class="mono">rm_psa_crypto</span> <span class="mono">*_ALT</span> sources, built against <b>FSP's Mbed TLS 3.6.6</b> rather than upstream — the ALTs depend on FSP's PSA core, and pairing them with upstream left multi-part GCM broken (D042). <span class="mono">FSP_MODULES_NEVER_BUILT</span> untangled.</li>
+        <li>Accelerated: cipher, AES, GCM, CMAC, SHA-256, ECP/ECDSA, RSA, and SHA-256 for BL2's image hash. <b>CCM stays in software</b> — FSP's SCE9 CCM caps associated data at 110 B and Protected Storage exceeds it (D043).</li>
+        <li><b>2026-09-21:</b> GNUARM boots BL2 → S → NS on a CK-RA6M5 V2. <b>2026-09-23:</b> IAR does too, with SCE9 active.</li>
+        <li>Three defects found in FSP's <span class="mono">*_ALT</span> sources; two are fixed in the pack, the third is not an FSP API (D041, D043, D044).</li>
       </ul>
-      <div class="exit">Exit <b>M2</b> — full RA6 boot + crypto NSC app (GNUARM); spans Aug 24–28 out</div>
-    </div>
-
-    <div class="ph key">
-      <div class="ph-top"><span class="ph-id">P3 · RA6 IAR</span><span class="ph-dates">Sep 7 – Sep 25</span></div>
-      <h3>IAR toolchain for RA6</h3>
-      <ul>
-        <li>IAR linker <span class="mono">.icf</span> for BL2 / S / NS: OFS, veneer / NSC, TZ regions (GCC <span class="mono">.ld</span> → IAR <span class="mono">.icf</span>)</li>
-        <li>IAR startup + toolchain CMake; build BL2 → S → NS under IAR; boot + crypto app on RA6E1</li>
-      </ul>
-      <div class="exit">Exit <b>M3</b> — RA6 full chain + crypto app on GNUARM and IAR</div>
-    </div>
-
-    <div class="ph ra8">
-      <div class="ph-top"><span class="ph-id">P4 · RA8x2 base</span><span class="ph-dates">Sep 28 – Oct 23</span></div>
-      <h3>RA8x2 base port — BL2 + SPE on primary core (FSP 6.6)</h3>
-      <ul>
-        <li>New <span class="mono">platform/ext/target/renesas/ra8x2</span>; RASC projects on FSP 6.6; reuse RA6 patterns (incl. DDSC bridge)</li>
-        <li><b>Spike first: settle core topology</b> (never examined) — SPE vs NSPE core; TZ-on-M85 + M33-as-NS vs pure multi-core</li>
-        <li>RA8x2 specifics: memory map, RSIP crypto, Cortex-M85 PACBTI / FPU-in-SPE</li>
-      </ul>
-      <div class="exit">Exit <b>M4</b> — RA8x2 SPE boots on the primary core</div>
-    </div>
-
-    <div class="ph ra8">
-      <div class="ph-top"><span class="ph-id">P5 · Dual-core</span><span class="ph-dates">Oct 26 – Nov 20</span></div>
-      <h3>Dual-core — FSP ICC ↔ TF-M mailbox HAL</h3>
-      <ul>
-        <li>Implement <span class="mono">tfm_hal_multi_core_*</span> / <span class="mono">platform_mailbox</span> over FSP inter-core comms (shared memory + semaphore/IPC)</li>
-        <li>NS mailbox agent on the NSPE core; marshal PSA client calls across cores; boot both cores</li>
-      </ul>
-      <div class="exit">Exit <b>M5</b> — PSA call marshaled NSPE-core → SPE-core over FSP ICC</div>
+      <div class="exit">Exit <b class="ok">M4</b> — met 2026-09-23, 23 days early. RA6M5 full chain, both toolchains, SCE9 ciphers active. Built and validated on FSP 6.7.0-beta0 (D047).</div>
     </div>
 
     <div class="ph key">
-      <div class="ph-top"><span class="ph-id">P6 · RA8x2 goal</span><span class="ph-dates">Nov 23 – Dec 18</span></div>
-      <h3>RA8x2 NS + IAR + crypto NSC app</h3>
+      <div class="ph-top"><span class="ph-id">P5</span><span class="ph-dates">2026-10-19 → 2026-11-27</span></div>
+      <h3>RA8x2 single-core — TrustZone cfg + BSP</h3>
       <ul>
-        <li>NSPE app on the second core; end-to-end dual-core boot + the crypto NSC app</li>
-        <li>IAR <span class="mono">.icf</span> / startup for RA8x2 (both cores); build + boot under IAR</li>
-        <li>Consolidation + stakeholder sign-off</li>
+        <li>New <span class="mono">platform/ext/target/renesas/ra8x2</span>; RASC projects on FSP 6.7.</li>
+        <li>TrustZone configuration (<span class="mono">target_cfg.c</span> — SAU/PPC/MPC), isolation HAL, DDSC bridge.</li>
+        <li>BSP update: memory map, RSIP crypto driver, entropy source.</li>
+        <li>Cortex-M85 PACBTI / FPU-in-SPE; linker scripts for both toolchains.</li>
+        <li>Boot chain + crypto NSC app, GNUARM and IAR.</li>
       </ul>
-      <div class="exit">Exit <b>M6</b> — RA8x2 dual-core full chain + crypto app, GNUARM + IAR</div>
+      <div class="exit">Exit <b>M5</b> — RA8x2 single-core full chain + crypto app, both toolchains. <b>Primary goal.</b></div>
     </div>
 
-    <div class="ph stretch" style="grid-column:1/-1">
-      <div class="ph-top"><span class="ph-id">P7 · Stretch</span><span class="ph-dates">Jan 11 – Mar 26, 2027</span></div>
-      <h3>Upstream to the Arm TF-M repository</h3>
+    <div class="ph stretch">
+      <div class="ph-top"><span class="ph-id">P6</span><span class="ph-dates">2027-01-11 → 2027-03-26</span></div>
+      <h3>Stretch — upstream to the Arm TF-M repository</h3>
       <ul>
-        <li>Docs tree (vendor + per-platform <span class="mono">index.rst</span>, <span class="mono">platform_introduction.rst</span>); accept the deprecation policy's ongoing-maintenance commitment; maintainer sign-off + CI</li>
-        <li>Submit via review.trustedfirmware.org (Gerrit). Not mandatory for this customer — bounded by external review latency</li>
+        <li><b>Submission is via Gerrit</b> (<span class="mono">review.trustedfirmware.org</span>), not a GitHub PR — the GitHub repo is a mirror.</li>
+        <li>The 12 shared-file fixes as individual Gerrit changes; the BL2 signing-dependency bug and <span class="mono">MCUBOOT_ALIGN_VAL</span> cap are platform-independent and can go early.</li>
+        <li><span class="mono">psa-arch-tests</span> target via GitHub PR — that repo does take PRs.</li>
+        <li>Docs tree; accept the deprecation policy's ongoing-maintenance commitment.</li>
+        <li><b>Gerrit changes target <span class="mono">main</span>, which is TF-PSA-Crypto.</b> The platform-independent fixes can go on their own; the port itself — and its SCE9 ALT wiring — is submittable only after P7. Items 9 and 11 are already fixed upstream and item 10 is obsolete there.</li>
       </ul>
-      <div class="exit">Exit <b>M7</b> — RA6 + RA8x2 merged upstream (review-latency dependent)</div>
+      <div class="exit">Exit <b>M6</b> — RA6M5 (+ RA8x2) merged upstream. Review-latency dependent; the port waits on P7.</div>
     </div>
-  </div>
 
-  <h2>Platform HAL surface — what each target must implement</h2>
-  <div class="cards hal">
-    <div class="card goal"><h3>Boot &amp; isolation</h3><ul>
-      <li>startup + linker, OFS (BL2)</li>
-      <li><span class="mono">target_cfg.c</span> — SAU / PPC / MPC</li>
-      <li><span class="mono">tfm_hal_isolation.c</span>; DDSC bridge (<span class="mono">gp_ddsc_*</span>)</li>
-    </ul></div>
-    <div class="card goal"><h3>Multi-core (RA8x2)</h3><ul>
-      <li><span class="mono">tfm_hal_multi_core_*</span> + <span class="mono">platform_mailbox</span> over FSP ICC</li>
-      <li>NS mailbox agent</li>
-      <li>PSA call marshaling across cores</li>
-    </ul></div>
-    <div class="card goal"><h3>Storage</h3><ul>
-      <li><span class="mono">Driver_FLASH0/1</span> (code + data)</li>
-      <li><span class="mono">its_flash_fs</span> HAL (ITS)</li>
-      <li><span class="mono">ps_nv_counters</span> (PS)</li>
-    </ul></div>
-    <div class="card goal"><h3>Crypto &amp; entropy</h3><ul>
-      <li>RSIP crypto driver</li>
-      <li>entropy / TRNG source</li>
-      <li>crypto key HAL (exercised by the NSC app)</li>
-    </ul></div>
-    <div class="card goal"><h3>Identity &amp; provisioning</h3><ul>
-      <li>OTP HAL + lifecycle state</li>
-      <li>IAK + BL2 ROTPKs (dummy for dev)</li>
-      <li>NV counters backend</li>
-    </ul></div>
-    <div class="card goal"><h3>Platform service &amp; NS</h3><ul>
-      <li>system reset, IOCTL, NV-counter API</li>
-      <li>NS <span class="mono">ns/CMakeLists</span> + <span class="mono">cpuarch_ns</span></li>
-      <li>veneer / CMSE import library</li>
-    </ul></div>
+    <div class="ph future">
+      <div class="ph-top"><span class="ph-id">P7</span><span class="ph-dates">future · after the rsip7 update</span></div>
+      <h3>Future — TF-M 2.3 / TF-PSA-Crypto</h3>
+      <ul>
+        <li>TF-M 2.3.0 pins TF-PSA-Crypto v1.1.0, 2.3.1 pins v1.1.1 — <b>no Mbed TLS, no <span class="mono">*_ALT</span></b>. CC312's legacy ALT path is gone in 2.3.0.</li>
+        <li>SCE9 acceleration is redone as a PSA transparent driver — the same model as the rsip7 CM driver, which is why it follows that update.</li>
+        <li>Rebase from <span class="mono">dd2b7de19</span>: 10 of 20 shared files conflict; SPM logging rewritten (<span class="mono">lib/tfm_log</span>), so the trace option and RTT backend need porting; item 6 still needed at the moved <span class="mono">scripts/wrapper.py</span>. Detail in DECISIONS D035.</li>
+      </ul>
+      <div class="exit">Exit <b>M7</b> — RA6E1, RA6M5 and RA8x2 on 2.3.x with PSA-driver acceleration, both toolchains, suites green.</div>
+    </div>
   </div>
 
   <h2>Milestones</h2>
@@ -351,37 +329,40 @@
     <table>
       <thead><tr><th>ID</th><th>Date (target)</th><th>Gate</th></tr></thead>
       <tbody>
-        <tr><td class="id">M1</td><td class="date">~2026-08-14</td><td class="gate">RA6 BL2 → tfm_s boots on silicon</td></tr>
-        <tr><td class="id">M2</td><td class="date">~2026-09-04</td><td class="gate">Full RA6 boot BL2 → S → NS + crypto NSC app verified (GNUARM)</td></tr>
-        <tr class="key"><td class="id">M3</td><td class="date">~2026-09-25</td><td class="gate"><b>RA6 full chain + crypto app on GNUARM and IAR</b></td></tr>
-        <tr><td class="id">M4</td><td class="date">~2026-10-23</td><td class="gate">RA8x2 SPE boots on the primary core (FSP 6.6)</td></tr>
-        <tr><td class="id">M5</td><td class="date">~2026-11-20</td><td class="gate">RA8x2 dual-core: PSA call marshaled NSPE-core → SPE-core over FSP ICC</td></tr>
-        <tr class="key"><td class="id">M6</td><td class="date">~2026-12-18</td><td class="gate"><b>RA8x2 dual-core full chain + crypto app, GNUARM + IAR</b> (primary goal)</td></tr>
-        <tr class="stretch"><td class="id">M7</td><td class="date">~2027 Q1–Q2</td><td class="gate">Stretch — RA6 + RA8x2 merged into Arm TF-M upstream</td></tr>
+        <tr class="ok"><td class="id">M1 ✓</td><td class="date">2026-08-14</td><td class="gate">RA6E1 BL2 → tfm_s boots on silicon</td></tr>
+        <tr class="ok"><td class="id">M2 ✓</td><td class="date">2026-09-04</td><td class="gate">Full RA6E1 boot + crypto NSC app (GNUARM)</td></tr>
+        <tr class="ok"><td class="id">M3 ✓</td><td class="date">2026-09-14</td><td class="gate"><b>RA6E1 full chain + crypto app, GNUARM and IAR</b> — 11 days early</td></tr>
+        <tr class="ok"><td class="id">M4 ✓</td><td class="date">2026-09-23</td><td class="gate">RA6M5 full chain, both toolchains, SCE9 ciphers active — 23 days early</td></tr>
+        <tr class="key"><td class="id">M5</td><td class="date">~2026-11-27</td><td class="gate"><b>RA8x2 single-core full chain + crypto app, GNUARM + IAR</b> — primary goal</td></tr>
+        <tr class="stretch"><td class="id">M6</td><td class="date">~2027 Q1–Q2</td><td class="gate"><i>Stretch</i> — merged into Arm TF-M upstream (port waits on M7)</td></tr>
+        <tr class="stretch"><td class="id">M7</td><td class="date">future</td><td class="gate"><i>Future</i> — TF-M 2.3 / TF-PSA-Crypto, after the rsip7 update</td></tr>
       </tbody>
     </table>
   </div>
 
   <h2>Risks &amp; buffer</h2>
   <div class="risks">
-    <div class="rk"><div class="sev hi">High</div><div class="body"><b>Dual-core mailbox integration.</b> Binding FSP inter-core comms to TF-M's <span class="mono">tfm_hal_multi_core</span> / <span class="mono">platform_mailbox</span> is the biggest unknown; no RA reference exists. Concentrated in P5.</div></div>
-    <div class="rk"><div class="sev hi">High</div><div class="body"><b>RA8x2 core-topology is an open unknown.</b> SPE vs NSPE core, and TZ-on-M85 + M33-as-NS vs pure multi-core, set the entire mailbox design — never examined. Needs an early spike (P4 start).</div></div>
-    <div class="rk"><div class="sev hi">High</div><div class="body"><b>IAR replication.</b> OFS / veneer / TZ placement + startup as IAR <span class="mono">.icf</span>; IAR TZ/veneer handling differs from GCC. Two rounds (RA6 P3, RA8x2 P6).</div></div>
-    <div class="rk"><div class="sev hi">High</div><div class="body"><b>FSP 6.6 for RA8x2.</b> First use for dual-core + SAU-reach-NS + RA8 support; regen churn and unverified dual-core generation.</div></div>
-    <div class="rk"><div class="sev md">Med</div><div class="body"><b>RA6 secure/NS integration.</b> DDSC blocker solved (<span class="mono">bsp_security.o</span> compiles); remaining is wiring the regenerated RA6E1 secure/NS projects — crypto-stack includes, veneer, NS transition.</div></div>
-    <div class="rk"><div class="sev md">Med</div><div class="body"><b>New silicon.</b> First RA8x2 bring-up — M85 PACBTI/FPU, RSIP, dual-core boot.</div></div>
-    <div class="rk"><div class="sev md">Med</div><div class="body"><b>Hardware.</b> An EK-RA8x2 (dual-core) board must be procured before P4; 2× EK-RA6M4 bricked (RA6E1 is the RA6 vehicle).</div></div>
-    <div class="rk"><div class="sev md">Med</div><div class="body"><b>Shallow validation (accepted).</b> Boot + a single crypto NSC path, not conformance. Stakeholders accepted this; psa-arch-tests remain a possible future addition beyond this plan.</div></div>
+    <div class="rk"><div class="sev hi">High</div><div class="body"><b>RA8x2 new silicon on FSP 6.7.</b> First bring-up — M85 PACBTI/FPU, RSIP-E51A, TrustZone configuration. Concentrated in P5.</div></div>
+    <div class="rk"><div class="sev ok">Retired</div><div class="body"><b>SCE9 cipher wiring.</b> Closed 2026-09-23. FSP's crypto stack and TF-M's mbedcrypto now coexist: TF-M's crypto is built from FSP's own Mbed TLS, with <span class="mono">FSP_MODULES_NEVER_BUILT</span> untangled. The ALT route remains Mbed TLS 3.6-only — redone as a PSA driver in P7, and every FSP ALT fix carried here is debt against that rebase.</div></div>
+    <div class="rk"><div class="sev md">Med</div><div class="body"><b>IAR replication, round 2.</b> RA8x2 <span class="mono">.icf</span> / startup. Materially de-risked — the RA6E1 round is done and the patterns, hooks and three upstream fixes transfer directly.</div></div>
+    <div class="rk"><div class="sev md">Med</div><div class="body"><b>Hardware.</b> An EK-RA8x2 must be procured before P5 — <b>Oct 19</b>, three weeks earlier than the previous plan. The RA6M5 board is in hand. Procurement lead time is not absorbed by schedule slack. 2× EK-RA6M4 bricked; RA6E1 was the RA6 vehicle.</div></div>
+    <div class="rk"><div class="sev md">Med</div><div class="body"><b>TF-M 2.3 debt grows while deferred.</b> Every change to a shared file adds to the eventual P7 rebase, and upstream submission of the port waits on it.</div></div>
+    <div class="rk"><div class="sev ok">Closed</div><div class="body"><b>Open defects.</b> Both closed 2026-09-23: <span class="mono">.ram_from_flash</span> now relocates at every isolation level under both toolchains (D048), and the IAR NS toolchain emits <span class="mono">.srec</span> (D049). Remaining: the IAR NS build produces no <span class="mono">.map</span>.</div></div>
   </div>
+
+  <div class="descoped">
+    <h4>Descoped 2026-09-14 — dual-core</h4>
+    The previous revision made <b>RA8x2 dual-core</b> the primary goal, with an entire phase dedicated to binding FSP inter-core communication to TF-M's <span class="mono">tfm_hal_multi_core_*</span> / <span class="mono">platform_mailbox</span>, an NS mailbox agent, and PSA call marshaling across cores. It carried the two highest risks in the register — the mailbox integration ("no RA reference exists") and the unexamined core-topology question. <b>All of it is removed</b>; RA8x2 is a single-core part for this project. Retained into P5: the base port, TrustZone config, BSP, and the NS + IAR + crypto-app work.
+  </div>
+
   <div class="buffer">
-    <b>Buffer.</b> Dates are targets, not commitments — an overrun shifts subsequent dates rather than cutting scope. The RA8x2 leg (P4–P6) carries <span class="mono">~20–25%</span> internal buffer and holds Dec 21 – Jan 2 as contingency. Everything is sequential under one engineer.
+    <b>Buffer.</b> Dates are targets, not commitments — an overrun shifts subsequent dates rather than cutting scope. The RA8x2 leg holds <span class="mono">Nov 30 – Dec 18</span> as contingency. Everything is sequential under one engineer.
   </div>
 
   <footer>
-    <span>TF-M on Renesas RA · RA6 → RA8x2 dual-core · FSP 6.6 · GNUARM + IAR · validation: boot + crypto NSC app</span>
-    <span>Revised 2026-07-28 · RA6 ~Sep 25 · Goal ~Dec 18</span>
+    <span>Revised 2026-09-21 · TF-M 2.3 moved to future work</span>
+    <span>RA6E1 done · RA6M5 ~10-16 · RA8x2 ~11-27 · TF-M 2.3 after rsip7</span>
   </footer>
 </div>
-
 </body>
 </html>

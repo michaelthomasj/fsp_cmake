@@ -850,3 +850,623 @@ candidates are excluding the section from the `ER_TFM_DATA` initialiser batch, p
 `initialize manually` and copying it in `tfm_hal_platform_init()`, or marking the routines
 `__ramfunc` so ILINK treats them as `.textrw`. The isolation-1 build is unaffected and ships
 correctly.
+
+---
+
+## D030 — RA6M5 uses the whole 2 MB, with a reserved secure scratch block
+
+**Date:** 2026-09-21 · **Status:** Accepted
+
+**Decision.** BL2 96 KB, a 32 KB **secure** scratch block at `0x18000`, secure slots 512 KB
+each, non-secure slots 448 KB each. Full table in `RA6M5_SOLUTION.md`.
+
+**Why a reserved block rather than a bigger BL2.** Every slot boundary above `0x10000` has to
+land on a 32 KB erase block. From `0x18000` there are 61 such units, an odd count, which cannot
+be split into two secure plus two non-secure slots. The two ways to absorb it are a 128 KB BL2
+or a separate 32 KB partition. The partition wins: `FLASH_CM33_B` stays at 96 KB so a BL2 that
+outgrows its budget fails at link instead of quietly eating the spare block, and a later switch
+to swap-using-scratch is then an MCUboot configuration change with no repartition and no
+re-provisioning of the TrustZone boundaries.
+
+**Why the scratch is secure.** During a swap the scratch holds fragments of the **secure**
+image. In the non-secure region that is both an exposure and something NS code could corrupt.
+Rejected: placing it at the top of flash after the NS secondary slot, which reads more
+naturally but puts it in the NS region for exactly that reason.
+
+**Split 512/448 rather than 480/480.** The secure side is what grows — SCE9 ciphers,
+`profile_large`, and FSP's crypto stack — while the largest non-secure image measured so far
+is the 159 KB PSA Arch crypto test. Both divisions are legal; this one puts the headroom where
+the pressure is.
+
+**Data flash is 8 KB, all secure** — carried over from RA6E1 ([[D019]] territory): NV counters
+2048 B, PS 3072 B, ITS 3072 B, and `PS_MAX_ASSET_SIZE` / `PS_NUM_ASSETS` derive from the
+resulting 1536-byte FS block. The stock template's 4/4 KB split does not fit these services.
+
+**Partition Manager values:** code flash Secure 1150 KB, NSC 2 KB, SRAM Secure 255 KB, NSC
+1 KB, data flash Secure 8 KB.
+
+---
+
+## D031 — The RA6M5 port was verified against a staged project set, not the e2 projects
+
+**Date:** 2026-09-21 · **Status:** Provisional - re-verify once the e2 projects are regenerated
+
+**Context.** `platform/ext/target/renesas/ra6m5` is the RA6E1 port with the device deltas
+applied (wider `BPS`/`PBPS` OFS words, 2 MB `FLASH_TOTAL_SIZE`, the new layout). The
+`ra6m5_gcc_*` e2 projects cannot drive it yet: the secure project has neither `r_flash_hp` nor
+`r_sce`, its `BSP_CFG_STACK_MAIN_BYTES` is 0x400, the bootloader's flash instance generated as
+`g_flashRA_NOT_DEFINED` instead of `g_flash0`, and all three still carry the RA6E1 1 MB
+partitioning.
+
+**Decision.** Verify the port against a **staged copy** of the three projects with those four
+gaps filled in by hand, rather than editing the user's e2 projects or hand-editing
+`configuration.xml` and regenerating with a RASC whose FSP version (6.6.0-beta.1 installed)
+does not match what generated them (6.6.0-rc1).
+
+**Result.** All three images build on GNUARM: bl2 54.2 KB, tfm_s 174.8 KB, tfm_ns 6.1 KB.
+Veneers at `0x11F800`, discrete OFS LOAD segments, SCE9 TRNG linked, layout and orphan checks
+pass.
+
+**What this does not prove.** That a regenerated project produces the same generated files.
+The staging is a build-level check of the port, not of the solution. `RA6M5_SOLUTION.md`
+carries the list of e2 changes that have to be made for real.
+
+**Rejected:** copying the projects into `fsp_cmake/ra6m5_*` now. They have to be regenerated
+first, and committing the current state would put a wrong layout in the repo under names that
+look authoritative.
+
+*Superseded by D033.*
+
+---
+
+## D032 — CORRECTION to the SCE9 size figures quoted on 2026-09-21
+
+**Date:** 2026-09-21 · **Status:** Accepted
+
+**The error.** An earlier answer in the same session sized FSP's SCE9 stack from the
+`ra6m4_der_conversion` linker map as `r_sce` 264.8 KB, `rm_psa_crypto` 34.6 KB, FSP mbedTLS
+93.9 KB, and concluded the driver could not fit in an RA6E1 secure slot. The parse summed the
+**discarded-section list** at the top of the GNU map along with the linked sections.
+
+**Corrected figures**, counting only what appears after `Linker script and memory map`:
+
+| Component | Flash | RAM |
+|---|---|---|
+| `r_sce` | 58.5 KB | 0.1 KB |
+| `rm_psa_crypto` | 12.8 KB | 1.5 KB |
+| FSP mbedTLS | 29.3 KB | 2.0 KB |
+
+That is ~100 KB for a project exercising RSA, ECC and AES through PSA — which **does** fit the
+78–134 KB of RA6E1 secure-slot headroom, where the earlier figure said it could not. The TRNG
+alone costs 8.9 KB in the RA6M5 secure image, consistent with the ~8 KB measured on RA6E1.
+
+**Rule that follows.** Size any FSP module from a map only after skipping to
+`Linker script and memory map`; `--gc-sections` makes the head of the file misleading by an
+order of magnitude. Noted in `fsp_sce.cmake`.
+
+---
+
+## D033 — RA6M5 builds against the real e2 projects
+
+**Date:** 2026-09-21 · **Status:** Accepted · **Supersedes:** D031
+
+The four project-side gaps D031 listed were fixed in e2 — `r_flash_hp` and `r_sce` added to
+`ra6m5_gcc_secure`, `BSP_CFG_STACK_MAIN_BYTES` raised to 0x1000, the bootloader's flash
+instance renamed to `g_flash0`, and the solution repartitioned to the 2 MB layout of [[D030]]
+with `__BL_*_T` sizes 0 and all 8 KB of data flash secure.
+
+All three images now build on GNUARM from the generated projects, with no staging: bl2 54.2 KB,
+tfm_s 174.8 KB, tfm_ns 6.1 KB. Veneers at `0x11F800`, signed images padding to the full 512 KB
+and 448 KB slots, discrete OFS LOAD segments, SCE9 TRNG linked, layout and orphan checks
+passing.
+
+**What the staged pass was worth.** Every one of those four gaps was found by building against
+a staged copy before the projects were touched, and each surfaced as a specific error rather
+than a runtime symptom — the missing flash module at configure time, the stack size and the
+partitioning as static assertions. The stale partitioning alone would otherwise have produced
+`BOOT_EFLASH`, a wrong-address erase on upgrade, and `PSA_ERROR_INSUFFICIENT_STORAGE`, all on
+silicon.
+
+**Still open:** the projects are not copied into `fsp_cmake/ra6m5_*`, so the build points at
+`e2_studio/workspace66`. Nothing has run on hardware. IAR is untouched — `ra6m5_iar`'s solution
+still selects GCC.
+
+---
+
+## D034 — `BSP_CFG_EARLY_INIT` is asserted at build time, in both secure and BL2
+
+**Date:** 2026-09-21 · **Status:** Accepted
+
+**What happened.** The first RA6M5 hardware run failed `R_FLASH_HP_Open` with `FSP_ERR_FCLK` —
+the July 2026 RA6E1/RA6M4 failure, recorded in `DESIGN.md` §8.1. The port's linker half of the
+fix carried over (`.ram_noinit` / `.TFM_NOINIT` are NOBITS and outside `.bss` in both images);
+the project half did not. `BSP_CFG_EARLY_INIT` was 0 in `ra6m5_gcc_secure` and
+`ra6m5_gcc_mcuboot`, so `SystemCoreClock` sat in `.bss` (`0x2000D2BC` in `tfm_s`, `0x200045EC`
+in BL2) and was zeroed after `SystemInit()`. On RA6E1 it sits at the start of `.TFM_NOINIT`.
+
+The requirement was already written down twice — `RA6E1_TEMPLATE_CHECKLIST.md` §5 and the
+RA6M5 requirements table — and was still missed, including by the build verification in
+[[D033]], which checked modules, stack size, instance names and layout but not this.
+
+**Decision.** `#error` when `BSP_CFG_EARLY_INIT` is 0: in `ra6m5_layout_checks.c` for the
+secure image, in `bl2_option_setting.c` for BL2 (BL2-only, and it already includes
+`bsp_api.h`). Verified: both fire against the current projects.
+
+**Rejected:** overriding `boot_platform_post_init()` to call `SystemCoreClockUpdate()` in BL2,
+which `DESIGN.md` §8.1 names as the preferred BL2 fix. It repairs `SystemCoreClock` but not the
+other state early init moves out of `.bss` (`g_protect_counters`, `g_bsp_group_irq_sources`),
+and it would leave the secure image depending on the project setting anyway. One rule, checked
+in both images, matches what RA6E1 actually runs with.
+
+**Follow-up:** the RA6E1 port has the same exposure with no guard; its projects happen to be
+correct. Same two checks apply there.
+
+---
+
+## D035 — Stay on TF-M 2.2; the TF-M 2.3 rebase is cancelled
+
+**Date:** 2026-09-21 · **Status:** Accepted
+
+**Decision.** Do not move to TF-M 2.3. It replaces Mbed TLS with TF-PSA-Crypto — v1.1.0 in
+2.3.0, v1.1.1 in 2.3.1 (`config/config_base.cmake:38` at each tag; 2.3.0 release notes: "Use
+TF-PSA-Crypto 1.1.0 in place of Mbed-TLS"). The port stays on v2.2.0 / Mbed TLS 3.6.3. P5 of
+`PROJECT_PLAN.md` is cancelled.
+
+**Consequence for SCE9.** On 3.6.3 the `MBEDTLS_xxx_ALT` mechanism is available, so FSP's
+`rm_psa_crypto` ALT sources are no longer a throwaway path. In 2.3.0 the CC312 legacy (ALT)
+driver API is gone and no accelerator config defines an `_ALT` any more.
+
+**What the partial rebase established (for whenever 2.3 is revisited):**
+- Fixed upstream in 2.3.1: item 9 (signed image depends on `${bin_dir}/tfm_s.bin`) and item 11
+  (`bootutil_key_cnt` in the EC branch of `keys.c`).
+- Obsolete in 2.3.1: item 10 — the SPE build no longer signs the NS image at all.
+- Still needed: item 6 — the CMake `MCUBOOT_ALIGN_VAL` list accepts 4096, but the relocated
+  `bl2/ext/mcuboot/scripts/wrapper.py` still caps `--align` at 32.
+- SPM logging was rewritten (`lib/tfm_log`, `ERROR_RAW`/`INFO_RAW`, `LOG_LEVEL_*`):
+  `SPMLOG_*`, `tfm_spm_log.h` and the `TFM_SPM_LOG_LEVEL_SILENCE` vocabulary are gone, so item 7
+  and the RTT SPM-log backend both need porting. 2.3 also adds
+  `CONFIG_TFM_BACKTRACE_ON_CORE_PANIC`, GCC-only (`<unwind.h>`), overlapping item 7's panic trace.
+- 10 of the 20 surviving shared files conflicted; `wrapper.py`, `lib/ext/mcuboot/CMakeLists.txt`,
+  `toolchain_CLANG.cmake` and `platform/ns/toolchain_ns_CLANG.cmake` moved or were removed.
+
+Nothing was committed; the worktree and branch were deleted.
+
+---
+
+## D036 — SCE9 acceleration via FSP `*_ALT`: AES, AES-GCM, SHA-256 first; ECC held back
+
+**Date:** 2026-09-21 · **Status:** Provisional - builds; not yet run on silicon
+
+**Decision.** `platform/ext/accelerator/renesas/sce9` (`CRYPTO_HW_ACCELERATOR_TYPE=renesas/sce9`,
+ON in `ra6m5/config.cmake`) compiles FSP's `rm_psa_crypto` ALT sources from the secure e2
+project into TF-M's Mbed TLS 3.6.3 for the crypto partition: `aes_alt`, `gcm_alt`,
+`sha256_alt` and their `*_process.c`. TF-M's `LEGACY_DRIVER_API_ENABLED` path, as CC312 uses it;
+`crypto_init.c` then calls `crypto_hw_accelerator_init()` before `psa_crypto_init()`.
+Plaintext keys only (`PSA_CRYPTO_CFG_*_FORMAT` = 0x01); the wrapped-key vendor driver is not
+built. BL2 stays software.
+
+**Verified in the build:** `mbedtls_aes_crypt_ecb`, `mbedtls_gcm_setkey/starts` and
+`mbedtls_sha256_starts` resolve to the ALT objects; 109 `HW_SCE_*` procedures linked, including
+AES-128/192/256 ECB/CBC/CTR, AES-GCM and `HW_SCE_Sha224256GenerateMessageDigestSub`. Secure
+`text` 179.2 KB → 230.2 KB (+49.8 KB), `bss` −8.7 KB (software AES tables gone). BL2 has no
+`HW_SCE_*` and its OFS segments are unchanged.
+
+**What had to be bridged, and why each is safe:**
+- The ALT files are forks of Mbed TLS library sources and include internals by bare name
+  (`common.h`, `bn_mul.h`, ...). FSP's `*_alt.h` do too, and `mbedtls/<module>.h` includes them
+  once the ALT is defined - so `library/` is on the config's interface include path.
+- The Mbed TLS config now includes `bsp_api.h` (the ALT sources test `BSP_FEATURE_RSIP_*`);
+  FSP/SCE include paths and defines reach the config consumers from `fsp_sce_s`'s interface,
+  without linking it into them.
+- `BYTES_TO_WORDS` lives in FSP's `platform_alt.h`, reached only under
+  `MBEDTLS_PLATFORM_SETUP_TEARDOWN_ALT`, which TF-M has no use for. Defined in the accelerator
+  config.
+- `psa_aead_setup_vendor` is called under a **runtime** `vendor_flag` that only FSP's patched
+  Mbed TLS core sets. Stubbed to `psa_panic()`: dead here, and reaching it would mean a
+  plaintext key going to a wrapped-key procedure.
+- `HW_SCE_McuSpecificInit()` software-resets the engine on every call. The TRNG and the
+  accelerator now share one latched `ra_sce_init()` in the platform, so neither resets the SCE
+  under the other.
+- BL2's `mcuboot_crypto_config.h` includes `MBEDTLS_ACCELERATOR_PSA_CRYPTO_CONFIG_FILE`
+  unconditionally under `CRYPTO_HW_ACCELERATOR`; both BL2 macros point at a no-op header.
+  `bl2_main.c` already stubs BL2's `crypto_hw_accelerator_*`.
+
+**Why ECC is held back.** FSP's ECDSA/ECP ALT has **no software fallback**: a curve with no SCE9
+procedure returns `MBEDTLS_ERR_ECP_FEATURE_UNAVAILABLE`, and ECDSA cannot be taken without
+`MBEDTLS_ECP_ALT` because it reads FSP's patched group struct (`grp->vendor_ctx`). TF-M's
+default set enables P-521, Curve25519, Curve448 and secp256k1; SCE9 has no P-521 or 25519
+procedures (they failed to compile). Enabling ECC as-is swaps working software curves for
+runtime failures. Needs a curve-set decision.
+
+**Mbed TLS version.** Built against 3.6.3 as-is. FSP's tree is 3.6.6; the AES/GCM paths and
+their internals are identical between the two, and the ALT sources do not use the 3.6.4+
+`mbedtls_f_rng_t`. TF-M 2.2.2 (same 2.2 line) carries 3.6.5 if a bump is wanted.
+
+**Open before M4:** hardware run (smoke test exercises SHA-256 and AES-GCM through PS); PSA Arch
+crypto suite as the regression gate against 64/64; at isolation 2/3 the crypto partition must
+be able to reach the SCE registers, not yet checked.
+
+*ECC hold-back superseded by D037.*
+
+---
+
+## D037 — SCE9 ECC enabled; P-521, Curve25519 and deterministic ECDSA removed from RA6M5
+
+**Date:** 2026-09-21 · **Status:** Provisional - builds; not yet run on silicon · **Supersedes:** D036 (ECC hold-back only)
+
+**Decision (option 1 of the three put in D036).** Enable `MBEDTLS_ECP_ALT`,
+`MBEDTLS_ECDSA_SIGN_ALT` and `MBEDTLS_ECDSA_VERIFY_ALT` with FSP's `ecp_alt`, `ecp_curves_alt`
+and `ecdsa_alt` sources, and remove from the RA6M5 PSA configuration what SCE9 cannot do
+correctly, in the accelerator's `crypto_accelerator_config.h`:
+
+| Removed | Why |
+|---|---|
+| `PSA_WANT_ECC_SECP_R1_521` | No SCE9 procedure - `ecp_can_do_sce()` admits P-521 only on RSIP-E51A/E50D, and its HW tables do not compile on SCE9 |
+| `PSA_WANT_ECC_MONTGOMERY_255` | No SCE9 procedure; its HW tables reference RSIP-only functions |
+| `PSA_WANT_ALG_DETERMINISTIC_ECDSA` | FSP's `mbedtls_ecdsa_sign()` ignores `f_rng` - the SCE draws its own nonce - and Mbed TLS 3.6's deterministic path under `ECDSA_SIGN_ALT` is that call with an HMAC-DRBG as `f_rng`. It would return a valid but randomised signature for `PSA_ALG_DETERMINISTIC_ECDSA`. Nothing in TF-M uses it (the attestation key is `PSA_ALG_ECDSA(SHA_256)`) |
+
+**Kept, contrary to the original option-1 wording:** secp256k1 - SCE9 does sign and verify it
+(`ecp_can_do_sce()`); Curve448 - no hardware references, and ECP scalar multiplication falls back
+to software (`ecp_mul_mxz`).
+
+**Verified in the build:** `mbedtls_ecdsa_sign/verify`, `mbedtls_ecp_mul` and
+`mbedtls_ecp_group_load` resolve to the FSP ALT objects; `HW_SCE_ECC_256/384` GenerateSign,
+VerifySign and WrappedScalarMultiplication linked; curve data present for secp256r1, secp256k1,
+secp384r1 and Curve448 only. Secure `text` 276.3 KB against 179.2 KB all-software (+97.1 KB);
+about 233 KB of the 509.5 KB secure code region remains.
+
+**Note for FSP.** The ignored `f_rng` means any FSP application that enables
+`MBEDTLS_ECDSA_DETERMINISTIC` alongside `MBEDTLS_ECDSA_SIGN_ALT` on SCE9 gets randomised
+signatures from deterministic ECDSA - worth raising with the rm_psa_crypto owners.
+
+*The "Note for FSP" above is corrected by D038.*
+
+**Consequence for the PSA Arch gate.** P-521, X25519 and deterministic-ECDSA cases now report
+not-supported rather than pass; the crypto suite total will drop below the 64/64 software
+baseline by that many, and the gate is "no failures", not "same count".
+
+---
+
+## D038 — CORRECTION to D037: deterministic ECDSA is unsupported in FSP by design
+
+**Date:** 2026-09-21 · **Status:** Accepted
+
+D037's "Note for FSP" called the ignored `f_rng` in `mbedtls_ecdsa_sign()` a defect affecting FSP
+applications that enable `MBEDTLS_ECDSA_DETERMINISTIC`. That is wrong. Per the rm_psa_crypto
+owner, deterministic ECDSA is **not supported** by FSP on the SCE, and the FSP configurator does
+not allow the setting - so no FSP application can reach that path.
+
+The exposure exists only in the TF-M integration, because TF-M's own PSA configuration enables
+`PSA_WANT_ALG_DETERMINISTIC_ECDSA`. Removing it in `crypto_accelerator_config.h` (D037) is
+therefore the correct and complete handling: it aligns TF-M with what FSP supports. Nothing to
+raise with FSP.
+
+---
+
+## D039 — BL2 SHA-256 on the SCE9; P-256 verify stays on p256-m
+
+**Date:** 2026-09-21 · **Status:** Provisional - builds; not yet run on silicon
+
+**Decision.** BL2 accelerates its image hash only: FSP's `sha256_alt` in a `bl2_crypto_hw` library
+linked into `bl2_crypto`, `r_sce` in the bootloader role (`FSP_MODULES_BL2 += sce` under
+`CRYPTO_HW_ACCELERATOR`), and the SCE brought up in the port's `boot_platform_post_init()`
+(`bl2_boot_hal.c`), which MCUboot calls before the first slot is hashed. `ra_sce_init()` moved to
+its own file so BL2 can link it without the TRNG. BL2 `text` 55.7 KB → 56.1 KB.
+
+**Why not the verify.** BL2 routes P-256 to p256-m (`MBEDTLS_PSA_P256M_DRIVER_ENABLED`), so an
+ECDSA ALT is never reached; replacing p256-m pulls in bignum plus FSP's whole `ECP_ALT` for one
+verify per image, against a 96 KB budget. The hash scales with image size and is the win.
+
+**Two traps found on the way:**
+- `CRYPTO_HW_ACCELERATOR` reached bootutil (via `tfm_config`) but not `bl2_crypto`, so the first
+  build linked upstream software `sha256.o` while bootutil compiled against FSP's
+  `mbedtls_sha256_context` - a struct-layout mismatch across translation units. The define is
+  now on `bl2_crypto_config` itself.
+- `bsp_common.h` includes the bootloader project's `bsp_linker_info.h`, whose FSP MCUboot
+  helpers (`FLASH_AREA_IMAGE_PRIMARY/SECONDARY` as inline functions) sit under
+  `#ifdef __SYSFLASH_H__` - the same guard TF-M's `sysflash.h` uses. Defining FSP's own opt-out
+  `__SYSFLASH_BSP_LINKER_H` in the BL2 accelerator config skips that block.
+
+## D040 — PSA Arch crypto on RA6M5 SCE9: generic Renesas target, deterministic ECDSA gated
+
+**Date:** 2026-09-21 · **Status:** Provisional - built, not yet run
+
+**Build.** `C:\b\m5cry` (SPE: profile_large, isolation 3, IPC, `TFM_SPM_DEBUG_TRACE=OFF`) and
+`C:\b\m5cryns` (NS, MinSizeRel, from a `vcvars64` shell per D028), against the local
+psa-arch-tests clone with `PSA_API_TEST_TARGET=renesas_ra` - the clone's
+`tgt_dev_apis_tfm_renesas_ra` replaced the RA6E1-specific target. The short `C:\b` root is the
+D028 recommendation, taken up for RA6M5.
+
+**Deterministic ECDSA.** The target defined `ARCH_TEST_DETERMINISTIC_ECDSA` unconditionally,
+while the accelerated SPE removes the algorithm (D037/D038); NS builds compile against the client
+config and cannot see that. The SPE now exports `RA6M5_SPE_CRYPTO_HW_ACCELERATOR` in
+`ra6m5_ns_config.cmake`, the NS platform turns it into `RENESAS_RA_NO_DETERMINISTIC_ECDSA`, and the
+Renesas target skips the deterministic tests on it. The target already covers only P-256 and
+P-384, so the P-521 and X25519 removals do not affect it.
+
+**Pass bar.** Zero failures; the total is below the 64/64 software baseline by the deterministic
+cases. Open: whether the crypto partition reaches the SCE registers at isolation 3 - the TRNG did
+on RA6E1 at L3, which suggests it will.
+
+---
+
+## D041 — Two FSP `aes_alt.c` fixes carried in the RA6M5 secure project; PSA Arch crypto 61/64
+
+**Date:** 2026-09-22 · **Status:** Accepted for the TF-M port; the fixes belong in rm_psa_crypto
+
+**Result.** PSA Arch crypto on RA6M5 with SCE9 (profile_large, L3, IPC): **61 passed, 2 failed,
+1 skipped** of 64. The skip (252) is the deterministic-ECDSA gate from D040. The failures are
+multi-part GCM (261 finish, 263 verify) - see below.
+
+**Fix 1 - `mbedtls_aes_free()` closes an open SCE AES session.** CBC/CTR/XTS issue `InitSub` on
+first use and set `ctx->state = UPDATE`; nothing issued the matching `FinalSub`, so the first
+multi-part CBC update (test 236) left the engine mid-session and every later SCE command failed -
+AES key-index generation (-132), SHA (-147) and the TRNG (-148). Free now issues the key-size
+`FinalSub` only when `state == UPDATE`. First version from the rm_psa_crypto owner; the state gate
+and NULL-safety added here.
+
+**Fix 2 - `mbedtls_aes_crypt_ctr()` handles partial blocks.** The unaligned path dropped the
+`length % 16` tail (15-byte input produced no output, returned success); the aligned path passed a
+partial length to a worker that only handles whole blocks; `nc_off`/`stream_block` were ignored.
+Rewritten to upstream `aes.c` semantics: leftover keystream, whole blocks on the SCE (bulk if
+aligned, bounced otherwise), trailing keystream from the SCE over a zero block. 237 now 13/13.
+
+**Where they live.** In `fsp_cmake/ra6m5_gcc_secure/ra/fsp/src/rm_psa_crypto/aes_alt.c` - a
+generated file. Regenerating the project in e2 overwrites both; they need to land in rm_psa_crypto.
+
+**Open - multi-part GCM.** FSP's GCM ALT depends on two FSP patches to the Mbed TLS core that
+TF-M's upstream 3.6.3 does not have: `psa_crypto_aead.c` keeping the ciphertext length
+`mbedtls_gcm_finish()` reports (upstream forces 0), and `psa_crypto_driver_wrappers.h` routing GCM
+verify to `sce_gcm_verify()` with the expected tag (upstream passes an uninitialised scratch tag to
+finish and compares after). One-shot GCM passes, and PS uses one-shot.
+
+## D042 — TF-M's crypto is built from FSP's Mbed TLS, not upstream
+
+**Date:** 2026-09-22 · **Status:** Accepted for RA6M5 (`RA6M5_FSP_MBEDTLS`, default ON)
+
+**Why.** FSP's `*_ALT` sources are written against FSP's Mbed TLS core, not upstream's. D041 left
+multi-part GCM (261/263) failing because two FSP changes live in the core - `psa_crypto_aead.c`
+keeping the ciphertext length `mbedtls_gcm_finish()` reports, and `psa_crypto_driver_wrappers.h`
+routing GCM verify to `sce_gcm_verify()` with the expected tag. Patching those into upstream would
+mean carrying FSP core deltas as TF-M patches forever, and re-deriving them at every FSP release.
+Taking FSP's tree instead makes the pairing the one FSP ships and tests.
+
+**How - an overlay, built in the build directory** (`ra6m5/cmake/fsp_mbedtls.cmake`):
+
+- FSP ships `include/` + `library/` only; TF-M needs the whole release (CMakeLists, `scripts/`,
+  `framework/`, `3rdparty/p256-m`). So: clone upstream at FSP's own version (read from
+  `build_info.h` - 3.6.6 for FSP 6.6.0-rc1), copy FSP's `include/` and `library/` over it
+  (CRLF→LF), apply the TF-M patches FSP lacks, point `MBEDCRYPTO_PATH` at the result.
+- Only patches 0003, 0004, 0006, 0007 are applied: FSP's tree already carries TF-M's
+  builtin-key-loader (0001) and CC3XX (0005) changes. 0002 (code sharing) is unused here.
+- Port-owned patch `0100`: restore upstream's default `MBEDTLS_CONFIG_FILE`
+  (FSP defaults to `mbedtls/config.h`, which only exists in a generated FSP project, and the
+  everest subtarget is built without TF-M's `-D`), and make `psa_encapsulate`/`psa_decapsulate`
+  take `mbedtls_svc_key_id_t` - mandatory under `MBEDTLS_PSA_CRYPTO_KEY_ID_ENCODES_OWNER`, which
+  TF-M sets and FSP does not.
+- `git apply` runs with `GIT_CEILING_DIRECTORIES` so git does not discover the enclosing TF-M
+  checkout; the overlay stays a plain directory, which matters because a `.git` in it survives
+  `file(REMOVE_RECURSE)` on Windows and would stale the next configure.
+- The overlay is regenerated on every configure from `FSP_S_APP_DIR`, so a regenerated e2 project
+  flows through. `-DRA6M5_FSP_MBEDTLS=OFF` falls back to upstream.
+
+**ALT set.** Now everything FSP enables for SCE9: `cipher_alt`, `aes_alt`, `gcm_alt`, `ccm_alt`,
+`cmac_alt`, `sha256_alt`, `ecp_alt`, `ecp_curves_alt`, `ecdsa_alt`, `rsa_alt`. `cipher_alt.c`
+supplies the block chunking and session finalisation the PSA layer expects.
+
+**Cost.** One upstream clone per build directory (network on first configure), and the port owns a
+patch that has to be checked at each FSP uprev - the failure is loud: configure aborts naming the
+patch.
+
+**Also.** `aes_alt.c` needed the SCE private headers (`hw_sce_aes_private.h`, `hw_sce_private.h`,
+`hw_sce_ra_private.h`) for the `FinalSub` calls D041 added - they were implicitly declared. Part of
+what goes back into rm_psa_crypto.
+
+## D043 — SCE9 CCM stays in software; a third rm_psa_crypto session leak; crypto suite 63/64
+
+**Date:** 2026-09-22 · **Status:** Accepted · Supersedes nothing; extends [D041], [D042]
+
+**Result.** PSA Arch crypto on RA6M5 with SCE9 and FSP's Mbed TLS: **63 passed, 0 failed,
+1 skipped** of 64. The skip is the deterministic-ECDSA gate (D040). 261 and 263 - the multi-part
+GCM failures that motivated the move to FSP's Mbed TLS - now pass, which is the confirmation D042
+was waiting for.
+
+**MBEDTLS_CCM_ALT is not defined on this port.** FSP's SCE9 CCM formats the whole B-block
+sequence into one 128 B hardware buffer, so it accepts at most 110 B of associated data:
+`16 + roundup16(2 + aad_len) <= HW_SCE_AES_CCM_B_FORMAT_BYTE_SIZE`. Protected Storage
+authenticates its object table with the table as associated data - about 140 B at
+`PS_NUM_ASSETS` 10 - so every object-table write returned `MBEDTLS_ERR_CCM_BAD_INPUT`
+(`PSA_ERROR_INVALID_ARGUMENT`), PS init failed and the partition never started. CCM therefore
+runs in software, where it still reaches the SCE9 per block through `MBEDTLS_CIPHER_ALT` and
+`MBEDTLS_AES_ALT`. Everything else FSP enables for SCE9 is accelerated.
+
+**Third session leak, same family as D041.** `mbedtls_cipher_cmac_starts()` issues the SCE CMAC
+init and sets `vendor_state = UPDATE`; only `cmac_finish()` issues the matching final.
+`mbedtls_cipher_free()` released the CMAC context without closing the session, so an aborted MAC
+operation left the engine mid-CMAC and every later SCE command failed. PSA Arch test 226 aborts a
+CMAC setup, which wedged the engine for the 36 tests after it - 28/64, with the first casualty
+being the same `psa_mac_sign_setup` call that had just passed. Fixed in the project's
+`cipher_alt.c`: when `vendor_state == UPDATE`, free issues `mbedtls_cipher_cmac_finish()` into a
+scratch MAC first.
+
+**The pattern, for rm_psa_crypto.** Three defects of one shape are now carried in the project's
+generated files (D041 fix 1 and 2, plus this one): an operation that is abandoned rather than
+finished leaves the SCE mid-session, and the next SCE user in the system fails. None are visible
+to a caller who only performs complete, successful operations - which is why they survive normal
+use and fall over under PSA Arch. The CCM AAD ceiling is the same kind of gap: a real hardware
+limit surfacing as a generic PSA error with no indication of a size limit.
+
+**Diagnosis notes worth keeping.**
+- `PSA_ERROR_HARDWARE_FAILURE` (-147) cascading across unrelated tests means the engine is
+  wedged, not that each test is broken. Find the last test that passed and look at what it
+  aborted.
+- `STATUS_NEED_SCHEDULE` (-254) seen at a `psa_call` return is a debugger artifact: the SPM
+  returns it and relies on PendSV, which single-stepping with masked interrupts prevents.
+- A core panic with `CONFIG_TFM_HALT_ON_CORE_PANIC=OFF` resets the device, so "constant reboot
+  from secure code" is a repeating panic. The PSA Arch SPE wrapper sets no `CMAKE_BUILD_TYPE`,
+  so `TFM_SPM_LOG_LEVEL` defaults to SILENCE and the panic is silent - set both to debug.
+- MCUboot erases a primary slot it judges invalid, so a failed boot has to be re-flashed before
+  the next attempt.
+
+## D044 — The CTR fix is dropped; `mbedtls_aes_crypt_ctr()` is not an FSP API
+
+**Date:** 2026-09-22 · **Status:** Accepted · Supersedes the second fix in [D041]
+
+**Decision (rm_psa_crypto owner).** FSP supports the PSA APIs only; `mbedtls_aes_crypt_ctr()` is
+not public. Fixes 1 and 3 of [D041]/[D043] go into FSP and reach this port through regenerated
+packs. Fix 2 - the CTR partial-block rewrite - does not, and has been reverted in
+`ra6m5_gcc_secure`, so the project matches what FSP ships.
+
+**Why it is unreachable through PSA.** FSP's `cipher_alt.c` does the caching itself and always
+calls `ctr_func(ctx, block_size, NULL, ctx->iv, NULL, ...)` - one whole block, no carry-over
+state. The dropped `length % 16` tail and the ignored `nc_off`/`stream_block` need a caller that
+passes a partial length or carries keystream between calls, which the PSA path never does. This
+port enables `MBEDTLS_CIPHER_ALT` ([D042]), so the contract holds here too.
+
+**What still depends on it, for the record.** A direct `mbedtls_aes_crypt_ctr()` caller gets a
+silent wrong answer, not an error - a 15 byte call produces no output and returns 0. `aes_alt.c`'s
+own CTR self-test vector set is `{16, 32, 36}` and calls the function with real
+`nc_off`/`stream_block`, so `mbedtls_aes_self_test()` fails on CTR wherever `MBEDTLS_SELF_TEST` is
+enabled - it is in FSP's default `mbedtls_config.h`, though not in TF-M's config, which supplies
+its own. Neither is reachable from a PSA-only application.
+
+**How it was found.** PSA Arch 237 check 6, "psa_cipher_finish - Encrypt - AES CTR (short input)",
+in the earlier build that had no `cipher_alt.c` in the ALT set. Adding `cipher_alt.c` is what put
+the caching back in front of it.
+
+## D045 — Confirmed on FSP 6.7.0-beta0: 63/64 with no port-local rm_psa_crypto patches
+
+**Date:** 2026-09-22 · **Status:** Accepted · Confirms [D043], [D044]
+
+**Result.** PSA Arch crypto on RA6M5 with SCE9: **63 passed, 0 failed, 1 skipped** of 64, with
+
+- **FSP 6.7.0-beta0** (`6.7.0-beta0+20260922.be8f27e2`), up from 6.6.0-rc1; Mbed TLS unchanged at
+  3.6.6, so the overlay ([D042]) is unaffected;
+- the AES `free()` and CMAC `free()` fixes arriving **from the pack**, in the rm_psa_crypto owner's
+  own wording, in the secure and bootloader projects;
+- `mbedtls_aes_crypt_ctr()` **unmodified** - FSP's code, byte-identical to what the pack ships;
+- CCM in software, per [D043].
+
+The port now patches nothing in rm_psa_crypto. `git status` on `ra6m5_gcc_secure` shows only what
+the regenerated pack changed.
+
+**What this confirms about the CTR question ([D044]).** Test 237 check 6, "psa_cipher_finish -
+Encrypt - AES CTR (short input)", passes with FSP's unmodified `mbedtls_aes_crypt_ctr()`. The
+partial-length path really is unreachable through PSA, because `cipher_alt.c` caches and only ever
+passes whole blocks with NULL `nc_off`/`stream_block`. Measured, not inferred.
+
+**Process note.** An earlier run of the reverted build looked like a failure and was not: its log
+stopped mid-test, which read as a hang. It was RTT dropping output under load - the same run shows
+whole tests missing from the transcript while the final report counts them as passed - and the tail
+of that run, pasted later, showed 236 and 237 passing before a reflash interrupted it at 238. A
+truncated RTT capture is not evidence of a hang; wait for the suite report.
+
+## D046 — RA6M5 PSA Arch on GCC and IAR: crypto, attestation, storage; RTT made lossless
+
+**Date:** 2026-09-23 · **Status:** Accepted · Extends [D045]
+
+**Result.** All three PSA Arch suites run on hardware from both toolchains, on FSP 6.7.0-beta0
+with the SCE9 accelerator and FSP's Mbed TLS. Identical results, zero failures:
+
+| Suite | GCC | IAR |
+|---|---|---|
+| crypto | 63 pass / 0 fail / 1 skip | 63 / 0 / 1 |
+| attestation | 1 / 0 / 0 | 1 / 0 / 0 |
+| storage (ITS + PS) | 11 / 0 / 6 | 11 / 0 / 6 |
+
+Both skips are expected: deterministic ECDSA, which FSP does not support ([D040]), and the
+optional PS APIs (`psa_ps_create`/`set_extended`), which TF-M does not implement - test 414
+passes by confirming they refuse correctly.
+
+**One SPE per toolchain serves all three suites.** profile_large has crypto, ITS, PS,
+attestation and platform all enabled, which is what the suites need; only the NS app differs.
+This follows the RA6E1 GCC arrangement. Build directories: `m5cry` + `m5cryns`/`m5att`/`m5sto`
+(GCC), `m5icry` + `m5icryns`/`m5iatt`/`m5isto` (IAR).
+
+**What an IAR build needs that a GCC one does not.** Four things, none obvious from an error
+message:
+- IAR on `PATH` - `toolchain_IARARM.cmake` names `iccarm` without a path;
+- `-DCMAKE_ASM_COMPILER_ARCHITECTURE_ID=ARM` - CMake 4.1's IAR-ASM module cannot detect it and
+  aborts the *re-configure*, after the first configure has succeeded;
+- `-DTFM_TOOLCHAIN_FILE=<spe>/api_ns/cmake/toolchain_ns_IARARM.cmake` on the NS build, or it
+  silently uses GNUARM and fails looking for `script/fsp.ld` in an IAR project;
+- `-DTOOLCHAIN=INHERIT`, or psa-arch-tests compiles with arm-none-eabi-gcc while being handed
+  IAR flags.
+
+The IAR projects also needed the same `BSP_CFG_EARLY_INIT` and main-stack settings the GCC
+ones did; the build-time guards from [D034] caught both at compile time rather than on the
+board.
+
+**RTT no longer drops output: `RA6M5_RTT_BLOCKING`** (default OFF). SEGGER's default
+`SEGGER_RTT_MODE_NO_BLOCK_SKIP` discards a whole write when the 4 KB up-buffer is full, so a
+fast talker loses entire lines and whole tests from the transcript while the run itself is
+fine - which is what made a truncated capture look like a hang and cost two flash cycles
+([D045]). ON selects `BLOCK_IF_FIFO_FULL` for BL2, the secure image and the NS app, and is
+carried to NS builds through the exported platform config.
+
+Test builds only, hence the default: with no viewer attached nothing drains the buffer and the
+first write past 4 KB blocks forever. The define has to be applied in `ns/CMakeLists.txt` as
+well as the main one - `platform_ns` compiles `SEGGER_RTT.c` there, and patching only the
+secure-side list leaves the NS transcript still lossy.
+
+## D047 — FSP 6.7 is the baseline
+
+**Date:** 2026-09-23 · **Status:** Accepted · Supersedes the FSP 6.6 target in the plan
+
+The RA6E1 solutions were already on 6.7.0-beta0 and the RA6M5 projects moved there on
+2026-09-22, where M4 was met: full chain on both toolchains, SCE9 active, all three PSA Arch
+suites passing. Carrying a plan that names 6.6 while every project is on 6.7 invites a third
+version when RA8x2 projects are generated in P5.
+
+6.7 is therefore the baseline for the remaining work. Mbed TLS is unchanged at 3.6.6 between
+the two, so the FSP Mbed TLS overlay ([D042]) is unaffected.
+
+## D048 — `.ram_from_flash` is copied by the platform, not by ILINK — closes [D029]
+
+**Date:** 2026-09-23 · **Status:** Accepted · Resolves the open defect in [D029]
+
+**The defect, reproduced on RA6M5.** IAR at isolation 3 left FSP's code-flash program/erase
+routines in flash: `.ram_from_flash` at `0x000B0120`, listed under "No sections matched", with
+`ER_CODE_SRAM` empty. Isolation 1 relocated them correctly from the same sources. GNUARM was
+correct at both levels. So the defect is ILINK-specific and isolation-dependent, exactly as
+diagnosed on RA6E1.
+
+**Fix.** Stop asking ILINK to do the copy. The ICF declares
+`initialize manually { section .ram_from_flash }`, and `ra_ram_code_init()` in
+`tfm_hal_platform.c` copies the section as the first act of `tfm_hal_platform_init()`, before
+anything can reach the flash driver. `__DSB`/`__ISB` follow the copy, since the bytes are then
+executed. The initialiser ILINK leaves behind, `.ram_from_flash_init`, is read-only data and is
+swept into `ER_RO_DATA` by its `ro data` catch-all - no placement directive needed.
+
+**Result** - all four configurations now place `flash_hp_cf_write` in RAM at `0x2003f200`:
+IAR L1, IAR L3, GNUARM L1, GNUARM L3.
+
+**Why this shape rather than the alternatives in D029.** Excluding the section from a copy batch
+argues with a decision ILINK makes for itself and would have to be re-checked at every isolation
+level and toolchain version; `__ramfunc` means editing generated FSP source. Doing the copy
+ourselves is the same code path at every isolation level, so the two can no longer diverge
+silently - which was the real defect. The section stayed in flash with nothing in the build to
+say so; only reading the map showed it.
+
+**Still true:** the GNU build reaches the same result through the linker script and needs none
+of this. Keep the two in step - a section that matters under one toolchain matters under both.
+
+## D049 — The IAR NS toolchain emits `.srec` — closes the second open defect
+
+**Date:** 2026-09-23 · **Status:** Accepted
+
+`platform/ns/toolchain_ns_GNUARM.cmake` builds `.bin`, `.elf`, `.hex` and `.srec` for the
+non-secure application; `toolchain_ns_IARARM.cmake` built the first three. The Renesas debug
+launches flash S-records, so an NS application built with IAR had nothing to hand a launch
+configuration that a GNU one did - the two toolchains disagreed about what a build produces.
+
+Added the `${target}_srec` target and its dependency, using `ielftool --srec` as the other
+conversions there use `ielftool`. Verified from a clean IAR NS build: `tfm_ns.srec` is emitted
+alongside the rest.
+
+**Shared file.** This is `platform/ns/`, not the RA6M5 port - it affects every IAR NS build, so
+it belongs in `UPSTREAM_CHANGES.md` with the other shared-file changes and is a candidate for
+the P6 Gerrit submissions.
+
+**Still missing on the IAR NS side:** no `.map` is produced, so `_SEGGER_RTT` has to be read
+out of the ELF with `nm`. Same family, not fixed here.

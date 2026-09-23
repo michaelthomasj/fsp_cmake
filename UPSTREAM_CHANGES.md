@@ -141,15 +141,19 @@ through `SPMLOG_ERRMSGVAL`, which a silent SPM log compiles away to `(void)(val)
 
 `toolchain_GNUARM.cmake`, `toolchain_IARARM.cmake`,
 `platform/ns/toolchain_ns_GNUARM.cmake`, `platform/ns/toolchain_ns_CLANG.cmake` — commit
-`d7df90820`
+`d7df90820`; `platform/ns/toolchain_ns_IARARM.cmake` — 2026-09-23
 
 Emits `.srec` beside the final ELF. Needed wherever a device must be programmed from a format
 that preserves address discontinuities — on RA parts the option-setting words at
 `0x0100Axxx` mean a flat `.bin` is padded to ~16.8 MB and, worse, merges the option words
 into one contiguous blob.
 
-**Incomplete:** `platform/ns/toolchain_ns_IARARM.cmake` was not updated, so an IAR NS build
-still emits no `.srec`. Finish before submitting.
+**Complete as of 2026-09-23** ([[D049]]). `platform/ns/toolchain_ns_IARARM.cmake` now adds the
+same `${target}_srec` target, via `ielftool --srec` as its other conversions use `ielftool`.
+Verified from a clean IAR NS build.
+
+Still uneven between the two NS toolchains: the IAR one produces no `.map`, so a symbol lookup
+there needs `nm` on the ELF. Worth folding in before submitting.
 
 ### 9. BL2 signing depends on the target, not the image file
 
