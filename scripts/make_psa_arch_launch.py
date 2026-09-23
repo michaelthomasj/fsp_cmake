@@ -1,9 +1,9 @@
 """Generate an e2 studio debug launch for a RA6M5 PSA Arch suite.
 
     python make_psa_arch_launch.py <name> <spe-build-dir> <ns-build-dir>
-    python make_psa_arch_launch.py ra6m5_TFM_test_storage C:\\b\\m5cry C:\\b\\m5sto
+    python make_psa_arch_launch.py ra6m5_TFM_test_storage_gcc C:\\b\\m5cry C:\\b\\m5sto
 
-ra6m5_TFM_test_crypto.launch is the template. Only the build directories change: SPE images
+ra6m5_TFM_test_crypto_gcc.launch is the template. Only the build directories change: SPE images
 come from <spe>\\build-spe\\bin, the NS image from <ns>\\bin. e2 resolves the J-Link settings
 file as ${LaunchConfigName}.jlink, so a copy is made under the new name as well.
 
@@ -28,7 +28,7 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 LAUNCH_DIR = os.path.join(os.path.dirname(HERE), "ra6m5_gcc_nonsecure")
-TEMPLATE = "ra6m5_TFM_test_crypto"
+TEMPLATE = "ra6m5_TFM_test_crypto_gcc"
 BS = chr(92)
 
 if len(sys.argv) != 4:
