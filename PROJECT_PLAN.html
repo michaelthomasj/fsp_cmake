@@ -381,6 +381,9 @@
     <b>Buffer.</b> Dates are targets, not commitments — an overrun shifts subsequent dates rather than cutting scope. The RA8x2 leg holds <span class="mono">Nov 30 – Dec 18</span> as contingency. Everything is sequential under one engineer.
   </div>
 
+  <h2>TODO</h2>
+  <div class="rk"><div class="sev md">Todo</div><div class="body"><b>FSP pack uprev for both ports, once both are ready.</b> RA6M5 and RA8M2 are each pinned to a dated 6.7.0-beta0 pack &mdash; RA6M5 on <span class="mono">12e48ca1</span>, RA8M2 on <span class="mono">9abf2155</span>. When both ports are green, regenerate every project against the then-current FSP and re-run the suites on hardware. Do it as <i>one</i> change across both parts: they share <span class="mono">fsp_mbedtls.cmake</span>, the ALT overlay and the TF-M patch set, so staggering them validates the shared layer twice. Watch for Mbed TLS version movement (3.6.6 has held across the last two uprevs), <span class="mono">rm_psa_crypto</span> ALT-source changes, and regenerated <span class="mono">configuration.xml</span> version stamps &mdash; large but empty diffs.</div></div>
+
   <footer>
     <span>Revised 2026-09-21 · TF-M 2.3 moved to future work</span>
     <span>RA6E1 done · RA6M5 ~10-16 · RA8x2 ~11-27 · TF-M 2.3 after rsip7 · NS-in-OSPI last</span>

@@ -237,4 +237,18 @@ Everything is sequential under one engineer.
 
 ---
 
+## TODO
+
+- **FSP pack uprev for both ports, once both are ready.** RA6M5 and RA8M2 are each
+  pinned to a dated 6.7.0-beta0 pack — RA6M5 on `12e48ca1`, RA8M2 on `9abf2155`.
+  When both ports are green, regenerate every project against the then-current FSP
+  and re-run the suites on hardware. Do it as one change across both parts, not
+  per-port: the two share `fsp_mbedtls.cmake`, the ALT overlay and the TF-M patch
+  set, so staggering them means validating the shared layer twice.
+  - Watch for: Mbed TLS version movement (3.6.6 has held across the last two
+    uprevs), `rm_psa_crypto` ALT-source changes, and regenerated `configuration.xml`
+    version stamps, which produce large but empty diffs.
+
+---
+
 *Revised 2026-09-21 · RA6E1 done · RA6M5 ~2026-10-16 · RA8x2 single-core ~2026-11-27 · TF-M 2.3 after rsip7 · NS-in-OSPI last*
