@@ -9,7 +9,7 @@
     <option key="#DeviceCommand#" value="R7KA8M2JF"/>
     <option key="#RTOS#" value="_none"/>
     <option key="#pinconfiguration#" value="R7KA8M2JFLCAC.pincfg"/>
-    <option key="#FSPVersion#" value="6.7.0-beta0+20260924.9abf2155"/>
+    <option key="#FSPVersion#" value="6.7.0-beta0+20260924.4dfe9b7f"/>
     <option key="#ConfigurationFragments#" value="Renesas##BSP##Board##ra8m2_ek##"/>
     <option key="#SELECTED_TOOLCHAIN#" value="iar.arm.toolchain.v8.0.0"/>
     <option key="#ToolchainVersion#" value=""/>
@@ -299,61 +299,61 @@
     </config>
   </raBspConfiguration>
   <raComponentSelection>
-    <component apiversion="" class="Common" condition="" group="all" subgroup="fsp_common" variant="" vendor="Renesas" version="6.7.0-beta0+20260924.9abf2155">
-      <description>Board Support Package Common Files</description>
-      <originalPack>Renesas.RA.6.7.0-beta0+20260924.9abf2155.pack</originalPack>
-    </component>
-    <component apiversion="" class="HAL Drivers" condition="" group="all" subgroup="r_ioport" variant="" vendor="Renesas" version="6.7.0-beta0+20260924.9abf2155">
-      <description>I/O Port</description>
-      <originalPack>Renesas.RA.6.7.0-beta0+20260924.9abf2155.pack</originalPack>
-    </component>
-    <component apiversion="" class="Projects" condition="" group="all" subgroup="common" variant="" vendor="Renesas" version="6.7.0-beta0+20260924.9abf2155">
-      <description>Common source for all template projects.</description>
-      <originalPack>Renesas.RA_common.6.7.0-beta0+20260924.9abf2155.pack</originalPack>
-    </component>
-    <component apiversion="" class="CMSIS" condition="" group="Main" subgroup="CoreM" variant="" vendor="Arm" version="6.1.0+fsp.6.7.0.beta0.20260924.9abf2155">
+    <component apiversion="" class="CMSIS" condition="" group="Main" subgroup="CoreM" variant="" vendor="Arm" version="6.1.0+fsp.6.7.0.beta0.20260924.4dfe9b7f">
       <description>Arm CMSIS Version 6 - Core (M)</description>
-      <originalPack>Arm.CMSIS6.6.1.0+fsp.6.7.0.beta0.20260924.9abf2155.pack</originalPack>
+      <originalPack>Arm.CMSIS6.6.1.0+fsp.6.7.0.beta0.20260924.4dfe9b7f.pack</originalPack>
     </component>
-    <component apiversion="" class="BSP" condition="" group="ra8m2" subgroup="device" variant="R7KA8M2JFLCAC" vendor="Renesas" version="6.7.0-beta0+20260924.9abf2155">
+    <component apiversion="" class="Common" condition="" group="all" subgroup="fsp_common" variant="" vendor="Renesas" version="6.7.0-beta0+20260924.4dfe9b7f">
+      <description>Board Support Package Common Files</description>
+      <originalPack>Renesas.RA.6.7.0-beta0+20260924.4dfe9b7f.pack</originalPack>
+    </component>
+    <component apiversion="" class="HAL Drivers" condition="" group="all" subgroup="r_ioport" variant="" vendor="Renesas" version="6.7.0-beta0+20260924.4dfe9b7f">
+      <description>I/O Port</description>
+      <originalPack>Renesas.RA.6.7.0-beta0+20260924.4dfe9b7f.pack</originalPack>
+    </component>
+    <component apiversion="" class="Projects" condition="" group="all" subgroup="common" variant="" vendor="Renesas" version="6.7.0-beta0+20260924.4dfe9b7f">
+      <description>Common source for all template projects.</description>
+      <originalPack>Renesas.RA_common.6.7.0-beta0+20260924.4dfe9b7f.pack</originalPack>
+    </component>
+    <component apiversion="" class="BSP" condition="" group="ra8m2" subgroup="device" variant="R7KA8M2JFLCAC" vendor="Renesas" version="6.7.0-beta0+20260924.4dfe9b7f">
       <description>Board support package for R7KA8M2JFLCAC</description>
-      <originalPack>Renesas.RA_mcu_ra8m2.6.7.0-beta0+20260924.9abf2155.pack</originalPack>
+      <originalPack>Renesas.RA_mcu_ra8m2.6.7.0-beta0+20260924.4dfe9b7f.pack</originalPack>
     </component>
-    <component apiversion="" class="BSP" condition="" group="ra8m2" subgroup="device" variant="" vendor="Renesas" version="6.7.0-beta0+20260924.9abf2155">
+    <component apiversion="" class="BSP" condition="" group="ra8m2" subgroup="device" variant="" vendor="Renesas" version="6.7.0-beta0+20260924.4dfe9b7f">
       <description>Board support package for RA8M2</description>
-      <originalPack>Renesas.RA_mcu_ra8m2.6.7.0-beta0+20260924.9abf2155.pack</originalPack>
+      <originalPack>Renesas.RA_mcu_ra8m2.6.7.0-beta0+20260924.4dfe9b7f.pack</originalPack>
     </component>
-    <component apiversion="" class="BSP" condition="" group="ra8m2" subgroup="fsp" variant="" vendor="Renesas" version="6.7.0-beta0+20260924.9abf2155">
+    <component apiversion="" class="BSP" condition="" group="ra8m2" subgroup="fsp" variant="" vendor="Renesas" version="6.7.0-beta0+20260924.4dfe9b7f">
       <description>Board support package for RA8M2 - FSP Data</description>
-      <originalPack>Renesas.RA_mcu_ra8m2.6.7.0-beta0+20260924.9abf2155.pack</originalPack>
+      <originalPack>Renesas.RA_mcu_ra8m2.6.7.0-beta0+20260924.4dfe9b7f.pack</originalPack>
     </component>
-    <component apiversion="" class="BSP" condition="" group="ra8m2" subgroup="events" variant="" vendor="Renesas" version="6.7.0-beta0+20260924.9abf2155">
+    <component apiversion="" class="BSP" condition="" group="ra8m2" subgroup="events" variant="" vendor="Renesas" version="6.7.0-beta0+20260924.4dfe9b7f">
       <description>Board support package for RA8M2 - Events</description>
-      <originalPack>Renesas.RA_mcu_ra8m2.6.7.0-beta0+20260924.9abf2155.pack</originalPack>
+      <originalPack>Renesas.RA_mcu_ra8m2.6.7.0-beta0+20260924.4dfe9b7f.pack</originalPack>
     </component>
-    <component apiversion="" class="BSP" condition="" group="ra8m2" subgroup="linker" variant="" vendor="Renesas" version="6.7.0-beta0+20260924.9abf2155">
+    <component apiversion="" class="BSP" condition="" group="ra8m2" subgroup="linker" variant="" vendor="Renesas" version="6.7.0-beta0+20260924.4dfe9b7f">
       <description>Board support package for RA8M2 - Linker</description>
-      <originalPack>Renesas.RA_mcu_ra8m2.6.7.0-beta0+20260924.9abf2155.pack</originalPack>
+      <originalPack>Renesas.RA_mcu_ra8m2.6.7.0-beta0+20260924.4dfe9b7f.pack</originalPack>
     </component>
-    <component apiversion="" class="BSP" condition="" group="Board" subgroup="ra8m2_ek" variant="" vendor="Renesas" version="6.7.0-beta0+20260924.9abf2155">
+    <component apiversion="" class="BSP" condition="" group="Board" subgroup="ra8m2_ek" variant="" vendor="Renesas" version="6.7.0-beta0+20260924.4dfe9b7f">
       <description>RA8M2-EK Board Support Files</description>
-      <originalPack>Renesas.RA_board_ra8m2_ek.6.7.0-beta0+20260924.9abf2155.pack</originalPack>
+      <originalPack>Renesas.RA_board_ra8m2_ek.6.7.0-beta0+20260924.4dfe9b7f.pack</originalPack>
     </component>
-    <component apiversion="" class="HAL Drivers" condition="" group="all" subgroup="r_mram" variant="" vendor="Renesas" version="6.7.0-beta0+20260924.9abf2155">
+    <component apiversion="" class="HAL Drivers" condition="" group="all" subgroup="r_mram" variant="" vendor="Renesas" version="6.7.0-beta0+20260924.4dfe9b7f">
       <description>MRAM</description>
-      <originalPack>Renesas.RA.6.7.0-beta0+20260924.9abf2155.pack</originalPack>
+      <originalPack>Renesas.RA.6.7.0-beta0+20260924.4dfe9b7f.pack</originalPack>
     </component>
-    <component apiversion="" class="HAL Drivers" condition="" group="all" subgroup="r_rsip_e50d_ra8_plaintext" variant="" vendor="Renesas" version="6.7.0-beta0+20260924.9abf2155">
+    <component apiversion="" class="HAL Drivers" condition="" group="all" subgroup="r_rsip_e50d_ra8_plaintext" variant="" vendor="Renesas" version="6.7.0-beta0+20260924.4dfe9b7f">
       <description>Secure Cryptography Engine on RA8 (RSIP-E50D) Compatibility Mode</description>
-      <originalPack>Renesas.RA.6.7.0-beta0+20260924.9abf2155.pack</originalPack>
+      <originalPack>Renesas.RA.6.7.0-beta0+20260924.4dfe9b7f.pack</originalPack>
     </component>
-    <component apiversion="" class="HAL Drivers" condition="" group="all" subgroup="rm_psa_crypto" variant="" vendor="Renesas" version="6.7.0-beta0+20260924.9abf2155">
+    <component apiversion="" class="HAL Drivers" condition="" group="all" subgroup="rm_psa_crypto" variant="" vendor="Renesas" version="6.7.0-beta0+20260924.4dfe9b7f">
       <description>MbedCrypto H/W Acceleration</description>
-      <originalPack>Renesas.RA.6.7.0-beta0+20260924.9abf2155.pack</originalPack>
+      <originalPack>Renesas.RA.6.7.0-beta0+20260924.4dfe9b7f.pack</originalPack>
     </component>
-    <component apiversion="" class="PSA" condition="" group="Crypto" subgroup="mbedCrypto" variant="" vendor="Arm" version="3.6.6+renesas.1.fsp.6.7.0.beta0.20260924.9abf2155">
+    <component apiversion="" class="PSA" condition="" group="Crypto" subgroup="mbedCrypto" variant="" vendor="Arm" version="3.6.6+renesas.1.fsp.6.7.0.beta0.20260924.4dfe9b7f">
       <description>Arm PSA Crypto Implementation</description>
-      <originalPack>Arm.MbedCrypto.3.6.6+renesas.1.fsp.6.7.0.beta0.20260924.9abf2155.pack</originalPack>
+      <originalPack>Arm.MbedCrypto.3.6.6+renesas.1.fsp.6.7.0.beta0.20260924.4dfe9b7f.pack</originalPack>
     </component>
   </raComponentSelection>
   <raElcConfiguration/>
@@ -368,22 +368,22 @@
       <property id="module.driver.ioport.elc_trigger_ioport4" value="_disabled"/>
       <property id="module.driver.ioport.pincfg" value="g_bsp_pin_cfg"/>
     </module>
-    <module id="module.driver.psa_crypto.2995174"/>
-    <module id="module.driver.rm_psa_crypto.162862369"/>
-    <module id="module.driver.rsip_e50d.plaintext.1231883333"/>
-    <module id="module.driver.flash_on_mram.1921094882">
+    <module id="module.driver.psa_crypto.19468015"/>
+    <module id="module.driver.rm_psa_crypto.1655889651"/>
+    <module id="module.driver.rsip_e50d.plaintext.1091106189"/>
+    <module id="module.driver.flash_on_mram.1001366742">
       <property id="module.driver.mram.name" value="g_mram0"/>
       <property id="module.driver.mram.p_callback" value="NULL"/>
       <property id="module.driver.mram.err_ipl" value="_disabled"/>
     </module>
     <context id="_hal.0">
       <stack module="module.driver.ioport_on_ioport.0"/>
-      <stack module="module.driver.psa_crypto.2995174">
-        <stack module="module.driver.rm_psa_crypto.162862369" requires="module.driver.rm_psa_crypto">
-          <stack module="module.driver.rsip_e50d.plaintext.1231883333" requires="module.driver.rm_psa_crypto.requires.sce"/>
+      <stack module="module.driver.psa_crypto.19468015">
+        <stack module="module.driver.rm_psa_crypto.1655889651" requires="module.driver.rm_psa_crypto">
+          <stack module="module.driver.rsip_e50d.plaintext.1091106189" requires="module.driver.rm_psa_crypto.requires.sce"/>
         </stack>
       </stack>
-      <stack module="module.driver.flash_on_mram.1921094882"/>
+      <stack module="module.driver.flash_on_mram.1001366742"/>
     </context>
     <config id="config.driver.psa_crypto">
       <property id="config.driver.psa_crypto.mbedtls_entropy_hardware_alt" value="config.driver.psa_crypto.mbedtls_entropy_hardware_alt.enabled"/>

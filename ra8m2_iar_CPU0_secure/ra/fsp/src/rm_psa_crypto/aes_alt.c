@@ -82,6 +82,12 @@
 #endif
  #if defined(MBEDTLS_AES_ALT)
 
+  /* HW_SCE_AesXXXEncryptDecryptFinalSub(), used by mbedtls_aes_free() to close a session
+  * the context left open. */
+ #include "hw_sce_aes_private.h"
+ #include "hw_sce_private.h"
+ #include "hw_sce_ra_private.h"
+ 
 /*
  * 32-bit integer manipulation macros (little endian)
  */
@@ -538,6 +544,32 @@ void mbedtls_aes_free(mbedtls_aes_context *ctx)
 {
     if (ctx == NULL) {
         return;
+    }
+
+    /* Close an SCE AES session if left open. CBC/CTR/XTS issues InitSub on first
+     * use state set to UPDATE; aborts do not close it. This only shows up for multi-part 
+     * and is verified to pass on the TFM test suites.  */
+    if (SCE_MBEDTLS_CIPHER_OPERATION_STATE_UPDATE == ctx->state)
+    {
+        if (10 == ctx->nr)
+        {
+            (void) HW_SCE_Aes128EncryptDecryptFinalSub();
+        }
+
+   #if !defined(MBEDTLS_AES_ONLY_128_BIT_KEY_LENGTH)
+        else if (12 == ctx->nr)
+        {
+            (void) HW_SCE_Aes192EncryptDecryptFinalSub();
+        }
+        else if (14 == ctx->nr)
+        {
+            (void) HW_SCE_Aes256EncryptDecryptFinalSub();
+        }
+   #endif                              /* !MBEDTLS_AES_ONLY_128_BIT_KEY_LENGTH */
+        else
+        {
+            /* Unknown round count - nothing to close. */
+        }
     }
 
     mbedtls_platform_zeroize(ctx, sizeof(mbedtls_aes_context));

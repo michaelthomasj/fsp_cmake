@@ -3,7 +3,7 @@
   <generalSettings>
     <option key="#Board#" value="board.ra8m2ek"/>
     <option key="#TargetName#" value="R7KA8M2JFLCAC"/>
-    <option key="#FSPVersion#" value="6.7.0-beta0+20260924.9abf2155"/>
+    <option key="#FSPVersion#" value="6.7.0-beta0+20260924.4dfe9b7f"/>
     <option key="#SELECTED_TOOLCHAIN#" value="iar.arm.toolchain.v8.0.0"/>
   </generalSettings>
   <raBspConfiguration>

@@ -9,7 +9,7 @@
     <option key="#DeviceCommand#" value="R7KA8M2JF"/>
     <option key="#RTOS#" value="_none"/>
     <option key="#pinconfiguration#" value="R7KA8M2JFLCAC.pincfg"/>
-    <option key="#FSPVersion#" value="6.7.0-beta0+20260924.9abf2155"/>
+    <option key="#FSPVersion#" value="6.7.0-beta0+20260924.4dfe9b7f"/>
     <option key="#ConfigurationFragments#" value="Renesas##BSP##Board##ra8m2_ek##"/>
     <option key="#SELECTED_TOOLCHAIN#" value="iar.arm.toolchain.v8.0.0"/>
     <option key="#ToolchainVersion#" value=""/>

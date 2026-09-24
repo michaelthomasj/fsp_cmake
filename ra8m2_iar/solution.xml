@@ -3,7 +3,7 @@
   <generalSettings>
     <option key="#Board#" value="board.ra8m2ek"/>
     <option key="#TargetName#" value="R7KA8M2JFLCAC"/>
-    <option key="#FSPVersion#" value="6.7.0-beta0+20260924.9abf2155"/>
+    <option key="#FSPVersion#" value="6.7.0-beta0+20260924.4dfe9b7f"/>
     <option key="#SELECTED_TOOLCHAIN#" value="iar.arm.toolchain.v8.0.0"/>
   </generalSettings>
   <raAdjustments/>
@@ -402,13 +402,13 @@
     <memory Pname="CPU0" name="__BL_1_S_I" offset="0xD8200" parent="FLASH_NS" security="n" size="0x27D00" userDefined="true"/>
     <memory Pname="CPU0" name="__BL_1_S_T" offset="0xFFF00" parent="FLASH_NS" security="n" size="0x100" userDefined="true"/>
     <memory Pname="CPU0" name="FLASH_CPU0_B" offset="0x0" parent="FLASH" security="s" size="0x10000"/>
-    <memory Pname="CPU0" name="DF_EMULATION" offset="0x10000" parent="FLASH" security="s" size="0x2000" userDefined="true"/>
-    <memory Pname="CPU0" name="__BL_0_P_H" offset="0x12000" parent="FLASH" security="s" size="0x200" userDefined="true"/>
-    <memory Pname="CPU0" name="FLASH_CPU0_S" offset="0x12200" parent="FLASH" security="s" size="0x4EA00"/>
-    <memory Pname="CPU0" name="FLASH_CPU0_C" offset="0x60C00" parent="FLASH" security="c" size="0x300"/>
-    <memory Pname="CPU0" name="__BL_0_P_T" offset="0x60F00" parent="FLASH" security="s" size="0x100" userDefined="true"/>
-    <memory Pname="CPU0" name="__BL_0_S_H" offset="0x61000" parent="FLASH" security="s" size="0x200" userDefined="true"/>
-    <memory Pname="CPU0" name="__BL_0_S_I" offset="0x61200" parent="FLASH" security="s" size="0x4ED00" userDefined="true"/>
+    <memory Pname="CPU0" name="DF_EMULATION" offset="0x10000" parent="FLASH" security="s" size="0x10000" userDefined="true"/>
+    <memory Pname="CPU0" name="__BL_0_P_H" offset="0x20000" parent="FLASH" security="s" size="0x200" userDefined="true"/>
+    <memory Pname="CPU0" name="FLASH_CPU0_S" offset="0x20200" parent="FLASH" security="s" size="0x47A00"/>
+    <memory Pname="CPU0" name="FLASH_CPU0_C" offset="0x67C00" parent="FLASH" security="c" size="0x300"/>
+    <memory Pname="CPU0" name="__BL_0_P_T" offset="0x67F00" parent="FLASH" security="s" size="0x100" userDefined="true"/>
+    <memory Pname="CPU0" name="__BL_0_S_H" offset="0x68000" parent="FLASH" security="s" size="0x200" userDefined="true"/>
+    <memory Pname="CPU0" name="__BL_0_S_I" offset="0x68200" parent="FLASH" security="s" size="0x47D00" userDefined="true"/>
     <memory Pname="CPU0" name="__BL_0_S_T" offset="0xAFF00" parent="FLASH" security="s" size="0x100" userDefined="true"/>
     <memory Pname="CPU0" name="DATA_FLASH_NS_CPU0_N" offset="0x0" parent="DATA_FLASH_NS" security="n" size="0x0"/>
     <memory Pname="CPU0" name="DATA_FLASH_CPU0_S" offset="0x0" parent="DATA_FLASH" security="s" size="0x0"/>

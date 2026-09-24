@@ -40,10 +40,10 @@ extern "C" {
  #define FSP_VERSION_BUILD           (0U)
 
 /** Public FSP version name. */
- #define FSP_VERSION_STRING          ("6.7.0-beta0+20260924.9abf2155")
+ #define FSP_VERSION_STRING          ("6.7.0-beta0+20260924.4dfe9b7f")
 
 /** Unique FSP version ID. */
- #define FSP_VERSION_BUILD_STRING    ("Built with Renesas Advanced Flexible Software Package version 6.7.0-beta0+20260924.9abf2155")
+ #define FSP_VERSION_BUILD_STRING    ("Built with Renesas Advanced Flexible Software Package version 6.7.0-beta0+20260924.4dfe9b7f")
 
 /**********************************************************************************************************************
  * Typedef definitions
