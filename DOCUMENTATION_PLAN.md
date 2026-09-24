@@ -133,3 +133,44 @@ largely extraction and de-duplication.
 Verify every claim against the code as it is written, not against the existing markdown — the survey
 above found doc-to-code drift in a file that reads as current, and copying prose forward is how that
 propagates.
+
+---
+
+## BRIDGING_FILES.md — not yet written, and the highest-value item on this list
+
+**The concern.** A number of files in the ports exist only to bridge FSP to TF-M: they carry all or
+part of FSP's code, or restate FSP-generated configuration, but are **not** FSP files and are not
+regenerated when the packs are. When FSP moves version they do not move with it, and nothing in the
+build compares them against their origin. They drift silently, and the failure modes are the worst
+kind — a stale constant that links cleanly and is wrong at run time.
+
+This has already happened more than once, which is why it is worth a document rather than a comment:
+
+- `FLASH_AREA_IMAGE_SECTOR_SIZE` was set to `0x1000` in the RA8M2 `flash_layout.h` while FSP's
+  generated `mcuboot_config.h` defined it as `RM_MCUBOOT_MRAM_BLOCK_SIZE` (`0x8000`). Slots came out
+  9.875 sectors long — accepted by every build step, failing only on hardware as `BOOT_EFLASH`
+  (DECISIONS D054).
+- `fsp_sce.cmake` and `fsp_bsp.cmake` both hardcoded `crypto_procedures/src/sce9/...`, carried from
+  RA6M5 into a part whose engine directory is `rsip_e50d`. Both now discover it instead.
+- `config.cmake` asserted `BSP_FEATURE_RSIP_SCE9_SUPPORTED == 1` on a part where it is `0`.
+
+**What the document must do.** For every bridging file: name its FSP origin, say what was changed and
+why, and give the **check** that detects drift — a command, a static assert, or a specific thing to
+diff after a pack uprev. A list of filenames is not enough; the check is the point.
+
+**Starting inventory** — to be completed by audit, not trusted as complete. Grouped by how they drift:
+
+| Category | Files | How it drifts |
+|---|---|---|
+| Replaces an EXCLUDED FSP source | `ra8m2_ddsc.c` (for `bsp_linker.c`'s `gp_ddsc_*`), `bsp_init_stub.c` (FSP's init/copy tables), `bl2_option_setting.c` (the OFS sections `bsp_linker.c` emits) | FSP changes the original; the exclusion in `fsp_bsp.cmake` still applies, so nothing complains |
+| Restates FSP-GENERATED config | accelerator `*_fsp_cfg.h` (from `ra_cfg/arm/mbedtls/config.h`), `FLASH_AREA_IMAGE_SECTOR_SIZE` in `flash_layout.h`, `mbedtls_accelerator_config.h`, `crypto_accelerator_config.h` | the generated value changes; the restatement does not |
+| PATCHES applied to FSP-shipped sources | `mbedtls/0003,0004,0006,0007,0100.patch` | a patch stops applying, or applies with its purpose already upstream |
+| Depends on FSP INTERNALS, not its public API | `cmsis_drivers/Driver_Flash.c` (`R_MRAM_Erase` block units, `InfoGet` field layout), `ra_sce_init.c` and `sce_trng.c` (private `r_sce_adapt.c` primitives declared as externs), accelerator `crypto_hw.c` (`psa_aead_setup_vendor`), `ra8m2_fsp_sections.icf` (FSP section names) | FSP refactors something it never promised to keep |
+| Selects a SUBSET of what FSP ships | the ALT source list in the accelerator CMakeLists (CCM excluded, D043/D051) | FSP adds, removes or fixes a source and the list is unaware — this is how the two session-leak fixes were nearly missed (D052/D053) |
+
+**Cheapest canary found so far**, worth generalising: `git diff` on `ra/fsp/src/rm_psa_crypto/` after a
+regenerate. `aes_alt.c` and `cipher_alt.c` are the only 2 of 35 that have ever differed between the
+SCE9 and E50D packs, so a diff there is a high-signal, near-zero-cost check ([[D053]]).
+
+**Sequencing.** Write this BEFORE the pack uprev in PROJECT_PLAN.md's TODO, not after — the uprev is
+exactly the event it is meant to survive, and doing it second means auditing from memory.

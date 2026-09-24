@@ -249,6 +249,38 @@ Everything is sequential under one engineer.
     uprevs), `rm_psa_crypto` ALT-source changes, and regenerated `configuration.xml`
     version stamps, which produce large but empty diffs.
 
+- **Audit the port for values that override FSP-generated configuration.** The port's
+  contract is that FSP config is *consumed*, not restated: the user configures in
+  e2/RASC and the TF-M build follows. `FLASH_AREA_IMAGE_SECTOR_SIZE` broke that on
+  RA8M2 — the port defined `0x1000` while FSP's generated
+  `ra_cfg/mcu-tools/include/mcuboot_config/mcuboot_config.h` defines it as
+  `RM_MCUBOOT_MRAM_BLOCK_SIZE` (`0x8000`), and that directory is on the include path,
+  so it was a conflicting redefinition producing a layout that only fails on hardware.
+  - Fixed by taking FSP's value, but as a **literal** — `flash_layout.h` is preprocessed
+    into the BL2 linker script and cannot include `mcuboot_config.h` (which pulls
+    `bsp_api.h`). The proper fix is to extract `RM_MCUBOOT_MRAM_BLOCK_SIZE` into the
+    generated `bsp_partitions.h`, the mechanism already used for the partitions.
+  - Then sweep for other instances, on **both** ports: anything the port `#define`s that
+    FSP also generates. `MCUBOOT_ALIGN_VAL` / `MCUBOOT_BOOT_MAX_ALIGN` and
+    `MCUBOOT_MAX_IMG_SECTORS` are the obvious neighbours; `MCUBOOT_MAX_IMG_SECTORS`
+    legitimately differs, since TF-M has its own flash map, and that distinction should
+    be recorded rather than left to be rediscovered.
+
+- **Write `BRIDGING_FILES.md` — before the pack uprev above, not after.** A number of files
+  carry all or part of FSP's code, or restate FSP-generated configuration, but are not FSP
+  files and do not move when the packs do. Nothing in the build compares them against their
+  origin, so they drift silently into constants that link cleanly and are wrong at run time —
+  which has already happened three times (D054, and the `sce9` path and `SCE9_SUPPORTED`
+  errors found on 2026-09-24). The document must give, per file, its FSP origin, what was
+  changed, and **the check that detects drift**. Inventory and categories are in
+  [DOCUMENTATION_PLAN.md](DOCUMENTATION_PLAN.md).
+
+- **Use the MRAM hardware rollback counter — after TF-M 2.3.** `R_MRAM` exposes
+  `AntiRollbackCounterIncrement` / `Refresh` / `Read`. These are a better home for
+  MCUboot's NV counters than the emulated-OTP region in `DF_EMULATION`, and would free
+  part of it. Deferred past P7 deliberately: TF-M 2.3 reworks the platform NV-counter
+  interface, so doing it first means doing it twice.
+
 ---
 
 *Revised 2026-09-21 · RA6E1 done · RA6M5 ~2026-10-16 · RA8x2 single-core ~2026-11-27 · TF-M 2.3 after rsip7 · NS-in-OSPI last*

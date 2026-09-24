@@ -1470,3 +1470,151 @@ the P6 Gerrit submissions.
 
 **Still missing on the IAR NS side:** no `.map` is produced, so `_SEGGER_RTT` has to be read
 out of the ELF with `nm`. Same family, not fixed here.
+
+## D050 — RSIP-E50D gets its own accelerator directory, consolidated with SCE9 at P7
+
+**Date:** 2026-09-24 · **Status:** Accepted
+
+**What was expected.** `sce9/CMakeLists.txt` said RA8's engine "is a different driver API and
+lands beside this as renesas/rsip, not as a variant of it." That is wrong, and the comment is
+corrected.
+
+**What is actually true.** FSP routes RSIP-E50D through the **same `r_sce` driver** —
+procedures under `crypto_procedures/src/rsip_e50d/plainkey/`, the same `HW_SCE_*` primitive
+names — and **33 of the 35 `rm_psa_crypto` ALT sources are byte-identical** between the
+RA6M5 (SCE9) and RA8M2 (E50D) packs. The engine difference is below the ALT layer, not at it.
+
+**Decision.** Copy to `platform/ext/accelerator/renesas/rsip_e50d/` for bring-up; do not
+generalise now. One engine-parameterised directory is the right end state, and it is scheduled
+for **P7**, where the ALT model is replaced by a PSA transparent driver anyway. Generalising
+today would churn a validated RA6M5 path for no bring-up benefit, and the consolidation would
+then be done twice.
+
+**Cost accepted:** every fix to the shared build logic lands twice until P7. Recorded so the
+duplication is a decision rather than an oversight.
+
+---
+
+## D051 — E50D ALT selection: SCE9's module set, CCM still out, P-521 and Curve25519 kept in
+
+**Date:** 2026-09-24 · **Status:** Accepted · Refines [D043]
+
+**Module set held to SCE9's.** E50D is a superset — the pack also ships `sha512_alt`,
+`sha3_alt`, `chacha20_alt`, `chachapoly_alt`, `mlkem_alt` and `mldsa_alt`, none of which SCE9
+has. All are left off, matching the e2 solution's own configuration, so the first RA8M2
+bring-up differs from the validated RA6M5 one **by the engine alone**. Enabling one means its
+`MBEDTLS_*_ALT` in `mbedtls_accelerator_config.h` *and* its source pair in the CMakeLists.
+
+**CCM stays out, diverging from FSP.** The E50D solution enables `MBEDTLS_CCM_ALT`. The port
+does not. Whether E50D formats B-blocks into the same 128 B buffer that caps SCE9's associated
+data at 110 B is **unmeasured on this engine**, and taking FSP's configuration at face value is
+exactly how PS init returned `-132` on RA6M5 ([D043]). Measure, then enable.
+
+**P-521 and Curve25519 are kept, unlike SCE9.** `ecp_can_do_sce()` in `ecdsa_alt.c` returns 1
+for `MBEDTLS_ECP_DP_SECP521R1` and `MBEDTLS_ECP_DP_CURVE25519` under
+`BSP_FEATURE_RSIP_RSIP_E50D_SUPPORTED`, which `bsp_feature.h` defines as `1` for R7KA8M2. So
+the E50D `crypto_accelerator_config.h` does **not** carry SCE9's two `#undef`s — that is the
+one PSA-visible capability difference between the engines. Neither curve has run on hardware
+yet; if either misbehaves, `#undef` it there rather than editing the ALT sources.
+`PSA_WANT_ALG_DETERMINISTIC_ECDSA` stays undefined — FSP does not support deterministic
+ECDSA on either engine, by design.
+
+---
+
+## D052 — The E50D pack is missing both session-leak fixes; RA8M2 bring-up proceeds anyway
+
+**Date:** 2026-09-24 · **Status:** Accepted · Known-failing, deliberately
+
+**The gap.** Of the 35 `rm_psa_crypto` ALT sources, the only two that differ between the SCE9
+and E50D packs are `aes_alt.c` and `cipher_alt.c` — and the E50D copies are the **unfixed**
+versions. Both session-closes added for SCE9 are absent:
+
+| File | Missing | Was found as |
+|---|---|---|
+| `aes_alt.c` | session close in `mbedtls_aes_free()` | AES multi-part session leak |
+| `cipher_alt.c` | CMAC session close in `mbedtls_cipher_free()` | crypto suite **28/64** cascade ([D044]) |
+
+Not a chronology problem: RA6M5's pack is `12e48ca1` (20260923) and has the fixes; RA8M2's is
+`9abf2155` (20260924, **newer**) and does not. The fixes landed in the SCE9 variant only.
+
+**E50D needs them.** Verified rather than assumed: `HW_SCE_Aes{128,192,256}EncryptDecryptFinalSub`
+exist under `rsip_e50d/plainkey/primitive/` (`hw_sce_p_p47f.c`, `hw_sce_p_p50f.c`), and both
+`SCE_MBEDTLS_CIPHER_OPERATION_STATE_UPDATE` and `SCE_MBEDTLS_CMAC_OPERATION_STATE_UPDATE` are
+defined. Same state machine, same primitives, same two leaks.
+
+**Decision.** Bring the port up without them and treat the resulting crypto-suite cascade as a
+**confirmed-expected failure**, not a port defect. The fix belongs in `rm_psa_crypto` for the
+E50D variant, as it was done for SCE9; carrying it as a port-owned patch would add debt against
+the P7 rebase for a defect that is not the port's.
+
+**What this predicts:** the PSA Arch crypto suite cascading from the aborted-CMAC test the way
+RA6M5 did at 28/64, and AES multi-part leaking sessions. If RA8M2 shows *different* crypto
+failures, they are not this and should be diagnosed on their own.
+
+## D053 — The E50D pack ships both session-leak fixes — supersedes [D052]
+
+**Date:** 2026-09-24 · **Status:** Accepted · **Supersedes [D052]**
+
+[D052] recorded that the RA8M2 pack was missing the two `rm_psa_crypto` session-leak fixes
+the SCE9 pack had, and accepted a known-failing bring-up on that basis. **That is no longer
+true.** The `6.7.0-beta0+20260924.4dfe9b7f` pack carries both:
+
+| File | Fix | Verified |
+|---|---|---|
+| `aes_alt.c` | session close in `mbedtls_aes_free()`, `HW_SCE_Aes{128,192,256}EncryptDecryptFinalSub` | +32 lines, 4 symbol matches |
+| `cipher_alt.c` | CMAC session close in `mbedtls_cipher_free()` | +10 lines, 4 symbol matches |
+
+**So the prediction in [D052] is withdrawn.** The PSA Arch crypto suite is *not* expected to
+cascade from the aborted-CMAC test. If RA8M2 shows a 28/64-style cascade anyway, it is a new
+defect and must be diagnosed on its own rather than attributed to this.
+
+**Why [D052] was written at all.** The pack in hand at the time
+(`6.7.0-beta0+20260924.9abf2155`) genuinely lacked them, while the RA6M5 pack
+(`12e48ca1`, *older*) had them — so it read as a per-device-variant gap rather than a
+sequencing artefact. It was a same-day pack difference, not a missing fix.
+
+**Carried forward:** check the two files after every pack uprev. They are the only two of the
+35 ALT sources that have ever differed between the SCE9 and E50D variants, which makes them
+the cheapest possible canary — `git diff` on `rm_psa_crypto/` after a regenerate.
+
+---
+
+## D054 — DF_EMULATION is 64 KB because FSP's MRAM sector size forces it
+
+**Date:** 2026-09-24 · **Status:** Accepted · Refines [D051]
+
+**The constraint.** FSP's generated `mcuboot_config.h` defines
+`FLASH_AREA_IMAGE_SECTOR_SIZE` as `RM_MCUBOOT_MRAM_BLOCK_SIZE`, **0x8000 (32 KB)**. Every
+MCUboot area's offset and size must be a whole multiple of it, and DF_EMULATION sits between
+BL2 and the first slot, so its size shifts every slot after it.
+
+On a 1 MB device with a 64 KB BL2 that leaves exactly one solution:
+
+| DF_EMULATION | Remainder | Splits into 2xS + 2xNS on 32 KB? |
+|---|---|---|
+| `0x8000` (32 KB) | `0xE8000` | **no** |
+| **`0x10000` (64 KB)** | `0xE0000` | **yes** — S `0x48000`, NS `0x28000` |
+| `0x18000` (96 KB) | `0xD8000` | **no** |
+
+So 64 KB is not generosity and not alignment convenience — it is the only value that works.
+An earlier revision used 8 KB "to match RA6M5's secure data flash" and compensated by setting
+`FLASH_AREA_IMAGE_SECTOR_SIZE` to `0x1000`. That was wrong twice over: it overrode
+FSP-generated configuration (see the TODO in PROJECT_PLAN.md), and it produced slots of 9.875
+sectors, which `flash_area_get_sectors()` rejects — a failure visible only on hardware, as
+`boot_read_sectors()` returning `BOOT_EFLASH`.
+
+**The mistake was reading `r_mram.c`'s `flash_info.block_size` (32) as the sector size.** That
+field is the *write* unit, `BSP_FEATURE_MRAM_PROGRAMMING_SIZE_BYTES`, which FSP uses for
+`MCUBOOT_BOOT_MAX_ALIGN` and which `MCUBOOT_ALIGN_VAL` matches. Two different numbers, both
+needed, neither interchangeable.
+
+**Consequence — storage is 8x RA6M5's.** PS and ITS get 31,744 B each instead of 3,072,
+with NV counters unchanged at 2,048. The PS budget assertion now has 15,008 B of slack against
+584 needed, where at 8 KB it had 88. This retires the open question in
+`ra8m2_layout_checks.c` about whether the 32 B MRAM write alignment would eat that margin —
+at this size it cannot.
+
+`PS_MAX_ASSET_SIZE` and `PS_NUM_ASSETS` in `config_tfm_target.h` stay at RA6M5's 512 and 5 for
+bring-up, so the first RA8M2 run is comparable to the validated one. They are now far more
+conservative than the space requires and can be raised; the headroom is documented for the
+user in the platform's configuration notes.
