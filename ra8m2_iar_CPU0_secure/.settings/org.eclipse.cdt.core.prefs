@@ -1,0 +1,11 @@
+eclipse.preferences.version=1
+environment/project/iar.arm.toolchain.project.cdt.exe.configuration.debug.v8.0.0.1556663441/PATH/delimiter=\:
+environment/project/iar.arm.toolchain.project.cdt.exe.configuration.debug.v8.0.0.1556663441/PATH/operation=prepend
+environment/project/iar.arm.toolchain.project.cdt.exe.configuration.debug.v8.0.0.1556663441/PATH/value=${renesas.build.utilsPath}\:${renesas.build.ddsc.arm6xUtilsPath}
+environment/project/iar.arm.toolchain.project.cdt.exe.configuration.debug.v8.0.0.1556663441/append=true
+environment/project/iar.arm.toolchain.project.cdt.exe.configuration.debug.v8.0.0.1556663441/appendContributed=true
+environment/project/iar.arm.toolchain.project.cdt.exe.configuration.release.v8.0.0.1972816363/PATH/delimiter=\:
+environment/project/iar.arm.toolchain.project.cdt.exe.configuration.release.v8.0.0.1972816363/PATH/operation=prepend
+environment/project/iar.arm.toolchain.project.cdt.exe.configuration.release.v8.0.0.1972816363/PATH/value=${renesas.build.utilsPath}\:${renesas.build.ddsc.arm6xUtilsPath}
+environment/project/iar.arm.toolchain.project.cdt.exe.configuration.release.v8.0.0.1972816363/append=true
+environment/project/iar.arm.toolchain.project.cdt.exe.configuration.release.v8.0.0.1972816363/appendContributed=true
