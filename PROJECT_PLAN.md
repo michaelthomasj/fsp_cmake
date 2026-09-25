@@ -59,11 +59,18 @@ dates rather than cutting scope.
 - Three defects found in FSP's `*_ALT` sources, two now fixed in the pack
   (D041, D043, D044).
 
-**Next — RA8x2 single-core (P5 opens Oct 19)**
-- Hardware procurement is the gating item; the board must be in hand before P5.
+**In progress — RA8M2 single-core (P5 opened early, 2026-09-24)**
+- Started ~3.5 weeks before its Oct 19 window, because P4 finished 23 days early.
+- **BL2, `tfm_s` and `tfm_ns` all build and link, on BOTH toolchains** (IAR then GNUARM).
+- Memory map, OFS placement and M85 TCM attribution verified pre-silicon; the OFS brick
+  guard passes on both toolchains with six discrete per-word segments.
+- Boards in hand. **Not yet run on silicon** — that is the remaining M5 work.
+- Note the part is **RA8M2** (R7KA8M2JFLCAC) with **RSIP-E50D**, not SCE9; earlier revisions
+  of this plan said RSIP-E51A.
 
-**Primary goal — RA8x2 single-core (~late Nov)**
-- TrustZone configuration + BSP update on FSP 6.7, GNUARM + IAR.
+**Primary goal — RA8M2 single-core (~late Nov)**
+- TrustZone configuration + BSP update on FSP 6.7, GNUARM + IAR. Both toolchains now build;
+  what remains is hardware bring-up and the PSA Arch suites.
 
 **Future — TF-M 2.3 / TF-PSA-Crypto (after the rsip7 update)**
 - Rebase from the v2.2.0 fork point; SCE9 redone as a PSA transparent driver.
@@ -212,11 +219,11 @@ which P7 rewrites against TF-PSA-Crypto. Doing it first would be done twice.
 
 | Severity | Risk |
 |---|---|
-| **High** | **RA8x2 new silicon on FSP 6.7.** First bring-up — M85 PACBTI/FPU, RSIP-E50D, TrustZone config. Concentrated in P5. |
+| **High** | **RA8x2 new silicon on FSP 6.7.** First bring-up — M85 FPU/caches, RSIP-E50D, TrustZone config. Concentrated in P5. **Reduced 2026-09-25**: all three images build and link on both toolchains, and the memory map, OFS placement and TCM attribution are verified pre-silicon. What remains is first-boot behaviour, which only hardware settles. |
 | ~~Med~~ | ~~**SCE9 cipher wiring.**~~ **Retired 2026-09-23.** FSP's crypto stack and TF-M's mbedcrypto now coexist; the port builds TF-M's crypto from FSP's Mbed TLS. The ALT route remains Mbed TLS 3.6-only — redone as a PSA driver in P7, and every FSP ALT fix carried here is debt against that rebase. |
-| Med | **IAR replication, round 2.** RA8x2 `.icf` / startup. Materially de-risked — the RA6E1 round is done and the patterns, hooks and three upstream fixes transfer. |
-| Med | **Hardware.** An EK-RA8x2 must be procured before P5 — **Oct 19**, three weeks earlier than the previous plan. The RA6M5 board is in hand. 2× EK-RA6M4 bricked (RA6E1 was the RA6 vehicle). |
-| Med | **RA8x2 MRAM budget.** 1 MB total, no data flash. Four slots + BL2 + the ITS/PS/NV area leave the secure slot and the PSA Arch crypto suite competing for the last 32 KB; a fit depends on `tfm_s` at MinSizeRel, not yet measured. Relieved properly by P8 (NS in OSPI). |
+| ~~Med~~ | ~~**IAR replication, round 2.**~~ **Retired 2026-09-25.** RA8M2 builds and links on **both** toolchains. IAR came first; GNUARM then found two defects IAR had masked — an archive-ordering dependency for the `gp_ddsc_*` TCM symbols, and `Debug` not fitting. The `.icf`/startup patterns transferred as expected. |
+| ~~Med~~ | ~~**Hardware.**~~ **Retired 2026-09-25.** The EK-RA8M2 boards are in hand, ahead of the Oct 19 need-by. The RA6M5 board is in hand. 2× EK-RA6M4 remain bricked (RA6E1 was the RA6 vehicle) — the reason the OFS brick guard exists. |
+| ~~Med~~ | ~~**RA8x2 MRAM budget.**~~ **Retired 2026-09-25 — measured.** `tfm_s` at profile_large/L3/IPC is 204 KB in a 293 KB region (**+87 KB**); GNUARM MinSizeRel leaves +26 KB; the PSA Arch crypto NS image fits with +1.5 KB. `Debug` is what was tight all along, and it does NOT fit on GNUARM at all (~414 KB) — so **MinSizeRel is a requirement, not a preference**. P8 (NS in OSPI) is no longer needed to make the budget work. |
 | Med | **TF-M 2.3 debt grows while deferred.** Every change to a shared file adds to the eventual P7 rebase, and upstream submission of the port waits on it. |
 | ~~Low~~ | ~~**Open defects.**~~ **Both closed 2026-09-23.** `.ram_from_flash` now relocates at every isolation level under both toolchains ([[D048]]); the IAR NS toolchain emits `.srec` ([[D049]]). Remaining: the IAR NS build produces no `.map`. |
 

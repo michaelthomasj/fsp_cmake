@@ -1,0 +1,211 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<azone>
+    <rzone name="R7KA8M2JFLCAC.rzone"/>
+    <partition>
+        <memory parent="RAM_NS" name="RAM_NS_CPU0_N" size="0xEA000" offset="0xEA000" security="n" Pname="CPU0"/>
+        <memory parent="RAM" name="RAM_CPU0_S" size="0xE9F80" offset="0x0" security="s" Pname="CPU0"/>
+        <memory parent="RAM" name="RAM_CPU0_C" size="0x80" offset="0xE9F80" security="c" Pname="CPU0"/>
+        <memory parent="FLASH_NS" name="__BL_1_P_H" size="0x200" offset="0xB0000" security="n" Pname="CPU0" info="@user"/>
+        <memory parent="FLASH_NS" name="FLASH_NS_CPU0_N" size="0x27E00" offset="0xB0200" security="n" Pname="CPU0"/>
+        <memory parent="FLASH_NS" name="__BL_1_P_T" size="0x0" offset="0xD8000" security="n" Pname="CPU0" info="@user"/>
+        <memory parent="FLASH_NS" name="__BL_1_S_H" size="0x200" offset="0xD8000" security="n" Pname="CPU0" info="@user"/>
+        <memory parent="FLASH_NS" name="__BL_1_S_I" size="0x27E00" offset="0xD8200" security="n" Pname="CPU0" info="@user"/>
+        <memory parent="FLASH_NS" name="__BL_1_S_T" size="0x0" offset="0x100000" security="n" Pname="CPU0" info="@user"/>
+        <memory parent="FLASH" name="FLASH_CPU0_B" size="0x10000" offset="0x0" security="s" Pname="CPU0"/>
+        <memory parent="FLASH" name="DF_EMULATION" size="0x10000" offset="0x10000" security="s" Pname="CPU0" info="@user"/>
+        <memory parent="FLASH" name="__BL_0_S_H" size="0x200" offset="0x20000" security="s" Pname="CPU0" info="@user"/>
+        <memory parent="FLASH" name="__BL_0_S_I" size="0x47E00" offset="0x20200" security="s" Pname="CPU0" info="@user"/>
+        <memory parent="FLASH" name="__BL_0_P_H" size="0x200" offset="0x68000" security="s" Pname="CPU0" info="@user"/>
+        <memory parent="FLASH" name="__BL_0_S_T" size="0x0" offset="0x68000" security="s" Pname="CPU0" info="@user"/>
+        <memory parent="FLASH" name="FLASH_CPU0_S" size="0x47A00" offset="0x68200" security="s" Pname="CPU0"/>
+        <memory parent="FLASH" name="FLASH_CPU0_C" size="0x400" offset="0xAFC00" security="c" Pname="CPU0"/>
+        <memory parent="FLASH" name="__BL_0_P_T" size="0x0" offset="0xB0000" security="s" Pname="CPU0" info="@user"/>
+        <memory parent="DATA_FLASH_NS" name="DATA_FLASH_NS_CPU0_N" size="0x0" offset="0x0" security="n" Pname="CPU0"/>
+        <memory parent="DATA_FLASH" name="DATA_FLASH_CPU0_S" size="0x0" offset="0x0" security="s" Pname="CPU0"/>
+        <memory parent="SDRAM" name="SDRAM_CPU0_S" size="0x4000000" offset="0x0" security="s" Pname="CPU0"/>
+        <memory parent="SDRAM" name="SDRAM_CPU0_N" size="0x4000000" offset="0x4000000" security="n" Pname="CPU0"/>
+        <memory parent="OSPI0_CS0" name="OSPI0_CS0_CPU0_S" size="0x8000000" offset="0x0" security="s" Pname="CPU0"/>
+        <memory parent="OSPI0_CS0" name="OSPI0_CS0_CPU0_N" size="0x8000000" offset="0x8000000" security="n" Pname="CPU0"/>
+        <memory parent="OSPI0_CS1" name="OSPI0_CS1_CPU0_S" size="0x8000000" offset="0x0" security="s" Pname="CPU0"/>
+        <memory parent="OSPI0_CS1" name="OSPI0_CS1_CPU0_N" size="0x8000000" offset="0x8000000" security="n" Pname="CPU0"/>
+        <memory parent="OSPI1_CS0" name="OSPI1_CS0_CPU0_S" size="0x4000000" offset="0x0" security="s" Pname="CPU0"/>
+        <memory parent="OSPI1_CS0" name="OSPI1_CS0_CPU0_N" size="0x4000000" offset="0x4000000" security="n" Pname="CPU0"/>
+        <memory parent="OSPI1_CS1" name="OSPI1_CS1_CPU0_S" size="0x4000000" offset="0x0" security="s" Pname="CPU0"/>
+        <memory parent="OSPI1_CS1" name="OSPI1_CS1_CPU0_N" size="0x4000000" offset="0x4000000" security="n" Pname="CPU0"/>
+        <memory parent="OPTION_SETTING_OFS0" name="OPTION_SETTING_OFS0_CPU0_S" size="0x4" offset="0x0" security="s" Pname="CPU0"/>
+        <memory parent="OPTION_SETTING_OFS2" name="OPTION_SETTING_OFS2_CPU0_S" size="0x4" offset="0x0" security="s" Pname="CPU0"/>
+        <memory parent="OPTION_SETTING_SAS" name="OPTION_SETTING_SAS_CPU0_S" size="0x4" offset="0x0" security="s" Pname="CPU0"/>
+        <memory parent="OPTION_SETTING_OFS1" name="OPTION_SETTING_OFS1_CPU0_S" size="0x2" offset="0x0" security="s" Pname="CPU0"/>
+        <memory parent="OPTION_SETTING_OFS1" name="OPTION_SETTING_OFS1_CPU0_N" size="0x2" offset="0x2" security="n" Pname="CPU0"/>
+        <memory parent="OPTION_SETTING_OFS1_SEC" name="OPTION_SETTING_OFS1_SEC_CPU0_S" size="0x4" offset="0x0" security="s" Pname="CPU0"/>
+        <memory parent="OPTION_SETTING_OFS1_SEL" name="OPTION_SETTING_OFS1_SEL_CPU0_S" size="0x4" offset="0x0" security="s" Pname="CPU0"/>
+        <memory parent="OPTION_SETTING_OFS3" name="OPTION_SETTING_OFS3_CPU0_S" size="0x2" offset="0x0" security="s" Pname="CPU0"/>
+        <memory parent="OPTION_SETTING_OFS3" name="OPTION_SETTING_OFS3_CPU0_N" size="0x2" offset="0x2" security="n" Pname="CPU0"/>
+        <memory parent="OPTION_SETTING_OFS3_SEC" name="OPTION_SETTING_OFS3_SEC_CPU0_S" size="0x4" offset="0x0" security="s" Pname="CPU0"/>
+        <memory parent="OPTION_SETTING_OFS3_SEL" name="OPTION_SETTING_OFS3_SEL_CPU0_S" size="0x4" offset="0x0" security="s" Pname="CPU0"/>
+        <memory parent="OPTION_SETTING_BPS" name="OPTION_SETTING_BPS_CPU0_S" size="0x40" offset="0x0" security="s" Pname="CPU0"/>
+        <memory parent="OPTION_SETTING_BPS" name="OPTION_SETTING_BPS_CPU0_N" size="0x40" offset="0x40" security="n" Pname="CPU0"/>
+        <memory parent="OPTION_SETTING_BPS_SEC" name="OPTION_SETTING_BPS_SEC_CPU0_S" size="0x80" offset="0x0" security="s" Pname="CPU0"/>
+        <memory parent="OPTION_SETTING_OTP_FSBLCTRL0" name="OPTION_SETTING_OTP_FSBLCTRL0_CPU0_S" size="0x4" offset="0x0" security="s" Pname="CPU0"/>
+        <memory parent="OPTION_SETTING_OTP_FSBLCTRL1" name="OPTION_SETTING_OTP_FSBLCTRL1_CPU0_S" size="0x4" offset="0x0" security="s" Pname="CPU0"/>
+        <memory parent="OPTION_SETTING_OTP_FSBLCTRL2" name="OPTION_SETTING_OTP_FSBLCTRL2_CPU0_S" size="0x4" offset="0x0" security="s" Pname="CPU0"/>
+        <memory parent="OPTION_SETTING_OTP_SAMR" name="OPTION_SETTING_OTP_SAMR_CPU0_S" size="0x4" offset="0x0" security="s" Pname="CPU0"/>
+        <memory parent="OPTION_SETTING_OTP_SACC00" name="OPTION_SETTING_OTP_SACC00_CPU0_S" size="0x4" offset="0x0" security="s" Pname="CPU0"/>
+        <memory parent="OPTION_SETTING_OTP_SACC10" name="OPTION_SETTING_OTP_SACC10_CPU0_S" size="0x4" offset="0x0" security="s" Pname="CPU0"/>
+        <memory parent="OPTION_SETTING_OTP_SACC01" name="OPTION_SETTING_OTP_SACC01_CPU0_S" size="0x4" offset="0x0" security="s" Pname="CPU0"/>
+        <memory parent="OPTION_SETTING_OTP_SACC11" name="OPTION_SETTING_OTP_SACC11_CPU0_S" size="0x4" offset="0x0" security="s" Pname="CPU0"/>
+        <memory parent="OPTION_SETTING_OTP_SACC02" name="OPTION_SETTING_OTP_SACC02_CPU0_S" size="0x4" offset="0x0" security="s" Pname="CPU0"/>
+        <memory parent="OPTION_SETTING_OTP_SACC12" name="OPTION_SETTING_OTP_SACC12_CPU0_S" size="0x4" offset="0x0" security="s" Pname="CPU0"/>
+        <memory parent="OPTION_SETTING_OTP_SACC03" name="OPTION_SETTING_OTP_SACC03_CPU0_S" size="0x4" offset="0x0" security="s" Pname="CPU0"/>
+        <memory parent="OPTION_SETTING_OTP_SACC13" name="OPTION_SETTING_OTP_SACC13_CPU0_S" size="0x4" offset="0x0" security="s" Pname="CPU0"/>
+        <memory parent="OPTION_SETTING_OTP_PBPS_SEC" name="OPTION_SETTING_OTP_PBPS_SEC_CPU0_S" size="0x80" offset="0x0" security="s" Pname="CPU0"/>
+        <memory parent="OPTION_SETTING_OTP_PBPS" name="OPTION_SETTING_OTP_PBPS_CPU0_S" size="0x40" offset="0x0" security="s" Pname="CPU0"/>
+        <memory parent="OPTION_SETTING_OTP_PBPS" name="OPTION_SETTING_OTP_PBPS_CPU0_N" size="0x40" offset="0x40" security="n" Pname="CPU0"/>
+        <memory parent="OPTION_SETTING_OTP_ZHUK" name="OPTION_SETTING_OTP_ZHUK_CPU0_S" size="0x4" offset="0x0" security="s" Pname="CPU0"/>
+        <memory parent="ITCM_NS" name="ITCM_NS_CPU0_N" size="0x10000" offset="0x10000" security="n" Pname="CPU0"/>
+        <memory parent="ITCM" name="ITCM_CPU0_S" size="0x10000" offset="0x0" security="s" Pname="CPU0"/>
+        <memory parent="DTCM_NS" name="DTCM_NS_CPU0_N" size="0x10000" offset="0x10000" security="n" Pname="CPU0"/>
+        <memory parent="DTCM" name="DTCM_CPU0_S" size="0x10000" offset="0x0" security="s" Pname="CPU0"/>
+        <peripheral name="PORT0.CPU0" group="PORT">
+            <slot name="P001.CPU0" secure="true"/>
+            <slot name="P002.CPU0" secure="true"/>
+            <slot name="P003.CPU0" secure="true"/>
+            <slot name="P004.CPU0" secure="true"/>
+            <slot name="P005.CPU0" secure="true"/>
+            <slot name="P007.CPU0" secure="true"/>
+            <slot name="P008.CPU0" secure="true"/>
+            <slot name="P009.CPU0" secure="true"/>
+            <slot name="P014.CPU0" secure="true"/>
+            <slot name="P015.CPU0" secure="true"/>
+        </peripheral>
+        <peripheral name="PORT1.CPU0" group="PORT">
+            <slot name="P100.CPU0" secure="true"/>
+            <slot name="P101.CPU0" secure="true"/>
+            <slot name="P102.CPU0" secure="true"/>
+            <slot name="P103.CPU0" secure="true"/>
+            <slot name="P104.CPU0" secure="true"/>
+            <slot name="P105.CPU0" secure="true"/>
+            <slot name="P106.CPU0" secure="true"/>
+        </peripheral>
+        <peripheral name="PORT2.CPU0" group="PORT">
+            <slot name="P208.CPU0" secure="true"/>
+            <slot name="P209.CPU0" secure="true"/>
+            <slot name="P210.CPU0" secure="true"/>
+            <slot name="P211.CPU0" secure="true"/>
+            <slot name="P212.CPU0" secure="true"/>
+            <slot name="P213.CPU0" secure="true"/>
+            <slot name="P214.CPU0" secure="true"/>
+            <slot name="P215.CPU0" secure="true"/>
+        </peripheral>
+        <peripheral name="PORT3.CPU0" group="PORT">
+            <slot name="P303.CPU0" secure="true"/>
+        </peripheral>
+        <peripheral name="PORT4.CPU0" group="PORT">
+            <slot name="P402.CPU0" secure="true"/>
+            <slot name="P405.CPU0" secure="true"/>
+            <slot name="P406.CPU0" secure="true"/>
+            <slot name="P407.CPU0" secure="true"/>
+            <slot name="P408.CPU0" secure="true"/>
+        </peripheral>
+        <peripheral name="PORT5.CPU0" group="PORT">
+            <slot name="P500.CPU0" secure="true"/>
+            <slot name="P511.CPU0" secure="true"/>
+            <slot name="P512.CPU0" secure="true"/>
+        </peripheral>
+        <peripheral name="PORT6.CPU0" group="PORT">
+            <slot name="P600.CPU0" secure="true"/>
+            <slot name="P601.CPU0" secure="true"/>
+            <slot name="P602.CPU0" secure="true"/>
+            <slot name="P603.CPU0" secure="true"/>
+            <slot name="P604.CPU0" secure="true"/>
+            <slot name="P605.CPU0" secure="true"/>
+        </peripheral>
+        <peripheral name="PORT7.CPU0" group="PORT">
+            <slot name="P700.CPU0" secure="true"/>
+            <slot name="P701.CPU0" secure="true"/>
+            <slot name="P702.CPU0" secure="true"/>
+            <slot name="P703.CPU0" secure="true"/>
+            <slot name="P705.CPU0" secure="true"/>
+            <slot name="P706.CPU0" secure="true"/>
+        </peripheral>
+        <peripheral name="PORT8.CPU0" group="PORT">
+            <slot name="P800.CPU0" secure="true"/>
+            <slot name="P801.CPU0" secure="true"/>
+            <slot name="P802.CPU0" secure="true"/>
+            <slot name="P803.CPU0" secure="true"/>
+            <slot name="P804.CPU0" secure="true"/>
+            <slot name="P808.CPU0" secure="true"/>
+            <slot name="P814.CPU0" secure="true"/>
+            <slot name="P815.CPU0" secure="true"/>
+        </peripheral>
+        <peripheral name="PORT9.CPU0" group="PORT">
+            <slot name="P907.CPU0" secure="true"/>
+            <slot name="P908.CPU0" secure="true"/>
+            <slot name="P909.CPU0" secure="true"/>
+        </peripheral>
+        <peripheral name="PORTA.CPU0" group="PORT">
+            <slot name="PA02.CPU0" secure="true"/>
+            <slot name="PA03.CPU0" secure="true"/>
+            <slot name="PA04.CPU0" secure="true"/>
+            <slot name="PA05.CPU0" secure="true"/>
+            <slot name="PA06.CPU0" secure="true"/>
+            <slot name="PA07.CPU0" secure="true"/>
+            <slot name="PA08.CPU0" secure="true"/>
+            <slot name="PA09.CPU0" secure="true"/>
+            <slot name="PA10.CPU0" secure="true"/>
+        </peripheral>
+        <peripheral name="PORTB.CPU0" group="PORT">
+            <slot name="PB00.CPU0" secure="true"/>
+            <slot name="PB02.CPU0" secure="true"/>
+            <slot name="PB03.CPU0" secure="true"/>
+            <slot name="PB04.CPU0" secure="true"/>
+        </peripheral>
+        <peripheral name="PORTC.CPU0" group="PORT">
+            <slot name="PC11.CPU0" secure="true"/>
+            <slot name="PC12.CPU0" secure="true"/>
+            <slot name="PC13.CPU0" secure="true"/>
+        </peripheral>
+        <peripheral name="PORTD.CPU0" group="PORT">
+            <slot name="PD02.CPU0" secure="true"/>
+            <slot name="PD03.CPU0" secure="true"/>
+            <slot name="PD04.CPU0" secure="true"/>
+            <slot name="PD05.CPU0" secure="true"/>
+            <slot name="PD07.CPU0" secure="true"/>
+        </peripheral>
+        <memory parent="RAM" name="RAM_CPU0_B" size="0x1200" offset="0x0" security="s" Pname="CPU0"/>
+        <memory parent="DATA_FLASH" name="DATA_FLASH_CPU0_B" size="0x0" offset="0x0" security="s" Pname="CPU0"/>
+        <memory parent="SDRAM" name="SDRAM_CPU0_B" size="0x0" offset="0x0" security="s" Pname="CPU0"/>
+        <memory parent="OSPI0_CS0" name="OSPI0_CS0_CPU0_B" size="0x0" offset="0x0" security="s" Pname="CPU0"/>
+        <memory parent="OSPI0_CS1" name="OSPI0_CS1_CPU0_B" size="0x0" offset="0x0" security="s" Pname="CPU0"/>
+        <memory parent="OSPI1_CS0" name="OSPI1_CS0_CPU0_B" size="0x0" offset="0x0" security="s" Pname="CPU0"/>
+        <memory parent="OSPI1_CS1" name="OSPI1_CS1_CPU0_B" size="0x0" offset="0x0" security="s" Pname="CPU0"/>
+        <memory parent="OPTION_SETTING_OFS0" name="OPTION_SETTING_OFS0_CPU0_B" size="0x4" offset="0x0" security="s" Pname="CPU0"/>
+        <memory parent="OPTION_SETTING_OFS2" name="OPTION_SETTING_OFS2_CPU0_B" size="0x4" offset="0x0" security="s" Pname="CPU0"/>
+        <memory parent="OPTION_SETTING_SAS" name="OPTION_SETTING_SAS_CPU0_B" size="0x0" offset="0x0" security="s" Pname="CPU0"/>
+        <memory parent="OPTION_SETTING_OFS1" name="OPTION_SETTING_OFS1_CPU0_B" size="0x0" offset="0x0" security="s" Pname="CPU0"/>
+        <memory parent="OPTION_SETTING_OFS1_SEC" name="OPTION_SETTING_OFS1_SEC_CPU0_B" size="0x4" offset="0x0" security="s" Pname="CPU0"/>
+        <memory parent="OPTION_SETTING_OFS1_SEL" name="OPTION_SETTING_OFS1_SEL_CPU0_B" size="0x4" offset="0x0" security="s" Pname="CPU0"/>
+        <memory parent="OPTION_SETTING_OFS3" name="OPTION_SETTING_OFS3_CPU0_B" size="0x0" offset="0x0" security="s" Pname="CPU0"/>
+        <memory parent="OPTION_SETTING_OFS3_SEC" name="OPTION_SETTING_OFS3_SEC_CPU0_B" size="0x4" offset="0x0" security="s" Pname="CPU0"/>
+        <memory parent="OPTION_SETTING_OFS3_SEL" name="OPTION_SETTING_OFS3_SEL_CPU0_B" size="0x4" offset="0x0" security="s" Pname="CPU0"/>
+        <memory parent="OPTION_SETTING_BPS" name="OPTION_SETTING_BPS_CPU0_B" size="0x0" offset="0x0" security="s" Pname="CPU0"/>
+        <memory parent="OPTION_SETTING_BPS_SEC" name="OPTION_SETTING_BPS_SEC_CPU0_B" size="0x0" offset="0x0" security="s" Pname="CPU0"/>
+        <memory parent="OPTION_SETTING_OTP_FSBLCTRL0" name="OPTION_SETTING_OTP_FSBLCTRL0_CPU0_B" size="0x0" offset="0x0" security="s" Pname="CPU0"/>
+        <memory parent="OPTION_SETTING_OTP_FSBLCTRL1" name="OPTION_SETTING_OTP_FSBLCTRL1_CPU0_B" size="0x0" offset="0x0" security="s" Pname="CPU0"/>
+        <memory parent="OPTION_SETTING_OTP_FSBLCTRL2" name="OPTION_SETTING_OTP_FSBLCTRL2_CPU0_B" size="0x0" offset="0x0" security="s" Pname="CPU0"/>
+        <memory parent="OPTION_SETTING_OTP_SAMR" name="OPTION_SETTING_OTP_SAMR_CPU0_B" size="0x0" offset="0x0" security="s" Pname="CPU0"/>
+        <memory parent="OPTION_SETTING_OTP_SACC00" name="OPTION_SETTING_OTP_SACC00_CPU0_B" size="0x0" offset="0x0" security="s" Pname="CPU0"/>
+        <memory parent="OPTION_SETTING_OTP_SACC10" name="OPTION_SETTING_OTP_SACC10_CPU0_B" size="0x0" offset="0x0" security="s" Pname="CPU0"/>
+        <memory parent="OPTION_SETTING_OTP_SACC01" name="OPTION_SETTING_OTP_SACC01_CPU0_B" size="0x0" offset="0x0" security="s" Pname="CPU0"/>
+        <memory parent="OPTION_SETTING_OTP_SACC11" name="OPTION_SETTING_OTP_SACC11_CPU0_B" size="0x0" offset="0x0" security="s" Pname="CPU0"/>
+        <memory parent="OPTION_SETTING_OTP_SACC02" name="OPTION_SETTING_OTP_SACC02_CPU0_B" size="0x0" offset="0x0" security="s" Pname="CPU0"/>
+        <memory parent="OPTION_SETTING_OTP_SACC12" name="OPTION_SETTING_OTP_SACC12_CPU0_B" size="0x0" offset="0x0" security="s" Pname="CPU0"/>
+        <memory parent="OPTION_SETTING_OTP_SACC03" name="OPTION_SETTING_OTP_SACC03_CPU0_B" size="0x0" offset="0x0" security="s" Pname="CPU0"/>
+        <memory parent="OPTION_SETTING_OTP_SACC13" name="OPTION_SETTING_OTP_SACC13_CPU0_B" size="0x0" offset="0x0" security="s" Pname="CPU0"/>
+        <memory parent="OPTION_SETTING_OTP_PBPS_SEC" name="OPTION_SETTING_OTP_PBPS_SEC_CPU0_B" size="0x0" offset="0x0" security="s" Pname="CPU0"/>
+        <memory parent="OPTION_SETTING_OTP_PBPS" name="OPTION_SETTING_OTP_PBPS_CPU0_B" size="0x0" offset="0x0" security="s" Pname="CPU0"/>
+        <memory parent="OPTION_SETTING_OTP_ZHUK" name="OPTION_SETTING_OTP_ZHUK_CPU0_B" size="0x0" offset="0x0" security="s" Pname="CPU0"/>
+        <memory parent="ITCM" name="ITCM_CPU0_B" size="0x0" offset="0x0" security="s" Pname="CPU0"/>
+        <memory parent="DTCM" name="DTCM_CPU0_B" size="0x0" offset="0x0" security="s" Pname="CPU0"/>
+    </partition>
+</azone>
