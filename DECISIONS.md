@@ -1618,3 +1618,94 @@ at this size it cannot.
 bring-up, so the first RA8M2 run is comparable to the validated one. They are now far more
 conservative than the space requires and can be raised; the headroom is documented for the
 user in the platform's configuration notes.
+
+## D055 — RA8M2 full chain builds and links on IAR; four defects found by building it
+
+**Date:** 2026-09-24 · **Status:** Accepted · Not yet run on hardware
+
+BL2, `tfm_s` and `tfm_ns` all build and link for RA8M2, at the application configuration
+(Debug / isolation 1 / SFN / SPM trace on). Measured placement:
+
+| Image | Range | Size | Headroom |
+|---|---|---|---|
+| `bl2` | `0x02000000`-`0x0200C5C3` | 50,627 B | +14,909 in 64 KB |
+| `tfm_s` | `0x02020200`-`0x0206789C` | — | **+868 B** before the NSC veneers |
+| NSC veneers | `0x02067C00`-`0x02067C40` | 64 B | at `FLASH_CPU0_C_START` exactly |
+| `tfm_ns` | `0x120B0200`-`0x120B1A00` | 6,144 B | +156,928 in 160 KB |
+
+Both signed images pad to exactly their slot spans (`0x48000`, `0x28000`), so imgtool and
+`flash_layout.h` agree. The NS side needed **no source changes at all** — it configured and
+linked first time, and emits `.srec`, so [D049] carries to this port.
+
+**868 bytes of secure headroom is the number to watch.** That is the Debug build at isolation 1;
+the same measurement on RA6M5 said Debug costs 78 KB over MinSizeRel, so the application
+configuration should move off Debug before anything is added to the secure image.
+
+**What building it found — none of these were visible by inspection:**
+
+1. **ITS/PS program unit 32 → NAND emulation.** `its_flash.c` switches backend above 16 and
+   allocates two static buffers per partition, ~62 KB of secure RAM. MRAM writes SINGLE BYTES
+   (`block_size_write` is 1; `mram_write_data()` copies byte at a time and flushes partial
+   buffers), so 32 is the programming buffer, not a minimum write. Now 4, as on RA6M5.
+2. **`fsp_module_common.cmake` never applied `COMPILER_CP_FLAG`.** TF-M adds it per target, and
+   the FSP libraries are created in the port's own macro, so they took the compiler's default
+   FPU. Invisible on M33 (default `none`); on M85 ILINK refused the image with `Lt006`,
+   VFP against No vfp.
+3. **The OFS addresses were RA6M5's** — see [D056].
+4. **The brick guard was inert** — see [D056].
+
+**Toolchain note:** only `ra8m2_iar_*` projects exist, so there is no GCC recipe. The
+QUICKSTART's GNUARM section named `ra8m2_gcc_*` projects that have never existed, inherited from
+RA6M5; corrected, and `scripts/app_build_ra8m2_iar.bat` now captures the working recipe.
+
+---
+
+## D056 — OFS addresses are generated, and a guard that reports PASS on the wrong window is worse than none
+
+**Date:** 2026-09-24 · **Status:** Accepted · Extends [D002]
+
+**The transcription defect.** `region_defs.h` hand-wrote the thirteen RA6 option-setting
+addresses, and because the RA8M2 port was seeded from RA6M5 they were RA6M5's:
+`.option_setting_ofs0` linked at `0x0100A100` when this part's OFS0 is at `0x02c9f040`. The
+image wrote option words outside the device's option memory and never touched its real OFS or
+block-protect registers. The comment above them even asserted "the same start addresses as
+RA6E1/RA6M4" and "2 MB of code flash", both false.
+
+**Fix.** `option_settings.h` is GENERATED at configure time from the bootloader project's
+`Debug/memory_regions.icf`, exactly as `bsp_partitions.h` is generated from
+`bsp_linker_info.h`. Nothing is transcribed. `bsp_linker_info.h` does not carry the OFS
+addresses, which is why they were hand-written in the first place.
+
+**RA8M2's group set is not RA6's:** 26 against 13. No `DUALSEL`, `BANKSEL` or non-OTP `PBPS`;
+new `OFS2`, `OFS3(+_SEC/_SEL)`, `SAS`, and an OTP block (`FSBLCTRL0-2`, `SAMR`, `SACC00-13`,
+`PBPS(+_SEC)`, `ZHUK`). `BPS` is `0x80`, not `0xC`.
+
+**The silent-drop defect.** `OFS2`, `OFS3_SEC` and `OFS3_SEL` were set in the solution and
+emitted by nothing, because `bl2_option_setting.c` came from RA6M5. No section, so no linker
+error, so no diagnostic — a security setting configured and quietly not applied. Now emitted,
+and every group FSP recognises that the port does NOT place is an `#error` naming the three
+edits required. Verified to fire for `BPS` and `OTP_PBPS_SEC`, and not for the
+`OFS1_SEC_NO_HOCOFRQ` variant, which is a field of `OFS1_SEC` rather than a separate word.
+
+**The guard was inert, which is worse than absent.** `check_ofs.py` hardcoded RA6's
+`0x0100A100-0x0100A2CF`. Run against an RA8M2 BL2 carrying six OFS segments it printed
+
+```
+  bl2.axf        CLEAN (no OFS segments)
+  PASS: OFS (if any) is in discrete per-word segments - safe to flash.
+```
+
+It would also have passed the genuinely wrong build, because `0x0100A100` IS inside its window
+and the segments were discrete: **it checks spanning, never whether the addresses belong to the
+device.** `--region` is now required, BL2 passes `--require-segments` so an empty result fails,
+and the RA6 ports pass `--ra6-default`. Negative-tested four ways, including that the old
+hardcoded window now fails.
+
+**Provenance rule, newly documented:** only the BOOTLOADER project's OFS settings land.
+`bl2_option_setting.c` compiles into `platform_bl2`, so values resolve through `FSP_BL2_APP_DIR`
+and addresses through its `memory_regions.icf`. Editing OFS in the SECURE project has no effect
+and nothing warns — and both projects currently define the same six groups, which makes the
+mistake easy and invisible.
+
+**Unchanged:** the placement rule. Discrete regions per word, one tiny `PT_LOAD` each. Verified
+`readelf -l`: six 4-byte LOAD segments at `0x02c9f040/044/0c0/0c4/120/124`, gaps untouched.
