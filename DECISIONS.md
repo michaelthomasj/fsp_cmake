@@ -1860,3 +1860,76 @@ rather than assuming either answer.
 **Rule for this port: do not read the linker's region-usage percentage as headroom while the NSC
 is pinned at the top of the region.** Measure the gap between the end of the main LOAD segment
 and `.gnu.sgstubs`.
+
+---
+
+## D060 — RA6M5 execution-path audit: what the boot trace turned up
+
+Traced RA6M5 reset&rarr;runtime to build an execution map
+(<https://claude.ai/artifact/6x3gWcieKoCZj3SbfGHrvh>). Everything below is verified against the
+built image or the link map, not read off source. No change made to the RA6M5 port — these are
+findings, recorded so they are not rediscovered.
+
+**Architectural fact worth stating plainly: the SAU is FSP's, not TF-M's.** `sau_and_idau_cfg()`,
+`mpc_init_cfg()` and `ppc_init_cfg()` in `target_cfg.c` are all no-ops. The real SAU/IDAU
+programming is `R_BSP_SecurityInit()` &rarr; `R_BSP_SAUInit()` inside FSP's `SystemInit()`, i.e.
+**before `main()`** and before `tfm_hal_set_up_static_boundaries()`. On a canonical TF-M diagram
+the isolation-boundary box sits in `tfm_core_init`; here it moves back into `Reset_Handler`. The
+comment in `target_cfg.c:36` claiming TF-M's common framework programs the SAU is wrong — the
+framework just calls the empty function.
+
+### Finding 1 — `SECUREFAULTENA` is never set
+
+Every other TF-M platform calls `enable_fault_handlers()` and `system_reset_cfg()` from its
+`tfm_hal_platform.c`. This port defines both in `target_cfg.c` and **calls neither**.
+`target_cfg.o` links with **zero bytes of `.text`** — wholly garbage-collected — and neither
+symbol is in `tfm_s.axf`.
+
+Most of the effect is covered by accident, which is why it went unnoticed: FSP sets
+`AIRCR.SYSRESETREQS = 1` and `BFHFNMINS = 0`; TF-M sets `AIRCR.PRIS`; `ARM_MPU_Enable()` sets
+`SHCSR.MEMFAULTENA`. **The gap is `SHCSR.SECUREFAULTENA`, `BUSFAULTENA` and `USGFAULTENA`.**
+
+Not an isolation hole — SAU and MPU are hardware and unaffected, and a violation still traps. But
+it escalates to `HardFault_Handler` instead of the `SecureFault_Handler` that `faults.c` provides,
+losing `SFSR` routing on precisely the fault worth diagnosing. Note the oddity: TF-M sets
+SecureFault's *priority* and leaves it disabled.
+
+### Finding 2 — the secure image hashes 297 KB of zero fill every boot
+
+`.gnu.sgstubs` must sit in the NSC window at `0x11F800` because the device order is
+Secure|NSC|Non-secure. Secure code ends at `0x0D557C`. The gap is fill **inside** the MCUboot
+image, so `img_size` is 521,932 against 218,492 of content, and `MCUBOOT_VALIDATE_PRIMARY_SLOT`
+is defined — SHA-256 + ECDSA-P256 over all of it, 58% zeros, at every boot.
+
+The NS image does not pay this: imgtool pads the *file* to the slot with 0xFF but `img_size`
+stays 6,208, so the padding is outside the hash. The secure image cannot do the same because its
+fill is interior. A genuine trade — the gap *is* the growth room — but it should be a measured
+choice, not an accident. Same shape on RA8M2 at 77,140 bytes.
+
+### Finding 3 — RA6M5 has no mechanical guard for the `bl2.bin` brick
+
+`bl2.bin` is **16,818,820 bytes**, `0x00000000`–`0x0100A284`, 16,791,916 of it zero fill over the
+option memory. DESIGN.md 8.4 and MACHINE_HANDOFF.md both already say to flash the `.hex` — but
+8.4 frames it as *"pads `bl2.bin` to ~16.8 MB"*, which reads as an inconvenience rather than a
+part-killer, and it is a comment, not a check. [D058] gave RA8M2 the strip + `--check-flat-bin`
+guard. **Porting both to RA6M5/RA6E1/RA6M4 is the first item on the RA6 leg.**
+
+### Smaller findings
+
+- **BL2's stack seal is 10 KB from its stack.** `CMakeLists.txt:636` claims `__ARM_FEATURE_CMSE != 3`
+  for BL2. True of the preprocessed linker script, false of the C compile — `-mcmse` reaches the
+  `bl2` target via `platform_bl2 PUBLIC`. So `__TZ_set_STACKSEAL_S` runs and lands on the weak
+  definition in an orphaned `.msp_stack_seal_res` at `0x200009A8`, while the stack is
+  `0x200034C0`–`0x20004CC0`. Inert in a flat build; the comment is still wrong.
+- **All 96 peripheral interrupts are targeted non-secure.** `bsp_irq_cfg()` writes
+  `ITNS[] = 0xFFFFFFFF` because the secure project links zero events. Correct today; it is FSP
+  that decides this, not `target_cfg.c`, whose NVIC functions are documented no-ops and are not
+  called anyway.
+- **`tfm_interrupts.c` is in no CMake file and no map**; `tfm_peripherals_def.c` is listed but its
+  object is absent (`CONFIG_TFM_MMIO_REGION_ENABLE` off). Both switch on untested the moment a
+  partition claims an IRQ or a peripheral — which the PSA Arch partitions do.
+- **1 KB of NSC SRAM (`RAM_CM33_C`) holds nothing**, same as RA8M2 before the fix.
+- **`bl2_main.c` carries a local patch** (`BL2_HALT_AT_MAIN`, `:112–125`) that will conflict on the
+  2.3 uplift. Belongs on the upstream-delta list.
+- **`psa_crypto_init()` never crosses the boundary** — it returns `PSA_SUCCESS` NS-side. Step 3 of
+  the NS smoke test proves nothing about the boundary; steps 4/5 are the first real crossings.
