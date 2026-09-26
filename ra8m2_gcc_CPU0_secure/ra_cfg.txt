@@ -916,9 +916,6 @@ FSP Configuration
     Parameter Checking: Default (BSP)
     CCD Support: Not Supported
     
-  Module "MRAM (r_mram)"
-    Parameter Checking: Default (BSP)
-    
   Module "MbedTLS (Crypto Only)"
     Hardware Acceleration: TRNG: Enabled
     Hardware Acceleration: Key Format: AES: Plaintext and Wrapped (Vendor)
@@ -1224,6 +1221,9 @@ FSP Configuration
     
   Module "MbedTLS Crypto Port (rm_psa_crypto)"
   Module "RSIP-E50D Compatibility Mode"
+  Module "MRAM (r_mram)"
+    Parameter Checking: Default (BSP)
+    
   HAL
     Instance "g_ioport I/O Port (r_ioport)"
       Name: g_ioport
@@ -1233,11 +1233,11 @@ FSP Configuration
       4th Port ELC Trigger Source: Disabled
       Pin Configuration Name: g_bsp_pin_cfg
       
+    Instance "MbedTLS (Crypto Only)"
+      Instance "MbedTLS Crypto Port (rm_psa_crypto)"
+        Instance "RSIP-E50D Compatibility Mode"
     Instance "g_mram0 MRAM (r_mram)"
       Name: g_mram0
       Callback: NULL
       MRAM Error Interrupt Priority: Disabled
       
-    Instance "MbedTLS (Crypto Only)"
-      Instance "MbedTLS Crypto Port (rm_psa_crypto)"
-        Instance "RSIP-E50D Compatibility Mode"

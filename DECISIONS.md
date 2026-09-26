@@ -1709,3 +1709,50 @@ mistake easy and invisible.
 
 **Unchanged:** the placement rule. Discrete regions per word, one tiny `PT_LOAD` each. Verified
 `readelf -l`: six 4-byte LOAD segments at `0x02c9f040/044/0c0/0c4/120/124`, gaps untouched.
+
+---
+
+## D057 — The GCC leg is the reference; the IAR solution's RAM split is stale
+
+**Context.** Both project sets were regenerated on pack `6.7.0-beta0+20260925.818e720c`. Diffing
+all ~55 memory partitions in the two `solution.xml` files, they agree everywhere except two lines:
+
+```
+-RAM_CPU0_C 0xE9C00 0x400    (gcc, fixed)
+-RAM_CPU0_S 0x0     0xE9C00
++RAM_CPU0_C 0xE9F80 0x80     (iar, FSP default)
++RAM_CPU0_S 0x0     0xE9F80
+```
+
+Flash is byte-identical between them. The 1 KB NSC fix went into the GCC solution only.
+
+**Why they cannot stay split.** Two solutions for one part feed **one** RDPM entry. RDPM already
+refused 768 B for the NSC, so 128 B is out. The IAR set also keeps the `Lp035` alignment warning,
+where ILINK silently relocates `__ddsc_RAM_NSC` to `0x220EA000` — inside NS RAM.
+
+**Decision.** With the IAR licence expired, the **GCC set is the reference** for the RA8M2 layout.
+The IAR `solution.xml` takes the same two lines and is regenerated when the licence is back;
+regeneration needs RASC, not the compiler, so this is not gated on the licence — only the build is.
+`app_build_ra8m2_iar.bat` carries the divergence in its header until then.
+
+**Consequences of the RAM change, measured on the rebuilt GCC chain:**
+
+| | before | after |
+|---|---|---|
+| secure RAM region | 935.875 KB | **935 KB** |
+| NS RAM region | 936.125 KB | **936 KB** |
+| NSC | 128 B | **1 KB** |
+
+Whole-KB throughout, which is what RDPM requires. No size regression: `tfm_s` 293,564 B, `bl2`
+27,552 B, `tfm_ns` 6,916 B. OFS guard PASS — `bl2.axf` carries six discrete 4-byte segments at
+`0x02C9F040/044/0C0/0C4/120/124`, `tfm_s.axf` none.
+
+**Headroom, unrelated to this change but now visible.** `tfm_s` is **293,564 B against a 294,400 B
+slot — 99.72%, 836 bytes spare**, at MinSizeRel / isolation 1 / SFN. Isolation 2, the IPC backend,
+or another partition will not fit. Growing the secure slot means moving `__BL_0_P_H` and every
+partition above it, so it is a layout revision, not a tweak. See [D054] for why `DF_EMULATION`
+cannot give back less than 64 KB.
+
+**Also added.** `scripts/app_build_ra8m2_gcc.bat`, which did not exist — the GCC chain had been
+built by hand. It pins `MinSizeRel` (Debug does not fit on GNUARM, [D055]) and quotes `%GCC_BIN%`
+everywhere, the `(x86)` paren bug from `psa_arch_spe.bat`.

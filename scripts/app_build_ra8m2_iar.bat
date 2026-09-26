@@ -7,10 +7,15 @@ rem
 rem  Debug / isolation 1 / SFN backend / SPM trace on - the application configuration. The
 rem  PSA Arch builds are a different one (profile_large, isolation 3, IPC).
 rem
-rem  ONLY IAR PROJECTS EXIST for this part - ra8m2_iar_*. There is no ra8m2_gcc_* set yet, so
-rem  there is no GCC counterpart to this script. A GCC TF-M build against IAR-generated FSP
-rem  projects would mostly work (ra_gen/ and ra_cfg/ are toolchain-neutral and TF-M supplies
-rem  its own linker script) but it is not the intended pairing.
+rem  The GCC counterpart is app_build_ra8m2_gcc.bat against the ra8m2_gcc_* project set. Keep
+rem  the pairing: an FSP project set is generated for one toolchain and the TF-M build must
+rem  use the matching one. Crossing them mostly works (ra_gen/ and ra_cfg/ are toolchain-
+rem  neutral and TF-M supplies its own linker script) but it is not the intended pairing.
+rem
+rem  The two sets must also agree on the device partitioning in solution.xml - they describe
+rem  the SAME part and feed ONE RDPM entry. They are not in sync right now: the IAR set still
+rem  has FSP's default RAM split (RAM_CPU0_C = 0x80 @ 0xE9F80) where the GCC set has the fixed
+rem  1 KB NSC (0x400 @ 0xE9C00). See DECISIONS D057.
 rem
 rem  IAR needs iccarm on PATH (toolchain_IARARM.cmake names it without a path) and the ASM
 rem  architecture id CMake 4.1 cannot detect - it fails on the SECOND configure pass, after
