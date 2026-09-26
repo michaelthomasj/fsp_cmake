@@ -1804,3 +1804,59 @@ Guard negative-tested five ways, including with the `.bin` deleted.
 
 **Flashing rule for this port:** BL2 by `.elf` or `.hex`. `bl2.bin` is now safe but carries no
 option settings, so a `.bin`-only flash silently leaves the OFS unprogrammed.
+
+---
+
+## D059 — P-521 and Curve25519 come out of the E50D config until after TF-M 2.3
+
+**Decision.** `rsip_e50d/crypto_accelerator_config.h` now `#undef`s `PSA_WANT_ECC_SECP_R1_521`
+and `PSA_WANT_ECC_MONTGOMERY_255`, matching the SCE9 configuration. **To be restored after the
+TF-M 2.3 migration** — deleting the two `#undef`s is the whole change.
+
+This is a **flash** decision, not a capability one. E50D really does have procedures for both,
+and [D051] kept them on exactly that reasoning. What that missed is the cost: each HW procedure
+is a large constant instruction table in its own object, and these two curves drag in their
+transitive closure of `hw_sce_p_func###.o` members.
+
+**Measured on `tfm_s`, GCC MinSizeRel:**
+
+| | before | after |
+|---|---|---|
+| `.text` | 239,142 | **216,165** |
+| `HW_SCE_*` tables | 127,542 | **105,708** |
+
+**−22,977 bytes of text.** For scale, the same tables are **8,124 bytes on SCE9** — the E50D set
+is still 13× larger after the removal, which is the engine, not the configuration.
+
+The port keeps secp256r1, secp256k1, brainpoolP256r1, secp384r1 and brainpoolP384r1 — the same
+set the validated RA6M5/RA6E1 ports advertise. Nothing in TF-M needs more; attestation signs with
+`PSA_ALG_ECDSA` on P-256.
+
+---
+
+### Correction to [D057]: the "99.72% full, 836 bytes spare" figure was wrong
+
+D057 reported the secure slot at 99.72% and treated 836 bytes as the remaining headroom, and I
+repeated that as a hard constraint. **It is an artifact of how the region is measured.**
+
+GNU ld's "Memory region Used Size" runs to the end of the last section placed in the region, and
+`.gnu.sgstubs` — the NSC veneers — is **pinned at `0x020afc00`, the top of the region**, because
+the NS image has to find it at a fixed address. So the figure reads ~99.7% **whatever the image
+size is**. The proof: text fell by 22,977 bytes and `tfm_s.bin` stayed at **exactly 293,564**.
+
+The real picture:
+
+```
+main image   0x02068200 - 0x0209CEAC    216,748 B
+gap (zero fill)                          77,140 B   <- the actual free space
+.gnu.sgstubs 0x020AFC00 - 0x020AFCBC        188 B
+```
+
+**Free space in the secure slot is ~77 KB, not 836 bytes** (~54 KB before this change). `tfm_s.bin`
+is the whole span including the fill, which is why it does not shrink. Isolation 2, the IPC
+backend and a Debug build were never ruled out on size the way D057 said — that needs retesting
+rather than assuming either answer.
+
+**Rule for this port: do not read the linker's region-usage percentage as headroom while the NSC
+is pinned at the top of the region.** Measure the gap between the end of the main LOAD segment
+and `.gnu.sgstubs`.
