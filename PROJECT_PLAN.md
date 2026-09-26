@@ -169,8 +169,14 @@ rebase that sat ahead of RA8x2 is now future work. P7 is undated.
 - Rebase from `dd2b7de19`: 10 of 20 shared files conflict; SPM logging rewritten
   (`lib/tfm_log`), so the trace option and RTT backend need porting; item 6 still
   needed at the moved `scripts/wrapper.py`. Detail in DECISIONS D035.
+- **Restore P-521 and Curve25519 on RA8M2.** Dropped in D059 for flash — the two
+  curves cost 22,977 bytes of HW procedure tables. Deleting the two `#undef`s in
+  `rsip_e50d/crypto_accelerator_config.h` is the whole change; then re-run the PSA
+  Arch crypto suite at profile_large, which is what exercises them. E50D has the
+  hardware; the port simply stops advertising it until there is room.
 - **Exit M7** — RA6E1, RA6M5 and RA8x2 on 2.3.x with PSA-driver acceleration,
-  both toolchains, suites green.
+  both toolchains, suites green, and the RA8M2 curve set back to the engine's full
+  capability.
 
 ### P8 · Future — NS image in OSPI, executed in place (after P7)
 
