@@ -1756,3 +1756,51 @@ cannot give back less than 64 KB.
 **Also added.** `scripts/app_build_ra8m2_gcc.bat`, which did not exist — the GCC chain had been
 built by hand. It pins `MinSizeRel` (Debug does not fit on GNUARM, [D055]) and quotes `%GCC_BIN%`
 everywhere, the `(x86)` paren bug from `psa_arch_spe.bat`.
+
+---
+
+## D058 — The flat `.bin` is a second route to the brick, and the ELF guard never saw it
+
+**Found while listing the GCC artifacts to flash.** `bl2.bin` was **13,234,472 bytes**. The MRAM
+image is 27,552.
+
+`objcopy -O binary` lays the flat image out from the lowest load address to the highest and
+**zero-fills every gap**. BL2's last OFS word is at `0x02c9f124`, so the flat binary spans
+`0x02000000`-`0x02c9f128` and 13,206,920 bytes of it are fill — fill that covers the option
+memory. Flash it at the MRAM base and it is [D0xx/DESIGN.md 8.4] again: block-protect written to
+zero, part dead.
+
+**What makes this worse than the original.** The ELF was *correct* — six discrete 4-byte `PT_LOAD`
+segments, and `check_ofs.py` PASSed, rightly. The guard reads program headers, and program
+headers are exactly what `objcopy -O binary` discards. A build could pass every check this port
+has and still hand you a brick in the output directory. `.hex` and `.srec` are record-based and
+skip the gaps; **only the flat binary coalesces**.
+
+**RA6 has it too, unfixed.** `/c/b/m5app/bin/bl2.bin` is **16,818,820 bytes**, spanning
+`0x00000000`-`0x0100a284`. That is the precise address range that killed the two EK-RA6M4 boards
+on 2026-07-21. Not fixed here — out of the RA8M2/GCC scope this session — and it is the first
+thing to do on the RA6 leg.
+
+**Fix, RA8M2 only.** Two parts, because either alone is insufficient:
+
+- `ra8m2_strip_ofs_from_bin(bl2)` re-emits the binary with
+  `--wildcard --remove-section=.option_setting*`. Its own target, not
+  `add_custom_command(TARGET bl2_bin POST_BUILD)` — that form requires the target to be created
+  in the same directory and `bl2_bin` is made in `bl2/`. `add_convert_to_bin_target()` is generic
+  upstream code shared by every platform, so it is not the place to patch.
+- `check_ofs.py --check-flat-bin` verifies the result, and the guard target depends on the strip
+  target so it inspects the file that actually landed.
+
+**The verdict is taken from the file on disk, not from the ELF.** An earlier cut of this derived
+it from the ELF alone to dodge the ordering question; that would have failed the build forever,
+since the ELF always implies a spanning binary whether or not the strip ran. **A missing `.bin`
+is a FAILURE, not a pass** — the same rule as [D056]: a guard that cannot see its subject must
+not print PASS.
+
+**Verified.** `bl2.bin` 13,234,472 → **27,552**, byte-identical to the stripped reference. The
+`.hex` still carries all six words as discrete 4-byte records at
+`0x02c9f040/044/0c0/0c4/120/124`, so flashing the `.hex` or `.elf` still programs the options.
+Guard negative-tested five ways, including with the `.bin` deleted.
+
+**Flashing rule for this port:** BL2 by `.elf` or `.hex`. `bl2.bin` is now safe but carries no
+option settings, so a `.bin`-only flash silently leaves the OFS unprogrammed.
