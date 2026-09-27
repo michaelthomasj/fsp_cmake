@@ -2014,3 +2014,54 @@ own SFN services, because `psa_wait(PSA_BLOCK)` is a `__WFI` spin on the single 
 
 **Verified:** RA8M2 GCC chain rebuilds clean, OFS guards pass, image sizes byte-identical
 (`tfm_s` 293,564 / `bl2` 27,552 / `tfm_ns` 6,916) — the deleted files were never compiled.
+
+---
+
+## D062 — RA declares test capabilities; ra6m4 could not build TEST_S at all
+
+**Two blockers found by the test-surface audit, both fixed.**
+
+**No RA part had a `tests/` directory.** tf-m-tests reads platform capabilities from the
+*installed* tree — `tests_reg/CMakeLists.txt:38` includes
+`${CONFIG_SPE_PATH}/platform/tests/tfm_tests_config.cmake` and
+`tests_psa_arch/CMakeLists.txt:29` the psa_arch one, both `OPTIONAL`. With no such file the
+includes silently found nothing. That is *why* the FLIH/SLIH suites were absent rather than
+reported unsupported, and why `-DPSA_API_TEST_TARGET=renesas_ra` had to be passed by hand on
+every PSA Arch invocation. All four ports now ship `tests/` **and** an
+`install(DIRECTORY ... DESTINATION ${INSTALL_PLATFORM_NS_DIR})` rule — the files are useless
+without the install, which is the part an521 does at its `CMakeLists.txt:191`.
+
+The IRQ flags are deliberately **left unset**: `config.cmake:78-86` auto-enables
+`TEST_NS_FLIH_IRQ` whenever `PLATFORM_FLIH_IRQ_TEST_SUPPORT` is on and `TEST_NS` is asked for, so
+turning them on before the platform side exists would break every `TEST_NS` build. The file lists
+the four things needed (secure timer instance, `plat_test.c`, `TFM_PERIPHERAL_TIMER0`/
+`TFM_TIMER0_IRQ`, the vector override).
+
+**`ra6m4` was missing `TFM_PERIPHERAL_STD_UART`** — the only one of the four. tf-m-tests'
+*common* `tfm_secure_client_service` declares it as an `mmio_region`, and that partition links
+whenever `TEST_S` is on, so `tfm_hal_bind_boundary()` would have failed the allow-list lookup and
+panicked during partition init. **`TEST_S` could not have built on ra6m4 at all.** Added, with
+SCI0 at `0x40118000` (`R_SCI0_BASE` in `R7FA6M4AF.h` — same address as RA6M5, confirmed from the
+device headers rather than assumed).
+
+### Scope of what was never tested
+
+`TEST_S*`/`TEST_NS*` appear in **no** RA `config.cmake` and in **no** build cache under `C:\b`;
+`TEST_BL2=OFF` in all 8. The entire `tf-m-tests/tests_reg` tree — 13 suites, ~25 toggles, 7 test
+partitions — has never been built for any RA part. Everything run to date is a smoke app or PSA
+Arch (`CRYPTO`, `STORAGE`, `INITIAL_ATTESTATION`).
+
+**And the shipping default has never been tested.** RA defaults to SFN + isolation 1; every PSA
+Arch build forced `IPC` + L3 (5 of 5). The configuration that ships is covered by a smoke app and
+nothing else.
+
+### Trap worth recording
+
+`-DTEST_S=ON -DTEST_NS=ON` passed to the **TF-M** build is **silently ignored** — it produced a
+byte-identical `tfm_s` (text 216,165, bin 293,564) with no test partitions and no warning. Those
+are meta-flags for tf-m-tests; `tests_reg/utils/regression_flag_parse.cmake:25-42` translates them
+into the internal `TFM_S_REG_TEST`/`TFM_NS_REG_TEST`, and that only runs when
+**`tf-m-tests/tests_reg/spe`** is the top-level project. The correct invocation is
+`cmake -S <tf-m-tests>/tests_reg/spe -DCONFIG_TFM_SOURCE_PATH=<tfm> ...`, which sets
+`CONFIG_TFM_TEST_DIR` and configures TF-M as a sub-build; the NS side is then
+`-S <tf-m-tests>/tests_reg -DCONFIG_SPE_PATH=<spe>/api_ns`.
