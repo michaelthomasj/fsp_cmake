@@ -1933,3 +1933,84 @@ guard. **Porting both to RA6M5/RA6E1/RA6M4 is the first item on the RA6 leg.**
   2.3 uplift. Belongs on the upstream-delta list.
 - **`psa_crypto_init()` never crosses the boundary** — it returns `PSA_SUCCESS` NS-side. Step 3 of
   the NS smoke test proves nothing about the boundary; steps 4/5 are the first real crossings.
+
+---
+
+## D061 — Secure interrupts on RA: delete the dead HAL, and write down why the upstream recipe does not apply
+
+**Trigger.** [D060] found `tfm_interrupts.c` in no build. Following that up showed the RA ports
+cannot service a secure peripheral interrupt at all, and that the mechanism they document for
+adding one does not work.
+
+### What was wrong
+
+- **All four `renesas/*/tfm_interrupts.c` were byte-identical dead code** (md5
+  `e818d27e…`), referenced by no CMakeLists. They duplicated
+  `platform/ext/common/tfm_hal_nvic.c` — which already implements exactly the three required HAL
+  functions — and added `tfm_hal_irq_set_priority()`, which **is in no TF-M header and is called
+  by nothing**. It was invented.
+- **`ra6m4/CMakeLists.txt:72` wired in the wrong file**: `ext/common/tfm_interrupts.c`, Arm's
+  TIMER0 *test fixture*. It defines `TFM_TIMER0_IRQ_Handler` and **none** of the HAL, and
+  references `TFM_TIMER0_IRQ`, which no RA port defines. Enabling FLIH/SLIH there would fail to
+  compile *and* fail to link. (`DEFAULT_IRQ_PRIORITY` is defined; only `TFM_TIMER0_IRQ` is not.)
+- **The vector table cannot reach FSP's ISRs.** `startup_ra*.c` declares one self-contained table
+  with `[16 ... N] = Default_Handler`. Those are array initialisers, not weak symbols, so the
+  comment promising that "the weak `Default_Handler` binding is overridden at link time" is wrong
+  for the 96 ICU slots — it is only true of the 16 named Cortex exceptions. FSP instead uses two
+  contiguous tables (16 fixed + `g_vector_table[]` in `.application_vectors`), and
+  **`.application_vectors` is placed by no SPE linker script.** Net effect of following the port's
+  own instructions: `bsp_irq_cfg()` correctly marks the slot secure, the interrupt fires, and
+  lands in `Default_Handler`, which is `while(1);`.
+
+### The RA-specific rule, which inverts the upstream model
+
+Every Arm port makes an IRQ secure at run time with `NVIC_ClearTargetState()` inside the
+partition's `<source>_init()`. **On RA that is wrong.** Attribution lives in *two* registers,
+`NVIC->ITNS` **and** `R_CPSCU->ICUSARG`, written together by `bsp_irq_cfg()` under
+`BSP_REG_PROTECT_SAR`; FSP's own comment says they must match. `NVIC_ClearTargetState()` writes
+only one of them. And there is no runtime API for the other — the whole `R_BSP_Irq*` family sets
+priority, context and pending only. `ICUSARG` is written exactly once, in `SystemInit()`, from the
+generated `g_interrupt_event_link_select[]`.
+
+> **An interrupt is secure if and only if the SECURE e2 project configures it.**
+
+Attribution is a build-time, configurator-driven property on this family.
+
+### Decision
+
+1. **Deleted** all four `renesas/*/tfm_interrupts.c`.
+2. **All four CMakeLists** now pull `${PLATFORM_DIR}/ext/common/tfm_hal_nvic.c` under the existing
+   `FLIH_API OR SLIH_API` guard — the real HAL, not the test fixture. (STM32H5 is the upstream
+   precedent for doing exactly this.)
+3. **`target_cfg.c` in all four** now carries the full recipe next to the two no-op NVIC functions
+   — including that neither is called, why `NVIC_ClearTargetState()` must not be used here, and
+   the five steps to add an interrupt. That is where someone adding a timer will look.
+
+**Keep the single 112-entry vector table.** An earlier draft of this proposed adopting FSP's
+two-table layout; that is wrong, because it hands each ICU slot to FSP's own driver ISR
+(`sci_uart_rxi_isr`), which calls the driver callback directly and **bypasses the SPM entirely**.
+The port owning `startup_ra*.c` is an advantage. Override individual slots keyed on the generated
+macro — `[16 + VECTOR_NUMBER_xxx] = TFM_xxx_Handler` — so RASC stays the source of truth and
+renumbering cannot silently break it.
+
+Nothing upstream routes through a vendor callback registry: `spm_handle_interrupt()` must run in
+the exception context. The pattern to copy for the ISR body is Infineon PSoC64's (ack with the
+vendor driver, then call SPM) — NXP's LPC55S69 states the same idea more clearly but is
+bit-rotted, with `TFM_TIMER0_IRQ_Handler` unresolved in v2.2.0.
+
+### Context worth keeping
+
+**Almost nobody does this upstream.** The only `irqs:` blocks in the whole TF-M tree are the
+mailbox agent (itself SPM-adjacent) and the `tf-m-tests` FLIH/SLIH partitions. Secure UARTs are
+polled everywhere; MPC/PPC fault IRQs are SPM-owned. A port with no secure partition interrupts is
+the mainstream, CI-covered configuration — so this was a latent-defect cleanup, not a missing
+feature.
+
+**SFN supports interrupts.** `spm_handle_interrupt()` has an explicit
+`#if CONFIG_TFM_SPM_BACKEND_SFN != 1` branch and `interrupt.c` is gated on FLIH/SLIH only, not on
+the backend. SFN forces isolation 1, so a FLIH is called directly, privileged, in handler mode.
+Use FLIH: SLIH under SFN only works if a caller is already blocked inside one of the partition's
+own SFN services, because `psa_wait(PSA_BLOCK)` is a `__WFI` spin on the single thread.
+
+**Verified:** RA8M2 GCC chain rebuilds clean, OFS guards pass, image sizes byte-identical
+(`tfm_s` 293,564 / `bl2` 27,552 / `tfm_ns` 6,916) — the deleted files were never compiled.
