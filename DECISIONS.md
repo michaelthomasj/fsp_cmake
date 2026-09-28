@@ -2065,3 +2065,72 @@ into the internal `TFM_S_REG_TEST`/`TFM_NS_REG_TEST`, and that only runs when
 `cmake -S <tf-m-tests>/tests_reg/spe -DCONFIG_TFM_SOURCE_PATH=<tfm> ...`, which sets
 `CONFIG_TFM_TEST_DIR` and configures TF-M as a sub-build; the NS side is then
 `-S <tf-m-tests>/tests_reg -DCONFIG_SPE_PATH=<spe>/api_ns`.
+
+---
+
+## D063 — Pinned CMSE veneers get their own MEMORY region; the regression suite now links
+
+**The defect.** `VENEERS()` places `.gnu.sgstubs` at `TFM_LINKER_VENEERS_START` into the `FLASH`
+region. When that start is an **absolute** address at the top of the secure partition — which is
+what RA does, because the solution fixes the NSC window there — ld advances FLASH's allocation
+pointer to the end of the veneers. **Every `AT > FLASH` section emitted after `VENEERS()` then
+takes its load address from the top of the partition**, in whatever spare bytes the NSC window
+leaves, while the flash below the veneers is unreachable.
+
+Measured on RA6M5 with the regression tests linked in:
+
+```
+code          0x000A0000 - 0x000E4144
+FREE          0x000E4144 - 0x0011F800   243,388 bytes (238 KB) unusable
+veneers       0x0011F800 + 0x40
+data LMAs     0x0011F840 -> past the slot end
+```
+
+It failed imgtool by **177 bytes with 238 KB free**. RA8M2 failed the same way with
+`.TFM_DATA will not fit in region FLASH`, over by **528 bytes**.
+
+**This was already half-fixed.** The template's own comment above `.ER_CODE_SRAM` documents the
+identical mechanism, discovered on ra6e1 (overflowed by 382 bytes with 82 KB unused), and hoists
+**that one section** above `VENEERS()`. `.TFM_DATA` and the other RAM-init load images were never
+moved, so the cause survived.
+
+**Fix.** New opt-in `TFM_LINKER_VENEERS_OWN_REGION` in `tfm_isolation_s.ld.template`: `FLASH` ends
+where the veneers begin, and `.gnu.sgstubs` goes into its own `VENEER` region, so pinning it cannot
+touch FLASH's pointer. Fully gated — no behaviour change for a platform that does not set it.
+Enabled on all four RA ports (ra6m4 also needed `TFM_LINKER_VENEERS_SIZE`).
+
+**Nordic nrf5340/nrf91 and Laird bl5340 must not set it.** They define the same
+`TFM_LINKER_VENEERS_SIZE` and `..._LOCATION_END` macros, but compute
+`TFM_LINKER_VENEERS_START` from `.` so the veneers float to just above the code. Their start is not
+a constant, so it cannot be a MEMORY origin — and they never had the problem. **Do not auto-derive
+this from the existing macros**; that was the first instinct and it would have changed their
+layout.
+
+**Verified.** Data LMAs now sit immediately after the code (`0x000E4144` on RA6M5, `0x020ABBB8` on
+RA8M2), veneers still pinned in the NSC window. Trailer slack 1,984 bytes against the 384 needed.
+App builds unaffected except `tfm_s.bin` shrinking **124 bytes** — exactly the load images that
+used to sit above the veneers (`0x020AFCBC` → `0x020AFC40`). OFS guards still pass.
+
+**Not fixed by this:** the secure image still *spans* to the veneer end, so the zero fill between
+code and veneers is still inside `img_size` and still hashed at every boot ([D060] finding 2).
+That is a layout question, not a linker one.
+
+### Two traps hit getting the regression build to run
+
+- **`lib/ext/tf-m-tests/version.txt` pins `TF-Mv2.1.2-RC2`**, inherited from upstream's own v2.2.0
+  release commit (`3d9621e73`). `tests_reg/CMakeLists.txt` includes `check_version`
+  **unconditionally** — `TFM_TESTS_REVISION_CHECKS=OFF` does not gate it — and it hard-fails when
+  `git rev-parse` cannot resolve the tag. The tag exists on the tf-m-tests remote but was not
+  fetched locally. Fixed with `git fetch --tags`, **not** by editing `version.txt`: the local repo
+  is at `TF-Mv2.2.2`, so the check now warns that HEAD is ahead of the recommendation and
+  continues, which is the honest state.
+- **`cmake --build` on the SPE wrapper is not enough.** `tests_reg/spe/CMakeLists.txt` installs
+  `secure_fw/partitions/initial_attestation/*.h` into `api_ns/` through an `install()` rule, so
+  without `cmake --install` the NS attestation suite fails on a missing `attest_token.h`.
+
+### What is now covered
+
+Six NS suites link and fit (106,024 B in a 458,752 B slot): `ns_attestation_interface`,
+`ns_crypto_interface`, `ns_platform_interface`, `ns_psa_its_interface`, `ns_psa_ps_interface`,
+`ns_sfn_interface` — i.e. the Tier-1 gaps from [D062], including token *verification* and the SFN
+backend that ships by default and had never been tested. Still to do: run them on hardware.
