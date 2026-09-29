@@ -165,7 +165,9 @@ cmake --build build_ra6m4_boot
    **never** one spanning `0x1CC`. **A clean srec does not prove this.**
 2. `arm-none-eabi-objdump -s -j .option_setting_ofs0 -j .option_setting_ofs1_sec -j .option_setting_ofs1_sel bin/bl2.axf`
    — expect `ffffffff` / `fffdffff` / `f8f8ffff`.
-3. Flash **`bl2.hex`**, never `bl2.bin` (~16.8 MB of padding — see DESIGN.md §8.4).
+3. Flash **`bl2.hex`**, never `bl2.bin`. Current builds strip the option sections out of the
+   flat binary (~27 KB, guard-verified), but any `.bin` over ~1 MB spans the option memory and
+   zero-fills PBPS — see DESIGN.md §8.4. The rule holds for both cases.
 4. Refresh the RTT addresses in `bringup_ra6m4.sh` — they move on every rebuild.
 5. Consider `-DRA6M4_BL2_HALT_AT_MAIN=ON` for a first flash on a new board: BL2 spins at `main()`
    so FAWMON/FSPR can be read back before MCUboot runs.

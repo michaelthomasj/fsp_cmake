@@ -2211,3 +2211,82 @@ The hook to disarm in would be `boot_platform_post_load()` — a weak upstream n
 after verification and before `do_boot()`, so it is the last port-owned point before the branch.
 `boot_platform_post_init()` is too early: it would drop stack monitoring for the whole of image
 verification.
+
+---
+
+## D065 — the flat-binary brick guard is now on all four ports, and a stale `.bin` is as lethal as a fresh one
+
+**Date:** 2026-09-29 · **Status:** Accepted · Extends [D002], [D058]
+
+**What was still exposed.** [D058] added the flat-binary strip and `check_ofs.py --check-flat-bin`
+to **RA8M2 only**. RA6M5, RA6E1 and RA6M4 kept the ELF-level guard alone, which structurally
+cannot see this failure. Measured on the RA6M5 regression build, 2026-09-28:
+
+```
+bl2.elf   three discrete 4-byte OFS PT_LOADs at 0x0100A100/0x0100A200/0x0100A280   -> guard PASSes
+bl2.bin   16,818,820 bytes spanning 0x00000000-0x0100A284 for 26,912 bytes of content
+```
+
+The zero fill covers **PBPS at `0x0100A1E0`** — the one-time Permanent Block Protect word, the
+exact word that destroyed two EK-RA6M4 boards on 2026-07-21. A correct ELF, a passing guard, and
+a lethal artifact in the same `bin/` directory.
+
+**Fix.** `<port>_strip_ofs_from_bin()` plus `--require-segments --check-flat-bin` in ra6m5, ra6e1
+and ra6m4, matching ra8m2. `<port>_add_ofs_check()` now forwards `${ARGN}`. Verified: RA6M5
+`bl2.bin` 16,818,820 -> **26,904** bytes, guard reporting `flat .bin OK ... OFS sections stripped`.
+
+`--require-segments` is now on for every BL2. A CLEAN result there was previously a pass; it is
+the signature of dropped sections or a wrong region window, which is how the guard was silently
+inert on RA8M2 until [D056].
+
+**A stale artifact is a live hazard.** Eleven oversized `.bin` files were sitting in build
+directories that predated the fix — six RA6M5 at 16.8 MB, five RA8M2 at 13.2 MB, in `bin/`,
+`build-spe/bin/` and `api_ns/bin/`. Nothing in the repo flashes a `.bin`, and no launch
+configuration references one, but they are indistinguishable from a safe one except by size.
+All deleted. **Over ~1 MB means it spans the option memory** — that is the only tell, and it is
+now the stated check in DESIGN.md 8.4 and the MACHINE_HANDOFF pre-flash list. The "never
+`bl2.bin`" rule stands even though current builds emit a safe one: a hand-run `objcopy`, an older
+build dir, or an unguarded toolchain path all still produce the brick.
+
+**Not a build-dir problem.** `m5rs/bin/` is an orphan from an earlier layout; the live outputs are
+`m5rs/build-spe/bin/` and `m5rs/api_ns/bin/`. Auditing by the path one expects would have missed
+two of the three copies.
+
+---
+
+## D066 — RA8M2's partition comments described RA6M5, including the values that get provisioned
+
+**Date:** 2026-09-29 · **Status:** Accepted · Extends [D056], [D057]
+
+**The dangerous one.** `ra8m2/region_defs.h` carried a **verbatim copy** of
+`ra6m5/region_defs.h`'s NSC paragraph: window `0x800 at 0x11F800`, boundary `0x120000`, and
+"the Partition Manager takes the SECURE size in KB (1150) and the NSC size in KB (2)". Every
+number is RA6M5's. RA8M2's window is `0x400 at 0x020AFC00`, boundary `0x020B0000`.
+
+Those KB values are **what gets provisioned**, and on this part provisioning is not reversible:
+`BSP_FEATURE_TZ_HAS_DLM` is 1, so FSP's runtime PSCU monitor writes are compiled out and the
+partition is a non-volatile device property written once by RDPM. Corrected, with both parts'
+real figures stated and the copy-from-RA6M5 called out so it cannot be re-derived:
+
+| | code flash | SRAM |
+|---|---|---|
+| RA8M2 | secure 703 KB + NSC 1 KB (`0xB0000`) | secure 935 KB + NSC 1 KB (`0xEA000`) |
+| RA6M5 | secure 1150 KB + NSC 2 KB (`0x120000`) | — |
+
+NSC is counted separately from secure; RA6M5's own 1150 + 2 = 1152 KB = `0x120000` confirms it.
+
+**Three more, all in `flash_layout.h`, all from the pre-2026-09-24 partitioning:** the secure
+slot addresses (claimed primary `0x12000` / secondary `0x61000` / `0x4F000` each; actually
+secondary `0x20000`, primary `0x68000`, `0x48000` each — and the **secondary is the lower slot**
+on this part); the 1024 K tally (`8 K DF_EMULATION + 2 x 316 K secure`; actually `64 K + 2 x 288
+K` — both total 1024 K exactly, so it read as plausible); and DF_EMULATION described as `0x2000`
+two sentences before the same block correctly derives 31,744 B of PS and ITS from `0x10000`.
+
+**The code was never wrong.** `flash_layout.h` derives everything from `BSP_PARTITION_*`, and
+`ra8m2_layout_checks.c` `_Static_assert`s contiguity, no-overlap and whole-sector sizing —
+`DF_EMULATION % 0x8000 == 0` would have failed outright at `0x2000`. Only the prose drifted,
+which is the failure mode a generated-and-asserted layout leaves open.
+
+**Rule.** A comment that states a number a human will type into a provisioning tool is not a
+comment. Seeding a port by copying another part's files puts those numbers in the new file
+already wrong, and nothing in the build checks them.

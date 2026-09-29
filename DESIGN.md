@@ -268,8 +268,15 @@ OFS1 fields are marked **non-secure**; on a TZ part with boundaries programmed t
 mismatch can lock out the debug interface. BL2 and the secure image own the clocks, so clocks must
 be secure. External RASC projects must set this in the RASC BSP configuration too.
 
-**Note on `bl2.bin`:** because OFS sits at `0x0100Axxx`, `objcopy -O binary` pads `bl2.bin` to
-~16.8 MB. **Flash `bl2.hex` or `bl2.srec`, never `bl2.bin`.**
+**Note on `bl2.bin`:** because OFS sits at `0x0100Axxx`, a plain `objcopy -O binary` pads
+`bl2.bin` to ~16.8 MB, zero-filling PBPS at `0x0100A1E0` — the brick, from an ELF that passes
+every check. **Flash `bl2.hex` or `bl2.srec`, never `bl2.bin`.**
+
+Since 2026-09-29 all four ports re-emit the flat binary with `--remove-section=.option_setting*`
+and verify the result with `check_ofs.py --check-flat-bin`, so a `.bin` from a current build is
+~27 KB and safe. **The rule stands regardless:** a `.bin` from an older build dir, another
+toolchain path, or a hand-run `objcopy` is lethal and looks identical in a file listing. Size is
+the only tell — over ~1 MB means it spans the option memory.
 
 ## 9. Console / logging — SEGGER RTT (switchable)
 - `RA6M4_STDOUT_RTT` (default ON): routes TF-M/MCUboot stdout to SEGGER RTT over J-Link (no UART wiring,
