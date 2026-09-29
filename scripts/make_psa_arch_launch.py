@@ -1,7 +1,15 @@
-"""Generate an e2 studio debug launch for a RA6M5 PSA Arch suite.
+"""Generate an e2 studio debug launch for a RA6M5 TF-M image set.
 
     python make_psa_arch_launch.py <name> <spe-build-dir> <ns-build-dir>
     python make_psa_arch_launch.py ra6m5_TFM_test_storage_gcc C:\\b\\m5cry C:\\b\\m5sto
+    python make_psa_arch_launch.py ra6m5_TFM_regression_gcc   C:\\b\\m5rs  C:\\b\\m5rn
+
+Named for the PSA Arch suites it was written for, but nothing in it is PSA-Arch specific -
+the tf-m-tests regression pair uses it unchanged. The slot offsets in the template
+(0xA0000 secure primary, 0x120000 non-secure primary, 0x20000 / 0x190000 secondary) come
+from the e2 solution, not from the TF-M configuration, so they hold across isolation levels
+and SPM backends. Check them against the build's generated bsp_partitions.h if the solution
+is ever repartitioned.
 
 ra6m5_TFM_test_crypto_gcc.launch is the template. Only the build directories change: SPE images
 come from <spe>\\build-spe\\bin, the NS image from <ns>\\bin. e2 resolves the J-Link settings
@@ -16,9 +24,13 @@ Two things to know when e2 touches these files:
     drop reset-on-connection (the jlink.connection.resetCon attribute AND -uResetCon= 1 in
     serverParam). Without it the debugger attaches to a running secure image and the flash
     erase fails. Compare against the template if a launch suddenly cannot erase.
-  - The test launches erase code and data flash on download, matching the RA6E1 convention.
+  - The test launches erase code and data flash on download (eraseRomOnDownload and
+    eraseDataRomOnDownload, both true), matching the RA6E1 convention.
     Data flash holds the NV counters and the PS/ITS areas, so not erasing it carries state
     between runs - which is how a stale security counter once made BL2 reject a good image.
+  - The two _signed_secondary.bin entries are carried with their enable flag FALSE. No build
+    produces those files - OVERWRITE_ONLY has no secondary image - so they are placeholders
+    for a future swap-using-scratch setup, not missing artifacts.
 """
 import io
 import os
