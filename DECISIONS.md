@@ -2298,7 +2298,7 @@ already wrong, and nothing in the build checks them.
 **Date:** 2026-09-29 · **Status:** Accepted · Closes the open item from [D062], validates [D063]
 
 **Result.** RA6M5 (CK-RA6M5 v2), GCC, `MinSizeRel`, SFN backend, isolation 1, SCE9, dummy
-provisioning. Launch config `ra6m5_TFM_regression_gcc`, images from `C:\m5rs` and `C:\m5rn`.
+provisioning. Launch config `ra6m5_TFM_regression_gcc`, images from `C:\b\m5rs` and `C:\b\m5rn`.
 **14 suites, zero failures.**
 
 | Secure | Tests | Non-secure | Tests |
