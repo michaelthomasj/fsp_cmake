@@ -18,7 +18,7 @@ rem    - TOOLCHAIN=INHERIT, or psa-arch-tests compiles with arm-none-eabi-gcc wh
 rem      handed IAR flags;
 rem    - IAR on PATH, and the ASM architecture id CMake cannot detect.
 
-if "%IAR_BIN%"==""    set IAR_BIN=C:\iar\ewarm-10.10.2\arm\bin
+if "%IAR_BIN%"==""    set IAR_BIN=C:\iar\ewarmc-10.10.2\arm\bin
 if "%MSVC_VARS%"==""  set MSVC_VARS=C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\VC\Auxiliary\Build\vcvars64.bat
 if "%TFM_TESTS%"==""  set TFM_TESTS=C:\Users\Michael\Documents\GitHub\tf-m-tests
 if "%PSA_TESTS%"==""  set PSA_TESTS=C:\Users\Michael\Documents\GitHub\psa-arch-tests

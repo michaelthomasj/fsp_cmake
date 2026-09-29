@@ -11,7 +11,7 @@ rem
 rem  IAR needs iccarm on PATH (toolchain_IARARM.cmake names it without a path) and the ASM
 rem  architecture id CMake 4.1 cannot detect. DECISIONS D046.
 
-if "%IAR_BIN%"==""   set IAR_BIN=C:\iar\ewarm-10.10.2\arm\bin
+if "%IAR_BIN%"==""   set IAR_BIN=C:\iar\ewarmc-10.10.2\arm\bin
 if "%TFM_SRC%"==""   set TFM_SRC=C:\Users\Michael\Documents\GitHub\trusted-firmware-m
 if "%FSP_CMAKE%"=="" set FSP_CMAKE=C:/Users/Michael/Documents/GitHub/fsp_cmake
 

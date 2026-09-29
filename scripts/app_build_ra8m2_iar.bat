@@ -28,7 +28,7 @@ rem
 rem  Build directories must be SHORT. Under a deep path the Mbed TLS overlay clone fails with
 rem  "Filename too long" on 3rdparty/everest/..., which is why the defaults are under C:\b.
 
-if "%IAR_BIN%"==""   set IAR_BIN=C:\iar\ewarm-10.10.2\arm\bin
+if "%IAR_BIN%"==""   set IAR_BIN=C:\iar\ewarmc-10.10.2\arm\bin
 if "%TFM_SRC%"==""   set TFM_SRC=C:\Users\Michael\Documents\GitHub\trusted-firmware-m
 if "%FSP_CMAKE%"=="" set FSP_CMAKE=C:/Users/Michael/Documents/GitHub/fsp_cmake
 

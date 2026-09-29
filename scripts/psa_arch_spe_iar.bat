@@ -18,7 +18,7 @@ rem    - TFM_SPM_DEBUG_TRACE=OFF: required at isolation 3 with the IPC backend.
 rem
 rem  Override any of the paths by setting the variable before calling.
 
-if "%IAR_BIN%"==""    set IAR_BIN=C:\iar\ewarm-10.10.2\arm\bin
+if "%IAR_BIN%"==""    set IAR_BIN=C:\iar\ewarmc-10.10.2\arm\bin
 if "%TFM_SRC%"==""    set TFM_SRC=C:/Users/Michael/Documents/GitHub/trusted-firmware-m
 if "%TFM_TESTS%"==""  set TFM_TESTS=C:\Users\Michael\Documents\GitHub\tf-m-tests
 if "%PSA_TESTS%"==""  set PSA_TESTS=C:/Users/Michael/Documents/GitHub/psa-arch-tests
