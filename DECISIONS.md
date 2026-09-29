@@ -2134,3 +2134,80 @@ Six NS suites link and fit (106,024 B in a 458,752 B slot): `ns_attestation_inte
 `ns_crypto_interface`, `ns_platform_interface`, `ns_psa_its_interface`, `ns_psa_ps_interface`,
 `ns_sfn_interface` — i.e. the Tier-1 gaps from [D062], including token *verification* and the SFN
 backend that ships by default and had never been tested. Still to do: run them on hardware.
+
+---
+
+## D064 — BL2 masking interrupts is sound and complete; the SPMON hazard does not exist on these parts
+
+**Question raised:** does it make sense for BL2 to disable interrupts, both because it uses none and
+because there is a window during secure init — before VTOR is set — where an interrupt would be
+undefined behaviour?
+
+**Answer: yes on both counts, and the second reason is the stronger one.** The handover window is
+wider than VTOR alone. Across the jump, all of the following is stale or unset:
+
+- **VTOR** still points at BL2's table until the secure image's `SystemInit()` rewrites it
+  (`system.c:237`).
+- **The SAU is never configured in BL2 at all** — BL2 is a flat FSP build
+  (`FSP_TZ_DEFS_BL2` empty), so `R_BSP_SecurityInit()`/`R_BSP_SAUInit()` first run in the secure
+  image.
+- **MSPLIM was zeroed** by `boot_platform_start_next_image()` before the branch.
+- **BL2's RAM was just erased** — `boot_clear_ram_area()` wipes `.data`, `.bss`, stack and heap
+  immediately before the jump.
+- **Every peripheral is attributed secure** (`PSARB/C/D/E = 0`) from BL2's flat build.
+
+An interrupt landing there would vector through BL2's table into handlers whose data no longer
+exists, with no TrustZone attribution programmed.
+
+**The masking genuinely covers it.** `__disable_irq()` at `startup_ra6m5.c:140` is never undone
+anywhere in the BL2 path — verified: no `__enable_irq`/`cpsie` in `bl2/`, `boot_hal_bl2.c`,
+`bl2_boot_hal.c` or the startup file. PRIMASK therefore persists from BL2 reset through to
+`tfm_hal_platform.c:134` in the secure image. The secure `Reset_Handler` also re-disables
+immediately, so the secure side does not *depend* on BL2's state — belt and braces on both ends.
+
+The enable point is equally deliberate and already documented in place
+(`tfm_hal_platform.c:116-132`): with PRIMASK set, SVCall is masked and the first `svc` escalates to
+HardFault. That is what killed ITS partition init on 2026-08-29 —
+`LOG_INFFMT` → `printf` → `tfm_output_unpriv_string()`'s `svc 2`, faulting with `HFSR.FORCED` and
+every `CFSR`/`BFSR`/`MMFSR`/`UFSR`/`SFSR` bit clear, the signature of a masked SVCall and easily
+misread as a fault in the code being logged from.
+
+### Correction: I claimed BL2 leaves an unmaskable NMI source armed. It does not.
+
+PRIMASK does not mask NMI, so the reasoning above has a gap in principle, and I asserted FSP's
+`SystemInit()` fills it — arming the stack-pointer monitor with
+`BSP_STACK_POINTER_MONITOR_NMI_ON_DETECTION` on **BL2's** stack window, writing
+`R_ICU->NMIER` (whose bits FSP's own comment says "cannot be cleared after reset"), and jumping with
+it still armed on a window the secure image never enters.
+
+**That block never compiles on any of these parts.** `BSP_FEATURE_BSP_HAS_SP_MON` is `0UL` for
+**all four** — ra6m5, ra8m2, ra6m4, ra6e1 (single definition each, in
+`ra/fsp/src/bsp/mcu/<part>/bsp_feature.h`). The `#if BSP_FEATURE_BSP_HAS_SP_MON` at `system.c:326`
+is false, so no monitor is configured and `NMIER` is never written. The `R_MPU_SPMON` register block
+exists in the device headers, but FSP does not use it on these devices.
+
+**Consequence: no disarm was added, because there is nothing to disarm.** Writing
+`R_MPU_SPMON->SP[0].CTL = 0` would be dead code implying a hazard the silicon does not present.
+
+**Net position:** on these four parts no asynchronous unmaskable source is armed during the handover,
+so PRIMASK covers everything that can actually fire. The residual exposure is HardFault, which is
+synchronous — it only occurs if the code is already wrong — and `Default_Handler`'s `while(1)` is a
+defensible response to a fault in a window with no working stack.
+
+### Portability note — this becomes real on a part with the monitor
+
+Keep the mechanism on record. On an RA device where `BSP_FEATURE_BSP_HAS_SP_MON` is 1, BL2 **would**
+arm an NMI on its own stack window and jump with it live, and `NMIER` could not be cleared. The
+secure image only disarms at `system.c:329`, after its `Reset_Handler` has already pushed via
+`bl SystemInit` at an MSP outside the monitored range. For reference, the two windows on RA6M5 are
+disjoint and would have qualified:
+
+```
+BL2 stack     0x200034C0 - 0x20004CC0   (and erased before the jump)
+secure stack  0x20000760 - 0x20001760   initial MSP 0x20001760
+```
+
+The hook to disarm in would be `boot_platform_post_load()` — a weak upstream no-op, called per image
+after verification and before `do_boot()`, so it is the last port-owned point before the branch.
+`boot_platform_post_init()` is too early: it would drop stack monitoring for the whole of image
+verification.
