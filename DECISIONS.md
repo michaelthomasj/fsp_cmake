@@ -2290,3 +2290,64 @@ which is the failure mode a generated-and-asserted layout leaves open.
 **Rule.** A comment that states a number a human will type into a provisioning tool is not a
 comment. Seeding a port by copying another part's files puts those numbers in the new file
 already wrong, and nothing in the build checks them.
+
+---
+
+## D067 — first full tf-m-tests regression pass on hardware, and two suites that report PASSED without testing
+
+**Date:** 2026-09-29 · **Status:** Accepted · Closes the open item from [D062], validates [D063]
+
+**Result.** RA6M5 (CK-RA6M5 v2), GCC, `MinSizeRel`, SFN backend, isolation 1, SCE9, dummy
+provisioning. Launch config `ra6m5_TFM_regression_gcc`, images from `C:\m5rs` and `C:\m5rn`.
+**14 suites, zero failures.**
+
+| Secure | Tests | Non-secure | Tests |
+|---|---|---|---|
+| PS interface (1XXX) | 20 | SFN backend (1XXX) | 5 |
+| PS reliability (2XXX) | 2 | PS interface (1XXX) | 20 |
+| PS rollback protection (3XXX) | 9 | ITS interface (1XXX) | 24 |
+| ITS interface (1XXX) | 22 | Crypto (1XXX) | 39 |
+| ITS reliability (2XXX) | 2 | Platform | 1 |
+| Crypto (1XXX) | 38 | Attestation | 2 |
+| Attestation | 2 | | |
+| Platform | 1 | | |
+
+**What this validates beyond the services themselves:**
+
+- **[D063]'s veneer MEMORY region, on real silicon.** The NS suites only run if every NS->S call
+  resolves through `.gnu.sgstubs` at `0x11F800`, and `TFM_NS_SFN_TEST_1003/1004` exercise both
+  connection-based and stateless RoT services. The fix is not merely link-clean.
+- **[D065]'s flat-binary strip did not damage the image.** This is the same build that emits the
+  26,904-byte `bl2.bin`; it boots and runs.
+- **The data flash is genuinely working, not stubbed.** `TFM_S_PS_TEST_3001..3009` drive the NV
+  counters through nine rollback scenarios, including "NV counter 1 cannot be incremented".
+- **PS and ITS reliability**, 15 iterations each of set/get and set/get/remove, on both sides.
+
+**TWO TESTS REPORT PASSED WITHOUT TESTING ANYTHING. Do not read them as coverage.**
+
+1. **`TFM_S_CRYPTO_TEST_1056` / `TFM_NS_CRYPTO_TEST_1056` (ECDSA-SECP384R1-SHA384)** log
+   "P384 is unsupported. Skipping..." and set `ret->val = 0`. The gate is
+
+   ```c
+   #if defined(PSA_WANT_ECC_SECP_R1_384) && defined(CC3XX_RUNTIME_ENABLED)
+   ```
+
+   `CC3XX_RUNTIME_ENABLED` is **Arm's CryptoCell driver**. The test self-skips on every platform
+   that is not CC3xx, so the message is about the test, not about this port.
+   `PSA_WANT_ECC_SECP_R1_384` is **not** disabled in `sce9/crypto_accelerator_config.h` - only
+   `SECP_R1_521` and `MONTGOMERY_255` are, per [D059]. **P-384 is therefore untested here, and
+   probably works.** It needs a standalone check before anyone claims P-384 support from this log.
+
+2. **`TFM_S_CRYPTO_TEST_1045` / `TFM_NS_CRYPTO_TEST_1044` (DETERMINISTIC_ECDSA-SECP256R1)** log
+   "Algorithm NOT SUPPORTED by the implementation for signing, continue to verification". This one
+   is **intended**: `sce9/crypto_accelerator_config.h:34` has `#undef
+   PSA_WANT_ALG_DETERMINISTIC_ECDSA`, because SCE9 has no RFC 6979 path and the attestation key
+   signs with plain `PSA_ALG_ECDSA`. Verification did run. Legitimate partial pass.
+
+So the honest statement is **twelve suites fully exercised, plus crypto on both sides carrying one
+upstream self-skip and one deliberate config gap** - not "14/14 means everything is covered".
+
+**Corroborating detail worth keeping:** the secure and non-secure ECDSA-P256 signatures over the
+identical hash `8d2da584...` differ (`d0270eef...` vs `a288908b...`), which is the correct result
+for non-deterministic ECDSA and shows the RNG is live on both paths rather than returning a
+constant.
