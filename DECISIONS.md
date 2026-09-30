@@ -2454,3 +2454,91 @@ FLIH build has not been attempted.
 enough for a regression NS build. `attest_token.h` is installed by the OUTER wrapper
 (`cmake --install <spe>`), and without it four attestation translation units fail `Pe1696`.
 The GCC leg hit this too.
+
+---
+
+## D069 — a weak symbol in a static library silently unrouted every secure interrupt
+
+**Date:** 2026-09-30 · **Status:** Accepted · Completes [D068], extends [D061]
+
+**Result first.** RA6M5 IAR, SFN, isolation 1: `TFM_NS_IRQ_TEST_FLIH_1101` and `_1102`
+**PASS on hardware** - 7 non-secure suites and 8 secure, zero failures. First working
+secure interrupt on this port.
+
+### The bug was not in the timer
+
+The FLIH test hung in its `while (flih_timer_triggered < 10)` loop. Two rounds of work on
+the AGT register sequence changed nothing, because the interrupt was never routed at all:
+
+```
+g_interrupt_event_link_select[0] = 0x0000      symbol binding: V (weak)
+```
+
+`ra_gen/vector_data.c` holds the STRONG definition of that array - the table
+`bsp_irq_cfg()` reads to program `R_ICU->IELSR` and the ITNS/ICUSARG attribution.
+`bsp_irq.c:44` holds a `BSP_WEAK_REFERENCE` all-zero fallback of the same array. **Both are
+members of `libfsp_bsp_s.a`.**
+
+The linker extracts `bsp_irq.o` because something calls `bsp_irq_cfg()`. Its weak
+definition then satisfies the reference, so the member holding the real table is never
+extracted - **nothing else refers to it**, because the secure image uses TF-M's own
+`__VECTOR_TABLE` instead of FSP's `g_vector_table`. The weak zeros win.
+
+`bsp_irq_cfg()` guards both of its writes on a non-zero entry, so with the zeros:
+
+- `R_ICU->IELSR[0]` is never programmed, and on RA the peripheral event reaches the NVIC
+  only through IELSR - so the AGT underflow went nowhere
+- the "this is a secure vector" branch never runs, leaving `ITNS[0]` and `ICUSARG` bit 0 at
+  1, i.e. **non-secure**
+
+Two failures from one cause, both silent, neither reachable by any amount of timer work.
+`R_AGT_Open()` would not have helped either: `R_BSP_IrqCfg()` sets only NVIC priority and
+ISR context, never IELSR.
+
+**Fix.** A named anchor in `target_cfg.c` referencing `g_vector_table`, the one symbol only
+`vector_data.c` defines, which forces the member out of the archive. Now `T` (strong) and
+`[0] = 0x0040` = `ELC_EVENT_AGT0_INT`.
+
+**Two dead ends, recorded so they are not retried.** Moving `vector_data.c` into
+`platform_s` does nothing - that is a static library too, so the object is still an archive
+member. And `list(REMOVE_ITEM _src ...)` against the glob silently did not match, leaving
+two copies compiled.
+
+### The second gap, which the first fix exposed
+
+Pulling in `g_vector_table` drags a reference to `agt_int_isr`, and the link failed
+`Error[Li005]: no definition`. **FSP's AGT driver was never compiled** - there was no
+`fsp_agt.cmake`, so `R_AGT_Open()` had never been available to call. That is the real
+reason the first version of `plat_test.c` poked registers directly; the justification
+written into its header was a rationalisation after the fact.
+
+Added `cmake/modules/fsp_agt.cmake` and rewrote `plat_test.c` around
+`R_AGT_Open`/`R_AGT_Start`/`R_AGT_Stop` on the generated `g_timer0`. `agt_int_isr()` is now
+linked and never called - TF-M owns the vector - which is the acceptable cost of keeping
+the generated event-link table authoritative rather than transcribing IELSR values into the
+port.
+
+**What the driver still does not do, so `plat_test.c` must:** clear the ICU latch.
+`R_ICU->IELSR[n].IR` holds the request until cleared, and FSP does it at the top of every
+ISR via `R_BSP_IrqStatusClear()` - including in `agt_int_isr()`, which this port replaces.
+Without it the interrupt fires exactly once.
+
+### The part worth remembering
+
+**The port had been printing the diagnosis in every single build:**
+
+```
+RA6M5 [s]: FSP module 'r_agt' is in the project but no module declares it,
+           so it is NOT in the image.
+```
+
+That warning was added for exactly this failure mode and it worked. I read past it through
+two failed hardware runs and two rewrites of the timer code. A warning nobody reads is
+worth nothing; the cost here was measured in hardware cycles, not minutes.
+
+The general hazard is broader than FSP: **a weak definition in an already-extracted object
+silences the strong one in an un-extracted archive member, with no diagnostic from any
+tool.** Nothing in the build, the map file, or the guard suite can see it. The only tell was
+reading the symbol binding (`V` vs `T`) and the array's actual contents out of the linked
+image - which is now the first thing to check whenever a configured RA interrupt does not
+arrive.
