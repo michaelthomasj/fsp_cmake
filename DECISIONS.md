@@ -2351,3 +2351,106 @@ upstream self-skip and one deliberate config gap** - not "14/14 means everything
 identical hash `8d2da584...` differ (`d0270eef...` vs `a288908b...`), which is the correct result
 for non-deterministic ECDSA and shows the RNG is live on both paths rather than returning a
 constant.
+
+---
+
+## D068 — the FLIH/SLIH fixture, and two silent defects the IAR build found in D065
+
+**Date:** 2026-09-30 · **Status:** Accepted · Closes the TODO in [D062], fixes [D065]
+
+### The interrupt fixture
+
+[D062] left a four-item TODO in `ra6m5/tests/tfm_tests_config.cmake` and
+`PLATFORM_{FLIH,SLIH}_IRQ_TEST_SUPPORT` unset. All four are now done, on RA6M5:
+
+| | |
+|---|---|
+| `plat_test.c` | AGT0 start / stop / underflow-ack, direct registers |
+| `tfm_timer0_irq.c` | `TFM_TIMER0_IRQ_Handler` + `tfm_timer0_irq_init()` |
+| `tfm_peripherals_def.{h,c}` | `TFM_PERIPHERAL_TIMER0` (0x400E8000-0x400E80FF), `TFM_TIMER0_IRQ` |
+| `startup_ra6m5.c` | `__VECTOR_TABLE[16] = TFM_TIMER0_IRQ_Handler` |
+
+**TF-M owns the vector, and there is no conflict to manage.** The secure image uses its own
+`__VECTOR_TABLE`, not FSP's generated `g_vector_table` - that array is still linked, but only
+so `bsp_irq_cfg()` can read `g_interrupt_event_link_select[]` beside it and program IELSR,
+ITNS and ICUSARG before `main()`. So the RA half of the wiring is entirely configurator-driven,
+exactly as [D061] described, and the port only supplies the one vector slot.
+
+Verified in the shipped image rather than assumed - at `0xa0240`, slot 16:
+
+```
+a0238  d1520b00 d1520b00 49610b00 d1520b00
+                         ^^^^^^^^ 0x000b6149 = TFM_TIMER0_IRQ_Handler | thumb
+       neighbours       = 0x000b52d1 = Default_Handler
+```
+
+**`ext/common/tfm_interrupts.c` still cannot be used**, which is why `tfm_timer0_irq.c` exists.
+That file is otherwise exactly right, but its init calls `NVIC_ClearTargetState()`, which is
+plain CMSIS and knows only `NVIC->ITNS` - on RA that leaves ITNS saying non-secure while
+`R_CPSCU->ICUSARG` still says secure. Nothing needs to replace it: the interrupt is already
+secure because the SECURE project configured the AGT.
+
+**Design notes worth keeping:**
+
+- `plat_test.c` does **not** use `R_AGT_*`. `R_AGT_Open()` installs an FSP callback and expects
+  `agt_int_isr()` at the vector, which TF-M has taken, so its IRQ plumbing would be dead
+  weight; and tracking whether `g_timer0_ctrl` is open, from code the SPM calls in interrupt
+  context, is more state than three register writes deserve.
+- `AGTCR` is written as a **whole byte** in `_start()` (flags clear by writing 0, so a
+  read-modify-write would preserve a set flag) and as a **read-modify-write** in
+  `_clear_intr()` (the timer is running, so `TSTART` must survive). Both are deliberate.
+- `TFM_TIMER0_IRQ` is a literal in the header because that header is included where
+  `vector_data.h` is not. `plat_test.c` includes both and `_Static_assert`s they agree, so a
+  RASC renumbering fails the build instead of routing the interrupt to `Default_Handler`.
+  **`#if` does not work here** - both macros expand to `((IRQn_Type) n)` and a cast is not a
+  valid preprocessor constant expression; the `#if` form fails to parse rather than comparing.
+- **FLIH and SLIH are mutually exclusive.** Both claim TIMER0, so tf-m-tests enables one:
+  this build got `TEST_NS_FLIH_IRQ ON`, `TEST_NS_SLIH_IRQ OFF`.
+
+### Two silent defects in [D065], both found by building it under IAR
+
+**1. The tool fallback never worked.** `CMAKE_OBJCOPY` is empty under IAR, and the guard's
+long-standing idiom did not save it:
+
+```cmake
+set(VAR "${CMAKE_OBJCOPY}")     # creates an empty NORMAL variable
+if(NOT VAR)
+    find_program(VAR ...)       # writes the CACHE - which the normal variable SHADOWS
+endif()
+```
+
+The cache proved it: no `OFS_OBJCOPY` **or** `OFS_READELF` entry existed. So the
+**pre-existing readelf fallback has been dead under IAR since it was written** - inherited,
+not introduced by D065, but copied into three more ports by it. Fixed with `unset(VAR)` before
+the `find_program`.
+
+**2. `--remove-section` on a name pattern is the wrong mechanism.** GCC emits
+`.option_setting_ofs0` / `_ofs1_sec` / `_ofs1_sel`. **IAR's ILINK emits `P1`, `P7`, `P11`** -
+positional names taken from the `.icf` block order. So `--remove-section=.option_setting*`
+matched nothing, objcopy copied everything, and the strip **reported success while emitting
+the full 16,818,820-byte brick**. Only `--check-flat-bin` caught it. Those names also move
+whenever the `.icf` block order changes, so hardcoding them would be no better.
+
+**Fix: `check_ofs.py --emit-safe-bin`.** The flat image is now written from the ELF's program
+headers, excluding load segments by **address** - the same basis `--region` already gives the
+check. No objcopy on either toolchain, and the `find_program`/`FATAL_ERROR` blocks are gone
+again. Results: IAR 26,561 bytes, GCC 26,904 bytes, guard passing on both.
+
+**The lesson is the same one [D058] taught and this missed:** a strip that cannot fail loudly
+is not a safety measure. The name-based version had no way to report "I matched nothing", and
+it took a second toolchain to expose that. Address-based emission cannot silently no-op,
+because there is no name to fail to match.
+
+### State
+
+RA6M5 IAR: SPE and NS both build, FLIH suite linked (`irq_test_flih_case_1/2` in `tfm_ns.axf`),
+`ra6m5_TFM_regression_iar` launch config generated. **Not yet run on hardware.**
+RTT: `tfm_s` `0x2000A8A4`, `tfm_ns` `0x20043338`, bl2 none (`MCUBOOT_LOG_LEVEL=OFF`).
+
+GCC projects are equally ready - `VECTOR_DATA_IRQ_COUNT 1`, same ICU slot 0 - but the GCC
+FLIH build has not been attempted.
+
+**Second occurrence, belongs in the build docs:** `cmake --install <spe>/build-spe` is NOT
+enough for a regression NS build. `attest_token.h` is installed by the OUTER wrapper
+(`cmake --install <spe>`), and without it four attestation translation units fail `Pe1696`.
+The GCC leg hit this too.
