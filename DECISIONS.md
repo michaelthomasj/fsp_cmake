@@ -2677,3 +2677,94 @@ strength of the first run. The build was compared against the IAR FLIH one that 
 completed - byte-identical NS image, 116 bytes apart in secure text, same configuration -
 which established there was no build-level reason for ITS to differ, and that is what made
 "re-run it" the right next step rather than a code change.
+
+
+---
+
+## D073 — one MRAM alias is not enough: the RA8M2 flash driver must pick it per offset
+
+**Date:** 2026-10-01 · **Status:** Accepted
+
+**Symptom.** First ever boot of BL2 on RA8M2 hardware, immediately after programming the
+TrustZone boundaries with RDPM: HardFault inside `memcpy()`, called from
+`ARM_Flash_ReadData()` <- `flash_area_read()` <- `boot_read_image_header()` <-
+`boot_read_image_headers()` <- `boot_prepare_image_for_update()`.
+
+**Cause.** `Driver_Flash.c` formed every MRAM address as `FLASH_BASE_ADDRESS + offset`, one
+fixed secure base for all four MCUboot areas. On RA8M2 `BSP_FEATURE_TZ_NS_OFFSET` is
+`0x10000000`: MRAM answers at `0x02000000` secure and `0x12000000` non-secure, and **which
+alias reaches a given byte is decided by the RDPM boundary** - below it the secure alias
+only, at or above it the non-secure alias only. The programmer writes the NS image at
+`0x120B0000`; BL2 read it back at `0x020B0000`, an alias that does not answer there.
+
+The fault address is the proof, not an inference: BL2 read the secure primary slot at
+`0x02068000` without trouble and faulted on the first access at or above `0x0B0000`, which
+is exactly the Code Secure boundary (704 KB) programmed minutes earlier.
+
+**Why it survived every build and every static check.** It needs a *partitioned* part to
+appear. On a virgin device the whole of MRAM is secure, the secure alias reaches all four
+areas, and the bug is invisible. RA8M2 had never been through RDPM before, so BL2 had never
+run on it.
+
+**Why the code was written that way.** It was derived from the RA6M5 driver, where
+`BSP_FEATURE_TZ_NS_OFFSET` is 0 and there genuinely is one alias. The RA8M2 header even
+recorded the mistake as a design note - "Both aliases give the same physical offset, which
+is what makes one Driver_FLASH0 able to serve all four slots." That is true of *offsets* and
+false of *addresses*, and the sentence read as a reason not to look further. Both that
+sentence and the "not a fault, it is a wild access" note have been corrected in place.
+
+**Fix.** `MRAM_ADDR()` chooses the alias from the offset, thresholded on
+`FLASH_AREA_1_OFFSET` - the NS primary slot header, the lowest non-secure offset, derived
+from `BSP_PARTITION___BL_1_P_H_START` so a repartition in e2 moves it with it:
+
+```c
+#define MRAM_ADDR(off)                                                   \
+    ((uint32_t)(off) +                                                   \
+     ((uint32_t)(off) >= (uint32_t)(FLASH_AREA_1_OFFSET)                 \
+      ? (uint32_t)(FLASH_NS_ALIAS_BASE)                                  \
+      : (uint32_t)(FLASH_BASE_ADDRESS)))
+```
+
+Covers read, program and erase, which all go through the macro. Safe for the write path:
+`R_MRAM_Write()` and `R_MRAM_Erase()` mask the address with `~BSP_FEATURE_TZ_NS_OFFSET`
+before range-checking (`r_mram.c:335, 374`) and pass the unmasked address on, i.e. FSP
+accepts either alias by design.
+
+A single threshold is only sound while the secure areas all lie below it and the non-secure
+ones all at or above it. `ra8m2_layout_checks.c` now asserts that for all four areas; the
+pre-existing contiguity asserts (`FLASH_AREA_0 + size == FLASH_AREA_1_OFFSET`,
+`FLASH_AREA_1 + size == FLASH_AREA_3_OFFSET`, `FLASH_AREA_3 + size == FLASH_TOTAL_SIZE`)
+already pinned the ordering.
+
+**Scope.** RA8M2 only. RA6M5, RA6E1 and RA6M4 have `BSP_FEATURE_TZ_NS_OFFSET = 0`, one
+alias, and their drivers are correct as written. The `PLATFORM_HAS_BOOT_DMA` path in
+`bl2/src/flash_map.c:147` forms the same fixed-base address and would need the same
+treatment - it is OFF on this port and was not touched.
+
+**Rebuilt and statically verified**, all four RA8M2 GCC images. The compiled read path is
+now `cmp.w r4, #0xb0000 / ite cc / movcc.w r1, #0x2000000 / movcs.w r1, #0x12000000`. Slot
+occupancy unchanged - `tfm_s_signed.bin` 294,912 B and `tfm_ns_signed.bin` 163,840 B, both
+exact fits; `bl2.bin` 27,552 -> 27,584 B. RTT addresses unchanged. **Not yet run on
+hardware.**
+
+**RDPM values for this layout**, recorded here because no `RA8M2_SOLUTION.md` exists yet and
+the RA6M5 table does not transfer: Code Secure **703**, Code NSC **1**, Data Secure **0**,
+SRAM Secure **935**, SRAM NSC **1**, SiP Flash Secure **0**, all KB. Code 703+1 = 704 KB =
+22 x 32 KB; SRAM 935+1 = 936 KB = 117 x 8 KB. Data Secure is 0 because the part has no data
+flash at all - ITS/PS live in the 64 KB `DF_EMULATION` region inside MRAM.
+
+**The IAR solution still disagrees and is now a provisioning hazard, not just a build note.**
+`ra8m2_iar_CPU0_secure` still has `RAM_CPU0_C` at `0x220E9F80` size `0x80`; the GCC set has
+it at `0x220E9C00` size `0x400`. RDPM cannot express 128 B, so the six values above are the
+GCC set. A board programmed with them puts an IAR-built secure image's NSC veneers inside
+secure SRAM, and the first NS->S veneer call faults. Regenerate the IAR secure project with
+the GCC RAM split before building that leg - needs RASC, not the IAR licence.
+
+**Two wrong diagnoses preceded this one, both from reasoning instead of reading the
+disassembly.** First `setTZBoundaries=true` in the new launch configuration - a real defect,
+it must be `false` per DESIGN.md 7.2, and it is not what caused this. Then blank-MRAM ECC on
+the never-programmed secondary slots - plausible, since RA8M2 code MRAM has an ECC decoder
+and the launch erases all ROM, but wrong. What settled it was the user pointing at the
+faulting address and one `objdump -d` of `ARM_Flash_ReadData`, which took under a minute and
+should have been the first move. The `0xFF` filler images left in `C:\b\m2fill\` are from
+the discarded ECC theory and are not needed.
