@@ -2596,3 +2596,41 @@ warned they move on every relink but did not say they also differ between toolch
 **Corollary worth stating:** every "prints nothing" during this work - including the one
 that sent me looking at the AGT for a second time - should have been checked against the
 address before anything else. Two of the three were the address, not the firmware.
+
+---
+
+## D071 — SLIH passes too; both FF-M handling models work, with one fixture
+
+**Date:** 2026-09-30 · **Status:** Accepted · Completes the arc from [D061] to [D070]
+
+**Result.** RA6M5 GCC, SFN, isolation 1, `TF-M v2.2.0+ca55cf5c1`:
+`TFM_NS_IRQ_TEST_SLIH_1001` **PASSES**, alongside all 8 secure and the other 6 non-secure
+suites. Zero failures.
+
+| Build | FLIH | SLIH |
+|---|---|---|
+| RA6M5 IAR | **PASS** | built, not run |
+| RA6M5 GCC | **PASS** | **PASS** |
+| RA8M2 GCC | built, not run | built, not run |
+
+**The fixture is handling-model agnostic, and that was not guaranteed.** SLIH required NO
+port change: the same `plat_test.c` and `tfm_timer0_irq.c` serve both, and only the test
+partition and the two `TEST_NS_*_IRQ` switches differ. The two models are quite different
+at the SPM - FLIH runs the handler in the exception context and may return a signal, SLIH
+defers the work to the partition thread - so a port could plausibly have needed separate
+handling. It did not, because the port's half of the contract is only: route the event,
+clear the ICU latch, start and stop the timer. Everything model-specific lives above that
+line, in `spm_handle_interrupt()`.
+
+That also means [D069]'s two fixes - the vector-table anchor and the
+`R_BSP_IrqStatusClear()` - were the complete set. Nothing further was needed for the second
+model.
+
+**Asymmetry worth knowing:** the SLIH suite has ONE case (`SLIH_1001`), FLIH has two
+(`FLIH_1101`, `FLIH_1102`, the latter exercising the signal-returning path). So FLIH is the
+stronger test of the two despite both now passing, and the FLIH pass on both toolchains is
+the more load-bearing result.
+
+**Still unrun:** RA6M5 IAR SLIH, and both RA8M2 builds. The RA8M2 pair also has no e2 launch
+configuration - the generator is RA6M5-specific and RA8M2's slots are at 0x68000 (secure
+primary) and 0xB0000 (non-secure primary), not 0xA0000/0x120000.
