@@ -2889,3 +2889,124 @@ and the boundaries were lost - most likely to a launch configuration still carry
 reasoning from the source rather than reading the target. What moved it each time was
 hardware state: the backtrace, then the register dump. `objdump -d` on the faulting function
 and the register file should be the first two steps on a HardFault, not the fourth.
+
+---
+
+## D076 — [D075] describes code that was reverted; BL2 still has no SAU
+
+**Date:** 2026-10-01 · **Status:** Accepted · **Supersedes [D075]**
+
+[D075] is marked Accepted and states that `bl2_boot_hal.c` enables an SAU region in
+`boot_platform_post_init()`, with register writes, disassembly and a new `bl2.bin` size. That
+change was reverted the same day (`299b03039`, reverted by `848f27180`) and **is not in the
+tree**. A grep for `SAU->` across `platform/ext/target/renesas/` returns nothing.
+
+**Why it was reverted.** The rm_psa_crypto owner pointed out that FSP's own MCUboot port
+already does this, in `ra/fsp/src/rm_mcuboot_port/flash_map.c:214-226` - and does it better:
+it derives the non-secure window at runtime from `R_PSCU->CFSAMONA_b.CFS2`, i.e. from what
+RDPM actually programmed, rather than from a compile-time constant, and it tears the region
+down again in `flash_on_chip_cleanup()` so the next image starts from a clean SAU. The port
+excludes that whole module (`ra8m2/CMakeLists.txt:102`), which is why none of it is linked
+and why the SAU gap existed at all.
+
+**What stands from [D075].** The diagnosis, which the register dump confirms: with the SAU
+disabled and `SAU_CTRL.ALLNS` clear, Armv8-M attributes every address Secure, so BL2's load
+from `0x120B0000` goes out as a secure transaction to the non-secure alias and is refused.
+Both aliases then fault - the secure one on the address, the non-secure one on the
+attribute. **That fault is live again.** [D073] and [D074] remain correct and in the tree;
+they were necessary and are not sufficient.
+
+**Open.** How to get FSP's SAU programming into BL2 - adopt `rm_mcuboot_port/flash_map.c`,
+fork it into the port, or replicate the mechanism in `Driver_Flash.c`. Blocker found while
+scoping the first option: FSP's generated `flash_map[]` gives the secure primary slot
+`.fa_size = BSP_PARTITION___BL_0_P_H_SIZE + BSP_PARTITION___BL_0_S_T_SIZE` = **0x200**,
+omitting `FLASH_CPU0_S` (0x47A00) and `FLASH_CPU0_C` (0x400). The generator walks forward
+from `___BL_0_P_H` and stops at `___BL_0_S_T` - the *secondary* trailer, size 0, which sits
+at the same address `0x02068000` the primary header starts at. The other three entries are
+correct. This is the defect `TFM_SLOT_SPAN` in `flash_layout.h` was written to work around,
+and it regenerates on every e2 build.
+
+**Also noted, not in [D074]:** the port's `MRAM_NS_BOUNDARY` is a compile-time value from
+`BSP_PARTITION_FLASH_CPU0_C_START + _SIZE`; FSP reads `CFSAMONA` at runtime. These agree only
+while the provisioned boundary matches the solution the build was configured from. A device
+partitioned to a different profile picks the wrong alias and nothing at build time can see
+it. [D074] argued the threshold question without considering the runtime option.
+
+---
+
+## D077 — FSP replication audit: one live defect, three fixes that never reached the RA6 ports
+
+**Date:** 2026-10-01 · **Status:** Accepted
+
+Audit of every place the port states, computes or implements something FSP already provides,
+run against `ra8m2`, `ra6m5`, `ra6e1`, `common` and the two accelerator packs. The port's own
+inventory in `DOCUMENTATION_PLAN.md:142-173` was accurate as far as it went; what follows is
+what it did not cover. `PROJECT_PLAN.md:265` already carried "Audit the port for values that
+override FSP-generated configuration" as an open task - this closes it.
+
+**FIXED NOW - the one live defect.** `ra8m2/tfm_peripherals_def.c` had
+`tfm_peripheral_std_uart` at **0x40118000**, which is RA6M5's SCI0. RA8M2's is **0x40358000**
+(`R7KA8M2JF_core0.h:52985`), and 0x40118000 appears nowhere in that header. The file was
+derived from `ra6m5/tfm_peripherals_def.c` and only the comment's part name was changed.
+Latent at the shipping default - isolation 1, `RA8M2_STDOUT_RTT` - where no MPU region is
+created from the entry; at isolation 2 or 3 `tfm_hal_bind_boundary()` maps a region over
+addresses that decode to nothing and leaves the real SCI0 unmapped. The sibling AGT0 entry
+(0x40221000) was checked against the device header when it was added and is correct. Fixed,
+with both literals now cross-checked.
+
+**STALE - ra8m2 fixes that were never back-ported.** Each of these is recorded in the log as
+*resolved*, and the surviving RA6 instances are named nowhere:
+
+| | ra8m2 has | ra6m5 / ra6e1 have | Recorded as fixed in |
+|---|---|---|---|
+| OFS addresses | generated from `Debug/memory_regions.*` into `option_settings.h` at configure time | 13 groups hand-transcribed in `region_defs.h` | [D056] |
+| Enabled-but-unplaced OFS words | 22 `#error` guards, one per `BSP_CFG_OPTION_SETTING_*` | 0 guards, a "keep it in sync" comment | [D056] |
+| `BSP_FEATURE_*` agreement | `_Static_assert` on `FLASH_NS_ALIAS_BASE` | "Confirm against `BSP_FEATURE_FLASH_HP_CF_REGION1_BLOCK_SIZE` if the device is ever changed" | [D074] pattern |
+
+The first is the brick path. A regenerated RA6M5 bootloader project that moves an option word
+leaves `ra6m5_bl2.ld` placing `.option_setting_pbps` at a stale address, and that is silent:
+the linker is content, the srec is clean, and `check_ofs.py --ra6-default` validates against a
+hardcoded RA6 window that still contains the stale address, so it prints CLEAN. PBPS is the
+one-time Permanent Block Protect word that killed two EK-RA6M4 boards ([D002]).
+
+**NEW - comments that assert guards which do not exist.**
+
+- `ra8m2/flash_layout.h:131` says `ra8m2_layout_checks.c` asserts that
+  `FLASH_AREA_IMAGE_SECTOR_SIZE` "still agrees with FSP's header". It does not - that file
+  has exactly one FSP-value assertion, on `FLASH_NS_ALIAS_BASE`. So the literal the log
+  singles out as the archetypal drift case ([D054]: slots 9.875 sectors long, `BOOT_EFLASH`
+  on hardware only) carries a claim of a check that was never written.
+- `ra8m2/config.cmake:90-98` justifies `MCUBOOT_ALIGN_VAL 32` with a trailer-fit argument
+  built on four numbers that are all now wrong: sector size `0x1000` (is `0x8000`),
+  `__BL_0_P_T` reserving `0x100` (is 0), NSC `0x300` at `0x60C00` (is `0x400` at
+  `0x020AFC00`), `FLASH_CPU0_S` `0x4EA00` (is `0x47A00`). Same defect as [D066], in a file
+  [D066] did not touch - and [D066] itself says "Only the prose drifted". The comment also
+  points at `RA8M2_SOLUTION.md`, which does not exist.
+- `ra8m2/startup_ra8m2.c:114` restates `BSP_VECTOR_TABLE_MAX_ENTRIES` as the literal 112 with
+  "re-check these two macros if the device ever changes" and no assertion, although the
+  comment itself records the prior failure (it was 496, RA6M4's table, and overflowed
+  `.TFM_VECTORS` into `.ER_UNPRIV_CODE`).
+
+**JUSTIFIED and mechanically guarded**, confirmed accurate, listed so they are not re-audited:
+`FLASH_NS_ALIAS_BASE` ([D074]), `TFM_TIMER0_IRQ` vs `VECTOR_NUMBER_AGT0_INT` (`#error` plus
+`_Static_assert` in `plat_test.c`), `S_MSP_STACK_SIZE` vs `BSP_CFG_STACK_MAIN_BYTES`,
+`ra8m2_ddsc.c`'s `gp_ddsc_*` with `#error`s on empty partitions, and the surviving
+`AGTCR_b.TUNDF` write (no FSP API exists for it).
+
+**JUSTIFIED but unguarded**, accepted as-is: the five `check_ofs.py` `--region` literals
+(a CMake custom command cannot read a generated header; `--require-segments` catches the
+total-miss case but not partial staleness), `bsp_init_stub.c`'s empty zero/copy/nocache
+tables, `rsip_e50d_fsp_cfg.h`'s restated `PSA_CRYPTO_CFG_*`, and the RDPM KB figures in
+`region_defs.h:170` - which have the highest consequence in the audit and no possible
+build-time check, since provisioning does not come back.
+
+**The five FSP modules the port shadows wholesale** - `rm_mcuboot_port`, `rm_psa_crypto` +
+`ra/arm/mbedtls`, `r_sce`, `bsp_linker.c`, and `startup.c`/`ra_gen/main.c` - all carry stated
+reasons and remain justified. `bsp_linker.c` is the most split: four port files plus two
+linker scripts, and the two stale RA6 findings above both live inside that split.
+`rm_mcuboot_port` is the one whose exclusion has a running cost - it is what forced the
+re-derivation in [D073]/[D074] and the loss of FSP's `CFSAMONA`-based boundary and its BL2
+SAU programming ([D076]).
+
+**Not acted on.** Everything above except the SCI0 fix. The back-ports to ra6m5/ra6e1 and the
+three missing assertions are real work, not edits, and are recorded here rather than done.
