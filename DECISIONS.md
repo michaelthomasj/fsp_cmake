@@ -2811,3 +2811,81 @@ Secure|NSC|NS triple, so the NSC is always the last secure thing. Already assert
 - `cmp.w r4, #0xb0000 / ite cc / movcc.w r1, #0x2000000 / movcs.w r1, #0x12000000` - and
 every image size is unchanged. The value is that both constants now come from their
 authoritative source and a wrong one fails the build instead of the board.
+
+
+---
+
+## D075 — BL2 must enable the SAU on RA8M2; the right alias is not enough
+
+**Date:** 2026-10-01 · **Status:** Accepted · Completes [D073]/[D074], which were necessary
+but not sufficient
+
+**Symptom after [D073].** With `MRAM_ADDR()` fixed and verified in the disassembly, BL2
+still HardFaulted at the same instruction. Register state at the fault, from the target:
+
+```
+r4 0x000b0000   offset                  r0 0x22002bac   dst
+r1 0x120b0000   src - the NS alias      r2 0x120b0020   src end, 32 bytes
+```
+
+The address was now right. `ldrb.w r4, [r1], #1` still faulted. **Both aliases fault**, and
+no partitioning makes that true, so the address was never the whole story.
+
+**Cause.** The access was right; its *security attribute* was not. With the SAU disabled and
+`SAU_CTRL.ALLNS` clear, Armv8-M attributes every address as Secure, and the combined
+SAU/IDAU attribute takes the more secure of the two. BL2's load from `0x120B0000` therefore
+went out as a **secure transaction to the non-secure alias** and was refused. The secure
+alias was refused on the address, the non-secure one on the attribute - hence both.
+
+**Why BL2 has no SAU.** FSP enables it in `R_BSP_SAUInit()`, reached from `SystemInit()` via
+`R_BSP_SecurityInit()`, and that call sits inside `#if BSP_TZ_SECURE_BUILD`. BL2 is built as
+the **flat** FSP role, deliberately (`fsp_bsp.cmake:56`), so it gets neither. The evidence is
+one command:
+
+```
+arm-none-eabi-nm tfm_s.axf | grep SAU   ->  020a0b3c T R_BSP_SAUInit
+arm-none-eabi-nm bl2.elf   | grep SAU   ->  (nothing)
+```
+
+Same root as [D073]: RA6M5 has `__SAUREGION_PRESENT = 0` - no SAU on the part at all - and
+this port's BL2 came from it.
+
+**Fix.** `bl2_boot_hal.c` enables **one** SAU region in `boot_platform_post_init()`, which
+bl2_main.c calls before `boot_go_for_image_id()` reads the first header:
+
+```c
+SAU->RNR  = 0;
+SAU->RBAR = 0x10000000U & SAU_RBAR_BADDR_Msk;          /* NS alias of code space */
+SAU->RLAR = (0x1FFFFFFFU & SAU_RLAR_LADDR_Msk) | SAU_RLAR_ENABLE_Msk;
+SAU->CTRL = SAU_CTRL_ENABLE_Msk;
+__DSB(); __ISB();
+```
+
+One region, not FSP's five: BL2 has no veneers so neither NSC region applies, and MRAM is
+the only non-secure alias it touches. Anything outside an enabled region stays Secure, which
+is what it already was, so this changes exactly one thing. `tfm_s` installs the full set
+moments later. The bounds are the IDAU's, restated from `BSP_PRV_SAU_NS_REGION_1_*` because
+those are private to FSP's `bsp_security.c`; they are architectural for the part, not
+layout-derived.
+
+`bl2_boot_hal.c` is now built **unconditionally**. It was inside `if(CRYPTO_HW_ACCELERATOR)`
+because its only previous job was the RSIP-E50D bring-up; that part moved behind a new
+`RA8M2_BL2_SCE_INIT` compile definition. The weak default does nothing without
+`CRYPTO_HW_ACCELERATOR`, so overriding it unconditionally loses nothing.
+
+**Verified in the image**, all four RA8M2 GCC builds rebuilt:
+`str.w r2,[r3,#0xd8]`=RNR 0, `#0xdc`=RBAR `0x10000000`, `#0xe0`=RLAR `0x1FFFFFE1`,
+`#0xd0`=CTRL 1, then `dsb sy / isb sy`, then `ra_sce_init`. `bl2.bin` 27,584 -> 27,632 B.
+Slot occupancy and RTT addresses unchanged. **Not yet run on hardware.**
+
+**Still unconfirmed, and worth one read before the next attempt.** This diagnosis assumes the
+RDPM boundary is currently programmed. If it is not, the non-secure alias has nothing behind
+it and the fault will persist with the SAU correctly enabled. `CFSAMONA` at **0x40204030**
+should read `0x000B0000` (CFS2 = 22, 704 KB). `0x00100000` means the part is wholly secure
+and the boundaries were lost - most likely to a launch configuration still carrying
+`setTZBoundaries = true`.
+
+**Method note.** Three wrong diagnoses in this sequence, and the pattern in all three was
+reasoning from the source rather than reading the target. What moved it each time was
+hardware state: the backtrace, then the register dump. `objdump -d` on the faulting function
+and the register file should be the first two steps on a HardFault, not the fourth.
