@@ -207,6 +207,10 @@
         <memory parent="OPTION_SETTING_OTP_ZHUK" name="OPTION_SETTING_OTP_ZHUK_CPU0_B" size="0x0" offset="0x0" security="s" Pname="CPU0"/>
         <memory parent="ITCM" name="ITCM_CPU0_B" size="0x0" offset="0x0" security="s" Pname="CPU0"/>
         <memory parent="DTCM" name="DTCM_CPU0_B" size="0x0" offset="0x0" security="s" Pname="CPU0"/>
+        <peripheral name="AGT0.CPU0" group="AGT" security="s"/>
+        <peripheral name="ICU.CPU0">
+            <slot name="IRQ0.CPU0" secure="true"/>
+        </peripheral>
     </partition>
     <zones>
         <zone name="CPU0_S" Pname="CPU0" security="s">
@@ -368,6 +372,8 @@
             <assign group="PORT" peripheral="PORTD.PD04"/>
             <assign group="PORT" peripheral="PORTD.PD05"/>
             <assign group="PORT" peripheral="PORTD.PD07"/>
+            <assign group="AGT" peripheral="AGT0"/>
+            <assign peripheral="ICU.IRQ0"/>
         </zone>
     </zones>
 </azone>

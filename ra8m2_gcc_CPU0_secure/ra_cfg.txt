@@ -1224,6 +1224,11 @@ FSP Configuration
   Module "MRAM (r_mram)"
     Parameter Checking: Default (BSP)
     
+  Module "Timer, Low-Power (r_agt)"
+    Parameter Checking: Default (BSP)
+    Pin Output Support: Disabled
+    Pin Input Support: Disabled
+    
   HAL
     Instance "g_ioport I/O Port (r_ioport)"
       Name: g_ioport
@@ -1240,4 +1245,23 @@ FSP Configuration
       Name: g_mram0
       Callback: NULL
       MRAM Error Interrupt Priority: Disabled
+      
+    Instance "g_timer0 Timer, Low-Power (r_agt)"
+      General: Name: g_timer0
+      General: Counter Bit Width: AGT 16-bit
+      General: Channel: 0
+      General: Mode: Periodic
+      General: Period: 0x10000
+      General: Period Unit: Raw Counts
+      Output: Duty Cycle Percent (only applicable in PWM mode): 50
+      General: Count Source: PCLKB
+      Output: AGTOA Output: Disabled
+      Output: AGTOB Output: Disabled
+      Output: AGTO Output: Disabled
+      Input: Measurement Mode: Measure Disabled
+      Input: Input Filter: No Filter
+      Input: Enable Pin: Enable Pin Not Used
+      Input: Trigger Edge: Trigger Edge Rising
+      Interrupts: Callback: NULL
+      Interrupts: Underflow Interrupt Priority: Priority 4
       

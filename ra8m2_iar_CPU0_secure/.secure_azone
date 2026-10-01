@@ -6,20 +6,20 @@
         <memory parent="RAM" name="RAM_CPU0_S" size="0xE9F80" offset="0x0" security="s" Pname="CPU0"/>
         <memory parent="RAM" name="RAM_CPU0_C" size="0x80" offset="0xE9F80" security="c" Pname="CPU0"/>
         <memory parent="FLASH_NS" name="__BL_1_P_H" size="0x200" offset="0xB0000" security="n" Pname="CPU0" info="@user"/>
-        <memory parent="FLASH_NS" name="FLASH_NS_CPU0_N" size="0x27D00" offset="0xB0200" security="n" Pname="CPU0"/>
-        <memory parent="FLASH_NS" name="__BL_1_P_T" size="0x100" offset="0xD7F00" security="n" Pname="CPU0" info="@user"/>
+        <memory parent="FLASH_NS" name="FLASH_NS_CPU0_N" size="0x27E00" offset="0xB0200" security="n" Pname="CPU0"/>
+        <memory parent="FLASH_NS" name="__BL_1_P_T" size="0x0" offset="0xD8000" security="n" Pname="CPU0" info="@user"/>
         <memory parent="FLASH_NS" name="__BL_1_S_H" size="0x200" offset="0xD8000" security="n" Pname="CPU0" info="@user"/>
-        <memory parent="FLASH_NS" name="__BL_1_S_I" size="0x27D00" offset="0xD8200" security="n" Pname="CPU0" info="@user"/>
-        <memory parent="FLASH_NS" name="__BL_1_S_T" size="0x100" offset="0xFFF00" security="n" Pname="CPU0" info="@user"/>
+        <memory parent="FLASH_NS" name="__BL_1_S_I" size="0x27E00" offset="0xD8200" security="n" Pname="CPU0" info="@user"/>
+        <memory parent="FLASH_NS" name="__BL_1_S_T" size="0x0" offset="0x100000" security="n" Pname="CPU0" info="@user"/>
         <memory parent="FLASH" name="FLASH_CPU0_B" size="0x10000" offset="0x0" security="s" Pname="CPU0"/>
         <memory parent="FLASH" name="DF_EMULATION" size="0x10000" offset="0x10000" security="s" Pname="CPU0" info="@user"/>
-        <memory parent="FLASH" name="__BL_0_P_H" size="0x200" offset="0x20000" security="s" Pname="CPU0" info="@user"/>
-        <memory parent="FLASH" name="FLASH_CPU0_S" size="0x47A00" offset="0x20200" security="s" Pname="CPU0"/>
-        <memory parent="FLASH" name="FLASH_CPU0_C" size="0x300" offset="0x67C00" security="c" Pname="CPU0"/>
-        <memory parent="FLASH" name="__BL_0_P_T" size="0x100" offset="0x67F00" security="s" Pname="CPU0" info="@user"/>
-        <memory parent="FLASH" name="__BL_0_S_H" size="0x200" offset="0x68000" security="s" Pname="CPU0" info="@user"/>
-        <memory parent="FLASH" name="__BL_0_S_I" size="0x47D00" offset="0x68200" security="s" Pname="CPU0" info="@user"/>
-        <memory parent="FLASH" name="__BL_0_S_T" size="0x100" offset="0xAFF00" security="s" Pname="CPU0" info="@user"/>
+        <memory parent="FLASH" name="__BL_0_S_H" size="0x200" offset="0x20000" security="s" Pname="CPU0" info="@user"/>
+        <memory parent="FLASH" name="__BL_0_S_I" size="0x47E00" offset="0x20200" security="s" Pname="CPU0" info="@user"/>
+        <memory parent="FLASH" name="__BL_0_P_H" size="0x200" offset="0x68000" security="s" Pname="CPU0" info="@user"/>
+        <memory parent="FLASH" name="__BL_0_S_T" size="0x0" offset="0x68000" security="s" Pname="CPU0" info="@user"/>
+        <memory parent="FLASH" name="FLASH_CPU0_S" size="0x47A00" offset="0x68200" security="s" Pname="CPU0"/>
+        <memory parent="FLASH" name="FLASH_CPU0_C" size="0x400" offset="0xAFC00" security="c" Pname="CPU0"/>
+        <memory parent="FLASH" name="__BL_0_P_T" size="0x0" offset="0xB0000" security="s" Pname="CPU0" info="@user"/>
         <memory parent="DATA_FLASH_NS" name="DATA_FLASH_NS_CPU0_N" size="0x0" offset="0x0" security="n" Pname="CPU0"/>
         <memory parent="DATA_FLASH" name="DATA_FLASH_CPU0_S" size="0x0" offset="0x0" security="s" Pname="CPU0"/>
         <memory parent="SDRAM" name="SDRAM_CPU0_S" size="0x4000000" offset="0x0" security="s" Pname="CPU0"/>

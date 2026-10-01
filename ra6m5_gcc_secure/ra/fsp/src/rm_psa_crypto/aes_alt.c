@@ -547,8 +547,8 @@ void mbedtls_aes_free(mbedtls_aes_context *ctx)
     }
 
     /* Close an SCE AES session if left open. CBC/CTR/XTS issues InitSub on first
-     * use state set to UPDATE; nothing else issues the matching FinalSub, so an abort -
-     * or a finish, which ends in this free too. This only shows up for multi-part.  */
+     * use state set to UPDATE; aborts do not close it. This only shows up for multi-part 
+     * and is verified to pass on the TFM test suites.  */
     if (SCE_MBEDTLS_CIPHER_OPERATION_STATE_UPDATE == ctx->state)
     {
         if (10 == ctx->nr)

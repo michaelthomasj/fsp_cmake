@@ -58,13 +58,9 @@
             <slot name="P015.CM33" secure="true"/>
         </peripheral>
         <peripheral name="PORT1.CM33" group="PORT">
-            <slot name="P100.CM33" secure="true"/>
-            <slot name="P101.CM33" secure="true"/>
             <slot name="P104.CM33" secure="true"/>
             <slot name="P105.CM33" secure="true"/>
             <slot name="P108.CM33" secure="true"/>
-            <slot name="P109.CM33" secure="true"/>
-            <slot name="P110.CM33" secure="true"/>
             <slot name="P111.CM33" secure="true"/>
             <slot name="P112.CM33" secure="true"/>
             <slot name="P113.CM33" secure="true"/>
@@ -72,8 +68,6 @@
             <slot name="P115.CM33" secure="true"/>
         </peripheral>
         <peripheral name="PORT2.CM33" group="PORT">
-            <slot name="P200.CM33" secure="true"/>
-            <slot name="P201.CM33" secure="true"/>
             <slot name="P202.CM33" secure="true"/>
             <slot name="P203.CM33" secure="true"/>
             <slot name="P204.CM33" secure="true"/>
@@ -87,8 +81,6 @@
         </peripheral>
         <peripheral name="PORT3.CM33" group="PORT">
             <slot name="P300.CM33" secure="true"/>
-            <slot name="P301.CM33" secure="true"/>
-            <slot name="P302.CM33" secure="true"/>
             <slot name="P303.CM33" secure="true"/>
             <slot name="P306.CM33" secure="true"/>
             <slot name="P307.CM33" secure="true"/>
@@ -112,12 +104,13 @@
             <slot name="P415.CM33" secure="true"/>
         </peripheral>
         <peripheral name="PORT5.CM33" group="PORT">
+            <slot name="P500.CM33" secure="true"/>
             <slot name="P501.CM33" secure="true"/>
             <slot name="P502.CM33" secure="true"/>
             <slot name="P503.CM33" secure="true"/>
-            <slot name="P504.CM33" secure="true"/>
             <slot name="P505.CM33" secure="true"/>
             <slot name="P506.CM33" secure="true"/>
+            <slot name="P508.CM33" secure="true"/>
             <slot name="P511.CM33" secure="true"/>
             <slot name="P512.CM33" secure="true"/>
         </peripheral>
@@ -125,12 +118,13 @@
             <slot name="P601.CM33" secure="true"/>
             <slot name="P602.CM33" secure="true"/>
             <slot name="P603.CM33" secure="true"/>
-            <slot name="P604.CM33" secure="true"/>
             <slot name="P605.CM33" secure="true"/>
             <slot name="P608.CM33" secure="true"/>
             <slot name="P609.CM33" secure="true"/>
             <slot name="P610.CM33" secure="true"/>
             <slot name="P611.CM33" secure="true"/>
+            <slot name="P613.CM33" secure="true"/>
+            <slot name="P614.CM33" secure="true"/>
             <slot name="P615.CM33" secure="true"/>
         </peripheral>
         <peripheral name="PORT7.CM33" group="PORT">
@@ -145,8 +139,6 @@
             <slot name="P708.CM33" secure="true"/>
         </peripheral>
         <peripheral name="PORT8.CM33" group="PORT">
-            <slot name="P800.CM33" secure="true"/>
-            <slot name="P802.CM33" secure="true"/>
             <slot name="P803.CM33" secure="true"/>
             <slot name="P804.CM33" secure="true"/>
         </peripheral>
@@ -171,6 +163,10 @@
         <memory parent="OPTION_SETTING_OFS1_SEL" name="OPTION_SETTING_OFS1_SEL_CM33_B" size="0x4" offset="0x0" security="s" Pname="CM33"/>
         <memory parent="OPTION_SETTING_BANKSEL_SEL" name="OPTION_SETTING_BANKSEL_SEL_CM33_B" size="0x0" offset="0x0" security="s" Pname="CM33"/>
         <memory parent="OPTION_SETTING_BPS_SEL" name="OPTION_SETTING_BPS_SEL_CM33_B" size="0x0" offset="0x0" security="s" Pname="CM33"/>
+        <peripheral name="AGT0.CM33" group="AGT" security="s"/>
+        <peripheral name="ICU.CM33">
+            <slot name="IRQ0.CM33" secure="true"/>
+        </peripheral>
     </partition>
     <zones>
         <zone name="CM33_S" Pname="CM33" security="s">
@@ -229,20 +225,14 @@
             <assign group="PORT" peripheral="PORT0.P008"/>
             <assign group="PORT" peripheral="PORT0.P014"/>
             <assign group="PORT" peripheral="PORT0.P015"/>
-            <assign group="PORT" peripheral="PORT1.P100"/>
-            <assign group="PORT" peripheral="PORT1.P101"/>
             <assign group="PORT" peripheral="PORT1.P104"/>
             <assign group="PORT" peripheral="PORT1.P105"/>
             <assign group="PORT" peripheral="PORT1.P108"/>
-            <assign group="PORT" peripheral="PORT1.P109"/>
-            <assign group="PORT" peripheral="PORT1.P110"/>
             <assign group="PORT" peripheral="PORT1.P111"/>
             <assign group="PORT" peripheral="PORT1.P112"/>
             <assign group="PORT" peripheral="PORT1.P113"/>
             <assign group="PORT" peripheral="PORT1.P114"/>
             <assign group="PORT" peripheral="PORT1.P115"/>
-            <assign group="PORT" peripheral="PORT2.P200"/>
-            <assign group="PORT" peripheral="PORT2.P201"/>
             <assign group="PORT" peripheral="PORT2.P202"/>
             <assign group="PORT" peripheral="PORT2.P203"/>
             <assign group="PORT" peripheral="PORT2.P204"/>
@@ -254,8 +244,6 @@
             <assign group="PORT" peripheral="PORT2.P211"/>
             <assign group="PORT" peripheral="PORT2.P214"/>
             <assign group="PORT" peripheral="PORT3.P300"/>
-            <assign group="PORT" peripheral="PORT3.P301"/>
-            <assign group="PORT" peripheral="PORT3.P302"/>
             <assign group="PORT" peripheral="PORT3.P303"/>
             <assign group="PORT" peripheral="PORT3.P306"/>
             <assign group="PORT" peripheral="PORT3.P307"/>
@@ -275,23 +263,25 @@
             <assign group="PORT" peripheral="PORT4.P413"/>
             <assign group="PORT" peripheral="PORT4.P414"/>
             <assign group="PORT" peripheral="PORT4.P415"/>
+            <assign group="PORT" peripheral="PORT5.P500"/>
             <assign group="PORT" peripheral="PORT5.P501"/>
             <assign group="PORT" peripheral="PORT5.P502"/>
             <assign group="PORT" peripheral="PORT5.P503"/>
-            <assign group="PORT" peripheral="PORT5.P504"/>
             <assign group="PORT" peripheral="PORT5.P505"/>
             <assign group="PORT" peripheral="PORT5.P506"/>
+            <assign group="PORT" peripheral="PORT5.P508"/>
             <assign group="PORT" peripheral="PORT5.P511"/>
             <assign group="PORT" peripheral="PORT5.P512"/>
             <assign group="PORT" peripheral="PORT6.P601"/>
             <assign group="PORT" peripheral="PORT6.P602"/>
             <assign group="PORT" peripheral="PORT6.P603"/>
-            <assign group="PORT" peripheral="PORT6.P604"/>
             <assign group="PORT" peripheral="PORT6.P605"/>
             <assign group="PORT" peripheral="PORT6.P608"/>
             <assign group="PORT" peripheral="PORT6.P609"/>
             <assign group="PORT" peripheral="PORT6.P610"/>
             <assign group="PORT" peripheral="PORT6.P611"/>
+            <assign group="PORT" peripheral="PORT6.P613"/>
+            <assign group="PORT" peripheral="PORT6.P614"/>
             <assign group="PORT" peripheral="PORT6.P615"/>
             <assign group="PORT" peripheral="PORT7.P700"/>
             <assign group="PORT" peripheral="PORT7.P701"/>
@@ -302,11 +292,11 @@
             <assign group="PORT" peripheral="PORT7.P706"/>
             <assign group="PORT" peripheral="PORT7.P707"/>
             <assign group="PORT" peripheral="PORT7.P708"/>
-            <assign group="PORT" peripheral="PORT8.P800"/>
-            <assign group="PORT" peripheral="PORT8.P802"/>
             <assign group="PORT" peripheral="PORT8.P803"/>
             <assign group="PORT" peripheral="PORT8.P804"/>
             <assign group="PORT" peripheral="PORTA.PA08"/>
+            <assign group="AGT" peripheral="AGT0"/>
+            <assign peripheral="ICU.IRQ0"/>
         </zone>
     </zones>
 </azone>

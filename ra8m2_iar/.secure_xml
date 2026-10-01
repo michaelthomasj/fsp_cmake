@@ -3,7 +3,7 @@
   <generalSettings>
     <option key="#Board#" value="board.ra8m2ek"/>
     <option key="#TargetName#" value="R7KA8M2JFLCAC"/>
-    <option key="#FSPVersion#" value="6.7.0-beta0+20260924.4dfe9b7f"/>
+    <option key="#FSPVersion#" value="6.7.0-beta0+20260925.818e720c"/>
     <option key="#SELECTED_TOOLCHAIN#" value="iar.arm.toolchain.v8.0.0"/>
   </generalSettings>
   <raBspConfiguration>
@@ -304,4 +304,9 @@
       <configSetting altId="usbhs.usbhs_vbus.p408" configurationId="usbhs.usbhs_vbus" peripheral="USB HS"/>
     </pincfg>
   </raPinConfiguration>
+  <raSmartBundles>
+    <bundle>${workspace_loc:/ra8m2_iar_mcuboot}/Debug/ra8m2_iar_mcuboot.sbd</bundle>
+    <bundle>${workspace_loc:/ra8m2_iar_CPU0_secure}/Debug/ra8m2_iar_CPU0_secure.sbd</bundle>
+    <bundle>${workspace_loc:/ra8m2_iar_CPU0_nonsecure}/Debug/ra8m2_iar_CPU0_nonsecure.sbd</bundle>
+  </raSmartBundles>
 </raSolution>
