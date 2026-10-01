@@ -2542,3 +2542,57 @@ tool.** Nothing in the build, the map file, or the guard suite can see it. The o
 reading the symbol binding (`V` vs `T`) and the array's actual contents out of the linked
 image - which is now the first thing to check whenever a configured RA interrupt does not
 arrive.
+
+---
+
+## D070 — FLIH verified on both toolchains; the fixture is portable, and RTT addresses are per-build
+
+**Date:** 2026-09-30 · **Status:** Accepted · Confirms [D068], [D069]
+
+**Hardware results.** RA6M5, SFN, isolation 1, `TFM_NS_IRQ_TEST_FLIH_1101` and `_1102`:
+
+| Build | Suites | Result |
+|---|---|---|
+| RA6M5 **IAR** FLIH | 8 secure + 7 non-secure | **PASS**, zero failures |
+| RA6M5 **GCC** FLIH | 8 secure + 7 non-secure | **PASS**, zero failures |
+
+Both on `TF-M v2.2.0+ca55cf5c1`. The [D069] fix is therefore not toolchain-specific: the
+weak-symbol extraction failure and the ICU latch were real on both, and the one anchor plus
+one `R_BSP_IrqStatusClear()` fixes both.
+
+**Built but NOT yet run on hardware:** RA6M5 IAR SLIH, RA6M5 GCC SLIH, RA8M2 GCC FLIH,
+RA8M2 GCC SLIH.
+
+**The RA8M2 fixture needed almost nothing beyond the RA6M5 one.** `plat_test.c`,
+`tfm_timer0_irq.c` and `fsp_agt.cmake` port verbatim because `plat_test.c` reaches the
+timer through `R_AGT0` and `g_timer0`, never an address. Only two things differ, and both
+are data rather than code:
+
+- `TFM_PERIPHERAL_TIMER0` is AGT0 at **0x40221000**, not RA6M5's 0x400E8000. The device
+  header defines it as `0x40221000UL + BASE_NS_OFFSET`, and that offset is 0 for a secure
+  build - this part aliases peripherals the way it aliases memory.
+- The ICU event number is **0x0086**, against RA6M5's 0x0040. Both come from the generated
+  table, so neither is written into the port.
+
+Using the FSP driver rather than raw registers is what made that portability free. A
+hand-rolled register sequence would have had to be re-verified per part.
+
+### RTT control-block addresses are PER BUILD, and a wrong one is silent
+
+The first GCC run "printed nothing" on both channels, because it was given the IAR build's
+addresses. Same source, same part, different toolchain:
+
+```
+RA6M5 IAR FLIH   tfm_s 0x2000A8A4   tfm_ns 0x20043338
+RA6M5 GCC FLIH   tfm_s 0x2000ABC0   tfm_ns 0x200434A4
+```
+
+Nothing in the e2 launch configuration carries the RTT address - it is a J-Link viewer
+setting - so a stale or cross-toolchain address presents as a dead console, not an error,
+and looks exactly like a hung target. The six current addresses and the `arm-none-eabi-nm`
+command to re-read them are now in the MACHINE_HANDOFF pre-flash checklist, which already
+warned they move on every relink but did not say they also differ between toolchains.
+
+**Corollary worth stating:** every "prints nothing" during this work - including the one
+that sent me looking at the AGT for a second time - should have been checked against the
+address before anything else. Two of the three were the address, not the firmware.

@@ -168,6 +168,29 @@ cmake --build build_ra6m4_boot
 3. Flash **`bl2.hex`**, never `bl2.bin`. Current builds strip the option sections out of the
    flat binary (~27 KB, guard-verified), but any `.bin` over ~1 MB spans the option memory and
    zero-fills PBPS — see DESIGN.md §8.4. The rule holds for both cases.
-4. Refresh the RTT addresses in `bringup_ra6m4.sh` — they move on every rebuild.
+4. **Re-read the RTT addresses for the exact build you are flashing.** They move on every
+   relink, and — the part that actually bites — they differ **per toolchain** for the same
+   source on the same part. Nothing in the launch configuration carries them, so a wrong
+   address is a silent "prints nothing", not an error. Read them out of the image:
+
+   ```
+   arm-none-eabi-nm <image>.axf | grep -w _SEGGER_RTT
+   ```
+
+   As built 2026-09-30 (regression + IRQ suites, RA6M5 / RA8M2):
+
+   | Build | tfm_s | tfm_ns |
+   |---|---|---|
+   | RA6M5 IAR FLIH  (`m5irq`/`m5irqns`)     | `0x2000A8A4` | `0x20043338` |
+   | RA6M5 IAR SLIH  (`m5slih`/`m5slihns`)   | `0x2000A8A4` | `0x20043318` |
+   | RA6M5 GCC FLIH  (`m5gflih`/`m5gflihns`) | `0x2000ABC0` | `0x200434A4` |
+   | RA6M5 GCC SLIH  (`m5gslih`/`m5gslihns`) | `0x2000ABC0` | `0x20043484` |
+   | RA8M2 GCC FLIH  (`m2gflih`/`m2gflihns`) | `0x2200ADA0` | `0x320ED4C8` |
+   | RA8M2 GCC SLIH  (`m2gslih`/`m2gslihns`) | `0x2200ADA0` | `0x320ED4A8` |
+
+   BL2 has no RTT control block in these builds: `MCUBOOT_LOG_LEVEL=OFF`, so `--gc-sections`
+   drops `SEGGER_RTT.o` entirely. MCUboot is silent by design — do not hunt for a wiring
+   fault. Rebuild with `-DMCUBOOT_LOG_LEVEL=INFO` to get boot output, which shifts the other
+   two addresses.
 5. Consider `-DRA6M4_BL2_HALT_AT_MAIN=ON` for a first flash on a new board: BL2 spins at `main()`
    so FAWMON/FSPR can be read back before MCUboot runs.
