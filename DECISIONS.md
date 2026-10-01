@@ -2634,3 +2634,46 @@ the more load-bearing result.
 **Still unrun:** RA6M5 IAR SLIH, and both RA8M2 builds. The RA8M2 pair also has no e2 launch
 configuration - the generator is RA6M5-specific and RA8M2's slots are at 0x68000 (secure
 primary) and 0xB0000 (non-secure primary), not 0xA0000/0x120000.
+
+---
+
+## D072 — RA6M5 interrupt matrix complete; and an RTT capture can truncate silently
+
+**Date:** 2026-10-01 · **Status:** Accepted · Closes [D071]
+
+**The matrix is full.** RA6M5, SFN, isolation 1, `TF-M v2.2.0+ca55cf5c1`, 15 suites each,
+zero failures:
+
+| | FLIH | SLIH |
+|---|---|---|
+| RA6M5 **IAR** | **PASS** | **PASS** |
+| RA6M5 **GCC** | **PASS** | **PASS** |
+| RA8M2 GCC | built, not run | built, not run |
+
+Two toolchains x two FF-M handling models, on one fixture, with no per-combination code.
+[D069]'s two fixes and [D068]'s fixture are complete and portable across both axes.
+
+### The first IAR SLIH run looked like a hang and was not
+
+Its non-secure log stopped mid-suite, after `TFM_NS_ITS_TEST_1002 - PASSED!`, with no
+summary. A re-run of the same binaries completed normally, so the target was fine and the
+RTT capture was short.
+
+**The tell, which is worth reusing:** the output ended immediately after a PASSING test and
+there was no `> Executing` / `Description:` line for the next one. A target that hangs
+inside a test prints that test's header first - the test framework emits it before the body
+runs. So:
+
+- output stops **after** a result line, next test never announced -> suspect the CAPTURE
+- output stops **after** a `Description:` line -> suspect the TARGET, and the named test is
+  where to look
+
+The non-secure RTT up-buffer is 4 KB against roughly 15 KB of log, so a viewer that
+attaches late or stops draining loses the tail with no error anywhere. Re-run before
+investigating.
+
+**What was NOT done, deliberately:** nothing was changed and no pass was recorded on the
+strength of the first run. The build was compared against the IAR FLIH one that had
+completed - byte-identical NS image, 116 bytes apart in secure text, same configuration -
+which established there was no build-level reason for ITS to differ, and that is what made
+"re-run it" the right next step rather than a code change.
