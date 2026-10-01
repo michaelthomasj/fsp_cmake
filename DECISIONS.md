@@ -2768,3 +2768,46 @@ and the launch erases all ROM, but wrong. What settled it was the user pointing 
 faulting address and one `objdump -d` of `ARM_Flash_ReadData`, which took under a minute and
 should have been the first move. The `0xFF` filler images left in `C:\b\m2fill\` are from
 the discarded ECC theory and are not needed.
+
+
+---
+
+## D074 — where MRAM_ADDR's two constants come from; refines [D073]
+
+**Date:** 2026-10-01 · **Status:** Accepted · Refines [D073], which described the threshold
+as `FLASH_AREA_1_OFFSET`
+
+**Raised by the rm_psa_crypto owner:** why not use `BSP_FEATURE_TZ_NS_OFFSET`, which is fixed
+per device family, instead of `FLASH_AREA_1_OFFSET`, which moves if the slots move?
+
+**They are not interchangeable.** `MRAM_ADDR()` needs two different things:
+
+| | What it is | Where it comes from | Moves? |
+|---|---|---|---|
+| **delta** | distance between the aliases, `0x10000000` | `BSP_FEATURE_TZ_NS_OFFSET` | no - family property |
+| **boundary** | where secure MRAM ends | this device's partitioning | **yes, and it must** |
+
+`BSP_FEATURE_TZ_NS_OFFSET` answers "how far apart are the aliases", never "is offset
+`0xB0000` secure". The boundary is whatever RDPM programmed into `CFSAMONA`; a family-fixed
+constant there would be wrong by construction, and the threshold tracking the layout is the
+requirement, not a hazard.
+
+**Taken anyway, for the delta.** The driver now derives the non-secure base as
+`FLASH_BASE_ADDRESS + BSP_FEATURE_TZ_NS_OFFSET` rather than using `FLASH_NS_ALIAS_BASE`.
+That literal stays in `flash_layout.h` only because the header is preprocessed into
+`ra8m2_bl2.ld` and cannot reach `bsp_feature.h`; `ra8m2_layout_checks.c` now asserts the two
+agree, so it cannot drift from FSP's value.
+
+**And the boundary's source changed too**, for the reason behind the question.
+`FLASH_AREA_1_OFFSET` gives the right number but names the wrong thing - it is where the
+first non-secure *slot* starts, which coincides with the security boundary only while nobody
+reorders the areas. The boundary is now the end of the NSC region
+(`TFM_MRAM_S_OFF(BSP_PARTITION_FLASH_CPU0_C_START) + BSP_PARTITION_FLASH_CPU0_C_SIZE`),
+which is the boundary by definition on this part: RDPM can only express a contiguous
+Secure|NSC|NS triple, so the NSC is always the last secure thing. Already asserted equal to
+`FLASH_AREA_1_OFFSET`.
+
+**No functional change.** All four RA8M2 GCC images rebuilt; the generated code is identical
+- `cmp.w r4, #0xb0000 / ite cc / movcc.w r1, #0x2000000 / movcs.w r1, #0x12000000` - and
+every image size is unchanged. The value is that both constants now come from their
+authoritative source and a wrong one fails the build instead of the board.
