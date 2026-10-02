@@ -3167,3 +3167,67 @@ afterwards.
 flash backend now reaches the image on a pack update. The cost is five documented couplings
 to FSP's header set, of which the `struct flash_area` layout match is the one with no
 build-time guard.
+
+---
+
+## D080 — every recorded attestation pass was on a token with no measurements
+
+**Date:** 2026-10-02 · **Status:** Accepted · Qualifies [D026], [D067] and the verification
+notes in `UPSTREAM_CHANGES.md`
+
+**The claim being corrected.** `DECISIONS.md:752` and `UPSTREAM_CHANGES.md:293` record PSA Arch
+**attestation 1/1** on EK-RA6E1 under both toolchains, cited as the strongest evidence the
+linker-template changes were correct. The RA6M5 regression matrix ([D072], 15 suites, zero
+failures) includes the attestation suites on the same basis. Both are accurate about what ran
+and overstate what it demonstrated.
+
+**Why.** `MCUBOOT_MEASURED_BOOT` and `MCUBOOT_DATA_SHARING` are **OFF** on ra6m5 and ra6e1
+(ra6m4 sets neither, taking upstream defaults), while `TFM_PARTITION_INITIAL_ATTESTATION` is
+ON. With no boot record, `attest_add_all_sw_components()` (`attest_core.c:120`) finds
+`component_cnt == 0`, and under `ATTEST_TOKEN_PROFILE_PSA_IOT_1` - the default,
+`config_base.h:165`, and what every one of these builds used - it is **allowed** to emit
+`IAT_NO_SW_COMPONENTS` and return success:
+
+```c
+if (component_cnt == 0) {
+#if ATTEST_TOKEN_PROFILE_PSA_IOT_1
+    attest_token_encode_add_integer(token_ctx, IAT_NO_SW_COMPONENTS,
+                                    NO_SW_COMPONENT_FIXED_VALUE);
+#else
+    LOG_ERRFMT("[ERR][Attest] Boot record is not available\r\n");
+    return PSA_ATTEST_ERR_CLAIM_UNAVAILABLE;
+#endif
+```
+
+The token was therefore well-formed, correctly signed, and passed - while attesting nothing
+about the firmware actually running. Under any other profile the identical state returns
+`CLAIM_UNAVAILABLE` and fails on the first run. These ports happened to sit on the one profile
+that forgives it.
+
+**What is and is not invalidated.** Unaffected: crypto 64/64, ITS, PS, the IPC work, the
+FLIH/SLIH matrix, and the linker-template fixes those runs were cited to prove - token
+structure and signing were genuinely exercised. Affected: the attestation claim alone, and
+only in the sense that it proved far less than the number suggested.
+
+**How it was found.** Not by the suites, which cannot detect it. The rm_psa_crypto owner read
+the RA8M2 config diff, saw `MCUBOOT_MEASURED_BOOT` appear in FSP's regenerated
+`mcuboot_config.h`, and said the attestation tests require measured boot so it should be
+enabled. That is the whole reason this surfaced.
+
+**Fixed on ra8m2 only**, as of today: both options ON, verified in the images rather than by a
+test result - BL2 links `boot_add_data_to_shared_area` / `boot_save_boot_status` writing to
+`0x22000000`, `tfm_s` links `tfm_core_get_boot_data` / `attest_get_boot_data`, and both
+reserve `.tfm_bl2_shared_data` at `0x22000000 +0x400`. BL2 grew 224 B; the secure image did
+not grow at all.
+
+**NOT fixed on ra6m5 or ra6e1.** The platform side is already in place on both - identical
+`BOOT_TFM_SHARED_DATA_*` and `SHARED_BOOT_MEASUREMENT_*` definitions - so it is the same two
+CMake lines and needs no e2 change. Headroom is there: RA6M5's secure image is 522,304 of
+524,288 B, **1,984 B spare**, and the RA8M2 change cost the secure image nothing. It is not
+done because it needs a hardware re-run to be worth claiming, and the RA6 projects are mid-
+revision.
+
+**Standing rule this produces: a passing attestation suite is not evidence that measured boot
+works.** It passes either way. The only check that means anything is reading the token and
+confirming it carries `IAT_SW_COMPONENTS` rather than `IAT_NO_SW_COMPONENTS`. Any future
+"attestation N/N" line in this log should say which of the two it saw.

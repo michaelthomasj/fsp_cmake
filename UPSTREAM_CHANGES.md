@@ -289,6 +289,13 @@ when two EK-RA6M4 boards were lost. Keep local or drop before submitting.
   `psa_generate_random` (SCE9 TRNG), `psa_hash_compute`, ITS set/get/remove, PS set/get/remove
   (AES-GCM), `psa_initial_attest_get_token_size`. GNU is additionally verified against the PSA
   Arch tests (crypto, storage, attestation).
+- **Caveat on the attestation result above, added 2026-10-02.** `MCUBOOT_MEASURED_BOOT`
+  and `MCUBOOT_DATA_SHARING` are OFF on ra6e1, so those tokens carried
+  `IAT_NO_SW_COMPONENTS` - valid and correctly signed, attesting no firmware
+  measurements. `ATTEST_TOKEN_PROFILE_PSA_IOT_1` permits that and the suite passes it.
+  The result still evidences the template changes (placement, signing, token structure),
+  which is what it was cited for; it is not evidence that measured boot works. See
+  DECISIONS D080.
 - Both toolchains now pass the PSA Arch suites on EK-RA6E1 at `profile_large` / isolation 3 /
   IPC: attestation 1/1, storage 17 (11 passed, 6 optional-PS skips), crypto 64/64, zero
   failures under either. That is the strongest evidence these template changes are correct -
