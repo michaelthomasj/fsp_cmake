@@ -3010,3 +3010,78 @@ SAU programming ([D076]).
 
 **Not acted on.** Everything above except the SCI0 fix. The back-ports to ra6m5/ra6e1 and the
 three missing assertions are real work, not edits, and are recorded here rather than done.
+
+---
+
+## D078 — the RA8M2 secure primary slot generated as 0x200; cause was partition ORDER, not geometry
+
+**Date:** 2026-10-02 · **Status:** Accepted · Unblocks the open question in [D076]
+
+**What was wrong.** FSP's generated `flash_map[]` in `<project>/Debug/bsp_linker_info.h` gave
+the secure primary slot
+
+```c
+.fa_id   = FLASH_AREA_0P_ID,
+.fa_size = BSP_PARTITION___BL_0_P_H_SIZE + BSP_PARTITION___BL_0_S_T_SIZE,   /* 0x200 */
+```
+
+omitting `FLASH_CPU0_S` (0x47A00) and `FLASH_CPU0_C` (0x400). A 512-byte secure primary slot.
+The other three areas were correct. Identical in all three RA8M2 projects, because the table
+is generated from the **solution**, not configured per project.
+
+**Found only because the port carries its own map.** `flash_layout.h` computes slot sizes
+with `TFM_SLOT_SPAN` - header start to trailer end - which is address-based and immune to
+this, so nothing in the TF-M build ever noticed. It surfaced while scoping whether to adopt
+`rm_mcuboot_port/flash_map.c` ([D076]).
+
+**The diagnosis that worked: compare against RA6M5.** First hypothesis was that the generator
+cannot cope with a zero-size trailer coincident with the next slot's header -
+`___BL_0_S_T` and `___BL_0_P_H` both sit at 0x68000. **Wrong.** RA6M5 has exactly the same
+coincidence at 0xA0000 and generates correctly. What differs is the order the two are emitted
+in:
+
+```
+RA6M5   ... S_I,  S_T(0x0),  P_H(0x200),  CPU0_S, CPU0_C, P_T     correct
+RA8M2   ... S_I,  P_H(0x200), S_T(0x0),   CPU0_S, CPU0_C, P_T     truncated
+```
+
+The generator walks its ordered partition list and sums until it meets a `_T`. With `S_T`
+first it closes the secondary slot and `P_H` then opens the primary cleanly. With `P_H` first
+it opens the primary and the next entry is `S_T` - the *other* slot's terminator - which
+closes it at 0x200. `S_T` also went missing from the `0S` sum, harmless only because it is
+zero. Addresses and sizes were identical in both solutions; it is purely a tie-break at a
+shared address, reflecting the order the partitions were created or last edited in RASC.
+
+**Fix.** In `ra8m2_gcc/solution.xml`, reorder the two `<memory>` elements at offset 0x68000 so
+`__BL_0_S_T` precedes `__BL_0_P_H`, matching RA6M5. Sizes stay with their own partitions -
+the first attempt exchanged the whole lines and carried the sizes across, leaving `P_H` at 0
+and `S_T` at 0x200, which overruns the secondary slot into the primary and leaves the primary
+with no MCUboot header.
+
+`Debug/bsp_linker_info.h` is written by the **e2 build**, not by Generate Project Content, so
+the projects must be rebuilt in e2 before the change appears.
+
+**Verified after regeneration**, all three projects, all four areas complete and whole 32 KB
+sectors:
+
+| area | offset | size | expression |
+|---|---|---|---|
+| 0P secure primary | 0x02068000 | 0x48000 | `P_H + FLASH_CPU0_S + FLASH_CPU0_C + P_T` |
+| 0S secure secondary | 0x02020000 | 0x48000 | `S_H + S_I + S_T` |
+| 1P NS primary | 0x120B0000 | 0x28000 | `P_H + FLASH_CPU0_N + P_T` |
+| 1S NS secondary | 0x120D8000 | 0x28000 | `S_H + S_I + S_T` |
+
+FSP's table and `flash_layout.h` now describe identical geometry. `tfm_s_signed.bin` 294,912 B
+and `tfm_ns_signed.bin` 163,840 B remain exact slot fits, and TF-M rebuilds clean, so
+`ra8m2_layout_checks.c`'s span-vs-sum assertions agree with the new partition data.
+
+**Consequence for [D076].** The objection to adopting `rm_mcuboot_port/flash_map.c` was that
+it brings a broken table. It no longer does. What remains is `DEFAULT_MCUBOOT_FLASH_MAP=OFF`
+(already supported upstream - corstone1000 and rse both set it) plus one upstream change to
+make `bl2/src/flash_map.c` overridable, recorded as item 13 in `UPSTREAM_CHANGES.md`.
+`bl2/src/security_cnt.c` stays TF-M's either way; `rm_mcuboot_port` does not provide NV
+rollback counters (DESIGN.md 5).
+
+**Worth keeping as method.** Two FSP-generated outputs from the same generator, one correct
+and one not, with identical geometry - the diff between them was the whole diagnosis. Reach
+for the other port before theorising about the tool.

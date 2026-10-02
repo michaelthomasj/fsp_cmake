@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<raSolution version="12">
+<raSolution>
   <generalSettings>
     <option key="#Board#" value="board.ra8m2ek"/>
     <option key="#TargetName#" value="R7KA8M2JFLCAC"/>
@@ -406,8 +406,8 @@
     <memory Pname="CPU0" name="DF_EMULATION" offset="0x10000" parent="FLASH" security="s" size="0x10000" userDefined="true"/>
     <memory Pname="CPU0" name="__BL_0_S_H" offset="0x20000" parent="FLASH" security="s" size="0x200" userDefined="true"/>
     <memory Pname="CPU0" name="__BL_0_S_I" offset="0x20200" parent="FLASH" security="s" size="0x47E00" userDefined="true"/>
-    <memory Pname="CPU0" name="__BL_0_P_H" offset="0x68000" parent="FLASH" security="s" size="0x200" userDefined="true"/>
     <memory Pname="CPU0" name="__BL_0_S_T" offset="0x68000" parent="FLASH" security="s" size="0x0" userDefined="true"/>
+    <memory Pname="CPU0" name="__BL_0_P_H" offset="0x68000" parent="FLASH" security="s" size="0x200" userDefined="true"/>
     <memory Pname="CPU0" name="FLASH_CPU0_S" offset="0x68200" parent="FLASH" security="s" size="0x47A00"/>
     <memory Pname="CPU0" name="FLASH_CPU0_C" offset="0xAFC00" parent="FLASH" security="c" size="0x400"/>
     <memory Pname="CPU0" name="__BL_0_P_T" offset="0xB0000" parent="FLASH" security="s" size="0x0" userDefined="true"/>
@@ -458,11 +458,6 @@
     <memory Pname="CPU0" name="DTCM_NS_CPU0_N" offset="0x10000" parent="DTCM_NS" security="n" size="0x10000"/>
     <memory Pname="CPU0" name="DTCM_CPU0_S" offset="0x0" parent="DTCM" security="s" size="0x10000"/>
   </raPartitions>
-  <raSmartBundles>
-    <bundle>${workspace_loc:/ra8m2_gcc_mcuboot}/Debug/ra8m2_gcc_mcuboot.sbd</bundle>
-    <bundle>${workspace_loc:/ra8m2_gcc_CPU0_secure}/Debug/ra8m2_gcc_CPU0_secure.sbd</bundle>
-    <bundle>${workspace_loc:/ra8m2_gcc_CPU0_nonsecure}/Debug/ra8m2_gcc_CPU0_nonsecure.sbd</bundle>
-  </raSmartBundles>
   <raPinConfiguration>
     <symbolicName propertyId="p000.symbolic_name" value="IO_CFG_INT"/>
     <symbolicName propertyId="p001.symbolic_name" value="ARDUINO_A0"/>
@@ -839,20 +834,25 @@
       <configSetting altId="usbhs.mode.custom.free" configurationId="usbhs.mode"/>
       <configSetting altId="usbhs.usbhs_vbus.p408" configurationId="usbhs.usbhs_vbus"/>
     </pincfg>
-    <pincfg active="false" name="R7KA8M2JFLCAC.pincfg" symbol="">
-      <configSetting altId="p208.gpio_mode.gpio_mode_peripheral" configurationId="p208.gpio_mode"/>
-      <configSetting altId="p208.jtag_fslash_swd.tdi" configurationId="p208"/>
-      <configSetting altId="p209.gpio_mode.gpio_mode_peripheral" configurationId="p209.gpio_mode"/>
-      <configSetting altId="p209.jtag_fslash_swd.tdo" configurationId="p209"/>
-      <configSetting altId="p210.gpio_mode.gpio_mode_peripheral" configurationId="p210.gpio_mode"/>
-      <configSetting altId="p210.jtag_fslash_swd.tms" configurationId="p210"/>
-      <configSetting altId="p211.gpio_mode.gpio_mode_peripheral" configurationId="p211.gpio_mode"/>
-      <configSetting altId="p211.jtag_fslash_swd.tck" configurationId="p211"/>
+    <pincfg active="false" name="R7KA8M2JFLCAC.pincfg" selected="false" symbol="">
       <configSetting altId="jtag_fslash_swd.mode.jtag.free" configurationId="jtag_fslash_swd.mode"/>
       <configSetting altId="jtag_fslash_swd.tck.p211" configurationId="jtag_fslash_swd.tck"/>
       <configSetting altId="jtag_fslash_swd.tdi.p208" configurationId="jtag_fslash_swd.tdi"/>
       <configSetting altId="jtag_fslash_swd.tdo.p209" configurationId="jtag_fslash_swd.tdo"/>
       <configSetting altId="jtag_fslash_swd.tms.p210" configurationId="jtag_fslash_swd.tms"/>
+      <configSetting altId="p208.jtag_fslash_swd.tdi" configurationId="p208"/>
+      <configSetting altId="p208.gpio_mode.gpio_mode_peripheral" configurationId="p208.gpio_mode"/>
+      <configSetting altId="p209.jtag_fslash_swd.tdo" configurationId="p209"/>
+      <configSetting altId="p209.gpio_mode.gpio_mode_peripheral" configurationId="p209.gpio_mode"/>
+      <configSetting altId="p210.jtag_fslash_swd.tms" configurationId="p210"/>
+      <configSetting altId="p210.gpio_mode.gpio_mode_peripheral" configurationId="p210.gpio_mode"/>
+      <configSetting altId="p211.jtag_fslash_swd.tck" configurationId="p211"/>
+      <configSetting altId="p211.gpio_mode.gpio_mode_peripheral" configurationId="p211.gpio_mode"/>
     </pincfg>
   </raPinConfiguration>
+  <raSmartBundles>
+    <bundle>${workspace_loc:/ra8m2_gcc_mcuboot}/Debug/ra8m2_gcc_mcuboot.sbd</bundle>
+    <bundle>${workspace_loc:/ra8m2_gcc_CPU0_secure}/Debug/ra8m2_gcc_CPU0_secure.sbd</bundle>
+    <bundle>${workspace_loc:/ra8m2_gcc_CPU0_nonsecure}/Debug/ra8m2_gcc_CPU0_nonsecure.sbd</bundle>
+  </raSmartBundles>
 </raSolution>
