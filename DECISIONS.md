@@ -3365,3 +3365,101 @@ and statically verified only. The RA6M5 matrix in [D072] predates both.
 **Build note.** IAR builds fail *after* a successful link with `'ielftool' is not recognized`
 unless `C:\iar\ewarmc-10.10.2\arm\bin` is on PATH - the compile and link succeed and only the
 `.hex`/`.bin`/`.elf`/`.srec` conversions fail, which reads like a build error and is not one.
+
+---
+
+## D083 — the PSA-arch builds needed two unrelated fixes, neither of them the MSVC install
+
+**Date:** 2026-10-02 · **Status:** Accepted
+
+All seven RA6M5 PSA-arch build trees had been failing since 2026-09-23 and were written off as
+"blocked on a Visual Studio environment". Two separate causes, and the suspected one - a
+downgraded Visual Studio runtime - was not involved.
+
+### 1. GCC trees: no developer environment, and a misleading error
+
+`m5att`, `m5sto`, `m5cryns` died at
+
+```
+targetConfigGen.c(1): fatal error C1083: Cannot open include file: 'stdio.h'
+```
+
+The psa-arch-tests build generates `targetConfigGen.c` and compiles it with **cl.exe as a host
+tool** to emit the target database. `cl.exe` needs `INCLUDE`/`LIB`, which only vcvars sets.
+
+**The message invites the wrong investigation.** `VC\Tools\MSVC\14.29.30133\include` has no
+`stdio.h`, which looks like a damaged install. It is not: `stdio.h` is a **UCRT** header from
+the Windows SDK and has never shipped in the MSVC toolset. The install was complete throughout
+- 249 headers with `vcruntime.h` present, `libcmt.lib`, SDK 10.0.19041.0 with `ucrt/stdio.h`,
+`libucrt.lib` and `kernel32.lib`, and all five `vcvars*.bat`. Nothing needed installing or
+upgrading.
+
+Running the build through `vcvars64.bat` fixed all three immediately.
+
+`vcvars64` prints `'vswhere.exe' is not recognized` on this machine even though
+`Installer\vswhere.exe` exists - it is not on PATH. **Cosmetic:** vcvars falls back to the
+registry and sets the SDK paths correctly. Confirmed by dumping the result:
+
+```
+INCLUDE  ...MSVC\14.29.30133\include; ...Windows Kits\10\include\10.0.19041.0\ucrt; shared; um; ...
+LIB      ...MSVC\14.29.30133\lib\x64; ...Windows Kits\10\lib\10.0.19041.0\ucrt\x64; um\x64
+```
+
+Which is why `scripts\vs_build.bat` checks the RESULT - does INCLUDE mention Windows Kits -
+rather than vcvars' exit code.
+
+### 2. IAR trees: the `ewarm` / `ewarmc` path, frozen into four build trees
+
+`m5icry`, `m5icryns`, `m5iatt`, `m5isto` failed differently once the environment was right:
+
+```
+C:\iar\ewarm-10.10.2\arm\bin\iarchive.exe  <- no such directory
+```
+
+The missing `c`. That is the bug fixed in commit `bf3d88f`, but these trees were configured
+2026-09-23, before it, and a CMake cache does not re-derive a tool path. Oddly only part of
+each cache was stale - `CMAKE_C_COMPILER` had the correct `ewarmc` while `CMAKE_AR` and
+`CMAKE_LINKER` had `ewarm`.
+
+**Fixing `CMakeCache.txt` was not enough.** The path is also frozen into
+`CMakeFiles/4.1.1/CMake{C,CXX,ASM}Compiler.cmake`, `CMakeFiles/rules.ninja`, the installed
+`api_ns/platform/ra6m5_ns_config.cmake`, and `temp/tmp/TF-M-cache-.cmake`. Nine files across
+the four trees; after correcting all of them, all four built.
+
+Worth knowing generally: **a stale tool path survives `cmake --regenerate-during-build`**,
+because the regeneration reads the same cache. The grep that finds them is
+`grep -rl ewarm-10.10.2 <tree> --include=*.cmake --include=CMakeCache.txt --include=*.ninja`
+- restricted to those three patterns, because the raw grep also matches 700-odd object and ELF
+files that merely carry the path in debug info.
+
+### Result
+
+All eleven RA6M5 launch configurations now have current images, both toolchains. The six
+PSA-arch ones:
+
+| launch | tfm_s | tfm_ns |
+|---|---|---|
+| `ra6m5_TFM_test_crypto_gcc` | `0x2000B478` | `0x20044B78` |
+| `ra6m5_TFM_test_storage_gcc` | `0x2000B478` | `0x20044270` |
+| `ra6m5_TFM_test_attestation_gcc` | `0x2000B478` | `0x20043CD0` |
+| `ra6m5_TFM_test_crypto_iar` | `0x2000B2BC` | `0x20042E38` |
+| `ra6m5_TFM_test_storage_iar` | `0x2000B2BC` | `0x20043018` |
+| `ra6m5_TFM_test_attestation_iar` | `0x2000B2BC` | `0x20042B38` |
+
+### `scripts\vs_build.bat`
+
+Added, because every PSA-arch build needs this and nothing else does. `vs_build.bat` with no
+argument self-checks the environment and prints it; with a build directory it builds. It also
+prepends `IAR_BIN`, so one wrapper serves both toolchains.
+
+Three batch traps it documents inline, all hit while writing it:
+- `%INCLUDE%` must be **quoted** in the pipeline test - it contains `(x86)`, and the bare
+  parentheses terminate the enclosing block with `\Microsoft was unexpected at this time.`
+- `findstr` is invoked by **full path**: a Git Bash or MSYS PATH shadows `find` and `findstr`
+  with the Unix tools, and this script is usually launched from such a shell.
+- vcvars' exit code is not checked, for the vswhere reason above.
+
+**Still unaddressed:** the attestation launches share an SPE with crypto (`m5cry` / `m5icry`),
+the same defect noted for RA8M2. Each suite should have its own SPE. And per [D080], a passing
+attestation run proves nothing about measured boot either way - read the boot record at
+`0x20000000` instead.
