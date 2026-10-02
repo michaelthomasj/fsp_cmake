@@ -31,6 +31,16 @@ set SUITE=%2
 if "%BUILD%"=="" echo usage: %~nx0 ^<build-dir^> ^<TEST_PSA_API^> & exit /b 2
 if "%SUITE%"=="" echo usage: %~nx0 ^<build-dir^> ^<TEST_PSA_API^> & exit /b 2
 
+rem  LOGGING IS ON DELIBERATELY in these four options, and they are stated here rather than
+rem  left to the defaults so a fresh tree matches an old one. Until 2026-10-02 they existed
+rem  only as hand-set cache entries in C:\b\m5cry, so a rebuilt-from-scratch SPE was quietly
+rem  a different image - 3,785 B less secure text and 5,960 B less BL2 text. DECISIONS D084.
+rem
+rem  They cost space: see README.md "Freeing space in the secure image". The PSA Arch builds
+rem  can afford it; the regression builds CANNOT - the secure slot has 1,984 B spare on RA6M5
+rem  and 960 B on RA8M2, against 3,785 B for the secure-side logging alone. That is why this
+rem  is set per-script and not in the platform config.cmake.
+
 if not exist "%BUILD%\CMakeCache.txt" (
   cmake -S %TFM_TESTS%\tests_psa_arch\spe -B %BUILD% -GNinja ^
     -DCMAKE_C_COMPILER=%IAR_BIN:\=/%/iccarm.exe ^
@@ -46,6 +56,10 @@ if not exist "%BUILD%\CMakeCache.txt" (
     -DTFM_ISOLATION_LEVEL=3 ^
     -DCONFIG_TFM_SPM_BACKEND=IPC ^
     -DTFM_SPM_DEBUG_TRACE=OFF ^
+    -DMCUBOOT_LOG_LEVEL=INFO ^
+    -DTFM_SPM_LOG_LEVEL=TFM_SPM_LOG_LEVEL_DEBUG ^
+    -DTFM_PARTITION_LOG_LEVEL=TFM_PARTITION_LOG_LEVEL_INFO ^
+    -DCONFIG_TFM_HALT_ON_CORE_PANIC=ON ^
     -DRA6M5_RTT_BLOCKING=ON ^
     -DPSA_ARCH_TESTS_PATH=%PSA_TESTS% ^
     -DPSA_API_TEST_TARGET=renesas_ra

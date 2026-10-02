@@ -3459,7 +3459,85 @@ Three batch traps it documents inline, all hit while writing it:
   with the Unix tools, and this script is usually launched from such a shell.
 - vcvars' exit code is not checked, for the vswhere reason above.
 
-**Still unaddressed:** the attestation launches share an SPE with crypto (`m5cry` / `m5icry`),
-the same defect noted for RA8M2. Each suite should have its own SPE. And per [D080], a passing
-attestation run proves nothing about measured boot either way - read the boot record at
-`0x20000000` instead.
+**Still unaddressed:** per [D080], a passing attestation run proves nothing about measured boot
+either way - read the boot record at `0x20000000` instead.
+
+**Retracted:** this entry originally said the attestation launches sharing an SPE with crypto
+(`m5cry` / `m5icry`) was a defect needing one SPE per suite. It is not - see [D084], which
+proves the two builds byte-identical.
+
+---
+
+## D084 — the shared PSA-arch SPE is NOT a defect; the debug settings in it were cache residue
+
+**Date:** 2026-10-02 · **Status:** Accepted · **Retracts** the "each suite needs its own SPE"
+claim made in [D083] and in the RA8M2 notes
+
+**The claim, withdrawn.** One SPE serving all three PSA Arch suites was flagged as a defect
+twice, for RA8M2 and RA6M5, on the reasoning that an SPE built with `TEST_PSA_API=CRYPTO`
+cannot be right for the storage and attestation runs. That was asserted without checking.
+`psa_arch_spe.bat`'s own comment said otherwise and was correct.
+
+**Proof.** Two SPEs built fresh from the same script, differing only in `TEST_PSA_API`:
+
+```
+                CRYPTO     INITIAL_ATTESTATION
+tfm_s.bin       521792  =  521792   IDENTICAL
+bl2.bin          27980  =   27980   IDENTICAL
+```
+
+Byte-identical. Three independent reasons, each checkable:
+
+- `config_test_psa_api.cmake` only turns `TFM_PARTITION_*` **on**, and the platform
+  `config.cmake` plus `profile_large` already enable all of them. Both builds carry
+  `CRYPTO INITIAL_ATTESTATION INTERNAL_TRUSTED_STORAGE NS_AGENT_TZ PLATFORM PROTECTED_STORAGE`.
+- `PROJECT_CONFIG_HEADER_FILE` is the same `config_test_psa_api.h` for every suite.
+- The one compile definition it adds, `PSA_API_TEST_CRYPTO`, is read only by `musca_s1` and
+  `rpi/rp2350`. No Renesas source references it.
+
+**What the experiment did find.** The first comparison - against the existing `C:\b\m5cry` -
+showed 212 KB of 521 KB differing, which is what made the shared-SPE theory look plausible for
+a moment. It was nothing to do with `TEST_PSA_API`. `m5cry` carried four hand-set cache entries
+from some earlier debugging session, frozen since 2026-09-23 and in no script:
+
+```
+                                m5cry    script default
+MCUBOOT_LOG_LEVEL               INFO     OFF
+TFM_SPM_LOG_LEVEL               DEBUG    SILENCE
+TFM_PARTITION_LOG_LEVEL         INFO     SILENCE
+CONFIG_TFM_HALT_ON_CORE_PANIC   ON       OFF
+```
+
+So **every PSA Arch result recorded from `m5cry` came from a more verbose secure image than
+the script describes**, and a tree rebuilt from scratch would quietly have been a different
+binary. That is the real defect here, and it is the kind that only shows up when someone
+rebuilds.
+
+**Resolution: keep them on, state them in the script.** The rm_psa_crypto owner's call - a user
+running the PSA Arch suites should get that diagnostic output out of the box. All four are now
+passed on the command line by `psa_arch_spe.bat` and `psa_arch_spe_iar.bat`, so a fresh tree
+reproduces the old one. Verified: `bl2.bin` byte-identical at 33,952 B, and `tfm_s` identical in
+text/data/bss (220272/144/58022) with the only remaining byte difference being the nine
+characters of the git hash in the version banner - `v2.2.0+40bd4b40a` against `v2.2.0+f435aac6c`,
+because `m5cry` predates today's commits.
+
+**Why NOT in `<part>/config.cmake`.** They do not fit the ordinary builds. Measured on RA6M5,
+GCC 13.2:
+
+| | cost |
+|---|---|
+| `MCUBOOT_LOG_LEVEL=INFO` | BL2 text +5,960 B, bss +4,284 B |
+| the three secure-side options together | secure text +3,785 B |
+
+against **1,984 B** of secure-slot headroom on RA6M5 and **960 B** on RA8M2. Setting them
+globally would fail to link. Per-script is not a workaround here, it is the only placement that
+works.
+
+Now listed in `README.md` under "Freeing space in the secure image", with
+`TFM_EXCEPTION_INFO_DUMP` (~3.4 KB, on for every build) as the third candidate and the one
+actually worth reconsidering for a production image.
+
+**Method note.** Two wrong calls in this one area, and the same cause both times: reasoning
+from what a setting *ought* to do instead of building it twice and running `cmp`. The decisive
+experiment took one rebuild and five seconds of comparison, and it should have come before the
+first claim, not after the second.
