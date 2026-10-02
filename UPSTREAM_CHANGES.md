@@ -189,9 +189,9 @@ branches but not the EC one, so an EC-P256 build with `MCUBOOT_IMAGE_NUMBER=2` f
 `#ifndef` guard so a platform that already defines `FLASH_DEVICE_ID` from its own flash map
 does not collide.
 
-### 13. BL2's MCUboot flash backend cannot be replaced by a platform — PROPOSED, not yet implemented
+### 13. BL2's MCUboot flash backend cannot be replaced by a platform
 
-`bl2/CMakeLists.txt:123`
+`bl2/CMakeLists.txt`, `bl2/ext/mcuboot/CMakeLists.txt`, `bl2/ext/mcuboot/mcuboot_default_config.cmake`
 
 TF-M lets a platform replace the MCUboot flash **map** but not the **backend**.
 `DEFAULT_MCUBOOT_FLASH_MAP=OFF` already drops `src/default_flash_map.c` and empties
