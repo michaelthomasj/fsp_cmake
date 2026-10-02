@@ -15,8 +15,8 @@
         <memory parent="FLASH" name="DF_EMULATION" size="0x10000" offset="0x10000" security="s" Pname="CPU0" info="@user"/>
         <memory parent="FLASH" name="__BL_0_S_H" size="0x200" offset="0x20000" security="s" Pname="CPU0" info="@user"/>
         <memory parent="FLASH" name="__BL_0_S_I" size="0x47E00" offset="0x20200" security="s" Pname="CPU0" info="@user"/>
-        <memory parent="FLASH" name="__BL_0_P_H" size="0x200" offset="0x68000" security="s" Pname="CPU0" info="@user"/>
         <memory parent="FLASH" name="__BL_0_S_T" size="0x0" offset="0x68000" security="s" Pname="CPU0" info="@user"/>
+        <memory parent="FLASH" name="__BL_0_P_H" size="0x200" offset="0x68000" security="s" Pname="CPU0" info="@user"/>
         <memory parent="FLASH" name="FLASH_CPU0_S" size="0x47A00" offset="0x68200" security="s" Pname="CPU0"/>
         <memory parent="FLASH" name="FLASH_CPU0_C" size="0x400" offset="0xAFC00" security="c" Pname="CPU0"/>
         <memory parent="FLASH" name="__BL_0_P_T" size="0x0" offset="0xB0000" security="s" Pname="CPU0" info="@user"/>
@@ -220,8 +220,8 @@
             <assign memory="DF_EMULATION"/>
             <assign memory="__BL_0_S_H"/>
             <assign memory="__BL_0_S_I"/>
-            <assign memory="__BL_0_P_H"/>
             <assign memory="__BL_0_S_T"/>
+            <assign memory="__BL_0_P_H"/>
             <assign memory="FLASH_CPU0_S"/>
             <assign memory="FLASH_CPU0_C"/>
             <assign memory="__BL_0_P_T"/>

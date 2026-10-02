@@ -305,4 +305,9 @@
       <configSetting altId="usbhs.usbhs_vbus.p408" configurationId="usbhs.usbhs_vbus" peripheral="USB HS"/>
     </pincfg>
   </raPinConfiguration>
+  <raSmartBundles>
+    <bundle>${workspace_loc:/ra8m2_gcc_mcuboot}/Debug/ra8m2_gcc_mcuboot.sbd</bundle>
+    <bundle>${workspace_loc:/ra8m2_gcc_CPU0_secure}/Debug/ra8m2_gcc_CPU0_secure.sbd</bundle>
+    <bundle>${workspace_loc:/ra8m2_gcc_CPU0_nonsecure}/Debug/ra8m2_gcc_CPU0_nonsecure.sbd</bundle>
+  </raSmartBundles>
 </raSolution>
