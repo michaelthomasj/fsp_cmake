@@ -3363,5 +3363,5 @@ and statically verified only. The RA6M5 matrix in [D072] predates both.
   changes.
 
 **Build note.** IAR builds fail *after* a successful link with `'ielftool' is not recognized`
-unless `C:\iar\ewarmc-10.10.2\\arm\\bin` is on PATH - the compile and link succeed and only the
+unless `C:\iar\ewarmc-10.10.2\arm\bin` is on PATH - the compile and link succeed and only the
 `.hex`/`.bin`/`.elf`/`.srec` conversions fail, which reads like a build error and is not one.
