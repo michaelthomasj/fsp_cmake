@@ -15,8 +15,7 @@ git diff --stat $(git merge-base HEAD upstream/main) -- \
     toolchain_GNUARM.cmake toolchain_IARARM.cmake
 ```
 
-20 files differ. Each is accounted for below. Item 13 is PROPOSED and is not among
-them - it has not been implemented here yet.
+21 files differ. Each is accounted for below.
 
 ---
 
@@ -238,9 +237,20 @@ Each of those three was a hardware-only failure in this port before it was under
 and Infineon all do — hits the same wall, and the alternative is what this port did: a
 parallel backend that silently stops tracking the vendor's fixes.
 
-**Not yet implemented here.** Listed so it is not forgotten; the port still links
-`src/flash_map.c` today. `src/security_cnt.c` stays TF-M's regardless — `rm_mcuboot_port`
-does not provide NV rollback counters (DESIGN.md §5).
+**Implemented**, 2026-10-02. Three files are guarded, not one — `bl2/src/flash_map.c` plus
+`bl2/ext/mcuboot/flash_map_extended.c` and `flash_map_legacy.c`, which carry the rest of the
+API (`flash_area_get_sectors`, `get_sector`, `erased_val`, the slot/area id mapping). The
+option defaults ON in `mcuboot_default_config.cmake`, so no existing platform changes. RA8M2
+sets it OFF and links FSP's `rm_mcuboot_port/flash_map.c`; DECISIONS D079 records what that
+took beyond the CMake.
+
+One point for the reviewer rather than a decision to take here: a platform turning this off
+also loses `flash_device_base()`, whose only definition is the `__WEAK` one in
+`flash_map_extended.c`. That function is about the platform's address convention rather than
+the backend, so it arguably belongs outside the guard.
+
+`src/security_cnt.c` stays TF-M's regardless — `rm_mcuboot_port` does not provide NV rollback
+counters (DESIGN.md §5).
 
 ---
 
