@@ -3293,3 +3293,75 @@ without `FORCE`. The caches were forced with `cmake -DX:BOOL=ON <build-spe dir>`
 trap silently left `DEFAULT_MCUBOOT_FLASH_MAP` ON for an hour during [D079], where it was
 masked by FSP's `sysflash.h` shadowing TF-M's. **Check the cache, not the config file,
 when a platform option appears not to take.**
+
+---
+
+## D082 — RA6M5 follows [D079]: BL2 takes its MCUboot flash backend from FSP
+
+**Date:** 2026-10-02 · **Status:** Accepted · Extends [D079] to the second active part
+
+**Same change, one motivation missing.** RA6M5 now links FSP's
+`rm_mcuboot_port/flash_map.c` instead of TF-M's `bl2/src/flash_map.c`,
+`flash_map_extended.c` and `flash_map_legacy.c`, with `DEFAULT_MCUBOOT_FLASH_MAP` and
+`DEFAULT_MCUBOOT_FLASH_BACKEND` both OFF and `mcuboot_config.h` still TF-M's.
+
+**What does NOT carry over.** `__SAUREGION_PRESENT` is **0** on RA6M5, so FSP's
+`RM_MCUBOOT_PORT_CONFIGURE_SAU` block compiles out entirely. On RA8M2 that block was the whole
+reason for the change - without it BL2 cannot read the non-secure slots at all ([D076]). Here
+it contributes nothing, and the case rests only on:
+
+  - FSP's **generated `flash_map[]`** being the one in the image, so the slot geometry comes
+    from the solution rather than from `flash_layout.h`'s parallel derivation; and
+  - FSP's **erase/write/sector logic** being the vendor's, so a pack-level bug fix reaches the
+    image on regenerate instead of being re-found on hardware.
+
+That is goal 3 working, not a defect being fixed. Worth being explicit, because the RA8M2
+justification does not transfer and a reader comparing the two ports will look for it.
+
+The alias argument also thins out: FSP's `fa_off` is an absolute address, but RA6M5 code flash
+is based at `0x00000000` and `BSP_FEATURE_TZ_NS_OFFSET` is 0, so absolute and flat are the same
+number. `flash_device_base()` returns 0 on both ports - on RA8M2 because FSP's offsets are
+already absolute, on RA6M5 because either reading gives zero. The implementations were kept
+identical deliberately; the next part may not have that luxury.
+
+**It built first time**, unlike RA8M2. Every obstacle there turned out to be generic rather
+than part-specific, and all five were already solved:
+
+| | |
+|---|---|
+| two `flash_map_backend.h` | TF-M's suppressed by pre-defining `__FLASH_MAP_BACKEND_H__`; `flash_map.c` reaches its own sibling copy by the quoted-include rule regardless of `-I` order |
+| two `sysflash.h` | FSP's wins by include order and shadows TF-M's, which is empty with the map option OFF |
+| `boot_hooks.h` is not self-contained | `stddef.h`, `stdbool.h` and `fault_injection_hardening.h` force-included |
+| `BOOT_HOOK_FLASH_AREA_CALL` | absent from TF-M's MCUboot; `mcuboot_hook_shim.h` supplies the hooks-off expansion |
+| `flash_device_base()` | only definition was the `__WEAK` one in `flash_map_extended.c`, now dropped |
+
+`flash_map.c` is **byte-identical** between the RA6M5 and RA8M2 bootloader projects, and both
+ship the same FSP MCUboot fork, so the shim was copied after checking rather than assuming.
+
+**`bl2_boot_hal.c` is now built unconditionally** on this port too - it was inside
+`if(CRYPTO_HW_ACCELERATOR)` because the SCE9 bring-up was its only job. The SCE half moved
+behind `RA6M5_BL2_SCE_INIT`.
+
+**Verified in the images**, all five SPE trees (GCC: `m5gflih`, `m5gslih`, `m5rs`, `m5cry`;
+IAR: `m5irq`, `m5slih`) and all five NS trees: no `flash_map.c.obj`, `default_flash_map`,
+`flash_map_extended` or `flash_map_legacy` anywhere in the link; exactly one
+`flash_area_open`; `flash_device_base` and `flash_area_erased_val` present.
+`bl2.bin` 27,144 -> **26,496 B** (GCC) / **26,248 B** (IAR).
+
+**NOT run on hardware.** Both of today's changes - measured boot ([D081]) and this - are built
+and statically verified only. The RA6M5 matrix in [D072] predates both.
+
+**Still outstanding before RA6M5 can be called done:**
+- Re-run `ra6m5_TFM_regression_gcc`, `ra6m5_TFM_regression_iar`, `ra6m5_TFM_flih_gcc`,
+  `ra6m5_TFM_slih_gcc`, `ra6m5_TFM_slih_iar`. All five point at trees rebuilt 2026-10-02.
+- **The six PSA-arch launches must NOT be run as they stand.** `m5att`, `m5sto`, `m5cryns`,
+  `m5icry`, `m5icryns`, `m5iatt`, `m5isto` are all from 2026-09-23 and carry neither change,
+  while their SPE `m5cry` was rebuilt today - a current SPE against a 9-day-old NS image is
+  worse than uniformly stale. They are blocked on the PSA-arch host tool `targetConfigGen.c`
+  needing MSVC's `stdio.h`, i.e. a Visual Studio developer environment.
+- **IAR has not run since any of this.** The last IAR results ([D070], [D071]) predate both
+  changes.
+
+**Build note.** IAR builds fail *after* a successful link with `'ielftool' is not recognized`
+unless `C:\iar\ewarmc-10.10.2\\arm\\bin` is on PATH - the compile and link succeed and only the
+`.hex`/`.bin`/`.elf`/`.srec` conversions fail, which reads like a build error and is not one.
