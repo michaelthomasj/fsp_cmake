@@ -3085,3 +3085,85 @@ rollback counters (DESIGN.md 5).
 **Worth keeping as method.** Two FSP-generated outputs from the same generator, one correct
 and one not, with identical geometry - the diff between them was the whole diagnosis. Reach
 for the other port before theorising about the tool.
+
+---
+
+## D079 — BL2 takes its MCUboot flash backend from FSP; closes [D076]
+
+**Date:** 2026-10-02 · **Status:** Accepted · Closes [D076], supersedes the `rm_mcuboot_port`
+exclusion in DESIGN.md 4
+
+**Decision.** BL2 links FSP's `ra/fsp/src/rm_mcuboot_port/flash_map.c` instead of TF-M's
+`bl2/src/flash_map.c`, `flash_map_extended.c` and `flash_map_legacy.c`. `DEFAULT_MCUBOOT_FLASH_MAP`
+and a new `DEFAULT_MCUBOOT_FLASH_BACKEND` are both OFF for this platform.
+
+**Why.** Three things the port had been re-deriving, each of which had already cost a
+hardware-only failure:
+
+1. **The alias is in the table.** FSP's `flash_map[]` holds absolute addresses in `fa_off` -
+   `0x02068000` secure, `0x120B0000` non-secure - so there is no base to add and no alias to
+   choose. That is [D073]/[D074] made unnecessary rather than merely correct.
+2. **It programs the SAU.** `flash_area_open()` sets the non-secure window from
+   `R_PSCU->CFSAMONA_b.CFS2` **read at runtime**, and `flash_on_chip_cleanup()` tears it down.
+   Without it BL2 cannot reach the non-secure slots at all ([D076]). Verified in the image:
+   `str.w r0,[r2,#0xd8]` (SAU->RNR=0), `ldr r3,[r3,#0x30]` (CFSAMONA), `ubfx r3,r3,#15,#9`,
+   `lsls r3,r3,#15`, `add.w r3,#0x12000000`, `str.w` to RBAR/RLAR, `SAU->CTRL=1`.
+3. **The erase/write/sector logic is the vendor's**, so FSP bug fixes arrive on a pack update
+   instead of being re-found here.
+
+**What the "one file swap" actually took.** Five couplings, none of them visible from the
+CMake:
+
+| | |
+|---|---|
+| Two `flash_map_backend.h` | FSP's (mbed-derived, `H_UTIL_FLASH_MAP_`, 209 lines) vs TF-M's (Arm's trim, `__FLASH_MAP_BACKEND_H__`, 103). `flash_map.c` reaches its own sibling copy by the quoted-include rule, which no `-I` order defeats, so TF-M's is suppressed by pre-defining its guard. Safe only because the two `struct flash_area` are field-for-field identical - **re-check on any uprev; this is the one thing here that would break silently.** |
+| Two `sysflash.h` | FSP's carries `FLASH_DEVICE_INTERNAL_FLASH/EXTERNAL_FLASH` and includes `bsp_linker_info.h`; TF-M's is empty once `DEFAULT_MCUBOOT_FLASH_MAP=OFF`. FSP's defines `__SYSFLASH_H__` as well as its own guard, so it shadows TF-M's. |
+| Two `mcuboot_config.h` | **Kept TF-M's, deliberately.** See below. |
+| `boot_hooks.h` is not self-contained | No includes at all; uses `size_t`, `bool` and `fih_ret` and assumes the includer got there first. `flash_map.c` includes it third. Force-included rather than edited. |
+| TF-M's MCUboot is **not** RASC's | Below. |
+
+**DESIGN.md 5 is wrong and this corrects it.** It records TF-M's downloaded MCUboot as
+"byte-identical to the copy RASC ships". It is not: Renesas's fork at
+`<bootloader project>/ra/mcu-tools/MCUboot` has a `boot_hooks.h` of 287 lines against TF-M's
+181, with three macros TF-M has no equivalent for - `BOOT_HOOK_FLASH_AREA_CALL`,
+`BOOT_HOOK_FIND_SLOT_CALL`, `BOOT_HOOK_GO_CALL_FIH`. `flash_map.c` uses exactly one of them,
+once, and with `MCUBOOT_FLASH_AREA_ID_HOOKS` off (both sides) it is `HOOK_CALL_NOP`, i.e.
+`ret_default`. `mcuboot_hook_shim.h` supplies that one definition for that one translation
+unit. The alternative - repointing `MCUBOOT_PATH` at Renesas's fork and re-supplying the
+build glue RASC strips - is a far larger change for a no-op macro, and was rejected.
+
+**The deliberate deviation: `mcuboot_config.h` stays TF-M's.** Option A as originally framed
+was "give the whole BL2 FSP's `mcu-tools` headers". That would also hand over MCUboot's
+**security policy**, and FSP's config does not define `MCUBOOT_HW_ROLLBACK_PROT` at all - the
+NV counter check would have compiled out silently, while TF-M's `config.cmake` still drove
+imgtool at signing time. Verification policy from e2 and signing from TF-M is a split-brain
+no comment can make safe. So the split is: **flash identity from FSP, security policy from
+TF-M**, enforced by include ORDER - the generated `${CMAKE_BINARY_DIR}/bl2/ext/mcuboot` must
+precede FSP's `mcu-tools/include`, because FSP's `sysflash.h` opens with
+`#include "mcuboot_config/mcuboot_config.h"` and that is the line that would otherwise pull
+FSP's policy in through the side door.
+
+**`flash_device_base()` moved into the port** (`bl2_boot_hal.c`), returning **0**. TF-M's
+`__WEAK` version returns `FLASH_DEVICE_BASE` to compensate for its flat `fa_off`; FSP's
+`fa_off` is already absolute, and `bl2_main.c` computes
+`vt = flash_base + br_image_off + ih_hdr_size`. Adding a base on top would land the jump
+32 MB past the image.
+
+**Upstream.** `DEFAULT_MCUBOOT_FLASH_BACKEND` guards all three TF-M backend files and defaults
+ON, so no existing platform changes. `UPSTREAM_CHANGES.md` item 13, now implemented rather
+than proposed.
+
+**Built, not yet run.** All four RA8M2 GCC images. `tfm_s_signed.bin` 294,912 B and
+`tfm_ns_signed.bin` 163,840 B still exact slot fits, RTT addresses unchanged, OFS guard PASS.
+`bl2.bin` 27,632 -> 26,952 B - smaller, because FSP's backend replaces three TF-M files.
+
+**What this does not fix.** `bl2/src/security_cnt.c` stays TF-M's; `rm_mcuboot_port` has no
+NV rollback counters (DESIGN.md 5). And the SAU teardown in `flash_on_chip_cleanup()` is only
+reached if BL2 calls it - worth confirming on hardware that the window is down before the
+jump, since the secure image's `R_BSP_SAUInit()` reprograms region 0 for its NSC immediately
+afterwards.
+
+**Against the three project goals.** This is goal 3 working as intended: a bug fixed in FSP's
+flash backend now reaches the image on a pack update. The cost is five documented couplings
+to FSP's header set, of which the `struct flash_area` layout match is the one with no
+build-time guard.
