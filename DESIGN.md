@@ -31,6 +31,51 @@ the stable "decisions" companion.
 - **Corollary:** whenever a value/section could come from RASC config, source it from there
   (e.g. OFS values from `BSP_CFG_OPTION_SETTING_*`), even if the emitting shim is small.
 
+
+### 1.1 Documented deviations from the principle
+
+Deliberate exceptions. Anything not listed here that diverges from RASC is a defect, not a choice.
+
+**Image version — TF-M owns it, not FSP. USAGE NOTE: do not set `MCUBOOT_IMAGE_VERSION`.**
+
+FSP takes the signed image version from an **environment variable**. Its
+`rm_mcuboot_port_sign.py` (lines 23–36) reads `MCUBOOT_IMAGE_VERSION`, injects
+`--version <value>` into the imgtool argv, and errors out if `-v`/`--version` is already present in
+the e2 *Signing Options > Custom* field:
+
+```python
+if os.getenv("MCUBOOT_IMAGE_VERSION") is not None:
+    if "-v" in sys.argv or "--version" in sys.argv:
+        sys.exit("ERROR: Remove -v and --version from Signing Options ...")
+    sys.argv.insert(sys.argv.index("sign") + 1, "--version")
+    sys.argv.insert(sys.argv.index("sign") + 2, os.getenv("MCUBOOT_IMAGE_VERSION"))
+```
+
+This port does **not** use that script and does not read that variable. Versions come from TF-M's
+cache variables, passed to imgtool by `cmake/spe-CMakeLists.cmake`:
+
+| | Variable | Default |
+|---|---|---|
+| secure | `MCUBOOT_IMAGE_VERSION_S` | `${TFM_VERSION}` — 2.2.0 today |
+| non-secure | `MCUBOOT_IMAGE_VERSION_NS` | `0.0.0` |
+
+Both are defined in `bl2/ext/mcuboot/mcuboot_default_config.cmake:73-74` and are overridable per
+platform in `config.cmake`, or on the command line.
+
+**Why the deviation is accepted.** FSP's mechanism is one version for one image, because a
+standalone FSP bootloader signs a single application. TF-M signs **two** images that must be
+versioned independently — the secure image tracks the TF-M release, the non-secure image tracks the
+application — and the attestation token reports them as separate software components. That is
+visible in the boot record: `SPE 2.2.0` alongside `NSPE 0.0.0` ([D081]). One environment variable
+cannot express that.
+
+**The trap.** Setting `MCUBOOT_IMAGE_VERSION` in your environment has **no effect** on a TF-M build
+here. It is ignored silently — no warning, no error — so an image will simply carry the default
+version and the attestation token will report it. If a version is wrong, change
+`MCUBOOT_IMAGE_VERSION_S` / `_NS`, not the environment. If you also build the standalone FSP
+bootloader project from the same shell, note the two take their version from different places and
+will not agree unless you set both.
+
 ## 2. Repositories
 - `fsp_cmake` — RASC-generated FSP projects (bl2 / s / ns / …) + modular CMake + this doc + status doc
   + bring-up scripts. FSP 6.1.0 / RASC `sc_v2025-07`.

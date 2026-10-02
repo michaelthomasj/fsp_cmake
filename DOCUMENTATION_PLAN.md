@@ -105,7 +105,10 @@ cache defaults **beat `TFM_PROFILE`** — the trap behind D007.
 
 **MCUboot / layout:** `MCUBOOT_IMAGE_NUMBER` · `MCUBOOT_ALIGN_VAL` (128; flag day — images signed at
 another value are rejected) · `MCUBOOT_UPGRADE_STRATEGY` · `MCUBOOT_SIGNATURE_TYPE` ·
-`MCUBOOT_HW_KEY` · `MCUBOOT_DATA_SHARING` · `MCUBOOT_MEASURED_BOOT` · `FLASH_AREA_BL2_*`.
+`MCUBOOT_HW_KEY` · `MCUBOOT_DATA_SHARING` · `MCUBOOT_MEASURED_BOOT` · `FLASH_AREA_BL2_*` ·
+`MCUBOOT_IMAGE_VERSION_S` / `_NS` — and with them the USAGE NOTE that FSP's
+`MCUBOOT_IMAGE_VERSION` environment variable is NOT read by this port and is ignored
+silently. Documented deviation, DESIGN.md 1.1.
 
 **Header-level tunables** — not cache variables, but the ones people actually need to change, and the
 ones with non-obvious constraints:
