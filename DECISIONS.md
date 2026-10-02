@@ -3231,3 +3231,65 @@ revision.
 works.** It passes either way. The only check that means anything is reading the token and
 confirming it carries `IAT_SW_COMPONENTS` rather than `IAT_NO_SW_COMPONENTS`. Any future
 "attestation N/N" line in this log should say which of the two it saw.
+
+---
+
+## D081 — measured boot confirmed on RA6M5 hardware, by reading the boot record
+
+**Date:** 2026-10-02 · **Status:** Accepted · Closes the RA6M5 half of [D080]
+
+**Verified the only way that means anything.** [D080] established that a passing attestation
+suite cannot distinguish working measured boot from none at all, because
+`ATTEST_TOKEN_PROFILE_PSA_IOT_1` lets a token with no measurements emit `IAT_NO_SW_COMPONENTS`
+and succeed. So this was checked by reading the shared boot data in the debugger, not by
+running a suite.
+
+**RA6M5 GCC, `ra6m5_TFM_flih_gcc`, memory at `0x20000000`** (= `BOOT_TFM_SHARED_DATA_BASE` =
+`S_DATA_START`):
+
+```
+magic 0x2016 (SHARED_DATA_TLV_INFO_MAGIC)   tot_len 195 B
+
+TLV 0x107F  IAS module 1, claim 0x3F, 92 B
+    measurement type   NSPE
+    version            0.0.0
+    signer ID          82A5B443594853D4BF0FDD89A914A5DC16F867548207D7077E74D80C063EFDA9
+    measurement desc   SHA256
+    measurement value  54448ED2C457462A07BC5ECA0D6999A9F18ED85FC5E22E89FEB445A27E50362E
+
+TLV 0x103F  IAS module 0, claim 0x3F, 91 B
+    measurement type   SPE
+    version            2.2.0
+    signer ID          E30466F6B8470C1F29070B17F1E2D3E94D445E3F608087FDC711E4382BB538B6
+    measurement desc   SHA256
+    measurement value  EE5942449C76DDAD6EB1CCCB37317536B9A20B0530131958156DD66D601E5C42
+```
+
+The TLV walk consumes exactly the declared 195 bytes, and the region is zero from `0xC3` on.
+Both images are measured with SHA-256; the SPE version matches TF-M v2.2.0. The token will now
+carry `IAT_SW_COMPONENTS` with these two entries rather than `IAT_NO_SW_COMPONENTS`.
+
+**NSPE version 0.0.0 is not a defect.** `MCUBOOT_IMAGE_VERSION_NS` defaults to `0.0.0`
+upstream (`mcuboot_default_config.cmake:74`); the SPE gets `${TFM_VERSION}`. Settable per
+platform if the NS image should be versioned in the token.
+
+**Cost.** None to the secure image, on either part: RA6M5 `tfm_s` stayed at 522,304 B
+(1,984 B spare in the slot) and RA8M2's was unchanged too. Only BL2 grew - RA6M5
+27,144 B, RA8M2 +224 B - since `boot_record.c` is the only new code.
+
+**Still outstanding.**
+- **RA6M5 IAR** (`m5irq`, `m5slih`) was not rebuilt. `config.cmake` is shared, so those trees
+  carry the old setting until their caches are forced and they are rebuilt.
+- **`m5rs`/`m5rn`** (regression) and **`m5cry`/`m5att`** (PSA-arch) likewise. The launch
+  configs `ra6m5_TFM_regression_gcc` and `ra6m5_TFM_test_attestation_gcc` therefore still
+  point at measured-boot-OFF images.
+- **RA6E1** is still OFF. Same two lines, same already-present platform side, not done.
+- **RA8M2** is configured and built but has not run at all - the BL2 SAU work ([D079]) has not
+  been on hardware yet.
+
+**A note on `set(... CACHE)`.** Both times this was changed, the existing build trees kept the
+old value: `set(X ON CACHE BOOL "")` does not overwrite an entry already in `CMakeCache.txt`
+without `FORCE`. The caches were forced with `cmake -DX:BOOL=ON <build-spe dir>`. The same
+trap silently left `DEFAULT_MCUBOOT_FLASH_MAP` ON for an hour during [D079], where it was
+masked by FSP's `sysflash.h` shadowing TF-M's. **Check the cache, not the config file,
+when a platform option appears not to take.**
