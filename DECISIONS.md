@@ -3755,3 +3755,76 @@ verified by printing each cited entry's title and reading it against the claim. 
 whose purpose is to be trusted under pressure, a wrong pointer is worse than no pointer.
 
 Remaining from the plan: `RECONFIGURING_THE_LAYOUT.md`, `BRIDGING_FILES.md`.
+
+---
+
+## D089 — BRIDGING_FILES.md written; [D083]'s IAR path fix had only covered RA6M5
+
+**Date:** 2026-10-04 · **Status:** Accepted
+
+`BRIDGING_FILES.md` is written — the third of the four documents, and the one
+`DOCUMENTATION_PLAN.md` called its highest-value item. Every entry now names a check that can
+be run rather than a filename to worry about.
+
+**The one genuinely new check in it.** The ports carry five mbedTLS patches in
+`<part>/mbedtls/`, four of which (`0003`, `0004`, `0006`, `0007`) are **TF-M's own patches
+rebased onto FSP's mbedTLS tree.** A plain `cmp` against `lib/ext/mbedcrypto/` always reports a
+difference and tells you nothing, because the commit SHA, the blob index lines and the hunk
+offsets all differ - `0006` differs only in `@@ -288` against `@@ -290`, FSP's tree being two
+lines adrift. Stripping those three line types makes the comparison meaningful:
+
+```sh
+diff <(sed '/^From /d;/^index /d;/^@@ /d' lib/ext/mbedcrypto/$n.patch)      <(sed '/^From /d;/^index /d;/^@@ /d' platform/ext/target/renesas/ra8m2/mbedtls/$n.patch)
+```
+
+All four are the same change as of today. `0100` is port-specific, has no upstream counterpart
+and **differs between the two parts**, so it compares only against its own previous revision.
+
+### [D083]'s fix was incomplete, and the same bug was still live on RA8M2
+
+[D083] fixed the `ewarm` / `ewarmc` stale path in four RA6M5 IAR trees and recorded it as done.
+It was done **for RA6M5 only.** Rebuilding the RA8M2 trees today surfaced it again:
+
+```
+The CMAKE_C_COMPILER:  C:/iar/ewarm-10.10.2/arm/bin/iccarm.exe
+is not a full path to an existing compiler tool.
+```
+
+Fifteen files across `m2pa`, `m2ns` and `m2pans`, in exactly the places [D083] listed -
+`CMakeCache.txt`, `CMakeFiles/4.1.1/CMake{C,ASM}Compiler.cmake`, `CMakeFiles/rules.ninja`, the
+installed `api_ns/platform/ra8m2_ns_config.cmake`, `temp/tmp/TF-M-cache-.cmake`. Fixed with the
+grep [D083] gives. `m2ns` and `m2pans` now build.
+
+**The lesson is about the shape of the original entry, not the path.** [D083] described the fix
+per-tree and listed the four trees it touched, which reads as complete. A cache-frozen value is
+a property of *every tree configured before the source fix*, so the entry should have said so
+and named the sweep. Generalising: a defect in a build tree is not closed by fixing the trees
+you happened to rebuild.
+
+### Three RA8M2 project-side gaps now, all needing RASC
+
+`m2pa` still cannot configure, and this one is not a stale path - the port's own guard caught it
+and printed the remedy:
+
+```
+RA8M2: the AGT module is not in .../ra8m2_iar_CPU0_secure.
+The FLIH/SLIH interrupt suites need a secure timer.
+```
+
+`ra8m2_gcc_CPU0_secure` has `r_agt`; `ra8m2_iar_CPU0_secure` does not. With the two already
+known - `ra8m2_iar_mcuboot` having Measured Boot disabled, and `ra8m2_iar_CPU0_secure` carrying
+`RAM_CPU0_C` at 128 B against GCC's 1 KB - the RA8M2 IAR project set has three gaps, all
+one-time e2 edits. Listed in `RA8M2_SOLUTION.md`.
+
+**A guard that names the fix is worth the lines.** This failure cost one log read, against the
+`ewarm` one above which presents as a missing compiler.
+
+### Cache residue swept on RA8M2 as well
+
+`m2gslih`, `m2rs` and `m2pa` carried `DEFAULT_MCUBOOT_FLASH_MAP=ON` with
+`DEFAULT_MCUBOOT_FLASH_BACKEND=OFF` - a half-configured state RA8M2 never intends, since
+`config.cmake` sets both OFF. The caches predated the option being added, and `set(... CACHE
+...)` without `FORCE` does not overwrite ([D084] again). Forced to OFF and rebuilt; `m2gslih`
+now produces a `bl2.bin` byte-for-byte the same size as `m2gflih`'s, which it did not before.
+
+Remaining from the plan: `RECONFIGURING_THE_LAYOUT.md`.

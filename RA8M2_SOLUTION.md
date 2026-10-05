@@ -139,6 +139,7 @@ equals `__BL_0_S_T_START`.
 |---|---|---|
 | `ra8m2_iar_mcuboot` | **Measured Boot disabled** — the only bootloader project where it is | one checkbox in e2 |
 | `ra8m2_iar_CPU0_secure` | `RAM_CPU0_C` is 128 B against GCC's 1 KB | regenerate in RASC; provisioning hazard |
+| `ra8m2_iar_CPU0_secure` | **no `r_agt` module.** The GCC project has it; this one does not, so the IAR PSA Arch tree (`m2pa`) cannot configure | add Timer (r_agt) with a real Interrupt Priority - not Disabled, which is what makes the interrupt secure on RA. D061 |
 
 ---
 

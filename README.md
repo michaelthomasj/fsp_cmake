@@ -90,12 +90,13 @@ every build today and is pure diagnostics.
 | `TROUBLESHOOTING.md` | indexed by the symptom you actually see. The two brick hazards are first |
 | `CONFIGURATION.md` | every knob you may change: default, where it is defined, and the constraint that bites. Start with its "how the three layers interact" section |
 | `RA6M5_SOLUTION.md`, `RA8M2_SOLUTION.md` | **per-part: the layout, the RDPM boundary values, what the e2 projects must provide, and current status.** The RDPM values live here and nowhere else |
-| `DECISIONS.md` | why, append-only, D001-D088. Superseded entries stay; later ones say so |
+| `DECISIONS.md` | why, append-only, D001-D089. Superseded entries stay; later ones say so |
 
 **Reference.**
 
 | | |
 |---|---|
+| `BRIDGING_FILES.md` | **read before any FSP pack uprev.** Every file that carries FSP code or restates an FSP-generated value, and the check that detects drift in each |
 | `UPSTREAM_CHANGES.md` | the patch queue against upstream TF-M, with the rationale for each |
 | `scripts/README.md` | what each build script does |
 | `RA6E1_TEMPLATE_CHECKLIST.md` | the contract a new part's RASC projects must satisfy |
@@ -112,6 +113,5 @@ every build today and is pure diagnostics.
 | `archive/ra6m4/` | the RA6M4 era, 2025-10 to 2026-09. Nothing in it describes the active ports — see its README for what is still worth reading |
 | `bringup/bricking_evidence/` | the evidence behind D002, the OFS coalescing brick |
 
-**Still to write**, per `DOCUMENTATION_PLAN.md`: `RECONFIGURING_THE_LAYOUT.md` (the repartition
-procedure) and `BRIDGING_FILES.md` (the files that carry FSP code or restate FSP-generated
-values, and the check that detects drift in each).
+**Still to write**, per `DOCUMENTATION_PLAN.md`: `RECONFIGURING_THE_LAYOUT.md`, the repartition
+procedure.
