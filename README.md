@@ -75,15 +75,35 @@ every build today and is pure diagnostics.
 
 ## The documents
 
+**Start here, in this order.**
+
 | | |
 |---|---|
-| `DESIGN.md` | how the port works. §1 the core principle, §1.1 documented deviations, §7 TrustZone |
-| `DECISIONS.md` | why, append-only, D001–D084. Superseded entries stay; later ones say so |
-| `RA6M5_SOLUTION.md`, `RA6E1_SOLUTION.md` | per-part layout, RDPM boundary values, what the e2 projects must provide |
-| `UPSTREAM_CHANGES.md` | the patch queue against upstream TF-M, with the rationale for each |
-| `RA6E1_TEMPLATE_CHECKLIST.md` | what a new RA part has to supply |
-| `RA8x2_DUAL_CORE_DESIGN.md` | forward design for the dual-core parts |
-| `DOCUMENTATION_PLAN.md` | the target document set; several below are scheduled to be folded in |
+| `README.md` (this file) | what the repo is, the shortest path to a build, the space budget |
+| `DESIGN.md` | how the port works. §1 the core principle, §1.1 documented deviations, §4 flash geometry, §7 TrustZone and the SAU |
+| `RA6M5_SOLUTION.md`, `RA8M2_SOLUTION.md` | **per-part: the layout, the RDPM boundary values, what the e2 projects must provide, and current status.** The RDPM values live here and nowhere else |
+| `DECISIONS.md` | why, append-only, D001-D085. Superseded entries stay; later ones say so |
 
-Status files, ageing but with useful resolved-issue narratives: `TFM_INTEGRATION_COMPLETE.md`,
-`BUILD_TEST_RESULTS.md`, `MACHINE_HANDOFF.md`, `TFM_RA6M4_STATUS.md`.
+**Reference.**
+
+| | |
+|---|---|
+| `UPSTREAM_CHANGES.md` | the patch queue against upstream TF-M, with the rationale for each |
+| `scripts/README.md` | what each build script does |
+| `RA6E1_TEMPLATE_CHECKLIST.md` | the contract a new part's RASC projects must satisfy |
+| `RA8x2_DUAL_CORE_DESIGN.md` | forward design for the dual-core parts |
+| `MACHINE_HANDOFF.md` | two-machine reconciliation, and §4 is the **pre-flash checklist** — the brick-safety steps to run on every new build |
+| `RA6E1_SOLUTION.md` | the RA6E1 layout and resolved-issue log. Dormant part, but it is the port RA6M5 and RA8M2 are derived from |
+
+**Planning and history.**
+
+| | |
+|---|---|
+| `PROJECT_PLAN.md` | schedule and open tasks |
+| `DOCUMENTATION_PLAN.md` | the target document set and the gap list; retire it once the set exists |
+| `archive/ra6m4/` | the RA6M4 era, 2025-10 to 2026-09. Nothing in it describes the active ports — see its README for what is still worth reading |
+| `bringup/bricking_evidence/` | the evidence behind D002, the OFS coalescing brick |
+
+**Still to write**, per `DOCUMENTATION_PLAN.md`: `CONFIGURATION.md` (every knob a user may
+change), `TROUBLESHOOTING.md` (symptom-indexed), `BRIDGING_FILES.md` (the files that carry FSP
+code or restate FSP-generated values, and the check that detects drift in each).

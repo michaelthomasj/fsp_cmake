@@ -1,23 +1,26 @@
-# RA6M4 TF-M Port — Architecture & Design Decisions
+# Renesas RA TF-M Port — Architecture & Design
 
-Design/rationale record for the Renesas RA6M4 (and forthcoming RA8D2) TF-M port. Written for a
-future maintainer: it captures **why** things are the way they are, so the port can be updated
-against newer FSP and newer TF-M without re-deriving the reasoning. Day-to-day status, the full
-memory map, and the open TODO list live in [TFM_RA6M4_STATUS.md](TFM_RA6M4_STATUS.md); this file is
-the stable "decisions" companion.
+Design and rationale record for the Renesas RA TF-M port. Written for a future maintainer: it
+captures **why** things are the way they are, so the port can be updated against newer FSP and
+newer TF-M without re-deriving the reasoning.
 
-> Status: **in progress** (updated 2026-08-10). Sections below capture the decisions made so far;
-> expand as the port matures and before upstreaming.
->
-> **§8 was rewritten on 2026-08-10** after the July hardware bring-up. If you are reading a copy
-> where §8 has no subsections, it predates the brick post-mortem and its OFS guidance is unsafe —
-> see [MACHINE_HANDOFF.md](MACHINE_HANDOFF.md).
+**Live parts: RA6M5 and RA8M2.** RA6M4 and RA6E1 are in-tree but dormant — both EK-RA6M4 boards
+were bricked by the OFS coalescing defect (DECISIONS D002). Sections below are part-neutral
+unless they name a part; per-part specifics live in `RA6M5_SOLUTION.md` and `RA6E1_SOLUTION.md`,
+and the RA6M4-era documents are under `archive/ra6m4/`.
+
+> This file is the stable companion to `DECISIONS.md`, which is the append-only log of *why*.
+> Where the two disagree, DECISIONS.md is authoritative and carries the date.
 
 ## 0. Goals (these drive every decision below)
-1. Upstream the RA6M4 port to the official TF-M repo.
-2. Adapt the same design for the **RA8D2** and upstream that too.
-3. Keep it **updatable**: users regenerate FSP drivers from newer RASC/FSP releases, and TF-M can be
-   bumped to newer versions, with minimal rework.
+1. **Upstream the RA6M5 and RA8M2 ports** to the official TF-M repo.
+2. **Preserve the user's RASC/e2 configuration** — the FSP modules they enabled and the memory
+   layout they chose stay as configured; the TF-M build consumes them (§1).
+3. **Let the user add or remove FSP modules** in the secure and non-secure projects and have the
+   new files picked up by the TF-M build. The gap — e2 does not emit CMake modules — is bridged
+   by documentation rather than by code.
+4. **Use as much FSP code as possible**, so future FSP fixes arrive by updating the pack in
+   e2/RASC and regenerating, not by patching this port.
 
 ## 1. Core principle — RASC is the source of config truth; consume, don't fork
 - The user generates the base project(s) from **RASC** (Smart Configurator). BSP, clocks, pins,
@@ -79,35 +82,57 @@ will not agree unless you set both.
 ## 2. Repositories
 - `fsp_cmake` — RASC-generated FSP projects (bl2 / s / ns / …) + modular CMake + this doc + status doc
   + bring-up scripts. FSP 6.1.0 / RASC `sc_v2025-07`.
-- `trusted-firmware-m` — the port under `platform/ext/target/renesas/ra6m4/`. Base `TF-Mv2.2.0`.
+- `trusted-firmware-m` — the port under `platform/ext/target/renesas/<part>/`. Base `TF-Mv2.2.0`.
 
 ## 3. Memory map — authoritative source
-- **`flash_layout.h` + `region_defs.h` are authoritative** for the ra6m4 build (MCUboot and TF-M read
-  them). The `FLASH_*_PARTITION_*` cache vars in `config.cmake` are **vestigial** for ra6m4 (only mps3
+- **`flash_layout.h` + `region_defs.h` are authoritative** for the build (MCUboot and TF-M read
+  them). The `FLASH_*_PARTITION_*` cache vars in `config.cmake` are **vestigial** here (only mps3
   platforms consume them) and are kept only for documentation — they must match `flash_layout.h`.
 - Layout (1 MB flash, dual-image MCUboot): BL2 `0x0` 128K · S primary `0x20000` 192K · NS primary
   `0x50000` 128K · S secondary `0x70000` 192K · NS secondary `0xA0000` 128K · scratch `0xC0000` 256K.
   RAM 256K: S `0x20000000` 128K · NS `0x20020000` 128K.
 
-## 4. Flash driver geometry (the RA6M4 hardware bug we fixed)
-- RA6M4 HP code flash: region 0 (`0x0–0xFFFF`) = 8 KB blocks; **region 1 (`0x10000+`) = 32 KB blocks**.
-  All MCUboot-managed slots live in region 1.
-- **Decision:** fix the geometry in TF-M's own `Driver_Flash.c` + `flash_layout.h`
-  (`FLASH_AREA_IMAGE_SECTOR_SIZE = 0x8000`, `FLASH_HP_BLOCK_SIZE` = REGION1), keeping TF-M's dual-image
-  flash_map/area-IDs. **Rejected:** grafting FSP's `rm_mcuboot_port/flash_map.c` — the RASC BL2 project
-  is **single-image** (`MCUBOOT_IMAGE_NUMBER 1`, FSP area IDs) and incompatible with TF-M's dual-image
-  bootutil; it cascaded into config/`flash_device_base`/linker-symbol conflicts and would not boot.
-- **Correction, 2026-09-08.** The single-image half of that reason is spent. It described the old
-  standalone RASC BL2 project (since removed). The **RA6E1 solution** is `MCUBOOT_IMAGE_NUMBER 2`, and
-  the `flash_map[]` in its generated `bsp_linker_info.h` carries all four areas at the same offsets
-  as this port, derived from the same `BSP_PARTITION___BL_*` macros. The decision to keep TF-M's map
-  stands, but on the narrower grounds in DECISIONS.md D013 — colliding `flash_map[]` definitions and a
-  different area-ID convention — not on a dual-image incompatibility.
+## 4. Flash driver geometry
+Per-part, and the one place where getting a constant wrong fails only on hardware.
+
+| | RA6M5 | RA8M2 |
+|---|---|---|
+| Memory | HP code flash | MRAM |
+| Block size under the slots | 32 KB (region 1, `0x10000+`; region 0 is 8 KB) | 32 KB uniform |
+| `FLASH_AREA_IMAGE_SECTOR_SIZE` | `0x8000` | `0x8000` |
+
+The hazard is restating a block size that FSP already generates. `FLASH_AREA_IMAGE_SECTOR_SIZE`
+was once `0x1000` in the RA8M2 `flash_layout.h` while FSP's generated `mcuboot_config.h` had it
+as `RM_MCUBOOT_MRAM_BLOCK_SIZE` (`0x8000`); slots came out 9.875 sectors long, every build step
+accepted it, and it failed on hardware as `BOOT_EFLASH` (D054).
+
+**Superseded, 2026-10.** This section used to record a decision to keep TF-M's `flash_map` and
+reject FSP's `rm_mcuboot_port/flash_map.c`, first on dual-image grounds and then (2026-09-08) on
+the narrower grounds of colliding `flash_map[]` definitions and a different area-ID convention
+(D013). Both readings are now out of date:
+
+- The area-ID convention is **a platform parameter, not a contract** — nothing in bootutil reads
+  a raw numeric ID, and corstone1000 already uses `FLASH_AREA_2_ID` for its image-0 primary. So
+  FSP's `0P=1, 0S=2, 1P=3, 1S=4` is not in itself a blocker.
+- **RA8M2 now takes its MCUboot flash backend from FSP** (D079). It has to: with
+  `__SAUREGION_PRESENT == 1`, FSP's `flash_area_open()` programs the SAU from
+  `R_PSCU->CFSAMONA_b.CFS2` so BL2 can reach the non-secure alias at all (§7).
+- **RA6M5 stayed on TF-M's backend** (D085). It was switched over for consistency and reverted:
+  `__SAUREGION_PRESENT == 0` there, so FSP's SAU programming is absent and the change bought
+  nothing, while BL2 failed to validate the NS image for reasons never identified.
+
+So the two live parts deliberately differ here, and the switch is `DEFAULT_MCUBOOT_FLASH_MAP` /
+`DEFAULT_MCUBOOT_FLASH_BACKEND` in `<part>/config.cmake` — both `OFF` on RA8M2, both default
+`ON` on RA6M5.
 
 ## 5. MCUboot / BL2
-- **Bootutil:** TF-M's downloaded Renesas MCUboot fork. It is byte-identical to the copy RASC ships, and
-  the download provides TF-M's build glue (`bootutil/CMakeLists.txt`, `scripts/imgtool.py`) that RASC
-  strips. (If pointing `MCUBOOT_PATH` at the RASC copy, that build glue must be supplied.)
+- **Bootutil:** TF-M downloads a Renesas MCUboot fork. It is **not** the copy RASC ships, and the
+  difference is load-bearing: RASC's `boot_hooks.h` is 287 lines against TF-M's 181, adding
+  `BOOT_HOOK_FLASH_AREA_CALL`, `BOOT_HOOK_FIND_SLOT_CALL` and `BOOT_HOOK_GO_CALL_FIH`. Any FSP
+  source that calls those hooks needs a shim when built against TF-M's copy — see
+  `ra8m2/mcuboot_hook_shim.h` and DECISIONS D079. TF-M's copy also provides build glue
+  (`bootutil/CMakeLists.txt`, `scripts/imgtool.py`) that RASC strips; pointing `MCUBOOT_PATH` at
+  the RASC tree means supplying that glue yourself.
 - **Signing:** TF-M's default flow, which invokes `${MCUBOOT_PATH}/scripts/imgtool.py` — i.e. RASC's
   imgtool when `MCUBOOT_PATH` is the RASC tree. The RASC `rm_mcuboot_port_sign.py` wrapper is NOT used
   (it's for standalone RASC MCUboot projects).
@@ -121,23 +146,43 @@ will not agree unless you set both.
   SW mode). Switching to HW = re-enable the ALT path + isolate the FSP-mbedTLS/FSP-MCUboot-config coupling.
 
 ## 7. TrustZone: SAU/IDAU, veneers, NSC
-- RA6M4 attributes memory as **contiguous** `[Secure][NSC][Non-secure]` regions, programmed via RFP
-  (provisioning). The port programs neither SAU nor the regions in software — attribution is entirely
-  what's burned via RFP.
-- **Veneers/NSC:** pinned at a **fixed** slot-boundary address `0x4F400` using TF-M's own generated
-  linker via `region_defs.h` macros `TFM_LINKER_VENEERS_LOCATION_END` + `TFM_LINKER_VENEERS_START =
-  CMSE_VENEER_REGION_START` (both `#ifndef`-overridable). **No custom secure linker** — the
-  nordic/laird upstream pattern. Fixed (not end-of-code) so the NSC is stable across firmware updates,
-  which matters because RA TZ boundaries are set once at provisioning.
-- **Boundaries to program (RFP):** code flash S `0x0–0x4F3FF` / NSC `0x4F400–0x4F7FF` / NS `0x50000+`;
-  SRAM S `0x20000000–0x2001FFFF` / NS `0x20020000+`; data flash all-secure.
+**The one per-part difference that matters most.** Both live parts attribute memory through the
+IDAU from values burned at provisioning, and the port programs neither the boundaries nor (on
+RA6M5) the SAU in software. But RA8M2 has a second address alias and an SAU, and RA6M5 does not:
+
+| | RA6M5 | RA8M2 |
+|---|---|---|
+| `__SAUREGION_PRESENT` | `0` | `1` |
+| `BSP_FEATURE_TZ_NS_OFFSET` | `0x00000000` | `0x10000000` |
+| Flash aliases | one | secure `0x02000000`, non-secure `0x12000000` |
+
+The consequence is not cosmetic. With no SAU, Armv8-M attributes **every** address Secure (the
+combined SAU/IDAU takes the more secure of the two), so on RA8M2 a secure transaction to the
+non-secure alias is refused until the SAU is programmed. That is why BL2 on RA8M2 takes FSP's
+flash backend, whose `flash_area_open()` programs the SAU from `R_PSCU->CFSAMONA_b.CFS2` and
+tears it down in `flash_on_chip_cleanup()` (§4, D073/D079). Once RDPM has programmed
+`CFSAMONA.CFS2`, each alias reaches only its own half.
+
+Attribution itself is entirely what is burned via RFP/RDPM — see §7.1.
+- **Veneers/NSC:** pinned at a **fixed** address, taken from the generated layout, using TF-M's
+  own generated linker via the `region_defs.h` macros `TFM_LINKER_VENEERS_LOCATION_END` and
+  `TFM_LINKER_VENEERS_START = CMSE_VENEER_REGION_START` (both `#ifndef`-overridable). **No custom
+  secure linker** — the nordic/laird upstream pattern. Fixed rather than end-of-code so the NSC
+  window is stable across firmware updates, which matters because RA TZ boundaries are set once
+  at provisioning.
+- **Boundaries to program:** deliberately **not listed here.** They are per-part, they are RDPM
+  input, and a stale copy in a third document is how a board gets provisioned wrong. The owning
+  documents are `RA6M5_SOLUTION.md` §"TrustZone boundary values" and `RA6E1_SOLUTION.md`; both
+  derive the values from the generated layout and show the 32 KB / 8 KB block checks. RDPM
+  **erases the part** — reflash all three images afterwards.
 
 ### 7.1 Boundary provisioning — the boundaries are NEVER set by our software
-`BSP_FEATURE_TZ_HAS_DLM = 1` on RA6M4/RA6E1, so this block in FSP's `R_BSP_SecurityInit()` is
+`BSP_FEATURE_TZ_HAS_DLM = 1` on every RA part this port targets (verified: ra6m4,
+ra6e1, ra6m5, ra8m2), so this block in FSP's `R_BSP_SecurityInit()` is
 **compiled out**:
 
 ```c
-#if 0 == BSP_FEATURE_TZ_HAS_DLM   /* false on RA6M4/RA6E1 -> not compiled */
+#if 0 == BSP_FEATURE_TZ_HAS_DLM   /* false on all four parts -> not compiled */
     R_PSCU->CFSAMONA = ...  R_PSCU->CFSAMONB = ...
     R_PSCU->SSAMONA  = ...  R_PSCU->SSAMONB  = ...  R_PSCU->DFSAMON = ...
 #endif
@@ -229,7 +274,7 @@ Two ways to close it, pick one:
 
 Note that option 2 is *not* the thing rejected below: the rejection is about `ARM_Flash_Initialize`,
 a driver entry point re-entered per device, not about a one-shot boot hook.
-- Declare `.ram_noinit` **explicitly** in `ra6m4_bl2.ld`: **before `.bss`** (so the prefixed
+- Declare `.ram_noinit` **explicitly** in `<part>_bl2.ld`: **before `.bss`** (so the prefixed
   `.bss.ram_noinit` variant isn't swallowed by `*(.bss*)`) and **`NOLOAD`** (so it emits no flash
   image and is neither copied nor zeroed), placed **outside** `ADDR(.bss)..SIZEOF(.bss)` so the
   zero table never covers it. As an orphan section it survived only by luck of ld's placement and
@@ -243,10 +288,12 @@ a driver entry point re-entered per device, not about a one-shot boot hook.
 Verify: `.ram_noinit` NOBITS, ending exactly where `__bss_start__` begins, with `g_clock_freq` and
 `SystemCoreClock` inside it.
 
-### 8.2 `ra6m4_bl2.ld` is the ONE forked linker
-A copy of TF-M's `tfm_common_bl2.ld` plus §8.1 and §8.4. Forked because GNU ld `INSERT` cannot
-augment a `-T` main script from a second `-T` fragment. Keep it in sync with TF-M on version
-bumps. The secure/NS side stays on TF-M's generated linker (§7), unforked.
+### 8.2 The forked linker scripts
+Each part forks three: `<part>_bl2.ld` (GNU), `<part>_bl2.icf` and `<part>_fsp_sections.icf`
+(IAR) — six files across RA6M5 and RA8M2. `<part>_bl2.ld` is a copy of TF-M's
+`tfm_common_bl2.ld` plus §8.1 and §8.4; it is forked because GNU ld `INSERT` cannot augment a
+`-T` main script from a second `-T` fragment. Keep them in sync with TF-M on version bumps. The
+secure and non-secure sides stay on FSP's generated linker scripts (§7), unforked.
 
 ### 8.3 BL2 lives at the base of flash
 `BL2_CODE_START` derives from `FLASH_BASE_ADDRESS`, **not** `S_ROM_ALIAS_BASE`. The latter is the
@@ -324,7 +371,7 @@ toolchain path, or a hand-run `objcopy` is lethal and looks identical in a file 
 the only tell — over ~1 MB means it spans the option memory.
 
 ## 9. Console / logging — SEGGER RTT (switchable)
-- `RA6M4_STDOUT_RTT` (default ON): routes TF-M/MCUboot stdout to SEGGER RTT over J-Link (no UART wiring,
+- `<PART>_STDOUT_RTT` (e.g. `RA6M5_STDOUT_RTT`, `RA8M2_STDOUT_RTT`; default ON): routes TF-M/MCUboot stdout to SEGGER RTT over J-Link (no UART wiring,
   no S/NS peripheral contention). `rtt/rtt_stdout.c` implements TF-M's `stdio_*` backend; the common
   `uart_stdout.c` is disabled. OFF → FSP SCI UART via the untouched `Driver_USART.c`. Each image (BL2/S/NS)
   has its own RTT control block.
@@ -346,5 +393,5 @@ the only tell — over ~1 MB means it spans the option memory.
 
 ---
 _Maintainer note: when bumping TF-M, re-check §5 (bootutil glue), §7 (veneer macros still honored by the
-generated linker), and §8 (`ra6m4_bl2.ld` vs the new `tfm_common_bl2.ld`). When bumping FSP, the RASC
+generated linker), and §8 (`<part>_bl2.ld` vs the new `tfm_common_bl2.ld`). When bumping FSP, the RASC
 config (§1) flows through; re-verify OFS (§8) and clock/flash-geometry assumptions (§4)._

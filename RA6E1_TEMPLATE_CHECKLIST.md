@@ -5,7 +5,7 @@ Everything below is something the port **reads from a generated project**. If th
 it, a fresh solution builds TF-M with no hand-edits; if it does not, the failure mode is listed.
 
 Companion docs: `RA6E1_SOLUTION.md` (current layout and TZ boundaries), `DESIGN.md` (why),
-`TFM_INTEGRATION_COMPLETE.md` §"Adding New FSP Modules" (how to extend the CMake side).
+`archive/ra6m4/TFM_INTEGRATION_COMPLETE.md` §"Adding New FSP Modules" (how to extend the CMake side).
 
 ---
 
