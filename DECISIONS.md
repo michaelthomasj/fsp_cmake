@@ -3728,3 +3728,30 @@ cache-variable claim, and the `PS_NUM_ASSETS` cap, which is per-part rather than
 
 Remaining from the plan: `TROUBLESHOOTING.md`, `RECONFIGURING_THE_LAYOUT.md`,
 `BRIDGING_FILES.md`.
+
+---
+
+## D088 — TROUBLESHOOTING.md written; three of its own cross-references were wrong first
+
+**Date:** 2026-10-04 · **Status:** Accepted
+
+The second of the four documents [D087] left outstanding. Symptom-indexed, with the two brick
+hazards first, and each entry naming the D-entry that holds the full account rather than
+restating it.
+
+**Worth recording because it is the failure mode this port keeps hitting.** Three of the
+sixteen D-references in the first draft were wrong - cited from memory of what an entry was
+about rather than checked:
+
+| cited | actually | correct |
+|---|---|---|
+| D031 for `BSP_CFG_EARLY_INIT` | "RA6M5 verified against a staged project set" | **D034** |
+| D063 for the masked-SVCall HFSR signature | "pinned CMSE veneers get their own MEMORY region" | **D064** |
+| D019 for the `Image$ARM_LIB_STACK` escaping fix | "IAR reaches FSP's sections through an ICF fragment" | **D010** |
+
+All three were off by a few entries and all three *sounded* right. A cross-reference that
+resolves to a real entry on a plausible topic is not checkable by eye, which is why they were
+verified by printing each cited entry's title and reading it against the claim. In a document
+whose purpose is to be trusted under pressure, a wrong pointer is worse than no pointer.
+
+Remaining from the plan: `RECONFIGURING_THE_LAYOUT.md`, `BRIDGING_FILES.md`.
