@@ -189,70 +189,20 @@ branches but not the EC one, so an EC-P256 build with `MCUBOOT_IMAGE_NUMBER=2` f
 `#ifndef` guard so a platform that already defines `FLASH_DEVICE_ID` from its own flash map
 does not collide.
 
-### 13. BL2's MCUboot flash backend cannot be replaced by a platform
+### 13. WITHDRAWN - BL2's MCUboot flash backend cannot be replaced by a platform
 
-`bl2/CMakeLists.txt`, `bl2/ext/mcuboot/CMakeLists.txt`, `bl2/ext/mcuboot/mcuboot_default_config.cmake`
+**Withdrawn 2026-10-05 ([D091]). Do not submit.**
 
-TF-M lets a platform replace the MCUboot flash **map** but not the **backend**.
-`DEFAULT_MCUBOOT_FLASH_MAP=OFF` already drops `src/default_flash_map.c` and empties
-`sysflash.h`, letting a platform supply its own `flash_map[]`, `flash_map_entry_num` and
-`FLASH_AREA_IMAGE_PRIMARY/SECONDARY` — corstone1000 and rse both do this, and
-corstone1000's image-0 primary is `FLASH_AREA_2_ID`, so the ID numbering is already
-understood to be a platform parameter rather than a contract.
+This asked upstream to let a platform replace the MCUboot flash *backend*, not just the *map*.
+The port no longer needs it: both parts take TF-M's backend and put FSP's HAL behind
+`fa_driver`, which is what ST already does for STM32Cube
+(`stm/common/hal/CMSIS_Driver/low_level_flash.c`). `bl2/CMakeLists.txt` is byte-identical to
+TF-Mv2.2.0 again, and `DEFAULT_MCUBOOT_FLASH_BACKEND` no longer exists anywhere in the tree.
 
-But `src/flash_map.c` — `flash_area_open/close/read/write/erase/align/driver_init` over
-`ARM_DRIVER_FLASH` — is added unconditionally:
-
-```cmake
-add_executable(bl2
-    src/flash_map.c                                                     # <- no guard
-    $<$<C_COMPILER_ID:Clang>:src/crt_exit.c>
-    $<$<BOOL:${DEFAULT_MCUBOOT_SECURITY_COUNTERS}>:src/security_cnt.c>
-    $<$<BOOL:${DEFAULT_MCUBOOT_FLASH_MAP}>:src/default_flash_map.c>
-    $<$<BOOL:${PLATFORM_DEFAULT_PROVISIONING}>:src/provisioning.c>
-```
-
-A platform whose vendor SDK already implements the `flash_map_backend` API cannot use it:
-the two definitions collide at link time, and the only way through is to patch this file.
-
-Proposed fix, in the style of the three guards immediately below it:
-
-```cmake
-    $<$<BOOL:${DEFAULT_MCUBOOT_FLASH_BACKEND}>:src/flash_map.c>
-```
-
-with `DEFAULT_MCUBOOT_FLASH_BACKEND ON` defaulted in `bl2/ext/mcuboot/mcuboot_default_config.cmake`
-alongside the existing `DEFAULT_MCUBOOT_FLASH_MAP` and `DEFAULT_MCUBOOT_SECURITY_COUNTERS`.
-Every existing platform is unaffected.
-
-**Why this port wants it.** FSP ships `ra/fsp/src/rm_mcuboot_port/flash_map.c`, which
-implements the same API and three things the port currently re-derives: it carries the alias
-in `fa_off` as an absolute address so there is no base to reconstruct (DECISIONS D073/D074),
-it programs the BL2 SAU window from `R_PSCU->CFSAMONA_b.CFS2` at runtime rather than from a
-build-time constant (D075/D076), and its erase/write/sector logic is the vendor's own, so FSP
-bug fixes reach the image on a pack update instead of needing to be re-found on hardware.
-Each of those three was a hardware-only failure in this port before it was understood.
-
-**Generality.** Not Renesas-specific. Any vendor shipping an MCUboot port — NXP, ST, Nordic
-and Infineon all do — hits the same wall, and the alternative is what this port did: a
-parallel backend that silently stops tracking the vendor's fixes.
-
-**Implemented**, 2026-10-02. Three files are guarded, not one — `bl2/src/flash_map.c` plus
-`bl2/ext/mcuboot/flash_map_extended.c` and `flash_map_legacy.c`, which carry the rest of the
-API (`flash_area_get_sectors`, `get_sector`, `erased_val`, the slot/area id mapping). The
-option defaults ON in `mcuboot_default_config.cmake`, so no existing platform changes. RA8M2
-sets it OFF and links FSP's `rm_mcuboot_port/flash_map.c`; DECISIONS D079 records what that
-took beyond the CMake.
-
-One point for the reviewer rather than a decision to take here: a platform turning this off
-also loses `flash_device_base()`, whose only definition is the `__WEAK` one in
-`flash_map_extended.c`. That function is about the platform's address convention rather than
-the backend, so it arguably belongs outside the guard.
-
-`src/security_cnt.c` stays TF-M's regardless — `rm_mcuboot_port` does not provide NV rollback
-counters (DESIGN.md §5).
-
----
+Kept here rather than deleted because the underlying observation stands and may matter to a
+future port: `DEFAULT_MCUBOOT_FLASH_MAP=OFF` buys the map **data** only - the struct and the
+`flash_area_*` functions remain TF-M's, and corstone1000 and rse, the only upstream users,
+both populate TF-M's struct with `.fa_driver = &FLASH_DEV_NAME`.
 
 ## Local — not for upstream
 

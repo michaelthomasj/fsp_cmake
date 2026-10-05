@@ -106,32 +106,29 @@ was once `0x1000` in the RA8M2 `flash_layout.h` while FSP's generated `mcuboot_c
 as `RM_MCUBOOT_MRAM_BLOCK_SIZE` (`0x8000`); slots came out 9.875 sectors long, every build step
 accepted it, and it failed on hardware as `BOOT_EFLASH` (D054).
 
-**Superseded, 2026-10.** This section used to record a decision to keep TF-M's `flash_map` and
-reject FSP's `rm_mcuboot_port/flash_map.c`, first on dual-image grounds and then (2026-09-08) on
-the narrower grounds of colliding `flash_map[]` definitions and a different area-ID convention
-(D013). Both readings are now out of date:
+**Settled, 2026-10-05 (D091).** This section recorded a long argument about whether BL2 should
+take its MCUboot flash backend from FSP. The answer is no, and the reasoning is in
+`FLASH_MAP_OWNERSHIP.md`:
 
-- The area-ID convention is **a platform parameter, not a contract** — nothing in bootutil reads
-  a raw numeric ID, and corstone1000 already uses `FLASH_AREA_2_ID` for its image-0 primary. So
-  FSP's `0P=1, 0S=2, 1P=3, 1S=4` is not in itself a blocker.
-- **RA8M2 now takes its MCUboot flash backend from FSP** (D079). It has to: with
-  `__SAUREGION_PRESENT == 1`, FSP's `flash_area_open()` programs the SAU from
-  `R_PSCU->CFSAMONA_b.CFS2` so BL2 can reach the non-secure alias at all (§7).
-- **RA6M5 also takes it from FSP** (D082, restored by D090). It was reverted for a day after
-  BL2 failed to validate the non-secure image; the cause was a `struct flash_area` layout
-  mismatch between bootutil and FSP's backend, not the backend itself. Fixed, and the full
-  regression suite passes on hardware.
+- MCUboot's porting contract is that **the port supplies `flash_map_backend.h`** - the struct
+  and the `flash_area_*` functions. Zephyr and Mynewt delegate it to the surrounding system,
+  so FSP shipping one is idiomatic.
+- **TF-M occupies that slot**, and there is room for exactly one. Its struct carries an extra
+  `ARM_DRIVER_FLASH *fa_driver` and its backend dispatches through it.
+- `DEFAULT_MCUBOOT_FLASH_MAP=OFF` lets a platform supply the map **data**, not the backend.
+  corstone1000 and rse are the only upstream users and both keep TF-M's struct.
+- **ST solves the same problem by wrapping STM32Cube HAL behind a CMSIS driver** and leaving
+  the flag ON. This port does the same with `Driver_FLASH0`/`Driver_FLASH1` over
+  `R_FLASH_HP`/`R_MRAM`.
 
-Both live parts therefore take the backend from FSP, and `DEFAULT_MCUBOOT_FLASH_MAP` /
-`DEFAULT_MCUBOOT_FLASH_BACKEND` are `OFF` in both `<part>/config.cmake` files.
+So both live parts use **TF-M's** map and backend, `DEFAULT_MCUBOOT_FLASH_MAP` is ON, and
+`DEFAULT_MCUBOOT_FLASH_BACKEND` no longer exists. RA8M2's SAU programming, which FSP's
+`flash_area_open()` had provided, now lives in `bl2_boot_hal.c` with the bounds imported from
+FSP's `flash_map.c`.
 
-**The trap this leaves behind.** TF-M's `flash_map/flash_map.h` and FSP's
-`flash_map_backend/flash_map_backend.h` share the include guard `H_UTIL_FLASH_MAP_` while
-defining `struct flash_area` differently - TF-M's carries an extra `fa_driver` member, 16
-bytes against FSP's 12. The first header reached silently suppresses the other, and nothing in
-the build warns; the symptom is a bootloader that rejects a correctly built image. Each part
-therefore puts FSP's directory ahead of TF-M's for `bl2` and `bootutil`, and force-includes
-`<part>/fsp_flash_map_shim.h` to replace what TF-M's header supplied. D090.
+**The layout is unaffected either way** - `FLASH_AREA_*_OFFSET/SIZE` derive from
+`BSP_PARTITION_*`, so the Solution owns the image layout regardless of backend. Conflating the
+two is what made this take three attempts.
 
 ## 5. MCUboot / BL2
 - **Bootutil:** TF-M downloads a Renesas MCUboot fork. It is **not** the copy RASC ships, and the

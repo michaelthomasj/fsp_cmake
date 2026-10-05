@@ -1,5 +1,12 @@
 # Who owns the flash map — TF-M, MCUboot, FSP
 
+> **RESOLVED 2026-10-05: Option 3 adopted and verified on hardware ([D091]).** Both parts take
+> TF-M's MCUboot map and backend, with FSP's HAL behind `fa_driver` via the port's own
+> `Driver_Flash.c` - the same shape ST uses for STM32Cube. The full RA6M5 regression suite
+> passes, secure and non-secure. Upstream item 13 is withdrawn and `bl2/CMakeLists.txt` is
+> byte-identical to TF-Mv2.2.0. The analysis below stands as written; §7 records the options as
+> they were weighed.
+
 Design review, 2026-10-05. Written to answer four questions: what MCUboot's porting contract
 actually is, whether TF-M's BL2 breaks it, what other vendors do, and where this port is
 inconsistent with the two standing objectives —
@@ -194,6 +201,34 @@ is quiet: FSP adds a source, the port ignores it, nothing warns.
 
 ---
 
+## 6a. Checked against latest upstream (2026-10-05)
+
+Re-verified against `upstream/main`, well past TF-Mv2.3.1. **Nothing in the analysis changes:**
+
+| | TF-Mv2.2.0 (our base) | upstream/main |
+|---|---|---|
+| `struct flash_area` | 16 B with `fa_driver` | unchanged |
+| Guards `H_UTIL_FLASH_MAP_` / `__FLASH_MAP_BACKEND_H__` | collide | unchanged |
+| `flash_map_backend.h` / `sysflash.h` in the tree | one each, TF-M's | still one each |
+| Platforms with `DEFAULT_MCUBOOT_FLASH_MAP=OFF` | corstone1000, rse | still only those two |
+| `DEFAULT_MCUBOOT_FLASH_BACKEND` | — | still does not exist |
+
+**New and decisive: ST is already doing Option 3.** Four ST platforms
+(`b_u585i_iot02a`, `nucleo_u3c5zi_q`, `stm32h573i_dk`, `stm32wba65i_dk`) now appear in the
+tree, all setting `DEFAULT_MCUBOOT_FLASH_MAP` **ON**. ST has STM32Cube HAL - the direct
+analogue of FSP - and their answer is to wrap it behind a CMSIS driver rather than replace the
+backend:
+
+```
+stm/common/hal/CMSIS_Driver/low_level_flash.c
+    HAL_FLASH_Program(), HAL_FLASHEx_GetOperation()     <- ST's own HAL
+        wrapped as ARM_DRIVER_FLASH
+            externed by bl2/src/default_flash_map.c as FLASH_DEV_NAME_0..3
+```
+
+So the vendor whose situation most resembles this one keeps TF-M's map **and** backend, and
+supplies only the driver.
+
 ## 7. Options
 
 Stated with their costs, not ranked — the choice is a judgement about which divergence is
@@ -229,7 +264,10 @@ As Option 2, but the port's `Driver_Flash.c` (which already exists and wraps `R_
   `rm_mcuboot_port`'s own logic is lost, which is thin — an address computation and a
   controller open.
 - **This is what corstone1000 does**, with the port's CMSIS driver in the slot.
-- **Cost:** same SAU question as Option 2.
+- **Cost:** the RA8M2 SAU only. **Cheaper than first estimated** - the code already exists in
+  `299b03039`, which was reverted for wanting FSP's flash_map, not because it was wrong.
+  `ARM_DRIVER_FLASH Driver_FLASH0`/`Driver_FLASH1` already exist on both parts and
+  `FLASH_DEV_NAME` already resolves to `Driver_FLASH0`, so nothing new is written there.
 
 ---
 

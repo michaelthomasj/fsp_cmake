@@ -3917,3 +3917,91 @@ and verified to build; **still untested on hardware**.
 - This belongs in `BRIDGING_FILES.md`: a shared include guard across two divergent definitions
   of the same type is a drift surface with no build-time signal, and the DWARF check above is
   its canary.
+
+---
+
+## D091 — Option 3 adopted: both parts take TF-M's MCUboot backend, FSP's HAL behind fa_driver
+
+**Date:** 2026-10-05 · **Status:** Accepted · **Supersedes** [D079], [D082] and [D090]'s
+configuration (not its mechanism); withdraws upstream item 13
+
+**Verified on hardware.** `ra6m5_TFM_flih_gcc`, banner `TF-M v2.2.0+e75582eac`: the full
+regression suite passes, secure and non-secure, including the FLIH IRQ tests. Zero failures.
+
+### What settled it
+
+`FLASH_MAP_OWNERSHIP.md` asked whether TF-M's BL2 breaks MCUboot's porting abstraction. The
+answer, checked against `upstream/main` well past TF-Mv2.3.1:
+
+- **MCUboot does not define `struct flash_area`.** Every port supplies
+  `flash_map_backend.h` itself - zephyr delegates to `<zephyr/storage/flash_map.h>`, mynewt to
+  `<flash_map/flash_map.h>`, nuttx and espressif define it inline. FSP supplying one is
+  idiomatic, not a deviation.
+- **TF-M occupies that slot**, and the slot is singular. Its struct carries an extra
+  `ARM_DRIVER_FLASH *fa_driver` and its backend dispatches
+  `DRV_FLASH_AREA(area)->ReadData(...)`. That is a real architectural commitment.
+- **`DEFAULT_MCUBOOT_FLASH_MAP=OFF` buys the map DATA, not the backend.** corstone1000 and rse
+  are still the only users, and both populate TF-M's struct with `.fa_driver = &FLASH_DEV_NAME`.
+  No platform in the tree supplies its own `flash_map_backend.h` or `sysflash.h`.
+
+**The decisive precedent is ST**, whose situation is the closest analogue. Four ST platforms
+set `DEFAULT_MCUBOOT_FLASH_MAP` **ON** and wrap STM32Cube HAL behind a CMSIS driver
+(`stm/common/hal/CMSIS_Driver/low_level_flash.c` calling `HAL_FLASH_Program()`), which
+`bl2/src/default_flash_map.c` externs as `FLASH_DEV_NAME_0..3`. The vendor with their own HAL
+keeps TF-M's map and backend and supplies only the driver.
+
+### What this port now does
+
+The same. `Driver_FLASH0`/`Driver_FLASH1` already implemented `ARM_DRIVER_FLASH` over
+`R_FLASH_HP`/`R_MRAM`, and `FLASH_DEV_NAME` already resolved to `Driver_FLASH0`, so nothing new
+was written for the driver side.
+
+**The layout still comes from the Solution.** `FLASH_AREA_*_OFFSET/SIZE` derive from
+`BSP_PARTITION_*` either way - that property was never contingent on the backend, and
+conflating the two is what [D079] got wrong.
+
+### Removed
+
+| | |
+|---|---|
+| `DEFAULT_MCUBOOT_FLASH_BACKEND` | gone; **upstream item 13 withdrawn**, `bl2/CMakeLists.txt` now byte-identical to TF-Mv2.2.0 |
+| `fsp_mcuboot_port.cmake`, `mcuboot_hook_shim.h`, `fsp_flash_map_shim.h` | gone from both parts |
+| the `__FLASH_MAP_BACKEND_H__` predefine and the include-order dependency | gone - **[D090]'s guard collision is now structurally impossible**, not merely fixed |
+| `flash_device_base()` override | gone; TF-M's `flash_map_extended.c` supplies it, offsets flat not absolute |
+| the flash-controller handover | gone; our `mram_open_once()` tolerates `ALREADY_OPEN`, FSP's `flash_area_open()` did not |
+
+### Added
+
+RA8M2 regains the SAU init in `bl2_boot_hal.c`, which FSP's `flash_area_open()` had been
+providing. The bounds are **imported verbatim from FSP's `flash_map.c`** and attributed there,
+using `R_PSCU->CFSAMONA_b.CFS2` - the provisioned boundary - rather than the architectural alias
+base, because it is tighter. Verified by disassembly: `(CFS2 + 0x2400) << 15` is
+`0x12000000 + CFS2 * 0x8000`, FSP's expression constant-folded.
+
+### Cost
+
+```
+                  FSP backend   Option 3   delta
+RA6M5 bl2.bin          32,524     33,388    +864
+RA8M2 bl2.bin          27,184     27,888    +704
+```
+
+Against 96 KB and 64 KB BL2 regions. What is given up is `rm_mcuboot_port`'s own logic - an
+address computation, a controller open, the SAU write and a `memcpy`. **FSP HAL fixes still
+flow**, because `Driver_Flash.c` calls `R_FLASH_HP_*`/`R_MRAM_*` directly.
+
+### A defect the exercise exposed
+
+`bl2_boot_hal.c` was compiled only under `CRYPTO_HW_ACCELERATOR`. Harmless while it only started
+the SCE, but with the SAU init there, disabling the accelerator would have been a silent boot
+failure on RA8M2. Now unconditional, with the SCE half guarded inside.
+
+### Still open
+
+- **RA8M2 has never run.** Its three SPE trees build and are verified on TF-M's backend, and
+  `ra8m2_TFM_flih_gcc` now exists, but the SAU path has never executed on hardware. RDPM must be
+  run first - 703/1/0/935/1/0 - and it erases the part.
+- **B4 from `FLASH_MAP_OWNERSHIP.md` is now moot for `rm_mcuboot_port`** (no longer built) but
+  the underlying `fsp_module_glob` limitation remains for any module named explicitly.
+- Stale `DEFAULT_MCUBOOT_FLASH_BACKEND:BOOL=OFF` entries survive in several `CMakeCache.txt`
+  files as orphans. Nothing reads them; worth sweeping before merge.
