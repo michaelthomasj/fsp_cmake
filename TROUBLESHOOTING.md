@@ -106,6 +106,20 @@ the partitioning changed without a rebuild. [D054].
 `cmsis_drivers/Driver_Flash.c` adds the right one by comparing against the boundary. [D073],
 [D074].
 
+### HardFault with `BFAR = 0x4013C000` in `bsp_prv_clear_pfb` (RA8M2)
+
+**Clocks are not Secure in the e2 secure project.** `BSP_CFG_CLOCKS_SECURE (0)` in
+`ra_gen/bsp_clock_cfg.h` sets bit 4 of `BSP_TZ_CFG_MSAR`, and `R_BSP_SecurityInit()` writes
+that to `R_MRMS->MSAR`, assigning the MRAM `MRCPFB` register non-secure. The secure image then
+bus-faults the first time it programs MRAM - provisioning writing OTP into DF_EMULATION, via
+`mram_program_control()` -> `bsp_prv_clear_pfb()`.
+
+`BFSR 0x82` (PRECISERR | BFARVALID) with `BFAR` at the `R_MRMS` base is the signature.
+
+**Fix:** e2 secure project, Security -> Clocks = **Secure**, regenerate. [D092].
+
+RA6M5 cannot hit this: no MRAM, so no `MSAR`.
+
 ### `HFSR.FORCED` set with every `CFSR` / `BFSR` / `MMFSR` / `UFSR` / `SFSR` bit clear
 
 **This is the signature of a masked SVCall, not a fault in the code you were running.** With

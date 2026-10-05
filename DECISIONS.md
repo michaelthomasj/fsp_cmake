@@ -4005,3 +4005,86 @@ failure on RA8M2. Now unconditional, with the SCE half guarded inside.
   the underlying `fsp_module_glob` limitation remains for any module named explicitly.
 - Stale `DEFAULT_MCUBOOT_FLASH_BACKEND:BOOL=OFF` entries survive in several `CMakeCache.txt`
   files as orphans. Nothing reads them; worth sweeping before merge.
+
+---
+
+## D092 — RA8M2's first boot: BL2 works; the secure image needs Clocks set Secure in e2
+
+**Date:** 2026-10-05 · **Status:** Accepted · **Corrects** a claim made about [D091]'s
+`bsp_security.c` reading
+
+### BL2 worked on the first attempt
+
+RA8M2 had never run. With [D091]'s configuration it reached the secure image: the banner
+`Booting TF-M v2.2.0+e75582eac` is `tfm_s`, so BL2 initialised, the SAU block in
+`bl2_boot_hal.c` executed, MCUboot validated both images and jumped. **Everything Option 3
+changed is upstream of the fault below and all of it worked.**
+
+### The fault, and why it is not a regression
+
+```
+FATAL ERROR: HardFault, secure FW, thread mode
+BFSR  0x82   PRECISERR | BFARVALID
+BFAR  0x4013C000        R_MRMS base
+PC    bsp_prv_clear_pfb  <- from mram_program_control
+```
+
+`R_MRMS` is the MRAM sequencer and `MRCPFB` sits at offset 0, so `BFAR` is the exact register.
+The path is provisioning writing OTP into DF_EMULATION (`R0 = 0x02010300`, inside the 64 KB
+region at `0x02010000`), through `R_MRAM_Write` and `mram_program_control()`, which calls
+FSP's `bsp_prv_clear_pfb()`:
+
+```c
+void bsp_prv_clear_pfb (void) { R_MRMS->MRCPFB = 0x00; ... }
+```
+
+**Root cause, in the generated project, not the port:**
+
+```c
+/* ra8m2_gcc_CPU0_secure/ra_gen/bsp_clock_cfg.h:4 */
+#define BSP_CFG_CLOCKS_SECURE (0)
+```
+
+which makes FSP build
+
+```c
+BSP_TZ_CFG_MSAR = ... | ((BSP_CFG_CLOCKS_SECURE == 0) ? (1U << 4) : 0U)  /* MRCPFB */
+```
+
+`R_BSP_SecurityInit()` writes that to `R_MRMS->MSAR`, assigning MRCPFB **non-secure**. Every
+later secure access to it is refused. Fix: Security -> Clocks = **Secure** in the e2 secure
+project. Recorded in `RA8M2_SOLUTION.md` as a required setting, the fourth project-side gap and
+the first that stops the boot.
+
+**Not an Option 3 regression.** [D091] changed BL2 only; this is in `tfm_s`, which had never
+executed on this part under any configuration. RA6M5 cannot hit it - no MRAM, so no `MSAR`.
+
+### Correction: FSP's secure init does NOT set the TrustZone boundaries
+
+While diagnosing I said `bsp_security.c:296` shows `R_BSP_SecurityInit()` writing
+`R_PSCU->CFSAMONA`, and suggested this contradicted `DESIGN.md` §7.1. **That was wrong.** The
+write is guarded:
+
+```c
+#if 0 == BSP_FEATURE_TZ_HAS_DLM
+    /* If DLM is not implemented, then the TrustZone partitions must be set at run-time. */
+    R_PSCU->CFSAMONA = ...
+#endif
+```
+
+`BSP_FEATURE_TZ_HAS_DLM` is **1 on both RA6M5 and RA8M2**, so the block is compiled out on
+both. **§7.1 stands unchanged: the boundaries are never set by this port's software**, on
+either part. They come from DLM/RDPM provisioning, which is also why BL2 can trust
+`CFSAMONA.CFS2` as the provisioned value.
+
+The reasoning matters as much as the conclusion: the guard is on **DLM presence**, not on the
+SAU/IDAU difference between the parts. The genuine RA6/RA8 split lives a few lines above, in
+`R_BSP_SAUInit()`:
+
+| | |
+|---|---|
+| `#if __SAUREGION_PRESENT` (RA8M2) | programs four SAU regions and sets `SAU_CTRL.ENABLE` |
+| `#else` (RA6M5) | sets `SAU_CTRL.ALLNS`, delegating attribution entirely to the IDAU |
+
+**Method note.** The claim was made from a `grep` hit without reading the enclosing `#if`. A
+line of code is not evidence that it is compiled, and this file is full of feature guards.

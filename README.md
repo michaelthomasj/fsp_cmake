@@ -90,7 +90,7 @@ every build today and is pure diagnostics.
 | `TROUBLESHOOTING.md` | indexed by the symptom you actually see. The two brick hazards are first |
 | `CONFIGURATION.md` | every knob you may change: default, where it is defined, and the constraint that bites. Start with its "how the three layers interact" section |
 | `RA6M5_SOLUTION.md`, `RA8M2_SOLUTION.md` | **per-part: the layout, the RDPM boundary values, what the e2 projects must provide, and current status.** The RDPM values live here and nowhere else |
-| `DECISIONS.md` | why, append-only, D001-D091. Superseded entries stay; later ones say so |
+| `DECISIONS.md` | why, append-only, D001-D092. Superseded entries stay; later ones say so |
 
 **Reference.**
 

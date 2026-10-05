@@ -141,6 +141,35 @@ equals `__BL_0_S_T_START`.
 | `ra8m2_iar_CPU0_secure` | `RAM_CPU0_C` is 128 B against GCC's 1 KB | regenerate in RASC; provisioning hazard |
 | `ra8m2_iar_CPU0_secure` | **no `r_agt` module.** The GCC project has it; this one does not, so the IAR PSA Arch tree (`m2pa`) cannot configure | add Timer (r_agt) with a real Interrupt Priority - not Disabled, which is what makes the interrupt secure on RA. D061 |
 
+### Clocks MUST be Secure in the secure project
+
+**This one stops the boot.** In the e2 secure project, Security -> Clocks must be **Secure**, so
+that `ra_gen/bsp_clock_cfg.h` carries:
+
+```c
+#define BSP_CFG_CLOCKS_SECURE (1)
+```
+
+With it at `(0)`, FSP builds the MRAM security attribution as
+
+```c
+BSP_TZ_CFG_MSAR = ... | ((BSP_CFG_CLOCKS_SECURE == 0) ? (1U << 4) : 0U)  /* MRCPFB */
+```
+
+and `R_BSP_SecurityInit()` writes that to `R_MRMS->MSAR`, assigning **MRCPFB to non-secure**.
+The secure image then faults the first time it programs MRAM: `tfm_plat_otp` writes into
+DF_EMULATION, `mram_program_control()` calls `bsp_prv_clear_pfb()`, and
+`R_MRMS->MRCPFB = 0x00` from Secure state takes a precise bus error.
+
+```
+FATAL ERROR: HardFault        BFSR 0x82 (PRECISERR|BFARVALID)
+BFAR 0x4013C000               R_MRMS base - MRCPFB is at offset 0
+PC   bsp_prv_clear_pfb        called from mram_program_control
+```
+
+Seen on the first RA8M2 boot, 2026-10-05. **RA6M5 cannot hit this** - it has no MRAM, so no
+`MSAR`. The same e2 setting there affects only `LPMSAR` and the clock registers.
+
 ---
 
 ## Status
