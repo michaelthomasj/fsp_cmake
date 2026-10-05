@@ -85,8 +85,13 @@ Work through these in order — the first three are the common causes:
    `0x8000`, slots come out 9.875 sectors long; every build step accepts it and it fails here.
    [D054].
 
-If all four check out and it still fails, see the unexplained RA6M5 case in [D085] — which
-lists the nine things already verified, so they need not be repeated.
+5. **A `struct flash_area` layout mismatch**, if BL2 takes its flash map from FSP. TF-M's and
+   FSP's headers share the guard `H_UTIL_FLASH_MAP_` and define the struct differently - 16
+   bytes against 12 - so the first one reached silently suppresses the other and every member
+   after `pad16` is read one slot late. The image is fine; `fa_size` is not. The signature in a
+   debugger is `fap->fa_off` holding what should be the size. Or check from DWARF that every
+   linked object reports `sizeof(struct flash_area) == 12` (`BRIDGING_FILES.md` §3). This
+   produced exactly this error on RA6M5 ([D090], which supersedes [D085]).
 
 ### `BOOT_EFLASH` from `boot_read_sectors()`
 
