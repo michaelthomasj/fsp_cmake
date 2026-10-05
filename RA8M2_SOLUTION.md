@@ -150,7 +150,7 @@ equals `__BL_0_S_T_START`.
 | Image | text | Region | Headroom |
 |---|---|---|---|
 | bl2 | 27,100 B | `0x10000` (64 KB) | 58% free |
-| tfm_s | 278,594 B | `0x47A00` (293,376 B) | signed image 293,952 of 294,912 — **960 B spare** |
+| tfm_s | 278,594 B | `0x47A00` (293,376 B) | signed payload ends at 294,226 of a 294,912 slot — **670 B spare** |
 | tfm_ns | 105,944 B | `0x27E00` (163,328 B) | 35% free |
 
 The secure slot is nearly full. `README.md` §"Freeing space in the secure image" lists what can

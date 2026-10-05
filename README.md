@@ -49,9 +49,15 @@ The secure slot is nearly full on both active parts, so this is the first place 
 something no longer fits:
 
 ```
-RA6M5   522,304 of 524,288 B    1,984 B spare
-RA8M2   293,952 of 294,912 B      960 B spare
+            raw tfm_s.bin   signed payload ends   slot        true spare
+RA6M5           521,792             522,579    524,288         1,693 B
+RA8M2           293,440             294,226    294,912           670 B
 ```
+
+Measured 2026-10-04 by locating the 0xFF gap between the signed payload and the 16-byte
+trailer at the top of the slot. Earlier figures here said 1,984 B and 960 B; those were
+`raw image + header` against the slot and omitted the ~275 B of imgtool TLVs (signature and
+hashes) and the trailer, which overstated RA8M2's headroom by 30%.
 
 The PSA Arch builds turn several diagnostics **on** deliberately — a user running those suites
 wants them out of the box, and `profile_large` at isolation 3 has the room. The ordinary
@@ -81,8 +87,9 @@ every build today and is pure diagnostics.
 |---|---|
 | `README.md` (this file) | what the repo is, the shortest path to a build, the space budget |
 | `DESIGN.md` | how the port works. §1 the core principle, §1.1 documented deviations, §4 flash geometry, §7 TrustZone and the SAU |
+| `CONFIGURATION.md` | every knob you may change: default, where it is defined, and the constraint that bites. Start with its "how the three layers interact" section |
 | `RA6M5_SOLUTION.md`, `RA8M2_SOLUTION.md` | **per-part: the layout, the RDPM boundary values, what the e2 projects must provide, and current status.** The RDPM values live here and nowhere else |
-| `DECISIONS.md` | why, append-only, D001-D086. Superseded entries stay; later ones say so |
+| `DECISIONS.md` | why, append-only, D001-D087. Superseded entries stay; later ones say so |
 
 **Reference.**
 
@@ -104,6 +111,6 @@ every build today and is pure diagnostics.
 | `archive/ra6m4/` | the RA6M4 era, 2025-10 to 2026-09. Nothing in it describes the active ports — see its README for what is still worth reading |
 | `bringup/bricking_evidence/` | the evidence behind D002, the OFS coalescing brick |
 
-**Still to write**, per `DOCUMENTATION_PLAN.md`: `CONFIGURATION.md` (every knob a user may
-change), `TROUBLESHOOTING.md` (symptom-indexed), `BRIDGING_FILES.md` (the files that carry FSP
-code or restate FSP-generated values, and the check that detects drift in each).
+**Still to write**, per `DOCUMENTATION_PLAN.md`: `TROUBLESHOOTING.md` (symptom-indexed),
+`RECONFIGURING_THE_LAYOUT.md` (the repartition procedure), and `BRIDGING_FILES.md` (the files
+that carry FSP code or restate FSP-generated values, and the check that detects drift in each).

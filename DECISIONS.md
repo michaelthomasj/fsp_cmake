@@ -3691,3 +3691,40 @@ produce an unverified claim, which is the thing [D080] exists to warn about.
 
 All edits were comment-only or assertion-only: `bl2.bin` and `tfm_s_signed.bin` are unchanged
 on both parts, and the RA6M5 FLIH RTT addresses are unmoved.
+
+---
+
+## D087 — the secure-slot headroom figures were overstated; CONFIGURATION.md written
+
+**Date:** 2026-10-04 · **Status:** Accepted · **Corrects** the figures stated in [D084] and
+`README.md`
+
+Writing `CONFIGURATION.md` meant restating the slot budget, and restating it meant measuring it
+rather than copying it forward. The published figures were wrong in the unsafe direction.
+
+They had been computed as `raw tfm_s.bin + header` against the slot size, which ignores the
+imgtool TLV block (signature and hashes, ~275 B) and the 16-byte trailer at the top of the
+slot. Measured instead by locating the 0xFF gap between the signed payload and that trailer:
+
+| | was published | measured | overstated by |
+|---|---|---|---|
+| RA6M5 | 1,984 B spare | **1,693 B** | 291 B |
+| RA8M2 | 960 B spare | **670 B** | 290 B, i.e. 30% |
+
+RA8M2 is the one that matters: a user trusting 960 B and adding 800 B of code would be told it
+fits, and would find out at the signing step at best. Corrected in `README.md`,
+`CONFIGURATION.md` and `RA8M2_SOLUTION.md`, with the measurement method stated so the next
+person does not re-derive it the easy wrong way.
+
+**Why the easy way is wrong.** The signed image is padded to the full slot, so
+`len(data.rstrip(0xFF))` returns the whole file - the trailer magic is the last 16 bytes. The
+free space is the *interior* gap, not a suffix. That is the trap, and it is why the first
+measurement attempt in this session also returned "spare 0".
+
+**`CONFIGURATION.md`** is now written, the first of the four documents
+`DOCUMENTATION_PLAN.md` was created to scope. Every option verified against the code on
+2026-10-04, including two things the plan had guessed at and got wrong - see [D086] for the
+cache-variable claim, and the `PS_NUM_ASSETS` cap, which is per-part rather than universally 5.
+
+Remaining from the plan: `TROUBLESHOOTING.md`, `RECONFIGURING_THE_LAYOUT.md`,
+`BRIDGING_FILES.md`.
