@@ -3828,3 +3828,92 @@ one-time e2 edits. Listed in `RA8M2_SOLUTION.md`.
 now produces a `bl2.bin` byte-for-byte the same size as `m2gflih`'s, which it did not before.
 
 Remaining from the plan: `RECONFIGURING_THE_LAYOUT.md`.
+
+---
+
+## D090 — the RA6M5 FSP-backend failure was a struct flash_area mismatch; [D085] is superseded
+
+**Date:** 2026-10-05 · **Status:** Accepted · **Supersedes** [D085], **restores** [D082]
+
+[D085] reverted RA6M5 to TF-M's MCUboot flash backend and recorded the failure as unexplained
+after eliminating nine hypotheses. The cause is now known, fixed, and **verified on hardware:
+the full regression suite passes with FSP's backend**, secure and non-secure, including the
+FLIH IRQ tests.
+
+### The defect
+
+Two headers define `struct flash_area`, and they share the include guard `H_UTIL_FLASH_MAP_`:
+
+| | |
+|---|---|
+| TF-M `bl2/ext/mcuboot/include/flash_map/flash_map.h` | **16 bytes** - carries `ARM_DRIVER_FLASH *fa_driver` between `pad16` and `fa_off` |
+| FSP `rm_mcuboot_port/flash_map_backend/flash_map_backend.h` | **12 bytes** - no such member |
+
+Whichever is reached first wins and **silently suppresses the other**. bootutil was compiled
+against TF-M's while FSP's `flash_map.c` populated its own, so every member after `pad16` was
+read one slot late. Captured in the debugger on the failing `fap`:
+
+```
+fa_driver  0x120000   <- the real fa_off
+fa_off     0x70000    <- the real fa_size
+fa_size    0x7f04     <- read past the end of the 12-byte struct
+```
+
+`bootutil_max_image_size()` is `boot_swap_info_off()` under `MCUBOOT_OVERWRITE_ONLY`, which
+derives entirely from `flash_area_get_size()`. With `fa_size` misread as `0x7f04` it returned
+**32,000** instead of **458,240**, and `image_validate.c` rejected a `tlv_end` of 107,474:
+
+```c
+if (it.tlv_end > bootutil_max_image_size(fap)) { rc = -1; goto out; }
+```
+
+Surfacing only as `[ERR] Image in the primary slot is not valid!`.
+
+### Why [D085]'s nine checks could not find it
+
+Every one of them was a check that the **data** was correct - slot sizes, offsets, signature,
+image hash, trailer magic, flash contents, `DUALSEL`. All nine were right. The fault was in how
+the *descriptor* was read, which no amount of verifying the flash could reach. Two lessons:
+
+- **An ODR violation between two complete struct definitions produces no diagnostic.** Both
+  headers are valid, the link succeeds, only the field offsets disagree.
+- The decisive evidence took one breakpoint. [D085] records nine offline checks and a
+  conclusion of "cause not found"; the correct next step after the third or fourth was a
+  debugger, not a fifth check. Static analysis cannot see a layout disagreement because every
+  artifact it inspects is individually correct.
+
+### The fix
+
+1. FSP's `rm_mcuboot_port` directory precedes TF-M's `bl2/ext/mcuboot/include` for the `bl2`
+   and `bootutil` targets, so FSP's header wins and the shared guard makes TF-M's a no-op.
+2. `<part>/fsp_flash_map_shim.h`, force-included into both targets, gives back what TF-M's
+   header otherwise provided: `region_defs.h` (hence `MCUBOOT_MAX_IMG_SECTORS` and the
+   `SHARED_BOOT_MEASUREMENT_*` pair), `MCUBOOT_SHARED_DATA_BASE`/`_SIZE`, and
+   `FLASH_DEVICE_ID`/`_BASE` - everything except the struct.
+
+**The check that proves it**, and the one worth repeating after any FSP or TF-M uprev:
+
+```sh
+arm-none-eabi-readelf --debug-dump=info <obj> |   awk '/DW_TAG_structure_type/{s=1;n="";b=""} s&&/DW_AT_name.*: flash_area$/{n=1}        s&&/DW_AT_byte_size/{b=$NF} n&&b{print b; exit}'
+```
+
+Every linked object must report **12**. On RA6M5 all do; four objects still reporting 16 are
+TF-M's own backend files, stale on disk from the previous configuration with zero references in
+`build.ninja`.
+
+### RA8M2 had the same defect, unbuilt and unnoticed
+
+Identical include path, identical missing force-include. It has never run on a board, so
+[D079]'s adoption of FSP's backend would have failed on first boot in exactly this way. Fixed
+and verified to build; **still untested on hardware**.
+
+### Consequences for the record
+
+- **[D082] is restored**: RA6M5 does take its MCUboot flash backend from FSP.
+- **[D085] is superseded** in its conclusion, though its elimination table remains accurate and
+  is why the search narrowed to the descriptor rather than the data.
+- `DESIGN.md` §4 said the two live parts deliberately differ here. They no longer do - both
+  take the backend from FSP, and `DEFAULT_MCUBOOT_FLASH_MAP`/`_BACKEND` are `OFF` on both.
+- This belongs in `BRIDGING_FILES.md`: a shared include guard across two divergent definitions
+  of the same type is a drift surface with no build-time signal, and the DWARF check above is
+  its canary.

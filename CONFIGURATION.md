@@ -89,8 +89,9 @@ case: `fsp_module_glob` is `GLOB_RECURSE` and would pull in `custom_crypto_stack
 | `MCUBOOT_HW_KEY` | OFF | OFF | |
 | `MCUBOOT_MEASURED_BOOT` | ON | ON | boot record per image |
 | `MCUBOOT_DATA_SHARING` | ON | ON | **this is the one that does the work** — without it BL2 writes no boot record and `MEASURED_BOOT` has nothing to carry |
-| `DEFAULT_MCUBOOT_FLASH_MAP` | default ON | **OFF** | |
-| `DEFAULT_MCUBOOT_FLASH_BACKEND` | default ON | **OFF** | RA8M2 takes both from FSP, because FSP's `flash_area_open()` programs the SAU. RA6M5 has no SAU and stays on TF-M's ([D079], [D085]) |
+
+| `DEFAULT_MCUBOOT_FLASH_MAP` | **OFF** | **OFF** | |
+| `DEFAULT_MCUBOOT_FLASH_BACKEND` | **OFF** | **OFF** | both parts take the map and backend from FSP ([D079], [D082], [D090]). On RA8M2 it is load-bearing - FSP's `flash_area_open()` programs the SAU. **If you change this, see the `struct flash_area` guard-collision note in `BRIDGING_FILES.md`** |
 
 **Measured boot cannot be verified by the attestation suite.** With `component_cnt == 0` under
 the default `ATTEST_TOKEN_PROFILE_PSA_IOT_1`, `attest_add_all_sw_components()` emits

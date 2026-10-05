@@ -72,7 +72,39 @@ value rather than deriving it from a `BSP_FEATURE` macro, and the same header al
 *is* asserted in `<part>_layout_checks.c` is that the part reports MRAM and that the sector is
 a whole number of MRAM write units ([D086]).
 
-### 3. The rm_psa_crypto tree — the cheapest canary found so far
+### 3. struct flash_area - the guard collision, checked from DWARF
+
+The highest-consequence drift surface found so far, because **nothing in the build signals it**.
+
+TF-M's `bl2/ext/mcuboot/include/flash_map/flash_map.h` and FSP's
+`rm_mcuboot_port/flash_map_backend/flash_map_backend.h` both guard with `H_UTIL_FLASH_MAP_`,
+so the first one reached silently suppresses the other. They do not define the same type:
+
+| | |
+|---|---|
+| TF-M | **16 bytes** - extra `ARM_DRIVER_FLASH *fa_driver` between `pad16` and `fa_off` |
+| FSP | **12 bytes** - no such member |
+
+With the wrong one in bootutil, every member after `pad16` is read one slot late. Both are
+complete types, the link succeeds, and the only symptom is a bootloader rejecting a correct
+image ([D090]). An FSP uprev that adds a member, or a TF-M bump that changes its struct, breaks
+this again with no warning.
+
+**The check** - every linked object must report 12:
+
+```sh
+for o in $(find <build>/bl2 <build>/platform -name '*.o'); do
+  arm-none-eabi-readelf --debug-dump=info "$o" 2>/dev/null |     awk -v f="$o" '/DW_TAG_structure_type/{s=1;n="";b=""}
+         s&&/DW_AT_name.*: flash_area$/{n=1}
+         s&&/DW_AT_byte_size/{b=$NF}
+         n&&b{if(b!=12)print b" bytes: "f; exit}'
+done
+```
+
+Objects reporting 16 are only acceptable if they are TF-M's own backend files left stale on
+disk - confirm with `grep -c <object> build.ninja` returning 0.
+
+### 4. The rm_psa_crypto tree — the cheapest canary found so far
 
 ```sh
 cd <peaks-working> && git diff --stat ra/fsp/src/rm_psa_crypto/
@@ -81,7 +113,7 @@ cd <peaks-working> && git diff --stat ra/fsp/src/rm_psa_crypto/
 Of 35 files, only `aes_alt.c` and `cipher_alt.c` have ever differed between the SCE9 and E50D
 packs, so a diff here is high-signal at near-zero cost ([D053]).
 
-### 4. The ALT source list
+### 5. The ALT source list
 
 The accelerator `CMakeLists.txt` selects a **subset** of what FSP ships — CCM is deliberately
 excluded ([D043], [D051]). FSP adding, removing or fixing a source does not change the list,

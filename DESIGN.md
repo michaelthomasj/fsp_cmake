@@ -117,13 +117,21 @@ the narrower grounds of colliding `flash_map[]` definitions and a different area
 - **RA8M2 now takes its MCUboot flash backend from FSP** (D079). It has to: with
   `__SAUREGION_PRESENT == 1`, FSP's `flash_area_open()` programs the SAU from
   `R_PSCU->CFSAMONA_b.CFS2` so BL2 can reach the non-secure alias at all (§7).
-- **RA6M5 stayed on TF-M's backend** (D085). It was switched over for consistency and reverted:
-  `__SAUREGION_PRESENT == 0` there, so FSP's SAU programming is absent and the change bought
-  nothing, while BL2 failed to validate the NS image for reasons never identified.
+- **RA6M5 also takes it from FSP** (D082, restored by D090). It was reverted for a day after
+  BL2 failed to validate the non-secure image; the cause was a `struct flash_area` layout
+  mismatch between bootutil and FSP's backend, not the backend itself. Fixed, and the full
+  regression suite passes on hardware.
 
-So the two live parts deliberately differ here, and the switch is `DEFAULT_MCUBOOT_FLASH_MAP` /
-`DEFAULT_MCUBOOT_FLASH_BACKEND` in `<part>/config.cmake` — both `OFF` on RA8M2, both default
-`ON` on RA6M5.
+Both live parts therefore take the backend from FSP, and `DEFAULT_MCUBOOT_FLASH_MAP` /
+`DEFAULT_MCUBOOT_FLASH_BACKEND` are `OFF` in both `<part>/config.cmake` files.
+
+**The trap this leaves behind.** TF-M's `flash_map/flash_map.h` and FSP's
+`flash_map_backend/flash_map_backend.h` share the include guard `H_UTIL_FLASH_MAP_` while
+defining `struct flash_area` differently - TF-M's carries an extra `fa_driver` member, 16
+bytes against FSP's 12. The first header reached silently suppresses the other, and nothing in
+the build warns; the symptom is a bootloader that rejects a correctly built image. Each part
+therefore puts FSP's directory ahead of TF-M's for `bl2` and `bootutil`, and force-includes
+`<part>/fsp_flash_map_shim.h` to replace what TF-M's header supplied. D090.
 
 ## 5. MCUboot / BL2
 - **Bootutil:** TF-M downloads a Renesas MCUboot fork. It is **not** the copy RASC ships, and the
