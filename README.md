@@ -82,7 +82,7 @@ every build today and is pure diagnostics.
 | `README.md` (this file) | what the repo is, the shortest path to a build, the space budget |
 | `DESIGN.md` | how the port works. §1 the core principle, §1.1 documented deviations, §4 flash geometry, §7 TrustZone and the SAU |
 | `RA6M5_SOLUTION.md`, `RA8M2_SOLUTION.md` | **per-part: the layout, the RDPM boundary values, what the e2 projects must provide, and current status.** The RDPM values live here and nowhere else |
-| `DECISIONS.md` | why, append-only, D001-D085. Superseded entries stay; later ones say so |
+| `DECISIONS.md` | why, append-only, D001-D086. Superseded entries stay; later ones say so |
 
 **Reference.**
 

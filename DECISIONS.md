@@ -3541,3 +3541,153 @@ actually worth reconsidering for a production image.
 from what a setting *ought* to do instead of building it twice and running `cmp`. The decisive
 experiment took one rebuild and five seconds of comparison, and it should have come before the
 first claim, not after the second.
+
+---
+
+## D085 — RA6M5 reverts to TF-M's MCUboot flash backend; [D082] is withdrawn
+
+**Date:** 2026-10-04 · **Status:** Accepted · **Supersedes** [D082]
+
+[D082] switched RA6M5 to FSP's MCUboot flash backend for consistency with [D079]. It is
+reverted. BL2 reached MCUboot and then could not validate the non-secure image:
+
+```
+[INF] Secondary image of image pair (1.) is unreachable. Treat it as empty
+[INF] Image index: 1, Swap type: none
+[ERR] Image in the primary slot is not valid!
+[ERR] Unable to find bootable image
+```
+
+**The reason it was never load-bearing here.** `__SAUREGION_PRESENT` is **0** on RA6M5 and
+**1** on RA8M2. FSP's `flash_area_open()` earns its place on RA8M2 because it programs the SAU
+from `R_PSCU->CFSAMONA_b.CFS2`, without which a secure transaction to the non-secure MRAM alias
+is refused. RA6M5 has one alias, no SAU, and `BSP_FEATURE_TZ_NS_OFFSET == 0`. The switch bought
+consistency and nothing else, so reverting costs nothing.
+
+**One real defect was found on the way, and it stays fixed on RA8M2.** `boot_platform_init()`
+opens the flash controller, then FSP's `flash_area_open()` opens the same controller and
+returns −1 on `FSP_ERR_ALREADY_OPEN` — a bootloader panic. `<part>_flash_release_for_mcuboot()`
+now closes it first, from `boot_platform_post_init()` (`b3a91b4cf`). RA8M2 would have hit this
+on its first boot.
+
+**Eliminated, so nobody repeats them.** Everything checkable verified correct:
+
+| Checked | Result |
+|---|---|
+| slot sizes vs the signed images | 0x80000 / 0x70000, exact |
+| `flash_map` decoded from `bl2.elf` | id 2 @0x20000, id 1 @0xA0000, id 3 @0x120000, id 4 @0x190000 |
+| NS signature vs BL2's embedded key | verifies; hash `54448ED2…7E50362E` |
+| that hash vs the boot-record measurement | identical |
+| trailer magic and alignment | present, align 128, agreeing with imgtool and `flash_area_align()` |
+| `MCUBOOT_IMAGE_NUMBER` | 2, on the command line and in FSP's header |
+| `MCUBOOT_OVERWRITE_ONLY` | reaches FSP's file, so the buffered-write path is compiled out |
+| flash contents at 0xA0000 / 0x120000 | byte-identical to the signed files |
+| `DUALSEL` at 0x0100A110 | `FFFFFFFF` — linear, so not the dual-bank hazard |
+
+**Cause not found.** The `BOOT_EFLASH` is a real `flash_area_read()` returning −1 with the
+bounds arithmetic and the flush path both excluded. Finding it needs a breakpoint in
+`flash_area_read` on the target, not more static analysis. Recorded as unexplained rather than
+closed.
+
+**Consequence for the port.** The two live parts now deliberately differ, and that is stated in
+`DESIGN.md` §4: `DEFAULT_MCUBOOT_FLASH_MAP` / `DEFAULT_MCUBOOT_FLASH_BACKEND` are `OFF` on
+RA8M2 and default `ON` on RA6M5. The upstream item 13 guard is unaffected — it is what makes
+either choice expressible.
+
+**Also noted.** `m5gflih` carries `MCUBOOT_LOG_LEVEL=INFO`, hand-set while debugging this and
+in no script, which is the [D084] defect class again. Left on deliberately for the next
+hardware run, where the BL2 log is the thing worth having; it costs BL2 text ~6 KB and no
+secure-slot space.
+
+---
+
+## D086 — documentation reorganised around the live parts; DESIGN.md had drifted furthest
+
+**Date:** 2026-10-04 · **Status:** Accepted
+
+A full pass over every markdown file in both repositories, and over the comment corpus of the
+two active ports. The finding that mattered was not staleness in the obvious places.
+
+**`DESIGN.md` was the worst, and read as current.** It had been edited five days earlier
+(§1.1 added, 2026-10-02) while its title, intro and goals still said *"RA6M4 TF-M Port … and
+forthcoming RA8D2"*. It mentioned RA6M5 and RA8M2 **zero times** in 350 lines, against 18
+RA6M4 mentions — and `README.md` pointed newcomers to it as the architecture reference. Two of
+its claims were false on inspection:
+
+- *"byte-identical to the copy RASC ships"* (§5). RASC's `boot_hooks.h` is **287 lines**
+  against TF-M's **181**, adding `BOOT_HOOK_FLASH_AREA_CALL`, `BOOT_HOOK_FIND_SLOT_CALL` and
+  `BOOT_HOOK_GO_CALL_FIH` — which is precisely why [D079] needed `mcuboot_hook_shim.h`. The
+  claim contradicted a shim the port already shipped.
+- *"`ra6m4_bl2.ld` is the ONE forked linker"* (§8.2). Six, across the two live parts:
+  `<part>_bl2.ld`, `<part>_bl2.icf`, `<part>_fsp_sections.icf`.
+
+It also carried RA6M4's RFP boundary literals (`0x0-0x4F3FF`, NSC `0x4F400`). Those are RDPM
+input. A stale copy in a third document is how a part gets provisioned wrong, so they are now
+replaced by a pointer to the per-part documents that derive them.
+
+**`RA8M2_SOLUTION.md` did not exist**, though `config.cmake` cited it ([D077]). Written, with
+the layout and all six RDPM fields **derived** from `Debug/bsp_linker_info.h` rather than
+transcribed — the [D074] lesson. The derivation reproduces the values confirmed against the
+RDPM screen: secure region ends at `FLASH_CPU0_C_START` = `0xAFC00` = **703 KB**, NSC `0x400` =
+**1 KB**, SRAM `0xE9C00` = **935 KB** and `0x400` = **1 KB**, data flash **0** because
+`DATA_FLASH_CPU0_S_SIZE` is `0x0` and the part has none.
+
+**~3,900 lines were RA6M4-era with no marker.** Eight top-level documents, including
+`TFM_EXECUTION_FLOW.md` at 1,271 lines, with **zero** mentions of either live part. Moved to
+`archive/ra6m4/` with an index giving each one's trust level, because they are not uniformly
+worthless: `TFM_EXECUTION_FLOW.md` is structurally still accurate, while
+`TFM_FSP_NS_BUILD_GUIDE.md` predates the split SPE/NSPE build ([D005]) and must not be
+followed. `DECISIONS.md` references them as bare code spans, never as markdown links, so the
+move broke nothing in the append-only log.
+
+**`MACHINE_HANDOFF.md` was NOT archived**, against its own description in
+`DOCUMENTATION_PLAN.md` as transient. Its §4 is the pre-flash brick-safety checklist, cited by
+three D-entries, and it covers the live parts. Safety procedure should not sit in a file
+scheduled for deletion; it is now named as such in the README until it has a better home.
+
+**The comment corpus is sound, and was largely left alone.** `ra8m2/flash_layout.h` is 69%
+comment and `region_defs.h` 61%, with 28 cross-part references between them — all deliberate
+"how this differs from RA6M5" notes, several of which *record previously-caught carry-overs*
+(`region_defs.h:163`: "THESE ARE NOT RA6M5's NUMBERS. This paragraph was a verbatim copy…").
+That is good documentation and trimming it for brevity would destroy the port's main defence
+against drift. Length is not the defect; being wrong is.
+
+**One outlier, and it was the file with no such warning.** `ra8m2/config_tfm_target.h` carried
+87 lines of RA6M5's Protected Storage investigation verbatim, opening *"With the RA8M2's 8 KB
+data flash"* — **this part has no data flash at all.** Every derived figure was RA6M5's:
+
+| | comment said | actually |
+|---|---|---|
+| PS area | 3,072 B | **31,744 B** (DF_EMULATION 64 KB, halved after NV counters) |
+| PS block | 1,536 B | **15,872 B** |
+| free for one asset | `1152 - 96*N` | `15488 - 96*N` |
+| cap on `PS_NUM_ASSETS` | "caps this at 5" | **155** |
+
+`PS_NUM_ASSETS 5` is safe — conservative by a factor of 31 — and `ra8m2_layout_checks.c` is
+correct and part-aware, deriving the block size and even stating the real ~14,400-byte margin.
+So this was a wrong comment beside a right assertion. Rewritten to 40 lines; constants
+unchanged. Verified by reproducing both parts' known-good margins (RA6M5 88 B, RA8M2 14,424 B)
+from one model before touching anything.
+
+**Three guards the comments claimed now exist.** [D077] listed comments asserting checks that
+were never written. Where the check was achievable it was added rather than the comment
+weakened:
+
+- `BSP_FEATURE_MRAM_IS_AVAILABLE`, and the erase sector being a whole number of MRAM write
+  units — the two things reachable from the `bsp_api.h` the file already includes.
+- `S_CODE_VECTOR_TABLE_SIZE >= BSP_VECTOR_TABLE_MAX_ENTRIES * 4`, the invariant whose
+  violation once overflowed `.TFM_VECTORS` into `.ER_UNPRIV_CODE` at 496 entries.
+  **Back-ported to RA6M5**, which had no such check either.
+
+`FLASH_AREA_IMAGE_SECTOR_SIZE` **cannot** be asserted against FSP: FSP hardcodes `0x8000` in
+the generated `mcuboot_config.h` rather than deriving it from a `BSP_FEATURE` macro, and that
+header also defines `FLASH_AREA_IMAGE_SECTOR_SIZE`, so it cannot be included beside the port's.
+The comment now says so and names the check that does work — diff that generated header after a
+pack uprev. An unachievable claim replaced by an actionable one.
+
+**RA6E1 measured boot left OFF**, deviating from the open-items list. It has no build tree and
+has not been built in months; enabling a feature on a part that cannot be built or run would
+produce an unverified claim, which is the thing [D080] exists to warn about.
+
+All edits were comment-only or assertion-only: `bl2.bin` and `tfm_s_signed.bin` are unchanged
+on both parts, and the RA6M5 FLIH RTT addresses are unmoved.

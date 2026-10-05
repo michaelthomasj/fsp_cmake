@@ -1,7 +1,16 @@
 # TODO — a self-contained documentation set
 
-**Status: not started.** This file is the plan and the gap list, not the documentation. It exists so
-the work is scoped and ordered rather than started three times from different ends.
+**Status: partly done (2026-10-04).** This file is the plan and the gap list, not the
+documentation.
+
+Done since it was written: `README.md` is no longer a stub and carries the document map;
+`RA8M2_SOLUTION.md` exists; the eight RA6M4-era documents are under `archive/ra6m4/` with an
+index; `DESIGN.md` has been corrected to the live parts (DECISIONS D086). **Still missing, and
+still the point of this file: `CONFIGURATION.md`, `RECONFIGURING_THE_LAYOUT.md`,
+`TROUBLESHOOTING.md`, `BRIDGING_FILES.md`.**
+
+The inventory below is regenerated rather than hand-maintained - the original was months stale
+and understated `DECISIONS.md` by 3,000 lines.
 
 ## The problem, with a worked example
 
@@ -30,30 +39,29 @@ Two more found while surveying:
 
 ## What exists today
 
-| File | Lines | Character |
-|---|---|---|
-| `TFM_EXECUTION_FLOW.md` | 1271 | Reference — boot path walkthrough |
-| `TFM_RA6M4_STATUS.md` | 644 | **Status + running TODO**, part historical |
-| `RA6E1_SOLUTION.md` | 609 | **Status + resolved-issue log**, the de-facto RA6E1 reference |
-| `TFM_FSP_NS_BUILD_GUIDE.md` | 483 | Guide — predates the split SPE/NSPE build (D005); **verify before trusting** |
-| `TFM_NS_FREERTOS_TEST.md` | 461 | Guide — RA6M4 FreeRTOS NS app |
-| `TFM_INTEGRATION_COMPLETE.md` | 375 | Historical milestone write-up |
-| `BUILD_TEST_RESULTS.md` | 374 | Historical results |
-| `DECISIONS.md` | 369 | Decision log (append-only) |
-| `DESIGN.md` | 298 | Architecture + rationale |
-| `TRUSTZONE_FREERTOS_REQUIREMENTS.md` | 231 | Reference — TZ/RTOS constraints |
-| `UPSTREAM_CHANGES.md` | 226 | **Patch queue** — changes to common TF-M files, destined for TrustedFirmware-M |
-| `RA6E1_TEMPLATE_CHECKLIST.md` | 208 | Checklist — what a RASC template must emit |
-| `RA8x2_DUAL_CORE_DESIGN.md` | 185 | Forward design |
-| `MACHINE_HANDOFF.md` | 171 | **Transient** — retire once the two machines are reconciled |
-| `PROJECT_PLAN.md` | 164 | Schedule |
-| `RASC_PROJECT_SETUP.md` | 147 | Guide — RASC project creation |
-| `README.md` | 2 | Stub |
+Regenerated 2026-10-04. Live top-level documents only; `archive/ra6m4/` holds eight more.
 
-Roughly: two files carry most of the operational truth (`RA6E1_SOLUTION.md`, `TFM_RA6M4_STATUS.md`)
-and both are structured as engineering diaries. That format earned its place — the reversals in it
-are worth keeping — but it is not what a user reconfiguring the port needs, and status logs age badly
-because nothing tells you which entries are still true.
+| File | Lines | Last change |
+|---|---|---|
+| `DECISIONS.md` | 3693 | 2026-10-02 |
+| `RA6E1_SOLUTION.md` | 609 | 2026-09-07 |
+| `DESIGN.md` | 397 | 2026-10-04 |
+| `UPSTREAM_CHANGES.md` | 304 | 2026-10-02 |
+| `PROJECT_PLAN.md` | 299 | 2026-09-25 |
+| `DOCUMENTATION_PLAN.md` | 215 | 2026-10-02 |
+| `RA6M5_SOLUTION.md` | 213 | 2026-09-23 |
+| `RA6E1_TEMPLATE_CHECKLIST.md` | 208 | 2026-10-04 |
+| `MACHINE_HANDOFF.md` | 196 | 2026-09-30 |
+| `RA8M2_SOLUTION.md` | 193 | 2026-10-04 |
+| `RA8x2_DUAL_CORE_DESIGN.md` | 185 | 2026-07-28 |
+| `README.md` | 109 | 2026-10-04 |
+
+Most of the operational truth sits in two kinds of file, both engineering diaries:
+`DECISIONS.md` (append-only, authoritative where anything disagrees) and the per-part
+`*_SOLUTION.md`. That format earned its place - the reversals in it are worth keeping - but it
+is not what a user reconfiguring the port needs, and a diary ages badly because nothing in it
+says which entries are still true.
+
 
 ## Target set
 
@@ -90,12 +98,19 @@ narratives, which are the valuable part.
 Extracted from the two ports' `config.cmake` / `CMakeLists.txt`; verify each before publishing, since
 the survey already found one that is not a cache variable.
 
-**Port-specific build options.** `FSP_BL2_APP_DIR` · `FSP_S_APP_DIR` · `FSP_NS_APP_DIR` ·
-`USE_FSP_MODULES` · `FSP_MODULES` · `RA6E1_STDOUT_RTT` / `RA6M4_STDOUT_RTT` ·
-`RA6E1_NS_IN_SPE_BUILD` (default OFF) / `RA6M4_NS_IN_SPE_BUILD` (default ON, D009) ·
-`RA6E1_BL2_HALT_AT_MAIN` · `RA6E1_ORPHAN_CHECK_STRICT` · `RA6M4_BL2_HALT_AT_MAIN` (not a cache
-variable — fix) · `TFM_SPM_DEBUG_TRACE` · `TFM_EXCEPTION_INFO_DUMP` ·
-`PLATFORM_HAS_ISOLATION_L3_SUPPORT` (D008).
+**Port-specific build options.** `FSP_BL2_APP_DIR`, `FSP_S_APP_DIR`, `FSP_NS_APP_DIR`,
+`FSP_MODULES_S` / `FSP_MODULES_BL2` / `FSP_EXCLUDED_MODULES`, `<PART>_STDOUT_RTT`,
+`<PART>_RTT_BLOCKING`, `<PART>_NS_IN_SPE_BUILD` (default OFF on both live parts),
+`<PART>_BL2_HALT_AT_MAIN`, `<PART>_ORPHAN_CHECK_STRICT`, `TFM_SPM_DEBUG_TRACE`,
+`TFM_EXCEPTION_INFO_DUMP`, `PLATFORM_HAS_ISOLATION_L3_SUPPORT` (D008), and on RA8M2 only
+`DEFAULT_MCUBOOT_FLASH_MAP` / `DEFAULT_MCUBOOT_FLASH_BACKEND` (both OFF, D079/D085).
+
+*Checked 2026-10-04:* the "not a cache variable" defect this file predicted does **not** exist
+on ra6m5 or ra8m2. Every user-facing `<PART>_*` option there is declared `CACHE BOOL`, some in
+`CMakeLists.txt` rather than `config.cmake` - which is why a grep of `config.cmake` alone
+appears to find the defect. The remaining `<PART>_*` names are internal configure-time
+variables (`BUILDING_BL2`, `IAR_STACK_*`, `MAIN_STACK_*`, `OFS_READELF`, `SOLUTION`,
+`SPE_CROSS_COMPILE`), not knobs.
 
 **TF-M settings the port pins,** where a user needs to know the port has an opinion:
 `TFM_ISOLATION_LEVEL` · `CONFIG_TFM_SPM_BACKEND` · the five `TFM_PARTITION_*` · the
@@ -118,11 +133,11 @@ ones with non-obvious constraints:
 | `S_RAM_CODE_SIZE` | `region_defs.h` | `0xA00` for `0x7d0` of code plus an ld-inserted veneer. Overflow → `region CODE_RAM overflowed`. Revisit on FSP uprev. |
 | `S_RAM_CODE_EXTRA_SECTION_NAME` | `region_defs.h` | Bare ld pattern, not a quoted string |
 | `S_DATA_EXTRA_NOINIT_SECTION_NAME` | `region_defs.h` | Must stay outside `__bss_start__..__bss_end__`, NOLOAD (D012) |
-| `PS_NUM_ASSETS` | `config_tfm_target.h` | Capped at 5 by PS block capacity; **erase data flash before first boot after any change** |
+| `PS_NUM_ASSETS` | `config_tfm_target.h` | Cap is **per-part**: 5 on RA6M5 (1,536 B PS block), 155 on RA8M2 (15,872 B). Asserted in `<part>_layout_checks.c`. **Erase data flash before first boot after any change** |
 | `PS_MAX_ASSET_SIZE` | `config_tfm_target.h` | Not the binding constraint — capacity is a sum |
 | `TFM_NV_COUNTERS_AREA_SIZE` | `flash_layout.h` | Fixed 2048 B; PS and ITS split what remains |
 | `TFM_HAL_PS_SECTORS_PER_BLOCK` | `flash_layout.h` | `(area/sector)/2` — `num_blocks < 2` fails ITS/PS init outright |
-| `MCUBOOT_ALIGN_VAL` / trailer | `flash_layout.h`, solution | `0x180` at align 128; must fit the NSC window above the veneers |
+| `MCUBOOT_ALIGN_VAL` / trailer | `config.cmake`, solution | RA6M5 128 → trailer `0x180`; RA8M2 32 → `0x60`. Flag day: imgtool encodes it in the boot magic, so images are not interchangeable. The trailer occupies the slot tail, which is the top of the NSC window |
 | OFS `OPTION_SETTING_*` | `region_defs.h` | **Brick hazard** — one `MEMORY` region per word (D002); `check_ofs.py` enforces |
 
 ## Ordering
