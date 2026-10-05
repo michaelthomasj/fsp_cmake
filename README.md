@@ -96,6 +96,7 @@ every build today and is pure diagnostics.
 
 | | |
 |---|---|
+| `FLASH_MAP_OWNERSHIP.md` | design review: what MCUboot's porting contract is, how TF-M narrows it, what other vendors do, and where this port diverges from the two standing objectives |
 | `BRIDGING_FILES.md` | **read before any FSP pack uprev.** Every file that carries FSP code or restates an FSP-generated value, and the check that detects drift in each |
 | `UPSTREAM_CHANGES.md` | the patch queue against upstream TF-M, with the rationale for each |
 | `scripts/README.md` | what each build script does |
