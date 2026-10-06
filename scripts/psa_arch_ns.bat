@@ -32,9 +32,14 @@ if "%SUITE%"=="" echo usage: %~nx0 ^<build-dir^> ^<spe-api_ns-dir^> ^<TEST_PSA_A
 call "%MSVC_VARS%" >nul
 
 set TC_ARGS=
+rem  QUOTED assignments. After vcvars, %PATH% contains "C:\Program Files (x86)\...", and cmd
+rem  expands variables when it PARSES a parenthesised block - before testing the condition -
+rem  so a bare  set PATH=%IAR_BIN%;%PATH%  lets the ")" in "(x86)" close the block early and
+rem  the script dies with "\Microsoft was unexpected at this time." even on the GCC path,
+rem  where this branch is never taken. Same trap as vs_build.bat documents. DECISIONS D083.
 if /i "%TC%"=="iar" (
-  set PATH=%IAR_BIN%;%PATH%
-  set TC_ARGS=-DTFM_TOOLCHAIN_FILE=%SPE:\=/%/cmake/toolchain_ns_IARARM.cmake -DTOOLCHAIN=INHERIT -DCMAKE_ASM_COMPILER_ARCHITECTURE_ID=ARM
+  set "PATH=%IAR_BIN%;%PATH%"
+  set "TC_ARGS=-DTFM_TOOLCHAIN_FILE=%SPE:\=/%/cmake/toolchain_ns_IARARM.cmake -DTOOLCHAIN=INHERIT -DCMAKE_ASM_COMPILER_ARCHITECTURE_ID=ARM"
 )
 
 if not exist "%BUILD%\CMakeCache.txt" (

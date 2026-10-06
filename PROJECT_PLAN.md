@@ -250,6 +250,30 @@ Everything is sequential under one engineer.
 
 ---
 
+
+### Test coverage gaps — suites never run on ANY part (surveyed 2026-10-06)
+
+Enumerated from `tf-m-tests` and `psa-arch-tests` and checked against every build tree in
+`C:`. **Zero trees enable any of these.**
+
+| Suite | Option | Why it has not run | Applicable? |
+|---|---|---|---|
+| **Firmware Update** | `TEST_S_FWU`, `TEST_NS_FWU` | `TFM_PARTITION_FIRMWARE_UPDATE` is OFF on both parts | **Yes - highest value.** Exercises the PSA FWU API over the MCUboot slots this port already has. RA8M2 secure slot has ~670 B spare, so the partition may not fit without turning something off |
+| **IPC model** | `TEST_S_IPC`, `TEST_NS_IPC` | the app builds use `CONFIG_TFM_SPM_BACKEND=SFN`; only the PSA-arch builds use IPC, and those run psa-arch-tests rather than tf-m-tests | **Yes.** A regression tree at isolation 3 + IPC would cover the backend the PSA-arch builds actually ship |
+| **PSA Arch IPC suite** | `TEST_PSA_API=IPC` | only CRYPTO, INITIAL_ATTESTATION and STORAGE have been built. TF-M accepts `IPC`, and `psa-arch-tests/api-tests/ff/{ipc,partition}` exists | **Yes.** The Firmware Framework suite - different from the dev_apis ones already run |
+| **FPU** | `TEST_S_FPU`, `TEST_NS_FPU` | `CONFIG_TFM_ENABLE_CP10CP11=OFF` - the port is soft-float throughout | Only if FP is ever enabled. RA8M2 is Cortex-M85 with FP hardware, so this is a real gap for that part |
+| **NSID management** | `TEST_NS_MANAGE_NSID` | `TFM_NS_MANAGE_NSID` not set | Yes, cheap. Checks non-secure client ID handling |
+| **QCBOR / t_cose** | `TEST_NS_QCBOR`, `TEST_NS_T_COSE` | never enabled | Yes, cheap. Both libraries are already linked for attestation, so this is self-test of code that already ships |
+| **Multi-core** | `TEST_NS_MULTI_CORE` | `TFM_MULTI_CORE_TOPOLOGY=OFF`; dual-core was descoped 2026-09-14 | Not applicable while CPU1 is unused, but RA8M2 **is** dual-core - revisit with `RA8x2_DUAL_CORE_DESIGN.md` |
+
+**Already covered, for contrast:** PS, ITS, Crypto, Attestation, Platform, SFN backend, FLIH IRQ
+(`*_TFM_flih_*`) and SLIH IRQ (`*_TFM_slih_*`, `TEST_NS_SLIH_IRQ=ON` in the slih trees), plus
+PSA Arch crypto / attestation / storage.
+
+**Order I would take them:** FWU first - it is the one with a user-visible feature behind it and
+the launches now exist for the MCUboot half. Then PSA Arch IPC, then the cheap ones (NSID,
+QCBOR, t_cose) as a single regression variant. FPU only if soft-float is revisited.
+
 ## TODO
 
 - **FSP pack uprev for both ports, once both are ready.** RA6M5 and RA8M2 are each
