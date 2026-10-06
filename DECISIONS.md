@@ -4287,3 +4287,41 @@ small local patches and no architectural change.
 - Three RA8M2 IAR project gaps: `iar_mcuboot` Measured Boot disabled, `iar_CPU0_secure`
   `RAM_CPU0_C` 128 B against GCC's 1 KB, and no `r_agt` module - the last blocks `m2pa`.
 - The RA8M2 IAR trees have not been run; only the GCC FLIH launch has.
+
+---
+
+## D096 — measured boot confirmed on RA8M2 by decoding the boot record; [D095] had assumed it
+
+**Date:** 2026-10-06 · **Status:** Accepted · **Corrects** [D095]
+
+[D095] listed measured boot among the things RA8M2's regression run proved. **It did not.**
+[D080] is explicit that a passing attestation suite cannot detect measured boot - with
+`component_cnt == 0` the token carries `IAT_NO_SW_COMPONENTS` and the test still passes - which
+is why [D081] verified RA6M5 by reading the record off the hardware. [D095] made exactly the
+inference [D080] exists to forbid. The PSA Arch attestation run (1/1, 16 checks) does not close
+it either, for the same reason.
+
+**Now actually verified.** Boot record read from `0x22000000` (`BOOT_TFM_SHARED_DATA_BASE` =
+`S_DATA_START` = `BSP_PARTITION_RAM_CPU0_S_START`, 0x400 bytes) after the PSA Arch attestation
+run:
+
+```
+magic 0x2016, tot_len 195
+TLV 0x107F, 92 B, IAS   NSPE  version 0.0.0  SHA256  168543c2…939df68d
+TLV 0x103F, 91 B, IAS   SPE   version 2.2.0  SHA256  c0ce6eb9…6cb50842
+                              + 32-byte signer ID and "SHA256" description on both
+```
+
+**Both measurements equal the SHA-256 TLV (type 0x10) in the corresponding signed image**, so
+BL2 hashed the real images rather than writing placeholders. Checked against
+`m2cry/bin/tfm_s_signed.bin` and `m2att/bin/tfm_ns_signed.bin` - the images that run actually
+boots, not the FLIH tree's.
+
+**The versions are incidental confirmation of `DESIGN.md` §1.1.** `SPE 2.2.0` / `NSPE 0.0.0` are
+TF-M's `MCUBOOT_IMAGE_VERSION_S` and `_NS`, not FSP's `MCUBOOT_IMAGE_VERSION` environment
+variable. The documented deviation is visible in the boot record itself.
+
+**Method note.** The first comparison used `m2gflih`'s images out of habit and reported a
+mismatch on both. The dump came from the attestation launch, which boots `m2cry`/`m2att`. When
+a measurement does not match, check which image the board was actually running before
+concluding anything about the device.
