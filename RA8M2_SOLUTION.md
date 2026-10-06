@@ -169,7 +169,9 @@ PC   bsp_prv_clear_pfb        called from mram_program_control
 `BSP_CFG_CLOCKS_SECURE (0)` - its `.secure_xml` and `ra_gen/bsp_clock_cfg.h` share a timestamp,
 so it was generated that way. The attribute and the macro are not the same knob.
 
-**Believed to be an e2 studio generator defect.** `BSP_TZ_CFG_MSAR` is `#ifndef`-guarded, so
+**Believed to be an e2 studio generator defect, and it bites on RA8 parts only** - `MSAR`
+exists only where there is MRAM, and RA6's other route through `OFS1_SEL` is closed because
+BL2 is built as the flat FSP role (D094). `BSP_TZ_CFG_MSAR` is `#ifndef`-guarded, so
 the port supplies `BSP_TZ_CFG_MSAR=0` through `FSP_COMPILE_DEFS` in `ra8m2/CMakeLists.txt` -
 all three MRAM registers Secure, which is what this port wants since BL2 and the secure image
 own MRAM and the non-secure app never changes MRAM timing.

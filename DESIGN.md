@@ -80,7 +80,7 @@ bootloader project from the same shell, note the two take their version from dif
 will not agree unless you set both.
 
 
-**2. `BSP_TZ_CFG_MSAR=0` on RA8M2 - a workaround, not a decision.**
+**2. `BSP_TZ_CFG_MSAR=0` on RA8M2 - a workaround, not a decision. RA8 parts only.**
 
 FSP derives the MRAM Security Attribution register from `BSP_CFG_CLOCKS_SECURE`, which the e2
 generator emits as `(0)`, marking `MRCPFB` non-secure. The secure image then bus-faults the

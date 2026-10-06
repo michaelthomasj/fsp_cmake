@@ -4171,3 +4171,70 @@ boundaries (it is `#if`-guarded out on both parts), that the e2 Security tab dri
 attribute without checking what it generates. **In this codebase a line is not evidence that it
 is compiled, and a setting is not evidence of what it emits** - both need the guard read or the
 generated artifact diffed.
+
+---
+
+## D094 — the RA6M4 brick: coalescing is proven, the killed field is not; [D093]'s attribution corrected
+
+**Date:** 2026-10-06 · **Status:** Accepted · **Corrects** [D093] and commit `7b99ce397`;
+**qualifies** [D002]
+
+Measured from `bringup/bricking_evidence/bl2_BRICKED.elf`, the exact image flashed to the two
+EK-RA6M4 boards, rather than from recollection or from either commit message.
+
+### What the bricked image actually contains
+
+```
+LOAD  0x0100a100  FileSiz 0x184       <- ONE segment, 388 bytes
+
+@0x0100A100  ffffffff   OFS0
+@0x0100A200  fffdffff   OFS1_SEC
+@0x0100A280  f8f8ffff   OFS1_SEL
+gap fill:    0x00 x376
+```
+
+**The coalescing is proven.** One `PT_LOAD` spans all three sparse words and the 376 bytes
+between them are zeros. A debugger flashes by program header, so it wrote those zeros. That is
+[D002]'s mechanism and it is confirmed.
+
+### `7b99ce397`'s attribution is wrong, and [D093] repeated it
+
+That commit says `BSP_CFG_CLOCKS_SECURE=0` produced a bad `OFS1_SEL` of `0xFFFFFFF8` and
+bricked the part. **The board-killing image carries `f8f8ffff` = `0xFFFFF8F8` - the known-good
+value.** It cannot have been the cause. `bringup/bricking_evidence/README.md` says the same
+independently: the OFS *content* was "initially blamed... that was disproven", because the
+working `ra6m4_der_conversion` board carries byte-identical records in that region.
+
+The commit's change is still correct on its own terms - clocks should be secure in a TZ-secure
+project - but its stated reason is not what happened. [D093]'s "bricking a board that way"
+should be read as withdrawn.
+
+### [D002] is right about the mechanism and overstated about the field
+
+[D002] says the gap fill zeroed "the FSPR permanence word". The evidence README states that
+diagnosis was **wrong**: RA6M4 does not implement the Flash Access Window
+(`BSP_FEATURE_FLASH_SUPPORTS_ACCESS_WINDOW = 0`), so `FAWMON`/`FSPR` are meaningless on the
+part and should not be read. Post-brick readback found `DLMMON = 0x2` = **SSD, an open
+development state, not locked**, with `Initialize` returning `0xDA`.
+
+**So: which zeroed field killed the boards is still unknown.** Three explanations have now been
+offered and two are disproven - FSPR permanence (register not implemented) and OFS1_SEL content
+(byte-identical on a working board). What survives is that a 388-byte segment of zeros was
+written across config memory that should have been left alone.
+
+The practical guidance is unchanged and does not depend on knowing the field: **one `MEMORY`
+region per option word, `readelf -l` not the srec, `check_ofs.py` as a hard post-link failure.**
+
+### Scope correction to [D093]
+
+The `BSP_CFG_CLOCKS_SECURE` generator defect matters on **RA8 only**. `MSAR` exists on MRAM
+parts; RA6 has no such register. RA6's other exposure route, `OFS1_SEL`, is closed independently
+because BL2 is built as the flat FSP role and takes the `#else` branch with no `CLOCKS_SECURE`
+term. `BSP_TZ_CFG_MSAR=0` is therefore an RA8M2-only workaround, which is where it is defined.
+
+### Method note
+
+Three accounts of one event - two commit messages and a decision entry - and the image that
+caused it was in the repository the whole time. Reading it took one `readelf` and one
+`Counter()`. **When the artifact still exists, measure it before repeating anyone's summary of
+it, including the project's own.**
