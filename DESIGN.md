@@ -79,6 +79,21 @@ version and the attestation token will report it. If a version is wrong, change
 bootloader project from the same shell, note the two take their version from different places and
 will not agree unless you set both.
 
+
+**2. `BSP_TZ_CFG_MSAR=0` on RA8M2 - a workaround, not a decision.**
+
+FSP derives the MRAM Security Attribution register from `BSP_CFG_CLOCKS_SECURE`, which the e2
+generator emits as `(0)`, marking `MRCPFB` non-secure. The secure image then bus-faults the
+first time it programs MRAM. Setting Clocks to Secure in the e2 Security tab does **not**
+change the generated value - `ra6e1_secure` carries that attribute and still emits `(0)` -
+so this is believed to be a generator defect.
+
+The port therefore defines `BSP_TZ_CFG_MSAR=0` in `ra8m2/CMakeLists.txt`. **Remove it when e2
+is fixed**; the test is whether `ra_gen/bsp_clock_cfg.h` emits `BSP_CFG_CLOCKS_SECURE (1)`
+after a regenerate. D092, D093.
+
+The trap: nothing in the build warns if the generated value later becomes correct - the port's
+define simply keeps winning, silently, and the deviation outlives its reason.
 ## 2. Repositories
 - `fsp_cmake` — RASC-generated FSP projects (bl2 / s / ns / …) + modular CMake + this doc + status doc
   + bring-up scripts. FSP 6.1.0 / RASC `sc_v2025-07`.

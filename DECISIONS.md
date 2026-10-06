@@ -4088,3 +4088,86 @@ SAU/IDAU difference between the parts. The genuine RA6/RA8 split lives a few lin
 
 **Method note.** The claim was made from a `grep` hit without reading the enclosing `#if`. A
 line of code is not evidence that it is compiled, and this file is full of feature guards.
+
+---
+
+## D093 — `BSP_TZ_CFG_MSAR=0` on RA8M2: a workaround for an e2 generator defect, to be removed
+
+**Date:** 2026-10-06 · **Status:** Accepted, **temporary** · Follows [D092]
+
+[D092] traced RA8M2's first-boot HardFault to `MSAR` marking MRAM's `MRCPFB` non-secure, and
+said the fix was setting Clocks to Secure in e2. **That instruction was wrong**, and the
+correction is the substance of this entry.
+
+### The e2 setting does not drive the macro
+
+Setting Security -> Clocks = Secure writes `<raClockConfiguration security="s">` into
+`.secure_xml` and changes nothing in `ra_gen/bsp_clock_cfg.h`. The proof is already in the
+repo: `ra6e1_secure` carries that attribute, and its `.secure_xml` and generated header share a
+timestamp - so it was generated **with** the attribute set - and still emits
+
+```c
+#define BSP_CFG_CLOCKS_SECURE (0)
+```
+
+No project on this machine has `(1)` from a generator. The only one that has it at all is the
+vendored RA6M4 FSP, hand-edited in `7b99ce397`. Believed to be an e2 studio defect.
+
+### What was done
+
+`BSP_TZ_CFG_MSAR` is `#ifndef`-guarded, so the port appends `BSP_TZ_CFG_MSAR=0` to
+`FSP_COMPILE_DEFS` in `ra8m2/CMakeLists.txt` - all three MRAM registers Secure. Verified the
+define reaches `fsp_bsp_s`'s `bsp_security.o`, which is the translation unit that writes
+`R_MRMS->MSAR` in the secure image.
+
+**Remove it when e2 is fixed.** The test is whether `ra_gen/bsp_clock_cfg.h` emits
+`BSP_CFG_CLOCKS_SECURE (1)` after a regenerate. Recorded in `DESIGN.md` §1.1 as a documented
+deviation, with the note that **nothing in the build will warn** when the generated value
+becomes correct - the port's define keeps winning silently, so the deviation can outlive its
+reason.
+
+### The brick question this raised, and why it does not apply
+
+`7b99ce397` is worth reading: on RA6M4 the same macro fed
+
+```c
+OFS1_SEL = 0xFFFFF8F8 | ((BSP_CFG_CLOCKS_SECURE == 0) ? 0xF00 : 0)
+```
+
+and `(0)` marked the clock OFS1 fields non-secure, **bricking a board** by locking out the
+debug interface. That commit closes with "external RASC projects must set the clocks to Secure
+in the RASC BSP configuration for the same reason", which is what sent this investigation down
+the e2 route.
+
+**This port is not exposed**, checked rather than assumed. Both parts guard the term:
+
+```c
+#if defined(_RA_TZ_SECURE) || defined(_RA_TZ_NONSECURE)
+  #define ..._OFS1_SEL (... | ((BSP_CFG_CLOCKS_SECURE == 0) ? 0xF00 : 0U) ...)
+#else
+  #define ..._OFS1_SEL (4294965496)   /* RA6M5 = 0xFFFFF8F8 */
+#endif
+```
+
+**BL2 is built as the flat FSP role** - neither macro is defined on `bl2_option_setting.c`, on
+either part - so it takes the `#else` branch, with no `CLOCKS_SECURE` term. Confirmed in the
+linked images:
+
+| | OFS0 | OFS1_SEC | OFS1_SEL |
+|---|---|---|---|
+| RA6M5 | `ffffffff` | `fffdffff` | **`f8f8ffff`** - the known-good value |
+| RA8M2 | `ffffffff` | `fffffffd` | `00000000` (plus OFS2/OFS3_SEC/OFS3_SEL) |
+
+RA6M5 matches `MACHINE_HANDOFF.md` §4's pre-flash expectation exactly. `MSAR` is a different
+register, written by `R_BSP_SecurityInit()` in `tfm_s`, which **is** `_RA_TZ_SECURE` - which is
+why the fault appears there and only there.
+
+### Method note
+
+Three wrong claims in this area in one session: that FSP's secure init sets the TrustZone
+boundaries (it is `#if`-guarded out on both parts), that the e2 Security tab drives
+`BSP_CFG_CLOCKS_SECURE` (it does not), and implicitly that the OFS brick hazard applied here
+(BL2 is flat). Each came from reading a line of code without its enclosing guard, or a config
+attribute without checking what it generates. **In this codebase a line is not evidence that it
+is compiled, and a setting is not evidence of what it emits** - both need the guard read or the
+generated artifact diffed.
