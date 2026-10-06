@@ -4238,3 +4238,52 @@ Three accounts of one event - two commit messages and a decision entry - and the
 caused it was in the repository the whole time. Reading it took one `readelf` and one
 `Counter()`. **When the artifact still exists, measure it before repeating anyone's summary of
 it, including the project's own.**
+
+---
+
+## D095 — RA8M2 passes the full regression on hardware; both live parts now proven under [D091]
+
+**Date:** 2026-10-06 · **Status:** Accepted
+
+`ra8m2_TFM_flih_gcc`, banner `TF-M v2.2.0+94dbaa08f`. Every secure and non-secure suite passes,
+zero failures, including the FLIH IRQ tests. **This is the first time RA8M2 has completed a
+run at all** - before today the part had never booted.
+
+### What this proves, all of it first-time
+
+| | |
+|---|---|
+| SAU programming in `bl2_boot_hal.c` | the `CFSAMONA.CFS2`-derived bounds imported from FSP, [D091] |
+| MRAM dual-alias driver | `MRAM_ADDR()` picking secure `0x02000000` vs non-secure `0x12000000` per offset, [D073]/[D074] |
+| `BSP_TZ_CFG_MSAR=0` | [D093]'s workaround - PS/ITS writes reach MRAM without faulting |
+| DF_EMULATION as ITS+PS backing | 31,744 B each; the PS and ITS reliability suites run 15 iterations of set/get/remove |
+| PS rollback protection | all nine NV-counter cases, on MRAM rather than real data flash |
+| RSIP-E50D | the crypto suite, 36 cases |
+| RDPM 703/1/0/935/1/0 | derived in `RA8M2_SOLUTION.md`, never previously provisioned |
+| Measured boot on MRAM | [D081] confirmed it on RA6M5; now on this part too |
+
+The PS numbers are worth noting: [D086] found `config_tfm_target.h` claiming a cap of 5 assets
+when the real cap is 155, because the comment carried RA6M5's 1,536-byte block against this
+part's 15,872. The reliability suites exercising that budget pass, which is the first runtime
+evidence the corrected arithmetic was right.
+
+### Option 3 is now proven on both live parts
+
+| | RA6M5 | RA8M2 |
+|---|---|---|
+| Full regression on hardware | pass ([D091]) | **pass** |
+| MCUboot map and backend | TF-M's | TF-M's |
+| Flash access | `Driver_FLASH0/1` over `R_FLASH_HP` | `Driver_FLASH0/1` over `R_MRAM` |
+| BL2 cost vs FSP backend | +864 B | +704 B |
+
+`bl2/CMakeLists.txt` is byte-identical to TF-Mv2.2.0, `DEFAULT_MCUBOOT_FLASH_BACKEND` does not
+exist, and upstream item 13 is withdrawn. The port now diverges from upstream TF-M by twelve
+small local patches and no architectural change.
+
+### What is still carried
+
+- `BSP_TZ_CFG_MSAR=0`, RA8 only, pending the e2 generator fix ([D093], `DESIGN.md` §1.1). The
+  removal test is whether `ra_gen/bsp_clock_cfg.h` emits `BSP_CFG_CLOCKS_SECURE (1)`.
+- Three RA8M2 IAR project gaps: `iar_mcuboot` Measured Boot disabled, `iar_CPU0_secure`
+  `RAM_CPU0_C` 128 B against GCC's 1 KB, and no `r_agt` module - the last blocks `m2pa`.
+- The RA8M2 IAR trees have not been run; only the GCC FLIH launch has.

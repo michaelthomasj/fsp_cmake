@@ -6,10 +6,12 @@ flash, RSIP-E50D, Cortex-M85. FSP 6.7.0-beta0.
 Companion docs: `RA6M5_SOLUTION.md` (the port this is derived from), `DESIGN.md` (why — §4 for
 the flash backend, §7 for the SAU), `RA6E1_TEMPLATE_CHECKLIST.md` (what a solution must emit).
 
-> **Hardware status: untested.** Every claim below is derived from the generated layout or read
-> out of the built images. RA8M2 has never been run on a board — the SAU programming, the FSP
-> flash backend and measured boot are statically verified only. Treat the RDPM values as
-> needing one careful first provisioning, not as proven.
+> **Hardware status: the full regression passes** (2026-10-06, `ra8m2_TFM_flih_gcc`, banner
+> `TF-M v2.2.0+94dbaa08f`). Every secure and non-secure suite, zero failures, including the
+> FLIH IRQ tests - the first complete run on this part. That exercised the SAU programming, the
+> MRAM dual-alias driver, DF_EMULATION as ITS/PS backing, the RSIP-E50D, measured boot, and the
+> RDPM values below. **Still unrun: the IAR trees**, and the three IAR project gaps under
+> "Known project-side gaps" remain. DECISIONS D095.
 
 ---
 

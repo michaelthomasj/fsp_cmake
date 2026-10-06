@@ -5,7 +5,8 @@ lives in the companion repository, `trusted-firmware-m`, under
 `platform/ext/target/renesas/<part>/`; this repository holds the generated FSP projects it
 consumes, the build scripts, and the design record.
 
-Active parts: **RA6M5** and **RA8M2**. RA6E1 and RA6M4 are in-tree but dormant (both EK-RA6M4
+Active parts: **RA6M5** and **RA8M2** — both pass the full regression suite on hardware
+(DECISIONS D091, D095). RA6E1 and RA6M4 are in-tree but dormant (both EK-RA6M4
 boards are bricked — see DECISIONS D002).
 
 ---
@@ -90,7 +91,7 @@ every build today and is pure diagnostics.
 | `TROUBLESHOOTING.md` | indexed by the symptom you actually see. The two brick hazards are first |
 | `CONFIGURATION.md` | every knob you may change: default, where it is defined, and the constraint that bites. Start with its "how the three layers interact" section |
 | `RA6M5_SOLUTION.md`, `RA8M2_SOLUTION.md` | **per-part: the layout, the RDPM boundary values, what the e2 projects must provide, and current status.** The RDPM values live here and nowhere else |
-| `DECISIONS.md` | why, append-only, D001-D094. Superseded entries stay; later ones say so |
+| `DECISIONS.md` | why, append-only, D001-D095. Superseded entries stay; later ones say so |
 
 **Reference.**
 
