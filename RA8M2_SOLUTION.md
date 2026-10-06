@@ -227,8 +227,10 @@ and FSP's `flash_area_open()` then opens the same controller and returns −1 on
 
 ## Open items
 
-- **Run it on a board.** Nothing here has been executed. Do the first boot with BL2 logging on,
-  and read the boot record back before trusting measured boot.
+- **Run the IAR trees.** The GCC side is done: full regression, PSA Arch attestation (1/1), and
+  measured boot verified from the boot record at `0x22000000` - magic `0x2016`, NSPE 0.0.0 and
+  SPE 2.2.0, both SHA-256 measurements equal to the signed images' TLVs (D095, D096). The IAR
+  trees build but have never run, and the three project-side gaps below block one of them.
 - **The two project-side gaps above**, both needing RASC rather than a code change.
 - **D077 back-ports go the other way.** This part has the generated OFS addresses and 22
   enabled-but-unplaced `#error` guards; RA6M5 and RA6E1 have neither. The open work is bringing
