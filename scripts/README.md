@@ -91,13 +91,36 @@ python scripts\mk_iar_launches.py --check
 python scripts\mk_iar_launches.py
 ```
 
-RA6M5 launches live in `ra6m5_gcc_nonsecure/`, RA8M2's in `ra8m2_gcc_mcuboot/` — **both
-toolchains' launches share one host project**, because a launch only downloads prebuilt images
-and the hosting project is incidental. Names carry the toolchain: `_gcc` or `_iar`.
+The launch **files** live in `ra6m5_gcc_nonsecure/` (RA6M5) and `ra8m2_gcc_mcuboot/` (RA8M2).
+Names carry the toolchain: `_gcc` or `_iar`.
 
-`mk_iar_launches.py` derives each IAR launch from its GCC twin by swapping build-tree names;
-nothing else differs, verified against the RA6M5 pair. It refuses to write a launch that still
-names a GCC tree or that has `setTZBoundaries` true anywhere.
+The **host project** in `PROJECT_ATTR` differs between the two parts, on purpose:
+
+| | host project |
+|---|---|
+| RA6M5, both toolchains | `ra6m5_gcc_nonsecure` |
+| RA8M2 GCC | `ra8m2_gcc_CPU0_nonsecure` |
+| RA8M2 IAR | **`ra8m2_iar_CPU0_nonsecure`** |
+
+`serverParam` builds the J-Link settings path from `${ProjName}`:
+
+```
+-uJLinkSetting= "${workspace_loc:/${ProjName}}/${LaunchConfigName}.jlink"
+```
+
+so hosting both toolchains in one project makes them share a directory for those sidecars.
+Giving each toolchain its own host keeps them apart. Nothing is built either way —
+`ATTR_BUILD_BEFORE_LAUNCH_ATTR` is `2` (disabled) — so the host project supplies only that name
+and the debug context. Keep `MAPPED_RESOURCE_PATHS` in step with `PROJECT_ATTR`.
+
+`PROJECT_BUILD_CONFIG_AUTO_ATTR` is **`false`** in every IAR launch, which is what all six
+working RA6M5 IAR launches use. The GCC launches have `true`, so it cannot be inherited.
+
+`mk_iar_launches.py` derives each IAR launch from its GCC twin by swapping build-tree names and
+the three project attributes above; nothing else differs, verified against the RA6M5 pair. It
+refuses to write a launch that still names a GCC tree or the GCC project, or that has
+`setTZBoundaries` true anywhere. Run `--check` first: it reports `same` when the generator
+reproduces what is on disk, which is how a hand edit gets folded back in rather than lost.
 
 **Two attributes are safety-critical in every launch:**
 

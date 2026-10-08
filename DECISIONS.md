@@ -4774,3 +4774,56 @@ still needs.
 
 No SLIH launch, because the GCC side has none either (the `m2gslih` trees exist but were never
 given one). `reg_build_iar.bat C:\b\m2islih C:\b\m2islihns ra8m2 slih` would add the pair.
+
+---
+
+## D103 — supersedes [D102] on the IAR launch host project: it is the IAR project, and auto-config is false
+
+**Date:** 2026-10-08 · **Status:** Accepted · Corrects two attribute choices in [D102]
+
+[D102] generated the five RA8M2 IAR launches by copying the GCC twins and swapping build-tree
+paths only, on the evidence that the RA6M5 GCC/IAR pair differs in exactly nine lines, all
+paths. That evidence was sound and the conclusion drawn from it was still wrong in two places,
+both found by the rm_psa_crypto owner editing the launches by hand.
+
+| attribute | [D102] generated | correct |
+|---|---|---|
+| `PROJECT_ATTR` | `ra8m2_gcc_CPU0_nonsecure` | **`ra8m2_iar_CPU0_nonsecure`** |
+| `PROJECT_BUILD_CONFIG_AUTO_ATTR` | `true` | **`false`** |
+| `MAPPED_RESOURCE_PATHS` entry | `/ra8m2_gcc_CPU0_nonsecure` | **`/ra8m2_iar_CPU0_nonsecure`** |
+
+**Why the host project matters, having said it was incidental.** `serverParam` builds the
+J-Link settings path from `${ProjName}`:
+
+```
+-uJLinkSetting= "${workspace_loc:/${ProjName}}/${LaunchConfigName}.jlink"
+```
+
+With both toolchains hosted by one project, both write their `.jlink` sidecars into the same
+directory. Giving each toolchain its own host separates them. Nothing is built either way -
+`ATTR_BUILD_BEFORE_LAUNCH_ATTR` is `2`, disabled - which is what made "incidental" look true.
+
+**`auto=false` was verifiable and was not checked.** All six RA6M5 IAR launches that have run
+on hardware use `PROJECT_BUILD_CONFIG_AUTO_ATTR=false`; the GCC launches use `true`. The nine-line
+diff that justified copy-and-swap was taken from a GCC/IAR pair *on the same part*, where both
+already read `false` - so the attribute never appeared in the diff and the question never came
+up. **A diff between two correct files cannot show which fields are toolchain-dependent when
+both happen to agree.** The copy source here was an RA8M2 GCC launch, a different population.
+
+### What was done
+
+`ra8m2_TFM_flih_iar.launch` had been missed by the hand edit - four of five changed - and was
+brought into line; the edit is byte-identical to the one applied to `test_crypto`.
+`mk_iar_launches.py` now performs the three substitutions, asserts each matches exactly once,
+and refuses to write a launch that still names the GCC project. `--check` reports **`same` for
+all five**, so the generator now reproduces the corrected files rather than reverting them -
+which is the property that makes a hand edit survivable.
+
+Re-audited after the change, all five: `setTZBoundaries` false in both namespaces,
+`ueraseRomOnDownload` and `ueraseDataRomOnDownload` both 1, `bl2.elf` not `bl2.bin`, no GCC
+build tree referenced, all flash addresses among the four expected, `MAPPED_RESOURCE_PATHS`
+consistent with `PROJECT_ATTR`, and all 27 referenced files present.
+
+### Unchanged from [D102]
+
+The build trees, sizes and RTT addresses. Still nothing run on hardware.

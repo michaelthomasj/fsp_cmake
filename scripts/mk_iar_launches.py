@@ -25,10 +25,19 @@ ra6m5_TFM_test_crypto_{gcc,iar}.launch differ in exactly 9 lines, all of them pa
 Image names are identical (bl2.elf, tfm_s_signed.bin, tfm_ns.axf, ...) because TF-M names
 its outputs the same under both toolchains.
 
-The host project stays the GCC one, which is also the RA6M5 convention: both toolchains'
-launches live in ra6m5_gcc_nonsecure and name it in PROJECT_ATTR. A launch only downloads
-prebuilt images, so the hosting project is incidental, and keeping one project means one
-place to find every launch in e2.
+THE HOST PROJECT IS THE IAR ONE, which DIVERGES from RA6M5 on purpose. RA6M5's IAR launches
+name ra6m5_gcc_nonsecure in PROJECT_ATTR - both toolchains hosted by the GCC project. Here
+each toolchain names its own, because serverParam builds the J-Link settings path from
+${ProjName}:
+
+    -uJLinkSetting= "${workspace_loc:/${ProjName}}/${LaunchConfigName}.jlink"
+
+so hosting both toolchains in one project makes them share a directory for those sidecars.
+Nothing is built either way - ATTR_BUILD_BEFORE_LAUNCH_ATTR is 2 (disabled) - so the host
+project only supplies that name and the debug context.
+
+PROJECT_BUILD_CONFIG_AUTO_ATTR is false, which is what all six working RA6M5 IAR launches
+use. The GCC launches have true, so it cannot simply be inherited.
 """
 import argparse
 import sys
@@ -59,6 +68,20 @@ LAUNCHES = [
 TZ_E2LITE = 'key="com.renesas.hardwaredebug.arm.e2lite.setTZBoundaries" value="true"'
 TZ_E2LITE_OFF = 'key="com.renesas.hardwaredebug.arm.e2lite.setTZBoundaries" value="false"'
 
+# Attributes that must change with the toolchain, not just the build paths. Each must match
+# exactly once; convert() asserts that, so an e2 rewrite that reshapes one is caught here
+# rather than by a launch that quietly uses the wrong project.
+GCC_PROJ = "ra8m2_gcc_CPU0_nonsecure"
+IAR_PROJ = "ra8m2_iar_CPU0_nonsecure"
+PROJECT_SUBS = [
+    (f'<stringAttribute key="org.eclipse.cdt.launch.PROJECT_ATTR" value="{GCC_PROJ}"/>',
+     f'<stringAttribute key="org.eclipse.cdt.launch.PROJECT_ATTR" value="{IAR_PROJ}"/>'),
+    ('<booleanAttribute key="org.eclipse.cdt.launch.PROJECT_BUILD_CONFIG_AUTO_ATTR" value="true"/>',
+     '<booleanAttribute key="org.eclipse.cdt.launch.PROJECT_BUILD_CONFIG_AUTO_ATTR" value="false"/>'),
+    (f'<listEntry value="/{GCC_PROJ}"/>',
+     f'<listEntry value="/{IAR_PROJ}"/>'),
+]
+
 
 def convert(text: str, gcc_name: str, iar_name: str) -> tuple[str, list[str]]:
     notes = []
@@ -68,6 +91,13 @@ def convert(text: str, gcc_name: str, iar_name: str) -> tuple[str, list[str]]:
             text = text.replace("\\" + gcc_tree + "\\", "\\" + iar_tree + "\\")
             notes.append(f"{gcc_tree}->{iar_tree} x{n}")
     text = text.replace(gcc_name, iar_name)
+
+    for before, after in PROJECT_SUBS:
+        n = text.count(before)
+        if n != 1:
+            raise SystemExit(f"{gcc_name}: expected 1 of {before[:72]}..., found {n}")
+        text = text.replace(before, after, 1)
+    notes.append(f"host project -> {IAR_PROJ}")
 
     if TZ_E2LITE in text:
         text = text.replace(TZ_E2LITE, TZ_E2LITE_OFF)
@@ -102,6 +132,10 @@ def main() -> int:
         left = [g for g, _ in TREE_MAP if "\\" + g + "\\" in text]
         if left:
             print(f"  REFUSED {iar_name}: GCC trees remain {left}")
+            rc = 1
+            continue
+        if GCC_PROJ in text:
+            print(f"  REFUSED {iar_name}: still names the GCC project")
             rc = 1
             continue
 
