@@ -10,8 +10,8 @@ the flash backend, §7 for the SAU), `RA6E1_TEMPLATE_CHECKLIST.md` (what a solut
 > `TF-M v2.2.0+94dbaa08f`). Every secure and non-secure suite, zero failures, including the
 > FLIH IRQ tests - the first complete run on this part. That exercised the SAU programming, the
 > MRAM dual-alias driver, DF_EMULATION as ITS/PS backing, the RSIP-E50D, measured boot, and the
-> RDPM values below. **Still unrun: the IAR trees**, and the three IAR project gaps under
-> "Known project-side gaps" remain. DECISIONS D095.
+> RDPM values below. **Still unrun: the IAR trees**, though the three project-side gaps that
+> blocked them are now closed and verified (2026-10-08). DECISIONS D095, D101.
 
 ---
 
@@ -135,13 +135,30 @@ because it emitted `__BL_0_S_T` before `__BL_0_P_H`; the fix was ordering, not g
 After any repartition, read `Debug/bsp_linker_info.h` back and check that `__BL_0_P_H_START`
 equals `__BL_0_S_T_START`.
 
-### Known project-side gaps
+### Project-side gaps - all closed 2026-10-08
 
-| Project | Gap | Fix |
+All three were fixed in RASC and verified against the GCC trees. **The IAR and GCC projects are
+now configuration-identical**: a full property diff of all three pairs (`CPU0_secure`,
+`mcuboot`, `CPU0_nonsecure`) shows no real differences, and `vector_data.h`, `bsp_cfg.h` and
+every `BSP_PARTITION_*` match.
+
+| Project | Gap (was) | Verified now |
 |---|---|---|
-| `ra8m2_iar_mcuboot` | **Measured Boot disabled** — the only bootloader project where it is | one checkbox in e2 |
-| `ra8m2_iar_CPU0_secure` | `RAM_CPU0_C` is 128 B against GCC's 1 KB | regenerate in RASC; provisioning hazard |
-| `ra8m2_iar_CPU0_secure` | **no `r_agt` module.** The GCC project has it; this one does not, so the IAR PSA Arch tree (`m2pa`) cannot configure | add Timer (r_agt) with a real Interrupt Priority - not Disabled, which is what makes the interrupt secure on RA. D061 |
+| `ra8m2_iar_mcuboot` | Measured Boot disabled - the only bootloader project where it was | `measured_boot.enabled`, record `0x64`; `MCUBOOT_MEASURED_BOOT` emitted |
+| `ra8m2_iar_CPU0_secure` | `RAM_CPU0_C` 128 B against GCC's 1 KB | `0x400` at `0x220E9C00` |
+| `ra8m2_iar_CPU0_secure` | no `r_agt`, so the IAR PSA Arch tree (`m2pa`) could not configure | `module.driver.timer.ipl = priority4`; `agt_int_isr` and 2 AGT events in the vector table |
+
+**On the last one: adding the module is not enough.** An intermediate regenerate had `r_agt`
+present with `ipl = _disabled`, which emits *no vector entry at all* - `vector_data.h` declared
+0 AGT events. A real Interrupt Priority is what puts the interrupt in the secure vector table
+([D061]); Disabled silently produces a project that looks configured and is not.
+
+**One difference remains and is inert.** `BSP_PARTITION_RAM_BL_CPU0_S_SIZE` is `0x2600` on IAR
+against `0x1200` on GCC (secure and NS trees; absent from both mcuboot trees). Nothing consumes
+it - `region_defs.h:217` deliberately ignores that partition as FSP's own bootloader budget,
+smaller than TF-M's BL2 needs, so `BL2_DATA_*` comes from `RAM_CPU0_S`. The ~24 extra NS
+properties on the GCC side (AWS WiFi, DA16XXX, SCI-B UART) are likewise inert - neither tree
+instantiates those modules.
 
 ### MRAM's MRCPFB must stay Secure (`BSP_TZ_CFG_MSAR`)
 
@@ -264,8 +281,9 @@ and FSP's `flash_area_open()` then opens the same controller and returns −1 on
 - **Run the IAR trees.** The GCC side is done: full regression, PSA Arch attestation (1/1), and
   measured boot verified from the boot record at `0x22000000` - magic `0x2016`, NSPE 0.0.0 and
   SPE 2.2.0, both SHA-256 measurements equal to the signed images' TLVs (D095, D096). The IAR
-  trees build but have never run, and the three project-side gaps below block one of them.
-- **The two project-side gaps above**, both needing RASC rather than a code change.
+  trees build but have never run. The three project-side gaps that blocked `m2pa` are closed
+  as of 2026-10-08 and the IAR projects are now configuration-identical to GCC (D101), so
+  nothing on the project side is outstanding - what remains is building and running them.
 - **D077 back-ports go the other way.** This part has the generated OFS addresses and 22
   enabled-but-unplaced `#error` guards; RA6M5 and RA6E1 have neither. The open work is bringing
   them up to this part, not changing this one.

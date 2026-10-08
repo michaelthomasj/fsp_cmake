@@ -4640,3 +4640,43 @@ Does **not** close FWU - the PSA Firmware Update **partition** is still OFF
 (`TFM_PARTITION_FIRMWARE_UPDATE`), and `TEST_S_FWU` / `TEST_NS_FWU` have still never run. What is
 proven here is the bootloader half: BL2 correctly installs an image someone else placed in the
 secondary slot. Who places it there is the part FWU covers.
+
+---
+
+## D101 — the three RA8M2 IAR project gaps are closed; IAR and GCC are now configuration-identical
+
+**Date:** 2026-10-08 · **Status:** Accepted · Closes the project-side half of [D095]'s open item
+
+Fixed in RASC and verified against the GCC trees:
+
+| Project | Gap | Verified |
+|---|---|---|
+| `ra8m2_iar_mcuboot` | Measured Boot disabled | `measured_boot.enabled`, record `0x64`, `MCUBOOT_MEASURED_BOOT` emitted |
+| `ra8m2_iar_CPU0_secure` | `RAM_CPU0_C` 128 B vs GCC's 1 KB | `0x400` at `0x220E9C00` |
+| `ra8m2_iar_CPU0_secure` | no `r_agt` ([D061]) | `ipl = priority4`; `agt_int_isr` + 2 AGT events in the vector table |
+
+**Parity, measured rather than assumed.** A full `<property id=... value=...>` diff of all three
+pairs - `CPU0_secure`, `mcuboot`, `CPU0_nonsecure` - shows no real differences, and
+`vector_data.h`, `bsp_cfg.h` and every `BSP_PARTITION_*` match.
+
+### The r_agt gap had two halves, and only the first is visible in the module list
+
+An intermediate regenerate added `r_agt` with its sources and `r_agt_cfg.h` present, but left
+`module.driver.timer.ipl = _disabled`. FSP then emits **no vector table entry at all**:
+`vector_data.c` had no `agt_int_isr` and `vector_data.h` declared **0 AGT events** against GCC's
+2. [D061] already said a real Interrupt Priority - not Disabled - is what makes the interrupt
+secure on RA; what this adds is that the failure mode is a project which *looks* configured.
+Checking the module list is not sufficient; check the generated vector table.
+
+### Two differences remain, both inert
+
+- **`BSP_PARTITION_RAM_BL_CPU0_S_SIZE`: `0x2600` on IAR, `0x1200` on GCC** (secure and NS trees;
+  absent from both mcuboot trees). Nothing consumes it - `region_defs.h:217` deliberately
+  ignores that partition as FSP's own bootloader budget, smaller than TF-M's BL2 needs, so
+  `BL2_DATA_*` comes from `RAM_CPU0_S`. Recorded because the two toolchains disagreeing on a
+  partition value is the shape of thing that later looks like a clue.
+- **~24 extra NS properties on the GCC side** (AWS WiFi, DA16XXX, SCI-B UART defaults). Both NS
+  trees have 10 components and neither instantiates those modules; the rows are e2 leftovers.
+
+**What this does not close.** The IAR trees still have never run on hardware. Nothing on the
+project side is outstanding now; what remains is building and running them.
