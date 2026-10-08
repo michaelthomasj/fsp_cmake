@@ -4547,3 +4547,96 @@ verify — works on the E50D.
 
 Final and reportable. [D097]'s "not yet recorded" section is closed; nothing in the tail changes
 [D097] or [D098]'s conclusions, and the one factual claim it corrects is the skip comparison above.
+
+---
+
+## D100 — the MCUboot upgrade path runs on RA8M2: both images installed, secondary erased
+
+**Date:** 2026-10-08 · **Status:** Accepted · First execution of this path on any part in the port
+
+`ra8m2_TFM_update_gcc`, GCC, on silicon. Primary slots flashed at 2.2.0, secondary slots at
+2.3.0 by `scripts/sign_secondary.py`. Two consecutive boots:
+
+```
+[INF] Image index: 1, Swap type: test          [INF] Image index: 1, Swap type: none
+[INF] Image 1 upgrade secondary slot -> primary slot
+[INF] Erasing the primary slot
+[INF] Image 1 copying the secondary slot to the primary slot
+[INF] Image index: 0, Swap type: test          [INF] Image index: 0, Swap type: none
+[INF] Image 0 upgrade secondary slot -> primary slot
+[INF] Erasing the primary slot
+[INF] Image 0 copying the secondary slot to the primary slot
+```
+
+**Both images**, not just the secure one - `MCUBOOT_IMAGE_NUMBER=2` with `OVERWRITE_ONLY` and
+`MCUBOOT_HW_ROLLBACK_PROT=ON`. The second boot's `Swap type: none` is the other half of the
+proof: under OVERWRITE_ONLY the secondary is erased once installed, so a reset must not
+re-install, and it does not. The NS suites then ran to completion and passed.
+
+Independently confirmed from the debugger before the BL2 log was recovered:
+`rsp.br_hdr.ih_ver` = **2.3.0** at `rsp.br_image_off` = `0x68000`, with `ih_magic 0x96f3b83d`
+(`IMAGE_MAGIC`) and `br_flash_dev_id 0x64` (`FLASH_DEVICE_ID` 100).
+
+### The slots are in REVERSE order on this part, and that is not a mistake
+
+This is the detail that makes every address here read wrongly at first glance:
+
+| | address | offset |
+|---|---|---|
+| `__BL_0_S_H_START` - secure **secondary** | `0x02020000` | `0x20000` |
+| `__BL_0_P_H_START` - secure **primary** | `0x02068000` | `0x68000` |
+| `__BL_1_P_H_START` - NS **primary** | `0x120B0000` | |
+| `__BL_1_S_H_START` - NS **secondary** | `0x120D8000` | |
+
+Image 0's secondary sits **below** its primary; image 1's does not. So `br_image_off = 0x68000`
+is the **primary** slot, not the secondary, and a reader who assumes primary-then-secondary
+concludes BL2 booted the wrong slot. The ordering comes from the rzone partition layout, not
+from anything the port chooses. The four `ra8m2_TFM_update_gcc` flash rows were verified
+against `ra8m2_gcc_CPU0_secure/Debug/bsp_linker_info.h` one by one.
+
+### BL2's RTT output is unrecoverable after the chainload
+
+`region_defs.h:225` sets `BL2_DATA_START` to `BSP_PARTITION_RAM_CPU0_S_START` with
+`BL2_DATA_SIZE = S_DATA_SIZE` - **BL2 and the SPE occupy the same RAM**. The SPE's `.bss`
+zeroing wipes BL2's RTT control block microseconds after the jump, so a viewer that
+auto-detects after reset finds the SPE's block every time and BL2's banner is simply gone.
+This is why the first attempt showed nothing on the BL2 channel while the NS transcript was
+complete.
+
+Control blocks for this build (`nm <img> | grep ' _SEGGER_RTT$'`; they move on every rebuild,
+[D070]):
+
+| image | `_SEGGER_RTT` |
+|---|---|
+| `bl2.axf` | `0x22003cc8` |
+| `tfm_s.axf` | `0x2200ada0` |
+| `tfm_ns.axf` | `0x320ed4c8` |
+
+To capture BL2: halt in BL2 (`RA8M2_BL2_HALT_AT_MAIN=ON`, or a breakpoint), point the viewer at
+BL2's address **while halted**, then run.
+
+### Two cosmetic log defects, neither worth patching
+
+**1. The byte count never prints.** The line reads `copying the secondary slot to the primary
+slot: 0xzx bytes`. `mcuboot/boot/bootutil/src/loader.c:1419` uses `0x%zx`; BL2 links newlib-nano's
+integer-only formatter (`printf` aliases `iprintf`, `_printf_i`), which recognises the `z` length
+modifier only under `_WANT_IO_C99_FORMATS` - not defined in the nano variant. The `%` is consumed
+and `zx` prints literally. This is upstream MCUboot code and affects every platform linking nano
+printf. **Not patched**: the one number lost is recoverable from the image header, and diverging
+from upstream MCUboot for a log string is exactly what [D091] went to trouble to avoid. Worth an
+upstream note, not a local fix.
+
+**2. "Swap type: test", not "perm".** The build signs with `--pad --pad-header ... --overwrite-only`
+and no `--confirm`, so the trailer carries the magic but `image_ok` is unset and
+`boot_swap_type()` reports TEST. Under OVERWRITE_ONLY the distinction has no effect - there is no
+revert path and the secondary is erased - which the second boot confirms. Misleading to read,
+harmless in behaviour. `sign_secondary.py` inherits the flags from `build.ninja` verbatim, so
+adding `--confirm` would mean diverging from what the build actually does.
+
+### What this closes and what it does not
+
+Closes: the MCUboot secondary-slot install path, previously never executed on either part.
+Does **not** close FWU - the PSA Firmware Update **partition** is still OFF
+(`TFM_PARTITION_FIRMWARE_UPDATE`), and `TEST_S_FWU` / `TEST_NS_FWU` have still never run. What is
+proven here is the bootloader half: BL2 correctly installs an image someone else placed in the
+secondary slot. Who places it there is the part FWU covers.

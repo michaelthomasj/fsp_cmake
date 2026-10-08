@@ -258,7 +258,7 @@ Enumerated from `tf-m-tests` and `psa-arch-tests` and checked against every buil
 
 | Suite | Option | Why it has not run | Applicable? |
 |---|---|---|---|
-| **Firmware Update** | `TEST_S_FWU`, `TEST_NS_FWU` | `TFM_PARTITION_FIRMWARE_UPDATE` is OFF on both parts | **Yes - highest value.** Exercises the PSA FWU API over the MCUboot slots this port already has. RA8M2 secure slot has ~670 B spare, so the partition may not fit without turning something off |
+| **Firmware Update** | `TEST_S_FWU`, `TEST_NS_FWU` | `TFM_PARTITION_FIRMWARE_UPDATE` is OFF on both parts | **Yes - highest value.** Exercises the PSA FWU API over the MCUboot slots this port already has. RA8M2 secure slot has ~670 B spare, so the partition may not fit without turning something off. **The bootloader half is now proven** - BL2 installs both images from their secondary slots and erases them ([[D100]]) - so what FWU adds is the API that *places* an image there |
 | **IPC model** | `TEST_S_IPC`, `TEST_NS_IPC` | the app builds use `CONFIG_TFM_SPM_BACKEND=SFN`; only the PSA-arch builds use IPC, and those run psa-arch-tests rather than tf-m-tests | **Yes.** A regression tree at isolation 3 + IPC would cover the backend the PSA-arch builds actually ship |
 | **PSA Arch IPC suite** | `TEST_PSA_API=IPC` | only CRYPTO, INITIAL_ATTESTATION and STORAGE have been built. TF-M accepts `IPC`, and `psa-arch-tests/api-tests/ff/{ipc,partition}` exists | **Yes.** The Firmware Framework suite - different from the dev_apis ones already run |
 | **FPU** | `TEST_S_FPU`, `TEST_NS_FPU` | `CONFIG_TFM_ENABLE_CP10CP11=OFF` - the port is soft-float throughout | Only if FP is ever enabled. RA8M2 is Cortex-M85 with FP hardware, so this is a real gap for that part |
@@ -277,8 +277,8 @@ itself, not another PSA-level suite.
 (`*_TFM_flih_*`) and SLIH IRQ (`*_TFM_slih_*`, `TEST_NS_SLIH_IRQ=ON` in the slih trees), plus
 PSA Arch crypto / attestation / storage.
 
-**Order I would take them:** FWU first - it is the one with a user-visible feature behind it and
-the launches now exist for the MCUboot half. Then PSA Arch IPC, then the cheap ones (NSID,
+**Order I would take them:** FWU first - it is the one with a user-visible feature behind it, and
+the MCUboot half beneath it is now run and passing ([[D100]]). Then PSA Arch IPC, then the cheap ones (NSID,
 QCBOR, t_cose) as a single regression variant. FPU only if soft-float is revisited.
 
 ## TODO

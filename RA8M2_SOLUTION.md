@@ -211,6 +211,15 @@ The two parts differ by **one test out of 64**: 216, the plaintext RSA-2048 keyg
 skips are the optional `psa_ps_create` / `psa_ps_set_extended` APIs TF-M does not implement.
 D099.
 
+**The MCUboot upgrade path runs** (`ra8m2_TFM_update_gcc`, 2026-10-08). Both images install
+from their secondary slots, and a second reset reports `Swap type: none` - the secondary is
+erased, so no re-install. First execution of this path on any part here. D100.
+
+**Slot order is reversed for image 0.** The secure secondary (`0x02020000`) sits **below** the
+secure primary (`0x02068000`); image 1 is the usual way round (`0x120B0000` primary,
+`0x120D8000` secondary). So `rsp.br_image_off = 0x68000` is the *primary*. Flash rows and any
+reading of a `boot_rsp` must account for this. D100.
+
 The secure slot is nearly full. `README.md` §"Freeing space in the secure image" lists what can
 be turned off; at 960 B of headroom the PSA Arch logging options cannot be enabled globally here.
 
