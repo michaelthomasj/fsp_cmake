@@ -1,8 +1,9 @@
 @echo off
-rem  RA6M5 PSA Arch SPE, IAR.
+rem  PSA Arch SPE, IAR. RA6M5 by default, RA8M2 with the third argument.
 rem
-rem    psa_arch_spe_iar.bat <build-dir> <TEST_PSA_API>
+rem    psa_arch_spe_iar.bat <build-dir> <TEST_PSA_API> [part]
 rem    psa_arch_spe_iar.bat C:\b\m5icry CRYPTO
+rem    psa_arch_spe_iar.bat C:\b\m2icry CRYPTO ra8m2
 rem
 rem  Builds BL2 + the secure image and installs api_ns\ for the NS build to consume. One SPE
 rem  serves all three suites - profile_large enables crypto, ITS, PS, attestation and platform,
@@ -28,8 +29,26 @@ set PATH=%IAR_BIN%;%PATH%
 
 set BUILD=%1
 set SUITE=%2
-if "%BUILD%"=="" echo usage: %~nx0 ^<build-dir^> ^<TEST_PSA_API^> & exit /b 2
-if "%SUITE%"=="" echo usage: %~nx0 ^<build-dir^> ^<TEST_PSA_API^> & exit /b 2
+set PART=%3
+if "%PART%"=="" set PART=ra6m5
+
+rem  Per-part project directory prefix and the RTT option name. RA6M5's generated projects
+rem  are ra6m5_iar_{secure,mcuboot,nonsecure}; RA8M2's are ra8m2_iar_{CPU0_secure,mcuboot,
+rem  CPU0_nonsecure} because that part is dual-core and RASC names the partitions CPU0_*.
+rem  Mirrors the per-part block in psa_arch_spe.bat - keep the two in step.
+if /i "%PART%"=="ra8m2" (
+  set S_DIR=ra8m2_iar_CPU0_secure
+  set BL_DIR=ra8m2_iar_mcuboot
+  set NS_DIR=ra8m2_iar_CPU0_nonsecure
+  set RTT_OPT=RA8M2_RTT_BLOCKING
+) else (
+  set S_DIR=ra6m5_iar_secure
+  set BL_DIR=ra6m5_iar_mcuboot
+  set NS_DIR=ra6m5_iar_nonsecure
+  set RTT_OPT=RA6M5_RTT_BLOCKING
+)
+if "%BUILD%"=="" echo usage: %~nx0 ^<build-dir^> ^<TEST_PSA_API^> [part] & exit /b 2
+if "%SUITE%"=="" echo usage: %~nx0 ^<build-dir^> ^<TEST_PSA_API^> [part] & exit /b 2
 
 rem  LOGGING IS ON DELIBERATELY in these four options, and they are stated here rather than
 rem  left to the defaults so a fresh tree matches an old one. Until 2026-10-02 they existed
@@ -47,10 +66,10 @@ if not exist "%BUILD%\CMakeCache.txt" (
     -DCMAKE_ASM_COMPILER_ARCHITECTURE_ID=ARM ^
     -DCONFIG_TFM_SOURCE_PATH=%TFM_SRC% ^
     -DTFM_TOOLCHAIN_FILE=%TFM_SRC%/toolchain_IARARM.cmake ^
-    -DTFM_PLATFORM=renesas/ra6m5 ^
-    -DFSP_S_APP_DIR=%FSP_CMAKE%/ra6m5_iar_secure ^
-    -DFSP_BL2_APP_DIR=%FSP_CMAKE%/ra6m5_iar_mcuboot ^
-    -DFSP_NS_APP_DIR=%FSP_CMAKE%/ra6m5_iar_nonsecure ^
+    -DTFM_PLATFORM=renesas/%PART% ^
+    -DFSP_S_APP_DIR=%FSP_CMAKE%/%S_DIR% ^
+    -DFSP_BL2_APP_DIR=%FSP_CMAKE%/%BL_DIR% ^
+    -DFSP_NS_APP_DIR=%FSP_CMAKE%/%NS_DIR% ^
     -DTEST_PSA_API=%SUITE% ^
     -DTFM_PROFILE=profile_large ^
     -DTFM_ISOLATION_LEVEL=3 ^
@@ -60,7 +79,7 @@ if not exist "%BUILD%\CMakeCache.txt" (
     -DTFM_SPM_LOG_LEVEL=TFM_SPM_LOG_LEVEL_DEBUG ^
     -DTFM_PARTITION_LOG_LEVEL=TFM_PARTITION_LOG_LEVEL_INFO ^
     -DCONFIG_TFM_HALT_ON_CORE_PANIC=ON ^
-    -DRA6M5_RTT_BLOCKING=ON ^
+    -D%RTT_OPT%=ON ^
     -DPSA_ARCH_TESTS_PATH=%PSA_TESTS% ^
     -DPSA_API_TEST_TARGET=renesas_ra
   if errorlevel 1 exit /b 1

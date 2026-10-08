@@ -13,9 +13,9 @@ rem  use the matching one. Crossing them mostly works (ra_gen/ and ra_cfg/ are t
 rem  neutral and TF-M supplies its own linker script) but it is not the intended pairing.
 rem
 rem  The two sets must also agree on the device partitioning in solution.xml - they describe
-rem  the SAME part and feed ONE RDPM entry. They are not in sync right now: the IAR set still
-rem  has FSP's default RAM split (RAM_CPU0_C = 0x80 @ 0xE9F80) where the GCC set has the fixed
-rem  1 KB NSC (0x400 @ 0xE9C00). See DECISIONS D057.
+rem  the SAME part and feed ONE RDPM entry. They are in sync as of 2026-10-08: a full property
+rem  diff of all three project pairs shows no real differences, and every BSP_PARTITION_* matches
+rem  except RAM_BL_CPU0_S_SIZE, which nothing consumes. DECISIONS D057, D101.
 rem
 rem  IAR needs iccarm on PATH (toolchain_IARARM.cmake names it without a path) and the ASM
 rem  architecture id CMake 4.1 cannot detect - it fails on the SECOND configure pass, after

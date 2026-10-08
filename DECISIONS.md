@@ -4680,3 +4680,97 @@ Checking the module list is not sufficient; check the generated vector table.
 
 **What this does not close.** The IAR trees still have never run on hardware. Nothing on the
 project side is outstanding now; what remains is building and running them.
+
+---
+
+## D102 — RA8M2 IAR: all six trees build, five launches generated; the ewarm staleness was already gone
+
+**Date:** 2026-10-08 · **Status:** Accepted · Follows [D101] (project gaps) and [D089] (the path fix)
+
+### [D089]'s sweep was already complete; the remaining matches are not defects
+
+Re-checked before building, because [D089] closed on "`m2ns` and `m2pans` now build" and
+[D083] had already been found incomplete once. **No live configuration carries the stale
+path.** What a naive grep still finds:
+
+| tree | matches | what they are |
+|---|---|---|
+| `m2ns`, `m2pans` | 1, 2 | `CMakeConfigureLog.yaml` only - an inert record of the historical attempt |
+| `m2pa` | 868 | stale `.o` (825), `.a` (28) and images (12) from the pre-fix build; `CMakeCache.txt` and `CMakeCCompiler.cmake` are clean |
+
+**A grep for `ewarmc` matches the correct path too** - `ewarmc-10.10.2` contains `ewarm`
+followed by `c-`, so only `ewarm-10.10.2` distinguishes stale from good. The first sweep here
+reported 878 "stale" files in `m2pa` on that mistake. Worth stating because [D083] and [D089]
+both give the grep.
+
+### Six trees, built fresh rather than fixed in place
+
+New directories, so nothing existing was destroyed and `m2pa`/`m2ns`/`m2pans` stay put until
+they are known redundant. Naming mirrors RA6M5's `m5i*` convention.
+
+| | PSA SPE | NS crypto | NS attest | NS storage | Reg SPE | Reg NS |
+|---|---|---|---|---|---|---|
+| GCC | `m2cry` | `m2cryns` | `m2att` | `m2sto` | `m2gflih` | `m2gflihns` |
+| IAR | `m2icry` | `m2icryns` | `m2iatt` | `m2isto` | `m2iflih` | `m2iflihns` |
+
+All six built, exit 0. **Both images fit**, which was the open question on this part:
+
+| | IAR text | GCC text | slot |
+|---|---|---|---|
+| `tfm_s` | **276,468** | 278,594 | 293,376 |
+| `bl2` | **37,683** | 34,052 | 65,536 |
+
+IAR's secure image is 2,126 B *smaller* than GCC's; its BL2 is 3,631 B larger. Signed images
+are exact slot fits under both (`294,912` / `163,840`), as `--pad` requires.
+
+### Two new scripts
+
+- **`reg_build_iar.bat`** - the regression pair. No script existed for this configuration in
+  either toolchain; `m2gflih` was built by hand, so its settings were recoverable only from its
+  `CMakeCache.txt`. Now stated explicitly, which is [D084]'s lesson. Takes `[part]` and
+  `[flih|slih|none]` - the two IRQ suites are mutually exclusive in tf-m-tests.
+- **`mk_iar_launches.py`** - derives each IAR launch from its GCC twin. Justified by measuring
+  the RA6M5 pair: `ra6m5_TFM_test_crypto_{gcc,iar}.launch` differ in **exactly 9 lines, all
+  build paths**. Image names are identical under both toolchains. It refuses to write a launch
+  that still names a GCC tree or has `setTZBoundaries` true anywhere.
+
+`psa_arch_spe_iar.bat` gained the `[part]` argument its GCC counterpart already had.
+
+### setTZBoundaries: RA8M2 launches carry the key TWICE
+
+Found while checking what to propagate. Every RA8M2 GCC launch has **two**:
+
+```
+com.renesas.hardwaredebug.arm.e2lite.setTZBoundaries  = true
+com.renesas.hardwaredebug.arm.jlink.setTZBoundaries   = false
+```
+
+RA6M5's launches have only the `jlink` one. **This is not a live hazard** - these launches
+select J-Link (`jtagDevice = "J-Link ARM"`), so only that namespace is read and it is `false`.
+But `CONFIGURATION.md` says the flag must be false *everywhere*, and e2 defaults the e2lite one
+to true, so switching probe on an RA8M2 launch would arm the brick path with nothing to warn.
+The five generated IAR launches set **both** false. **The five GCC launches still have the
+e2lite key true** - left alone because they are in the working tree and e2 rewrites them, but
+they should be corrected.
+
+### RTT control blocks, this build
+
+They move on every rebuild ([D070]); recorded so the first run does not have to hunt for them.
+
+| image | `_SEGGER_RTT` | | image | `_SEGGER_RTT` |
+|---|---|---|---|---|
+| `m2iflih` bl2 | `0x22002d6c` | | `m2icry` bl2 | `0x22002d7c` |
+| `m2iflih` tfm_s | `0x2200aa64` | | `m2icry` tfm_s | `0x2200b45c` |
+| `m2iflihns` tfm_ns | `0x320ed35c` | | `m2icryns` tfm_ns | `0x320ece5c` |
+| | | | `m2iatt` tfm_ns | `0x320ecb5c` |
+| | | | `m2isto` tfm_ns | `0x320ed03c` |
+
+### Status
+
+Five launches written to `ra8m2_gcc_mcuboot/` - `ra8m2_TFM_{flih,test_crypto,test_attestation,
+test_storage,update}_iar`. All 27 files they reference exist on disk, including both
+secondary-slot images. **Nothing has been run on hardware yet**; that is the whole of what M5
+still needs.
+
+No SLIH launch, because the GCC side has none either (the `m2gslih` trees exist but were never
+given one). `reg_build_iar.bat C:\b\m2islih C:\b\m2islihns ra8m2 slih` would add the pair.
