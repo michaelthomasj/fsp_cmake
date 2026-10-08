@@ -4827,3 +4827,49 @@ consistent with `PROJECT_ATTR`, and all 27 referenced files present.
 ### Unchanged from [D102]
 
 The build trees, sizes and RTT addresses. Still nothing run on hardware.
+
+---
+
+## D104 — first RA8M2 IAR run on silicon: PSA Arch crypto is identical to GCC, test for test
+
+**Date:** 2026-10-08 · **Status:** Accepted · First hardware execution of any IAR image on this part
+
+`ra8m2_TFM_test_crypto_iar`, `m2icry` + `m2icryns`, banner `TF-M v2.2.0+94dbaa08f` - the same
+revision the GCC runs used, so the Option 3 merge did not move the tested code.
+
+```
+************ Crypto Suite Report **********
+TOTAL TESTS : 64   PASSED : 62   SIM ERROR : 0   FAILED : 1   SKIPPED : 1
+```
+
+| | RA8M2 GCC ([D099]) | RA8M2 IAR | same? |
+|---|---|---|---|
+| total / passed / failed / skipped | 64 / 62 / 1 / 1 | 64 / 62 / 1 / 1 | **yes** |
+| failing test | 216 check 4, `-134` | 216 check 4, `-134` | **yes** |
+| skipped test | 252, code `0x2d` | 252, code `0x2d` | **yes** |
+
+**Not one test differs.** The same pattern RA6M5 showed, where GCC and IAR both returned
+63 / 0 / 1 ([D046]).
+
+### What this settles
+
+- **The IAR toolchain path works end to end on RA8M2** - build, sign, flash, boot, run. Every
+  piece [D101] and [D102] put in place is now exercised on hardware rather than inferred: the
+  AGT interrupt (the suites need a secure timer), the regenerated project values, the launch
+  attributes [D103] corrected, and `reg_build_iar.bat`/`psa_arch_spe_iar.bat`'s part argument.
+- **Test 216 is not toolchain-specific.** [D098] argued the plaintext RSA-2048 keygen gap is
+  the engine's format support selected by `PSA_CRYPTO_CFG_RSA_FORMAT`, not anything about how
+  the image is built. An identical failure under a different compiler is the prediction that
+  argument makes, and it holds. Had IAR passed 216, [D098] would have been wrong.
+- **The boot log shows the full chain**: BL2 provisioning, `[Sec Thread] Secure image
+  initializing!`, `TF-M isolation level is: 0x00000003`, ITS and PS layouts created, and
+  `[INF][Crypto] Init HW accelerator... complete` - so the RSIP-E50D is active under IAR, not
+  silently falling back to software.
+
+The empty ITS/PS layouts are expected, not a fault: the launches erase code **and** data flash
+on connect, which wipes `DF_EMULATION`.
+
+### Still unrun on IAR
+
+Attestation, storage, the regression/FLIH suite and the secondary-slot update test. The
+launches and trees for all four exist.

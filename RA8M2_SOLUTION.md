@@ -10,8 +10,8 @@ the flash backend, §7 for the SAU), `RA6E1_TEMPLATE_CHECKLIST.md` (what a solut
 > `TF-M v2.2.0+94dbaa08f`). Every secure and non-secure suite, zero failures, including the
 > FLIH IRQ tests - the first complete run on this part. That exercised the SAU programming, the
 > MRAM dual-alias driver, DF_EMULATION as ITS/PS backing, the RSIP-E50D, measured boot, and the
-> RDPM values below. **Still unrun: the IAR trees**, though the three project-side gaps that
-> blocked them are now closed and verified (2026-10-08). DECISIONS D095, D101.
+> RDPM values below. **The IAR side has now started**: all six IAR trees build and the PSA
+> Arch crypto suite runs on silicon with results identical to GCC. DECISIONS D095, D101-D104.
 
 ---
 
@@ -215,18 +215,23 @@ Seen on the first RA8M2 boot, 2026-10-05. **RA6M5 cannot hit this** - it has no 
 | tfm_s | 278,594 B | `0x47A00` (293,376 B) | signed payload ends at 294,226 of a 294,912 slot — **670 B spare** |
 | tfm_ns | 105,944 B | `0x27E00` (163,328 B) | 35% free |
 
-**PSA Arch suites, GCC, on silicon.** Complete; the IAR trees have never run.
+**PSA Arch suites on silicon.** GCC complete; IAR has run crypto.
 
-| Suite | RA8M2 (RSIP-E50D) | RA6M5 (SCE9) |
-|---|---|---|
-| crypto | **62 pass / 1 fail / 1 skip** of 64 | 63 / 0 / 1 |
-| attestation | 1 / 0 / 0 | 1 / 0 / 0 |
-| storage (ITS + PS) | 11 / 0 / 6 | 11 / 0 / 6 |
+| Suite | RA8M2 GCC | RA8M2 IAR | RA6M5 (both) |
+|---|---|---|---|
+| crypto | **62 / 1 / 1** of 64 | **62 / 1 / 1** of 64 | 63 / 0 / 1 |
+| attestation | 1 / 0 / 0 | not yet run | 1 / 0 / 0 |
+| storage (ITS + PS) | 11 / 0 / 6 | not yet run | 11 / 0 / 6 |
 
-The two parts differ by **one test out of 64**: 216, the plaintext RSA-2048 keygen gap under
-"Open items". Both skip 252 (deterministic ECDSA, which FSP does not support); the six storage
-skips are the optional `psa_ps_create` / `psa_ps_set_extended` APIs TF-M does not implement.
-D099.
+**The two toolchains agree test for test** - same tally, same failing test (216), same skip
+(252), on `TF-M v2.2.0+94dbaa08f` in both. That is the same pattern RA6M5 showed, where GCC and
+IAR were also identical. D104.
+
+The two *parts* differ by **one test out of 64**: 216, the plaintext RSA-2048 keygen gap under
+"Open items" - and it now fails under both toolchains, which confirms it is silicon and config
+rather than anything toolchain-specific. Both parts skip 252 (deterministic ECDSA, which FSP
+does not support); the six storage skips are the optional `psa_ps_create` /
+`psa_ps_set_extended` APIs TF-M does not implement. D099.
 
 **The MCUboot upgrade path runs** (`ra8m2_TFM_update_gcc`, 2026-10-08). Both images install
 from their secondary slots, and a second reset reports `Swap type: none` - the secondary is
@@ -280,10 +285,10 @@ and FSP's `flash_area_open()` then opens the same controller and returns −1 on
   storage too, not just generation. D097, D098.
 - **Run the IAR trees.** The GCC side is done: full regression, PSA Arch attestation (1/1), and
   measured boot verified from the boot record at `0x22000000` - magic `0x2016`, NSPE 0.0.0 and
-  SPE 2.2.0, both SHA-256 measurements equal to the signed images' TLVs (D095, D096). The IAR
-  trees build but have never run. The three project-side gaps that blocked `m2pa` are closed
-  as of 2026-10-08 and the IAR projects are now configuration-identical to GCC (D101), so
-  nothing on the project side is outstanding - what remains is building and running them.
+  SPE 2.2.0, both SHA-256 measurements equal to the signed images' TLVs (D095, D096).
+  IAR side: all six trees build, and PSA Arch **crypto has run on silicon with results
+  identical to GCC** (62/1/1 of 64, D104). Five IAR launches exist (D102, D103). Still to run:
+  IAR attestation, storage, the regression/FLIH suite and the secondary-slot update test.
 - **D077 back-ports go the other way.** This part has the generated OFS addresses and 22
   enabled-but-unplaced `#error` guards; RA6M5 and RA6E1 have neither. The open work is bringing
   them up to this part, not changing this one.
