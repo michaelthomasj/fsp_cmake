@@ -227,6 +227,12 @@ and FSP's `flash_area_open()` then opens the same controller and returns −1 on
 
 ## Open items
 
+- **RSIP-E50D cannot generate RSA-2048 keys.** PSA Arch crypto test 216 check 4 returns
+  `PSA_ERROR_NOT_SUPPORTED` (-134). Every other RSA-2048 operation passes - import, export,
+  encrypt, decrypt, sign, verify, copy. RA6M5's SCE9 has no such gap. `rm_psa_crypto` and the
+  accelerator config are byte-identical between the parts, so this is the engine, not the port.
+  An application that generates RSA keys on-device works on RA6M5 and fails here, with nothing
+  in the build to warn. D097.
 - **Run the IAR trees.** The GCC side is done: full regression, PSA Arch attestation (1/1), and
   measured boot verified from the boot record at `0x22000000` - magic `0x2016`, NSPE 0.0.0 and
   SPE 2.2.0, both SHA-256 measurements equal to the signed images' TLVs (D095, D096). The IAR

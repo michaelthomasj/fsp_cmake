@@ -4325,3 +4325,71 @@ variable. The documented deviation is visible in the boot record itself.
 mismatch on both. The dump came from the attestation launch, which boots `m2cry`/`m2att`. When
 a measurement does not match, check which image the board was actually running before
 concluding anything about the device.
+
+---
+
+## D097 — RA8M2 PSA Arch: storage clean, crypto has one real failure — RSIP-E50D cannot generate RSA-2048 keys
+
+**Date:** 2026-10-08 · **Status:** Accepted
+
+Third and fourth RA8M2 PSA Arch suites run on hardware, GCC, `profile_large` / isolation 3 / IPC.
+
+### Storage: 11 pass / 0 fail / 6 skip — identical to RA6M5
+
+Every skip is code `0x2b`, "Optional PS APIs are not supported": tests 411, 412, 413, 415, 416,
+417, all exercising `psa_ps_create` / `psa_ps_set_extended`, which TF-M does not implement. Test
+414 explicitly checks that those calls *fail* and passes.
+
+The result matters more than the number: PS and ITS here are backed by **DF_EMULATION, 64 KB of
+MRAM**, not real data flash. Test 403 "insufficient space" behaved correctly in both halves -
+ITS filled at UID 13, PS at UID 8, and both recovered after removing all UIDs. That is the first
+runtime evidence the DF_EMULATION split works as [D086]'s corrected arithmetic predicted.
+
+### Crypto: TEST 216 FAILED, and it is a genuine capability gap
+
+```
+TEST: 216  psa_generate_key
+  [Check 1] 16 Byte AES        ok
+  [Check 2] 24 Byte AES        ok
+  [Check 3] 32 Byte AES        ok
+  [Check 4] RSA 2048 Keypair   Failed at Checkpoint 3, Actual -134, Expected 0
+```
+
+`-134` is `PSA_ERROR_NOT_SUPPORTED`. **Only generation fails.** RSA import (202), export (203),
+export_public (204), destroy (205), asymmetric encrypt (239), decrypt (240), sign_hash (241),
+verify_hash (242), verify_message (253) and copy_key (244) all pass with RSA-2048 keys.
+
+**RA6M5 does not have this gap.** [D046] recorded crypto **63 / 0 / 1** on SCE9, the single skip
+being deterministic ECDSA ([D040]). Test 216 passed there.
+
+### It is the engine, not the port
+
+Checked, because an identical-looking config on two parts invites the assumption that one of
+them was mis-copied:
+
+| | |
+|---|---|
+| `rm_psa_crypto` tree, ra6m5_gcc_secure vs ra8m2_gcc_CPU0_secure | **byte-identical, every file** |
+| `sce9_fsp_cfg.h` vs `rsip_e50d_fsp_cfg.h` | **identical apart from the include guard** |
+| `RM_PSA_CRYPTO_CFG_RSA{3K,4K}_KEYGEN_ENABLED` | `0` on both; no RSA-2K keygen flag exists either way |
+
+Same sources, same configuration, different silicon. **The RSIP-E50D does not implement RSA-2048
+key generation and the SCE9 does.** `MBEDTLS_RSA_ALT` is defined, so the ALT replaces the whole
+RSA module and there is no software fallback to catch it.
+
+### Two things this raises
+
+1. **The E50D accelerator config is a copy of the SCE9 one with the guard renamed.** That was
+   already noted as a restatement risk in [D077]. It is now demonstrably describing a part with
+   different capabilities, which is the shape of defect that audit was looking for.
+2. **Whether `psa_generate_key` for RSA should fall back to software.** It currently returns
+   `NOT_SUPPORTED` at run time rather than being refused at configuration time. An application
+   that generates RSA keys on-device works on RA6M5 and fails on RA8M2, with nothing in the
+   build to warn.
+
+### Not yet recorded
+
+The RA8M2 crypto log was truncated before the suite summary, so the final pass/fail/skip tally
+is unknown. What is known: test 216 FAILED, test 252 (`psa_sign_message`) SKIPPED with code
+`0x2d`, and every other test shown PASSED. RA6M5 had one skip; RA8M2 has at least one different
+one. The tail is worth capturing before this is reported as a final result.
