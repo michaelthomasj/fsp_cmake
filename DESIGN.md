@@ -149,8 +149,10 @@ two is what made this take three attempts.
 - **Bootutil:** TF-M downloads a Renesas MCUboot fork. It is **not** the copy RASC ships, and the
   difference is load-bearing: RASC's `boot_hooks.h` is 287 lines against TF-M's 181, adding
   `BOOT_HOOK_FLASH_AREA_CALL`, `BOOT_HOOK_FIND_SLOT_CALL` and `BOOT_HOOK_GO_CALL_FIH`. Any FSP
-  source that calls those hooks needs a shim when built against TF-M's copy — see
-  `ra8m2/mcuboot_hook_shim.h` and DECISIONS D079. TF-M's copy also provides build glue
+  source that calls those hooks would need a shim when built against TF-M's copy. No FSP
+  MCUboot source is built any more - `rm_mcuboot_port` is in `FSP_MODULES_NEVER_BUILT` on
+  both parts and `mcuboot_hook_shim.h` was deleted with it (DECISIONS D079 for the original
+  coupling, D091 for its removal). TF-M's copy also provides build glue
   (`bootutil/CMakeLists.txt`, `scripts/imgtool.py`) that RASC strips; pointing `MCUBOOT_PATH` at
   the RASC tree means supplying that glue yourself.
 - **Signing:** TF-M's default flow, which invokes `${MCUBOOT_PATH}/scripts/imgtool.py` — i.e. RASC's

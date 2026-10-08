@@ -230,15 +230,20 @@ suite cannot detect its absence: with `component_cnt == 0` under the default
 and returns success. So a passing attestation run proves nothing either way — read the boot
 record at the start of secure RAM instead. D080, D081.
 
-**BL2 takes FSP's MCUboot flash backend** (D079). Five couplings were needed:
-`fsp_mcuboot_port.cmake` registers `flash_map.c` by name (not via `fsp_module_glob`, which is
-`GLOB_RECURSE` and would pull in `custom_crypto_stacks/`, `os/` and `rm_mcuboot_port.c`);
-`__FLASH_MAP_BACKEND_H__` is predefined to suppress TF-M's duplicate header;
-`mcuboot_hook_shim.h` supplies the `BOOT_HOOK_FLASH_AREA_CALL` that TF-M's MCUboot lacks; and
-`stddef.h`, `fault_injection_hardening.h` and `mcuboot_hook_shim.h` are force-included via
-`"SHELL:-include ..."`, because a plain `-include` gets de-duplicated by CMake.
-`mcuboot_config.h` is deliberately kept as **TF-M's**, to avoid losing
-`MCUBOOT_HW_ROLLBACK_PROT`, which FSP's copy does not define.
+**BL2 uses TF-M's MCUboot flash map and backend**, with FSP's flash HAL behind
+`fa_driver` as an `ARM_DRIVER_FLASH` in `cmsis_drivers/Driver_Flash.c` - the arrangement four ST
+platforms already use upstream. `rm_mcuboot_port` is listed in `FSP_MODULES_NEVER_BUILT`.
+
+This replaced an earlier design in which BL2 took FSP's backend (D079, D082) and needed five
+couplings to do it: a by-name `flash_map.c` registration, a predefined `__FLASH_MAP_BACKEND_H__`
+to suppress TF-M's duplicate header, `mcuboot_hook_shim.h` for the `BOOT_HOOK_FLASH_AREA_CALL`
+TF-M's MCUboot lacks, and force-includes via `"SHELL:-include ..."`. All five are gone, and with
+them D090's `struct flash_area` guard collision - which is now **structurally impossible** rather
+than merely fixed. `bl2/CMakeLists.txt` is byte-identical to TF-Mv2.2.0. D091.
+
+The image layout is still the Solution's: `FLASH_AREA_*_OFFSET/SIZE` derive from
+`BSP_PARTITION_*` regardless of which backend reads them. Layout ownership and backend ownership
+are separable, and conflating them is what made this take three attempts.
 
 **The flash controller is handed over, not shared.** `boot_platform_init()` opens `g_mram0_ctrl`,
 and FSP's `flash_area_open()` then opens the same controller and returns −1 on
