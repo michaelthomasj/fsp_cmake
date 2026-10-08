@@ -4393,3 +4393,87 @@ The RA8M2 crypto log was truncated before the suite summary, so the final pass/f
 is unknown. What is known: test 216 FAILED, test 252 (`psa_sign_message`) SKIPPED with code
 `0x2d`, and every other test shown PASSED. RA6M5 had one skip; RA8M2 has at least one different
 one. The tail is worth capturing before this is reported as a final result.
+
+---
+
+## D098 — refines [D097]: the RSA-2048 keygen failure is the PLAINTEXT path, and the config selects it
+
+**Date:** 2026-10-08 · **Status:** Accepted · **Corrects the reasoning in** [D097]
+
+[D097] concluded "the RSIP-E50D does not implement RSA-2048 key generation". The observation
+was right and the reason was not. The precise position, from three independent sources:
+
+### 1. The code
+
+`rm_psa_crypto/rsa_alt_process.c`, the `nbits == RSA_2048_BITS` branch:
+
+```c
+p_hw_sce_rsa_generatekey = g_rsa_keygen_lookup[(uint32_t) ctx->vendor_ctx];
+if (true == (bool) ctx->vendor_ctx) {        /* WRAPPED key */
+    private_key_size_bytes = sizeof(sce_rsa2048_private_key_index_t);
+} else {                                     /* PLAINTEXT key */
+#if !(BSP_FEATURE_RSIP_SCE7_SUPPORTED || BSP_FEATURE_RSIP_SCE9_SUPPORTED ||       BSP_FEATURE_RSIP_RSIP_E51A_SUPPORTED)
+    ret = MBEDTLS_ERR_PLATFORM_FEATURE_UNSUPPORTED;
+#endif
+```
+
+**E50D is absent from that list, so only the plaintext path is refused.** The wrapped path has
+no such guard.
+
+### 2. `rm_psa_crypto_usage_notes.md`
+
+| RSA | E50D |
+|---|---|
+| Key generation - plaintext | `--` |
+| Key generation - wrapped | `(3)` = RSA-2048, 3072, 4096 only |
+
+So E50D generates RSA-2048 keys in **wrapped** format and not in plaintext.
+
+### 3. The port asks for plaintext
+
+```c
+/* rsip_e50d_fsp_cfg.h */
+#define PSA_CRYPTO_CFG_RSA_FORMAT   (PSA_CRYPTO_CFG_PLAINTEXT_KEY_SUPPORT)
+```
+
+AES and ECC are set the same way. PSA therefore requests the one RSA keygen format this engine
+does not offer, and gets `PSA_ERROR_NOT_SUPPORTED` at run time.
+
+### Why RA6M5 passes
+
+`BSP_FEATURE_RSIP_SCE9_SUPPORTED` is in the guard list. Same sources, same config, different
+`BSP_FEATURE_*`. [D097] was right that nothing in the port differs between the parts; it was
+wrong to infer from that that the capability was simply absent.
+
+### Also: RA8M2 is missing from the module's own device table
+
+`rm_psa_crypto_usage_notes.md` lists **RSIP-E50D → RA8P1**. The BSP says otherwise:
+
+| part | engine |
+|---|---|
+| ra6m5 | `SCE9` |
+| ra8m2 | **`RSIP_E50D`** |
+| ra8p1 | `RSIP_E50D` |
+| ra8d1 | `RSIP_E51A` |
+
+RA8M2 is an E50D part and the table does not say so. Worth a line in the module docs - the
+table is what a reader consults to find out whether a part can do something, and reading it
+for RA8M2 today returns nothing.
+
+### What this does and does not change
+
+Unchanged: PSA Arch crypto test 216 check 4 fails on RA8M2, and on-device RSA key generation in
+plaintext form is unavailable there while it works on RA6M5.
+
+Changed: it is a **key-format** limitation, not a missing capability, and it is selected by a
+line in the port's own config. If wrapped RSA keys are acceptable to the application,
+`PSA_CRYPTO_CFG_RSA_FORMAT` is where to change it - with the caveat that switching formats
+affects import, export and storage of RSA keys as well, not just generation, so it is not a
+one-line fix to be made casually.
+
+### Method note
+
+Two corrections from the user in two turns on this point, the second reversing the first. The
+authority was the module's own usage-notes table, in the same repository as the code. The
+lesson from [D094] applies again: when the project documents the answer, read that before
+inferring one from behaviour.
