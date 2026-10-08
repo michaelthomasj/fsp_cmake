@@ -266,6 +266,13 @@ Enumerated from `tf-m-tests` and `psa-arch-tests` and checked against every buil
 | **QCBOR / t_cose** | `TEST_NS_QCBOR`, `TEST_NS_T_COSE` | never enabled | Yes, cheap. Both libraries are already linked for attestation, so this is self-test of code that already ships |
 | **Multi-core** | `TEST_NS_MULTI_CORE` | `TFM_MULTI_CORE_TOPOLOGY=OFF`; dual-core was descoped 2026-09-14 | Not applicable while CPU1 is unused, but RA8M2 **is** dual-core - revisit with `RA8x2_DUAL_CORE_DESIGN.md` |
 
+**Also uncovered, found 2026-10-08 ([[D099]]):** `mbedtls_aes_crypt_ctr()` in FSP 6.7's
+`aes_alt.c` ignores `nc_off`/`stream_block` and mishandles partial blocks - the defect D041
+fixed - yet PSA Arch 236/237 pass on both parts, short-input CTR checks included. The PSA cipher
+layer never reaches that function with a partial block, so no suite we run can see the bug. A
+direct Mbed TLS CTR caller still hits it. Needs a unit test against `mbedtls_aes_crypt_ctr()`
+itself, not another PSA-level suite.
+
 **Already covered, for contrast:** PS, ITS, Crypto, Attestation, Platform, SFN backend, FLIH IRQ
 (`*_TFM_flih_*`) and SLIH IRQ (`*_TFM_slih_*`, `TEST_NS_SLIH_IRQ=ON` in the slih trees), plus
 PSA Arch crypto / attestation / storage.

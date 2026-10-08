@@ -198,6 +198,19 @@ Seen on the first RA8M2 boot, 2026-10-05. **RA6M5 cannot hit this** - it has no 
 | tfm_s | 278,594 B | `0x47A00` (293,376 B) | signed payload ends at 294,226 of a 294,912 slot — **670 B spare** |
 | tfm_ns | 105,944 B | `0x27E00` (163,328 B) | 35% free |
 
+**PSA Arch suites, GCC, on silicon.** Complete; the IAR trees have never run.
+
+| Suite | RA8M2 (RSIP-E50D) | RA6M5 (SCE9) |
+|---|---|---|
+| crypto | **62 pass / 1 fail / 1 skip** of 64 | 63 / 0 / 1 |
+| attestation | 1 / 0 / 0 | 1 / 0 / 0 |
+| storage (ITS + PS) | 11 / 0 / 6 | 11 / 0 / 6 |
+
+The two parts differ by **one test out of 64**: 216, the plaintext RSA-2048 keygen gap under
+"Open items". Both skip 252 (deterministic ECDSA, which FSP does not support); the six storage
+skips are the optional `psa_ps_create` / `psa_ps_set_extended` APIs TF-M does not implement.
+D099.
+
 The secure slot is nearly full. `README.md` §"Freeing space in the secure image" lists what can
 be turned off; at 960 B of headroom the PSA Arch logging options cannot be enabled globally here.
 

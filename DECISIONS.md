@@ -4477,3 +4477,73 @@ Two corrections from the user in two turns on this point, the second reversing t
 authority was the module's own usage-notes table, in the same repository as the code. The
 lesson from [D094] applies again: when the project documents the answer, read that before
 inferring one from behaviour.
+
+---
+
+## D099 — closes [D097]'s gap: RA8M2 crypto is 62/1/1, and the sole delta from RA6M5 is test 216
+
+**Date:** 2026-10-08 · **Status:** Accepted · Completes the record left open by [D097]
+
+### The tally
+
+```
+************ Crypto Suite Report **********
+TOTAL TESTS     : 64
+TOTAL PASSED    : 62
+TOTAL SIM ERROR : 0
+TOTAL FAILED    : 1
+TOTAL SKIPPED   : 1
+```
+
+| | RA6M5 (SCE9, [D046]) | RA8M2 (RSIP-E50D) |
+|---|---|---|
+| passed | 63 | **62** |
+| failed | 0 | **1** — test 216 |
+| skipped | 1 — test 252 | 1 — test 252 |
+| total | 64 | 64 |
+
+### The skip is the same skip on both parts
+
+[D097] said "RA6M5 had one skip; RA8M2 has at least one different one." **Wrong.** Both parts
+skip **252** (`psa_sign_message`), the deterministic-ECDSA gate from [D040]. Skip code `0x2d`.
+There is no second skip and no new one.
+
+So the two parts differ by exactly one test out of 64, and that test is the plaintext RSA-2048
+keygen gap established in [D098]. Nothing else in the crypto suite distinguishes the RSIP-E50D
+from the SCE9 under this port.
+
+### What the full transcript adds beyond the tally
+
+Three results in it are worth naming, because each could have been assumed to fail alongside 216
+and does not:
+
+- **221** check 8, `psa_key_derivation_output_key - RSA keypair`: PASSED. Deriving an RSA keypair
+  from a KDF is a different path from `psa_generate_key` and is not gated.
+- **244** checks 1-2, `psa_copy_key` with an RSA-2048 public key and keypair: PASSED.
+- **239/240** RSA PKCS1V15 and OAEP encrypt and decrypt, **241/242** sign_hash and verify_hash,
+  **253** verify_message: all PASSED with RSA-2048.
+
+Which sharpens [D098]: the plaintext guard in `rsa_alt_process.c` sits on *generation* alone.
+Every other plaintext RSA-2048 operation — import, export, copy, derive, encrypt, decrypt, sign,
+verify — works on the E50D.
+
+- **224/225** AEAD single-part GCM (check 9 on each) and **261/263** multi-part GCM finish and
+  verify: PASSED. [D041] recorded 261 and 263 **failing** on RA6M5 before two `aes_alt.c` fixes,
+  and [D045] then found 6.7.0-beta0 needs no port-local patches. Measured now: the 6.7 tree
+  carries [D041]'s **fix 1** (`mbedtls_aes_free()` issues the matching `FinalSub` when
+  `state == UPDATE`) and **not fix 2** - `mbedtls_aes_crypt_ctr()` still opens with
+  `FSP_PARAMETER_NOT_USED(nc_off)` and `FSP_PARAMETER_NOT_USED(stream_block)`, drops the
+  `length % 16` tail in the unaligned path, and hands a partial length straight to the whole-block
+  worker in the aligned path. `aes_alt.c` is byte-identical between `ra6m5_gcc_secure` and
+  `ra8m2_gcc_CPU0_secure` (md5 `f998be2b...`), so this is 6.7 stock on both parts.
+
+  So the GCM result confirms fix 1 holds on E50D silicon. It says nothing about fix 2, which is
+  absent - and **236/237 pass anyway, including both "AES CTR (short input)" checks.** The PSA
+  cipher layer evidently never reaches `mbedtls_aes_crypt_ctr()` with a partial block or a live
+  `nc_off`. That is a real coverage hole, not a resolved defect: the suite cannot see the bug
+  [D041] fixed, so a direct `mbedtls_aes_crypt_ctr()` caller on either part still hits it.
+
+### Status of the crypto result
+
+Final and reportable. [D097]'s "not yet recorded" section is closed; nothing in the tail changes
+[D097] or [D098]'s conclusions, and the one factual claim it corrects is the skip comparison above.
