@@ -136,7 +136,7 @@
 #ifndef BSP_TZ_CFG_PSARD
 #define BSP_TZ_CFG_PSARD (\
             (((RA_NOT_DEFINED > 0) ? 0U : 1U) << 4) /* AGT1 */ | \
-            (((RA_NOT_DEFINED > 0) ? 0U : 1U) << 5) /* AGT0 */ | \
+            (((1 > 0) ? 0U : 1U) << 5) /* AGT0 */ | \
             (((RA_NOT_DEFINED > 0) ? 0U : 1U) << 6)  /* PDG */ | \
             (((RA_NOT_DEFINED > 0) ? 0U : 1U) << 11) /* PGI3 */ | \
             (((RA_NOT_DEFINED > 0) ? 0U : 1U) << 12) /* PGI2 */ | \

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <raSolution>
   <generalSettings>
-    <option key="#Board#" value="board.ra8m2ek"/>
+    <option key="#Board#" value="board.ra8m2ek_v2"/>
     <option key="#TargetName#" value="R7KA8M2JFLCAC"/>
     <option key="#FSPVersion#" value="6.7.0-beta0+20260925.818e720c"/>
     <option key="#SELECTED_TOOLCHAIN#" value="iar.arm.toolchain.v8.0.0"/>
@@ -393,8 +393,8 @@
   </raClockConfiguration>
   <raPartitions>
     <memory Pname="CPU0" name="RAM_NS_CPU0_N" offset="0xEA000" parent="RAM_NS" security="n" size="0xEA000"/>
-    <memory Pname="CPU0" name="RAM_CPU0_S" offset="0x0" parent="RAM" security="s" size="0xE9F80"/>
-    <memory Pname="CPU0" name="RAM_CPU0_C" offset="0xE9F80" parent="RAM" security="c" size="0x80"/>
+    <memory Pname="CPU0" name="RAM_CPU0_S" offset="0x0" parent="RAM" security="s" size="0xE9C00"/>
+    <memory Pname="CPU0" name="RAM_CPU0_C" offset="0xE9C00" parent="RAM" security="c" size="0x400"/>
     <memory Pname="CPU0" name="__BL_1_P_H" offset="0xB0000" parent="FLASH_NS" security="n" size="0x200" userDefined="true"/>
     <memory Pname="CPU0" name="FLASH_NS_CPU0_N" offset="0xB0200" parent="FLASH_NS" security="n" size="0x27E00"/>
     <memory Pname="CPU0" name="__BL_1_P_T" offset="0xD8000" parent="FLASH_NS" security="n" size="0x0" userDefined="true"/>
@@ -405,8 +405,8 @@
     <memory Pname="CPU0" name="DF_EMULATION" offset="0x10000" parent="FLASH" security="s" size="0x10000" userDefined="true"/>
     <memory Pname="CPU0" name="__BL_0_S_H" offset="0x20000" parent="FLASH" security="s" size="0x200" userDefined="true"/>
     <memory Pname="CPU0" name="__BL_0_S_I" offset="0x20200" parent="FLASH" security="s" size="0x47E00" userDefined="true"/>
-    <memory Pname="CPU0" name="__BL_0_P_H" offset="0x68000" parent="FLASH" security="s" size="0x200" userDefined="true"/>
     <memory Pname="CPU0" name="__BL_0_S_T" offset="0x68000" parent="FLASH" security="s" size="0x0" userDefined="true"/>
+    <memory Pname="CPU0" name="__BL_0_P_H" offset="0x68000" parent="FLASH" security="s" size="0x200" userDefined="true"/>
     <memory Pname="CPU0" name="FLASH_CPU0_S" offset="0x68200" parent="FLASH" security="s" size="0x47A00"/>
     <memory Pname="CPU0" name="FLASH_CPU0_C" offset="0xAFC00" parent="FLASH" security="c" size="0x400"/>
     <memory Pname="CPU0" name="__BL_0_P_T" offset="0xB0000" parent="FLASH" security="s" size="0x0" userDefined="true"/>
@@ -460,10 +460,10 @@
   <raPinConfiguration>
     <symbolicName propertyId="p000.symbolic_name" value="IO_CFG_INT"/>
     <symbolicName propertyId="p001.symbolic_name" value="ARDUINO_A0"/>
-    <symbolicName propertyId="p002.symbolic_name" value="GROVE2_1_AN"/>
+    <symbolicName propertyId="p002.symbolic_name" value="GROVE2_1_AN0"/>
     <symbolicName propertyId="p003.symbolic_name" value="ARDUINO_A2"/>
     <symbolicName propertyId="p004.symbolic_name" value="ARDUINO_A3"/>
-    <symbolicName propertyId="p005.symbolic_name" value="GROVE2_2_AN"/>
+    <symbolicName propertyId="p005.symbolic_name" value="GROVE2_2_AN1"/>
     <symbolicName propertyId="p006.symbolic_name" value="PMOD1_7_IRQ11_DS"/>
     <symbolicName propertyId="p007.symbolic_name" value="ARDUINO_A1"/>
     <symbolicName propertyId="p008.symbolic_name" value="USER_S2"/>
@@ -471,42 +471,34 @@
     <symbolicName propertyId="p010.symbolic_name" value="MIKROBUS_IRQ14"/>
     <symbolicName propertyId="p011.symbolic_name" value="ARDUINO_D2"/>
     <symbolicName propertyId="p012.symbolic_name" value="PMOD2_7_IRQ15"/>
-    <symbolicName propertyId="p013.symbolic_name" value="I3C_SCL0_PULLUP"/>
     <symbolicName propertyId="p014.symbolic_name" value="ARDUINO_A4"/>
     <symbolicName propertyId="p015.symbolic_name" value="ARDUINO_A5"/>
-    <symbolicName propertyId="p100.symbolic_name" value="OSPI_DQ0"/>
-    <symbolicName propertyId="p101.symbolic_name" value="OSPI_DQ3"/>
-    <symbolicName propertyId="p102.symbolic_name" value="OSPI_DQ4"/>
-    <symbolicName propertyId="p103.symbolic_name" value="OSPI_DQ2"/>
-    <symbolicName propertyId="p104.symbolic_name" value="OSPI_CS"/>
-    <symbolicName propertyId="p105.symbolic_name" value="OSPI_ECS"/>
-    <symbolicName propertyId="p106.symbolic_name" value="OSPI_RES"/>
-    <symbolicName propertyId="p109.symbolic_name" value="I3C_SDA0_PULLUP"/>
+    <symbolicName propertyId="p100.symbolic_name" value="OSPI_SIO0"/>
+    <symbolicName propertyId="p101.symbolic_name" value="OSPI_SIO3"/>
+    <symbolicName propertyId="p102.symbolic_name" value="OSPI_SIO4"/>
+    <symbolicName propertyId="p103.symbolic_name" value="OSPI_SIO2"/>
+    <symbolicName propertyId="p104.symbolic_name" value="OSPI_CS_L"/>
+    <symbolicName propertyId="p105.symbolic_name" value="OSPI_ECS_L"/>
+    <symbolicName propertyId="p106.symbolic_name" value="OSPI_RES_L"/>
+    <symbolicName propertyId="p109.symbolic_name" value="I3C_SDA_PULL_UP"/>
     <symbolicName propertyId="p110.symbolic_name" value="ARDUINO_D9"/>
-    <symbolicName propertyId="p111.symbolic_name" value="MIKROBUS_RES"/>
-    <symbolicName propertyId="p200.symbolic_name" value="NMI"/>
-    <symbolicName propertyId="p201.symbolic_name" value="MD"/>
-    <symbolicName propertyId="p208.symbolic_name" value="TDI"/>
-    <symbolicName propertyId="p209.symbolic_name" value="TDO"/>
-    <symbolicName propertyId="p210.symbolic_name" value="SWDIO"/>
-    <symbolicName propertyId="p211.symbolic_name" value="SWCLK"/>
-    <symbolicName propertyId="p212.symbolic_name" value="EXTAL"/>
-    <symbolicName propertyId="p213.symbolic_name" value="XTAL"/>
-    <symbolicName propertyId="p214.symbolic_name" value="XCOUT"/>
-    <symbolicName propertyId="p215.symbolic_name" value="XCIN"/>
-    <symbolicName propertyId="p303.symbolic_name" value="USER_LED2_GREEN"/>
+    <symbolicName propertyId="p111.symbolic_name" value="MIKROBUS_RESET_L"/>
+    <symbolicName propertyId="p208.symbolic_name" value="JTAG_SWD_TDI"/>
+    <symbolicName propertyId="p209.symbolic_name" value="JTAG_SWD_TDO"/>
+    <symbolicName propertyId="p210.symbolic_name" value="JTAG_SWD_TMS"/>
+    <symbolicName propertyId="p211.symbolic_name" value="JTAG_SWD_CLK"/>
     <symbolicName propertyId="p304.symbolic_name" value="TRACE_TDATA3"/>
     <symbolicName propertyId="p305.symbolic_name" value="TRACE_TDATA2"/>
     <symbolicName propertyId="p306.symbolic_name" value="TRACE_TDATA1"/>
     <symbolicName propertyId="p307.symbolic_name" value="TRACE_TDATA0"/>
     <symbolicName propertyId="p308.symbolic_name" value="TRACE_TCLK"/>
     <symbolicName propertyId="p312.symbolic_name" value="ARDUINO_D7"/>
-    <symbolicName propertyId="p400.symbolic_name" value="I3C_SCL0_ARDUINO_MIKROBUS_GROVE1_QWIIC"/>
-    <symbolicName propertyId="p401.symbolic_name" value="I3C_SDA0_ARDUINO_MIKROBUS_GROVE1_QWIIC"/>
-    <symbolicName propertyId="p402.symbolic_name" value="LINKSTA"/>
+    <symbolicName propertyId="p400.symbolic_name" value="I3C_SCL0_BOARD_DEVICES"/>
+    <symbolicName propertyId="p401.symbolic_name" value="I3C_SDA0_BOARD_DEVICES"/>
+    <symbolicName propertyId="p402.symbolic_name" value="ETHERNET_LINKSTA"/>
     <symbolicName propertyId="p403.symbolic_name" value="PMOD1_8_RESET"/>
-    <symbolicName propertyId="p405.symbolic_name" value="ETH_RX_CTL"/>
-    <symbolicName propertyId="p406.symbolic_name" value="ETH_RXD3"/>
+    <symbolicName propertyId="p405.symbolic_name" value="ETHERNET_RX_CTL"/>
+    <symbolicName propertyId="p406.symbolic_name" value="ETHERNET_RXD3"/>
     <symbolicName propertyId="p407.symbolic_name" value="USBFS_VBUS"/>
     <symbolicName propertyId="p408.symbolic_name" value="USBHS_VBUS"/>
     <symbolicName propertyId="p409.symbolic_name" value="PMOD2_9_GPIO"/>
@@ -518,63 +510,89 @@
     <symbolicName propertyId="p500.symbolic_name" value="USBFS_VBUS_SEL"/>
     <symbolicName propertyId="p509.symbolic_name" value="ARDUINO_D6"/>
     <symbolicName propertyId="p510.symbolic_name" value="ARDUINO_D5"/>
-    <symbolicName propertyId="p511.symbolic_name" value="I3C_SDA1_U4_U15_U18_PMOD1_GROVE2"/>
-    <symbolicName propertyId="p512.symbolic_name" value="I3C_SCL1_U4_U15_U18_PMOD1_GROVE2"/>
-    <symbolicName propertyId="p514.symbolic_name" value="ETH_RSTN"/>
-    <symbolicName propertyId="p600.symbolic_name" value="USER_LED1_BLUE"/>
+    <symbolicName propertyId="p511.symbolic_name" value="I2C_SDA1_SYSTEM_DEVICES"/>
+    <symbolicName propertyId="p512.symbolic_name" value="I2C_SCL1_SYSTEM_DEVICES"/>
+    <symbolicName propertyId="p514.symbolic_name" value="ETHERNET_NRESET"/>
     <symbolicName propertyId="p601.symbolic_name" value="PMOD2_4_SCK"/>
     <symbolicName propertyId="p602.symbolic_name" value="PMOD2_3_MISO_RXD"/>
     <symbolicName propertyId="p603.symbolic_name" value="PMOD2_2_MOSI_TXD"/>
     <symbolicName propertyId="p604.symbolic_name" value="PMOD2_1_CTS_RTS_SSL"/>
     <symbolicName propertyId="p605.symbolic_name" value="PMOD2_1_CTS"/>
-    <symbolicName propertyId="p700.symbolic_name" value="ETH_RXD2"/>
-    <symbolicName propertyId="p701.symbolic_name" value="ETH_RXD1"/>
-    <symbolicName propertyId="p702.symbolic_name" value="ETH_RXD0"/>
-    <symbolicName propertyId="p703.symbolic_name" value="ETH_RXD_CLK"/>
+    <symbolicName propertyId="p700.symbolic_name" value="ETHERNET_RXD2"/>
+    <symbolicName propertyId="p701.symbolic_name" value="ETHERNET_RXD1"/>
+    <symbolicName propertyId="p702.symbolic_name" value="ETHERNET_RXD0"/>
+    <symbolicName propertyId="p703.symbolic_name" value="ETHERNET_RXD_CLK"/>
     <symbolicName propertyId="p704.symbolic_name" value="PMOD2_10_GPIO"/>
-    <symbolicName propertyId="p705.symbolic_name" value="ETH_TX_CTL"/>
-    <symbolicName propertyId="p706.symbolic_name" value="ETH_TX_CLK"/>
+    <symbolicName propertyId="p705.symbolic_name" value="ETHERNET_TX_CTL"/>
+    <symbolicName propertyId="p706.symbolic_name" value="ETHERNET_TX_CLK"/>
     <symbolicName propertyId="p708.symbolic_name" value="ARDUINO_D11_MIKROBUS_MOSI"/>
     <symbolicName propertyId="p709.symbolic_name" value="ARDUINO_D12_MIKROBUS_MISO"/>
-    <symbolicName propertyId="p710.symbolic_name" value="ARDUINO_RESET"/>
-    <symbolicName propertyId="p800.symbolic_name" value="OSPI_DQ5"/>
-    <symbolicName propertyId="p801.symbolic_name" value="OSPI_DS"/>
-    <symbolicName propertyId="p802.symbolic_name" value="OSPI_DQ6"/>
-    <symbolicName propertyId="p803.symbolic_name" value="OSPI_DQ1"/>
-    <symbolicName propertyId="p804.symbolic_name" value="OSPI_DQ7"/>
-    <symbolicName propertyId="p808.symbolic_name" value="OSPI_CK"/>
-    <symbolicName propertyId="p810.symbolic_name" value="ARDUINO_D4_GPIO"/>
-    <symbolicName propertyId="p811.symbolic_name" value="ARDUINO_D3_GPIO"/>
-    <symbolicName propertyId="p814.symbolic_name" value="USBFS_DP"/>
-    <symbolicName propertyId="p815.symbolic_name" value="USBFS_DM"/>
+    <symbolicName propertyId="p710.symbolic_name" value="ARDUINO_RESET_L"/>
+    <symbolicName propertyId="p711.symbolic_name" value="USER_LED1_BLUE"/>
+    <symbolicName propertyId="p713.symbolic_name" value="USER_LED2_GREEN"/>
+    <symbolicName propertyId="p800.symbolic_name" value="OSPI_SIO5"/>
+    <symbolicName propertyId="p801.symbolic_name" value="OSPI_DQS"/>
+    <symbolicName propertyId="p802.symbolic_name" value="OSPI_SIO6"/>
+    <symbolicName propertyId="p803.symbolic_name" value="OSPI_SIO1"/>
+    <symbolicName propertyId="p804.symbolic_name" value="OSPI_SIO7"/>
+    <symbolicName propertyId="p808.symbolic_name" value="OSPI_CLK"/>
+    <symbolicName propertyId="p810.symbolic_name" value="ARDUINO_D4"/>
+    <symbolicName propertyId="p811.symbolic_name" value="ARDUINO_D3"/>
+    <symbolicName propertyId="p814.symbolic_name" value="USBFS_P"/>
+    <symbolicName propertyId="p815.symbolic_name" value="USBFS_M"/>
     <symbolicName propertyId="p907.symbolic_name" value="CANFD_STBY"/>
     <symbolicName propertyId="p908.symbolic_name" value="CANFD_RXD"/>
     <symbolicName propertyId="p909.symbolic_name" value="CANFD_TXD"/>
+    <symbolicName propertyId="p911.symbolic_name" value="I3C_SCL_PULL_UP"/>
     <symbolicName propertyId="pa02.symbolic_name" value="PMOD1_3_RXD2_MISO2"/>
     <symbolicName propertyId="pa03.symbolic_name" value="PMOD1_2_TXD2_MOSI2_RST"/>
     <symbolicName propertyId="pa04.symbolic_name" value="PMOD1_4_SCK2"/>
     <symbolicName propertyId="pa05.symbolic_name" value="PMOD1_1_CTS_RTS2_SS2"/>
     <symbolicName propertyId="pa06.symbolic_name" value="PMOD1_1_CTS2"/>
     <symbolicName propertyId="pa07.symbolic_name" value="USER_LED3_RED"/>
-    <symbolicName propertyId="pa08.symbolic_name" value="MODBUS_RO"/>
-    <symbolicName propertyId="pa09.symbolic_name" value="MODBUS_DI"/>
-    <symbolicName propertyId="pa10.symbolic_name" value="MODBUS_RE_DE"/>
-    <symbolicName propertyId="pb00.symbolic_name" value="ETH_TXD0"/>
-    <symbolicName propertyId="pb02.symbolic_name" value="ETH_TXD1"/>
-    <symbolicName propertyId="pb03.symbolic_name" value="ETH_TXD2"/>
-    <symbolicName propertyId="pb04.symbolic_name" value="ETH_TXD3"/>
+    <symbolicName propertyId="pa08.symbolic_name" value="MODBUS_RO_RX5"/>
+    <symbolicName propertyId="pa09.symbolic_name" value="MODBUS_DI_TX5"/>
+    <symbolicName propertyId="pa10.symbolic_name" value="MODBUS_RE_DE_DE5"/>
+    <symbolicName propertyId="pb00.symbolic_name" value="ETHERNET_TXD0"/>
+    <symbolicName propertyId="pb02.symbolic_name" value="ETHERNET_TXD1"/>
+    <symbolicName propertyId="pb03.symbolic_name" value="ETHERNET_TXD2"/>
+    <symbolicName propertyId="pb04.symbolic_name" value="ETHERNET_TXD3"/>
     <symbolicName propertyId="pc03.symbolic_name" value="ARDUINO_D1_MIKROBUS_TXD7"/>
     <symbolicName propertyId="pc04.symbolic_name" value="ARDUINO_D0_MIKROBUS_RXD7"/>
-    <symbolicName propertyId="pc11.symbolic_name" value="ETH_MDC"/>
-    <symbolicName propertyId="pc12.symbolic_name" value="ETH_MDIO"/>
-    <symbolicName propertyId="pc13.symbolic_name" value="ETH_MDINT"/>
+    <symbolicName propertyId="pc11.symbolic_name" value="ETHERNET_MDC"/>
+    <symbolicName propertyId="pc12.symbolic_name" value="ETHERNET_MDIO"/>
+    <symbolicName propertyId="pc13.symbolic_name" value="ETHERNET_MDINT"/>
     <symbolicName propertyId="pd01.symbolic_name" value="ARDUINO_D8"/>
-    <symbolicName propertyId="pd02.symbolic_name" value="TRACE_TXD"/>
-    <symbolicName propertyId="pd03.symbolic_name" value="TRACE_RXD"/>
-    <symbolicName propertyId="pd04.symbolic_name" value="TRACE_CTS_RTS"/>
-    <symbolicName propertyId="pd05.symbolic_name" value="TRACE_CTS"/>
-    <symbolicName propertyId="pd07.symbolic_name" value="USBHS_VBUS_SEL"/>
-    <pincfg active="true" name="RA8M2 EK" selected="true" symbol="g_bsp_pin_cfg">
+    <symbolicName propertyId="pd02.symbolic_name" value="VCOMM_TXD_TO_EXT"/>
+    <symbolicName propertyId="pd03.symbolic_name" value="VCOMM_RXD_FROM_EXT"/>
+    <symbolicName propertyId="pd04.symbolic_name" value="VCOMM_RTS_FROM_EXT"/>
+    <symbolicName propertyId="pd05.symbolic_name" value="VCOMM_CTS_TO_EXT"/>
+    <symbolicName propertyId="pd07.symbolic_name" value="USB_HS_VBUSEN"/>
+    <comment propertyId="p002.comment" value="Reference E42 / E39 User Manual"/>
+    <comment propertyId="p005.comment" value="Reference E41 / E40 User Manual"/>
+    <comment propertyId="p008.comment" value="Reference E32 User Manual"/>
+    <comment propertyId="p009.comment" value="Reference E31 User Manual"/>
+    <comment propertyId="p104.comment" value="Reference E8 User Manual"/>
+    <comment propertyId="p109.comment" value="See I2C/I3C Pullup Configuration in User Manual"/>
+    <comment propertyId="p212.comment" value="Reference E7 / E13 User Manual"/>
+    <comment propertyId="p213.comment" value="Reference E12 User Manual"/>
+    <comment propertyId="p214.comment" value="Reference E20 / E21 User Manual"/>
+    <comment propertyId="p215.comment" value="Reference E19 / E22 User Manual"/>
+    <comment propertyId="p400.comment" value="See I2C/I3C Pullup Configuration in User Manual"/>
+    <comment propertyId="p401.comment" value="See I2C/I3C Pullup Configuration in User Manual"/>
+    <comment propertyId="p402.comment" value="Reference E18 / E34 User Manual"/>
+    <comment propertyId="p511.comment" value="Reference E40 User Manual"/>
+    <comment propertyId="p512.comment" value="Reference E39 User Manual"/>
+    <comment propertyId="p601.comment" value="Reference E14 / E16 User Manual"/>
+    <comment propertyId="p604.comment" value="Reference E14 / E15 User Manual"/>
+    <comment propertyId="p605.comment" value="Reference E10 / E15 User Manual"/>
+    <comment propertyId="p711.comment" value="Reference E27 User Manual"/>
+    <comment propertyId="p713.comment" value="Reference E26 User Manual"/>
+    <comment propertyId="p911.comment" value="See I2C/I3C Pullup Configuration in User Manual"/>
+    <comment propertyId="pa07.comment" value="Reference E28 User Manual"/>
+    <comment propertyId="pd04.comment" value="Reference E17 User Manual"/>
+    <comment propertyId="pd05.comment" value="Reference E9 User Manual"/>
+    <pincfg active="true" name="RA8M2 EK V2" selected="true" symbol="g_bsp_pin_cfg">
       <configSetting altId="adc0.an001.p001" configurationId="adc0.an001"/>
       <configSetting altId="adc0.an002.p002" configurationId="adc0.an002"/>
       <configSetting altId="adc0.an003.p003" configurationId="adc0.an003"/>
@@ -612,10 +630,11 @@
       <configSetting altId="eswm_rgmii0.rgmii0_txd2.pb03" configurationId="eswm_rgmii0.rgmii0_txd2"/>
       <configSetting altId="eswm_rgmii0.rgmii0_txd3.pb04" configurationId="eswm_rgmii0.rgmii0_txd3"/>
       <configSetting altId="eswm_rmii0.mode.custom.free" configurationId="eswm_rmii0.mode"/>
+      <configSetting altId="i3c0.i3c_scl0.p400" configurationId="i3c0.i3c_scl0"/>
+      <configSetting altId="i3c0.i3c_sda0.p401" configurationId="i3c0.i3c_sda0"/>
+      <configSetting altId="i3c0.mode.enabled.free" configurationId="i3c0.mode"/>
       <configSetting altId="iic1.scl1.p512" configurationId="iic1.scl1"/>
       <configSetting altId="iic1.sda1.p511" configurationId="iic1.sda1"/>
-      <configSetting altId="irq.irq12_dash_ds.p008" configurationId="irq.irq12_dash_ds"/>
-      <configSetting altId="irq.irq13_dash_ds.p009" configurationId="irq.irq13_dash_ds"/>
       <configSetting altId="irq.mode.custom.free" configurationId="irq.mode"/>
       <configSetting altId="jtag_fslash_swd.mode.jtag.free" configurationId="jtag_fslash_swd.mode"/>
       <configSetting altId="jtag_fslash_swd.tck.p211" configurationId="jtag_fslash_swd.tck"/>
@@ -648,29 +667,34 @@
       <configSetting altId="p005.gpio_mode.gpio_mode_an" configurationId="p005.gpio_mode"/>
       <configSetting altId="p007.adc1.an007" configurationId="p007"/>
       <configSetting altId="p007.gpio_mode.gpio_mode_an" configurationId="p007.gpio_mode"/>
-      <configSetting altId="p008.irq.irq12_dash_ds" configurationId="p008"/>
-      <configSetting altId="p008.gpio_irq.gpio_irq_enabled" configurationId="p008.gpio_irq"/>
-      <configSetting altId="p008.gpio_mode.gpio_mode_irq" configurationId="p008.gpio_mode"/>
-      <configSetting altId="p009.irq.irq13_dash_ds" configurationId="p009"/>
-      <configSetting altId="p009.gpio_irq.gpio_irq_enabled" configurationId="p009.gpio_irq"/>
-      <configSetting altId="p009.gpio_mode.gpio_mode_irq" configurationId="p009.gpio_mode"/>
+      <configSetting altId="p008.input" configurationId="p008"/>
+      <configSetting altId="p008.gpio_mode.gpio_mode_in" configurationId="p008.gpio_mode"/>
+      <configSetting altId="p009.input" configurationId="p009"/>
+      <configSetting altId="p009.gpio_mode.gpio_mode_in" configurationId="p009.gpio_mode"/>
       <configSetting altId="p014.adc0.an014" configurationId="p014"/>
       <configSetting altId="p014.gpio_mode.gpio_mode_an" configurationId="p014.gpio_mode"/>
       <configSetting altId="p015.adc1.an015" configurationId="p015"/>
       <configSetting altId="p015.gpio_mode.gpio_mode_an" configurationId="p015.gpio_mode"/>
       <configSetting altId="p100.ospi0.om_0_sio0" configurationId="p100"/>
+      <configSetting altId="p100.gpio_speed.gpio_speed_hh" configurationId="p100.gpio_drivecapacity"/>
       <configSetting altId="p100.gpio_mode.gpio_mode_peripheral" configurationId="p100.gpio_mode"/>
       <configSetting altId="p101.ospi0.om_0_sio3" configurationId="p101"/>
+      <configSetting altId="p101.gpio_speed.gpio_speed_hh" configurationId="p101.gpio_drivecapacity"/>
       <configSetting altId="p101.gpio_mode.gpio_mode_peripheral" configurationId="p101.gpio_mode"/>
       <configSetting altId="p102.ospi0.om_0_sio4" configurationId="p102"/>
+      <configSetting altId="p102.gpio_speed.gpio_speed_hh" configurationId="p102.gpio_drivecapacity"/>
       <configSetting altId="p102.gpio_mode.gpio_mode_peripheral" configurationId="p102.gpio_mode"/>
       <configSetting altId="p103.ospi0.om_0_sio2" configurationId="p103"/>
+      <configSetting altId="p103.gpio_speed.gpio_speed_hh" configurationId="p103.gpio_drivecapacity"/>
       <configSetting altId="p103.gpio_mode.gpio_mode_peripheral" configurationId="p103.gpio_mode"/>
       <configSetting altId="p104.ospi0.om_0_cs1" configurationId="p104"/>
+      <configSetting altId="p104.gpio_speed.gpio_speed_h" configurationId="p104.gpio_drivecapacity"/>
       <configSetting altId="p104.gpio_mode.gpio_mode_peripheral" configurationId="p104.gpio_mode"/>
       <configSetting altId="p105.ospi0.om_0_ecsint1" configurationId="p105"/>
+      <configSetting altId="p105.gpio_speed.gpio_speed_h" configurationId="p105.gpio_drivecapacity"/>
       <configSetting altId="p105.gpio_mode.gpio_mode_peripheral" configurationId="p105.gpio_mode"/>
       <configSetting altId="p106.ospi0.om_0_reset" configurationId="p106"/>
+      <configSetting altId="p106.gpio_speed.gpio_speed_h" configurationId="p106.gpio_drivecapacity"/>
       <configSetting altId="p106.gpio_mode.gpio_mode_peripheral" configurationId="p106.gpio_mode"/>
       <configSetting altId="p208.jtag_fslash_swd.tdi" configurationId="p208"/>
       <configSetting altId="p208.gpio_mode.gpio_mode_peripheral" configurationId="p208.gpio_mode"/>
@@ -688,13 +712,21 @@
       <configSetting altId="p214.gpio_mode.gpio_mode_peripheral" configurationId="p214.gpio_mode"/>
       <configSetting altId="p215.cgc.xcin" configurationId="p215"/>
       <configSetting altId="p215.gpio_mode.gpio_mode_peripheral" configurationId="p215.gpio_mode"/>
-      <configSetting altId="p303.output.low" configurationId="p303"/>
-      <configSetting altId="p303.gpio_mode.gpio_mode_out.low" configurationId="p303.gpio_mode"/>
+      <configSetting altId="p400.i3c0.i3c_scl0" configurationId="p400"/>
+      <configSetting altId="p400.gpio_speed.gpio_speed_h" configurationId="p400.gpio_drivecapacity"/>
+      <configSetting altId="p400.gpio_mode.gpio_mode_peripheral" configurationId="p400.gpio_mode"/>
+      <configSetting altId="p400.gpio_otype.gpio_otype_n_ch_od" configurationId="p400.gpio_otype"/>
+      <configSetting altId="p401.i3c0.i3c_sda0" configurationId="p401"/>
+      <configSetting altId="p401.gpio_speed.gpio_speed_h" configurationId="p401.gpio_drivecapacity"/>
+      <configSetting altId="p401.gpio_mode.gpio_mode_peripheral" configurationId="p401.gpio_mode"/>
+      <configSetting altId="p401.gpio_otype.gpio_otype_n_ch_od" configurationId="p401.gpio_otype"/>
       <configSetting altId="p402.eswm_rgmii0.et0_linksta" configurationId="p402"/>
       <configSetting altId="p402.gpio_mode.gpio_mode_peripheral" configurationId="p402.gpio_mode"/>
       <configSetting altId="p405.eswm_rgmii0.rgmii0_rx_ctl" configurationId="p405"/>
+      <configSetting altId="p405.gpio_speed.gpio_speed_h" configurationId="p405.gpio_drivecapacity"/>
       <configSetting altId="p405.gpio_mode.gpio_mode_peripheral" configurationId="p405.gpio_mode"/>
       <configSetting altId="p406.eswm_rgmii0.rgmii0_rxd3" configurationId="p406"/>
+      <configSetting altId="p406.gpio_speed.gpio_speed_h" configurationId="p406.gpio_drivecapacity"/>
       <configSetting altId="p406.gpio_mode.gpio_mode_peripheral" configurationId="p406.gpio_mode"/>
       <configSetting altId="p407.usbfs.usb_vbus" configurationId="p407"/>
       <configSetting altId="p407.gpio_mode.gpio_mode_peripheral" configurationId="p407.gpio_mode"/>
@@ -703,13 +735,13 @@
       <configSetting altId="p500.output.low" configurationId="p500"/>
       <configSetting altId="p500.gpio_mode.gpio_mode_out.low" configurationId="p500.gpio_mode"/>
       <configSetting altId="p511.iic1.sda1" configurationId="p511"/>
-      <configSetting altId="p511.gpio_speed.gpio_speed_m" configurationId="p511.gpio_drivecapacity"/>
+      <configSetting altId="p511.gpio_speed.gpio_speed_h" configurationId="p511.gpio_drivecapacity"/>
       <configSetting altId="p511.gpio_mode.gpio_mode_peripheral" configurationId="p511.gpio_mode"/>
+      <configSetting altId="p511.gpio_otype.gpio_otype_n_ch_od" configurationId="p511.gpio_otype"/>
       <configSetting altId="p512.iic1.scl1" configurationId="p512"/>
-      <configSetting altId="p512.gpio_speed.gpio_speed_m" configurationId="p512.gpio_drivecapacity"/>
+      <configSetting altId="p512.gpio_speed.gpio_speed_h" configurationId="p512.gpio_drivecapacity"/>
       <configSetting altId="p512.gpio_mode.gpio_mode_peripheral" configurationId="p512.gpio_mode"/>
-      <configSetting altId="p600.output.low" configurationId="p600"/>
-      <configSetting altId="p600.gpio_mode.gpio_mode_out.low" configurationId="p600.gpio_mode"/>
+      <configSetting altId="p512.gpio_otype.gpio_otype_n_ch_od" configurationId="p512.gpio_otype"/>
       <configSetting altId="p601.sci0.sck0" configurationId="p601"/>
       <configSetting altId="p601.gpio_mode.gpio_mode_peripheral" configurationId="p601.gpio_mode"/>
       <configSetting altId="p602.sci0.rxd0" configurationId="p602"/>
@@ -721,28 +753,46 @@
       <configSetting altId="p605.sci0.cts0" configurationId="p605"/>
       <configSetting altId="p605.gpio_mode.gpio_mode_peripheral" configurationId="p605.gpio_mode"/>
       <configSetting altId="p700.eswm_rgmii0.rgmii0_rxd2" configurationId="p700"/>
+      <configSetting altId="p700.gpio_speed.gpio_speed_h" configurationId="p700.gpio_drivecapacity"/>
       <configSetting altId="p700.gpio_mode.gpio_mode_peripheral" configurationId="p700.gpio_mode"/>
       <configSetting altId="p701.eswm_rgmii0.rgmii0_rxd1" configurationId="p701"/>
+      <configSetting altId="p701.gpio_speed.gpio_speed_h" configurationId="p701.gpio_drivecapacity"/>
       <configSetting altId="p701.gpio_mode.gpio_mode_peripheral" configurationId="p701.gpio_mode"/>
       <configSetting altId="p702.eswm_rgmii0.rgmii0_rxd0" configurationId="p702"/>
+      <configSetting altId="p702.gpio_speed.gpio_speed_h" configurationId="p702.gpio_drivecapacity"/>
       <configSetting altId="p702.gpio_mode.gpio_mode_peripheral" configurationId="p702.gpio_mode"/>
       <configSetting altId="p703.eswm_rgmii0.rgmii0_rxc" configurationId="p703"/>
+      <configSetting altId="p703.gpio_speed.gpio_speed_h" configurationId="p703.gpio_drivecapacity"/>
       <configSetting altId="p703.gpio_mode.gpio_mode_peripheral" configurationId="p703.gpio_mode"/>
       <configSetting altId="p705.eswm_rgmii0.rgmii0_tx_ctl" configurationId="p705"/>
+      <configSetting altId="p705.gpio_speed.gpio_speed_h" configurationId="p705.gpio_drivecapacity"/>
       <configSetting altId="p705.gpio_mode.gpio_mode_peripheral" configurationId="p705.gpio_mode"/>
       <configSetting altId="p706.eswm_rgmii0.rgmii0_txc" configurationId="p706"/>
+      <configSetting altId="p706.gpio_speed.gpio_speed_h" configurationId="p706.gpio_drivecapacity"/>
       <configSetting altId="p706.gpio_mode.gpio_mode_peripheral" configurationId="p706.gpio_mode"/>
+      <configSetting altId="p711.output.low" configurationId="p711"/>
+      <configSetting altId="p711.gpio_speed.gpio_speed_h" configurationId="p711.gpio_drivecapacity"/>
+      <configSetting altId="p711.gpio_mode.gpio_mode_out.low" configurationId="p711.gpio_mode"/>
+      <configSetting altId="p713.output.low" configurationId="p713"/>
+      <configSetting altId="p713.gpio_speed.gpio_speed_h" configurationId="p713.gpio_drivecapacity"/>
+      <configSetting altId="p713.gpio_mode.gpio_mode_out.low" configurationId="p713.gpio_mode"/>
       <configSetting altId="p800.ospi0.om_0_sio5" configurationId="p800"/>
+      <configSetting altId="p800.gpio_speed.gpio_speed_hh" configurationId="p800.gpio_drivecapacity"/>
       <configSetting altId="p800.gpio_mode.gpio_mode_peripheral" configurationId="p800.gpio_mode"/>
       <configSetting altId="p801.ospi0.om_0_dqs" configurationId="p801"/>
+      <configSetting altId="p801.gpio_speed.gpio_speed_h" configurationId="p801.gpio_drivecapacity"/>
       <configSetting altId="p801.gpio_mode.gpio_mode_peripheral" configurationId="p801.gpio_mode"/>
       <configSetting altId="p802.ospi0.om_0_sio6" configurationId="p802"/>
+      <configSetting altId="p802.gpio_speed.gpio_speed_hh" configurationId="p802.gpio_drivecapacity"/>
       <configSetting altId="p802.gpio_mode.gpio_mode_peripheral" configurationId="p802.gpio_mode"/>
       <configSetting altId="p803.ospi0.om_0_sio1" configurationId="p803"/>
+      <configSetting altId="p803.gpio_speed.gpio_speed_hh" configurationId="p803.gpio_drivecapacity"/>
       <configSetting altId="p803.gpio_mode.gpio_mode_peripheral" configurationId="p803.gpio_mode"/>
       <configSetting altId="p804.ospi0.om_0_sio7" configurationId="p804"/>
+      <configSetting altId="p804.gpio_speed.gpio_speed_hh" configurationId="p804.gpio_drivecapacity"/>
       <configSetting altId="p804.gpio_mode.gpio_mode_peripheral" configurationId="p804.gpio_mode"/>
       <configSetting altId="p808.ospi0.om_0_sclk" configurationId="p808"/>
+      <configSetting altId="p808.gpio_speed.gpio_speed_h" configurationId="p808.gpio_drivecapacity"/>
       <configSetting altId="p808.gpio_mode.gpio_mode_peripheral" configurationId="p808.gpio_mode"/>
       <configSetting altId="p814.usbfs.usb_dp" configurationId="p814"/>
       <configSetting altId="p814.gpio_mode.gpio_mode_peripheral" configurationId="p814.gpio_mode"/>
@@ -751,9 +801,13 @@
       <configSetting altId="p907.output.low" configurationId="p907"/>
       <configSetting altId="p907.gpio_mode.gpio_mode_out.low" configurationId="p907.gpio_mode"/>
       <configSetting altId="p908.canfd1.crx1" configurationId="p908"/>
+      <configSetting altId="p908.gpio_speed.gpio_speed_h" configurationId="p908.gpio_drivecapacity"/>
       <configSetting altId="p908.gpio_mode.gpio_mode_peripheral" configurationId="p908.gpio_mode"/>
       <configSetting altId="p909.canfd1.ctx1" configurationId="p909"/>
+      <configSetting altId="p909.gpio_speed.gpio_speed_h" configurationId="p909.gpio_drivecapacity"/>
       <configSetting altId="p909.gpio_mode.gpio_mode_peripheral" configurationId="p909.gpio_mode"/>
+      <configSetting altId="p911.input" configurationId="p911"/>
+      <configSetting altId="p911.gpio_mode.gpio_mode_in" configurationId="p911.gpio_mode"/>
       <configSetting altId="pa02.sci2.rxd2" configurationId="pa02"/>
       <configSetting altId="pa02.gpio_speed.gpio_speed_h" configurationId="pa02.gpio_drivecapacity"/>
       <configSetting altId="pa02.gpio_mode.gpio_mode_peripheral" configurationId="pa02.gpio_mode"/>
@@ -777,18 +831,25 @@
       <configSetting altId="pa10.sci5.de5" configurationId="pa10"/>
       <configSetting altId="pa10.gpio_mode.gpio_mode_peripheral" configurationId="pa10.gpio_mode"/>
       <configSetting altId="pb00.eswm_rgmii0.rgmii0_txd0" configurationId="pb00"/>
+      <configSetting altId="pb00.gpio_speed.gpio_speed_h" configurationId="pb00.gpio_drivecapacity"/>
       <configSetting altId="pb00.gpio_mode.gpio_mode_peripheral" configurationId="pb00.gpio_mode"/>
       <configSetting altId="pb02.eswm_rgmii0.rgmii0_txd1" configurationId="pb02"/>
+      <configSetting altId="pb02.gpio_speed.gpio_speed_h" configurationId="pb02.gpio_drivecapacity"/>
       <configSetting altId="pb02.gpio_mode.gpio_mode_peripheral" configurationId="pb02.gpio_mode"/>
       <configSetting altId="pb03.eswm_rgmii0.rgmii0_txd2" configurationId="pb03"/>
+      <configSetting altId="pb03.gpio_speed.gpio_speed_h" configurationId="pb03.gpio_drivecapacity"/>
       <configSetting altId="pb03.gpio_mode.gpio_mode_peripheral" configurationId="pb03.gpio_mode"/>
       <configSetting altId="pb04.eswm_rgmii0.rgmii0_txd3" configurationId="pb04"/>
+      <configSetting altId="pb04.gpio_speed.gpio_speed_h" configurationId="pb04.gpio_drivecapacity"/>
       <configSetting altId="pb04.gpio_mode.gpio_mode_peripheral" configurationId="pb04.gpio_mode"/>
       <configSetting altId="pc11.eswm_rgmii0.et0_mdc" configurationId="pc11"/>
+      <configSetting altId="pc11.gpio_speed.gpio_speed_h" configurationId="pc11.gpio_drivecapacity"/>
       <configSetting altId="pc11.gpio_mode.gpio_mode_peripheral" configurationId="pc11.gpio_mode"/>
       <configSetting altId="pc12.eswm_rgmii0.et0_mdio" configurationId="pc12"/>
+      <configSetting altId="pc12.gpio_speed.gpio_speed_h" configurationId="pc12.gpio_drivecapacity"/>
       <configSetting altId="pc12.gpio_mode.gpio_mode_peripheral" configurationId="pc12.gpio_mode"/>
       <configSetting altId="pc13.eswm_rgmii0.et0_int" configurationId="pc13"/>
+      <configSetting altId="pc13.gpio_speed.gpio_speed_h" configurationId="pc13.gpio_drivecapacity"/>
       <configSetting altId="pc13.gpio_mode.gpio_mode_peripheral" configurationId="pc13.gpio_mode"/>
       <configSetting altId="pd02.sci8.txd8" configurationId="pd02"/>
       <configSetting altId="pd02.gpio_mode.gpio_mode_peripheral" configurationId="pd02.gpio_mode"/>

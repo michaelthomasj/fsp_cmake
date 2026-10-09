@@ -6,8 +6,8 @@
 
 /*******************************************************************************************************************//**
  * @ingroup BOARDS
- * @defgroup BOARD_RA8M2_EK for the RA8M2-EK board
- * @brief BSP for the RA8M2-EK Board
+ * @defgroup BOARD_RA8M2_EK_V2 for the RA8M2_EK board
+ * @brief BSP for the RA8M2_EK Board
  *
  * The RA8M2_EK is a development kit for the Renesas R7KA8M2JFLCAC microcontroller in a BGA 289-pin package.
  *
@@ -22,14 +22,14 @@
  **********************************************************************************************************************/
 
 /* BSP Board Specific Includes. */
-#include "board_init.h"
-#include "board_leds.h"
-#include "board_ethernet_phy.h"
+#include "../ra8m2_ek_v2/board_init.h"
+#include "../ra8m2_ek_v2/board_leds.h"
+#include "../ra8m2_ek_v2/board_ethernet_phy.h"
 
 /***********************************************************************************************************************
  * Macro definitions
  **********************************************************************************************************************/
-#define BOARD_RA8M2_EK
+#define BOARD_RA8M2_EK_V2
 
 /***********************************************************************************************************************
  * Typedef definitions
@@ -43,6 +43,6 @@
  * Exported global functions (to be accessed by other files)
  **********************************************************************************************************************/
 
-/** @} (end defgroup BOARD_RA8M2_EK) */
+/** @} (end defgroup BOARD_RA8M2_EK_V2) */
 
 #endif

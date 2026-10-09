@@ -5,25 +5,21 @@
 */
 
 /***********************************************************************************************************************
+ * File Name    : board_leds.c
  * Description  : This module has information about the LEDs on this board.
  **********************************************************************************************************************/
 
 /*******************************************************************************************************************//**
- * @ingroup BOARD_RA8M2_EK
- * @defgroup BOARD_RA8M2_EK_LEDS Board LEDs
- * @brief LED information for this board.
- *
- * This is code specific to the RA8M2_EK board. It includes info on the number of LEDs and which pins are they
- * are on.
+ * @addtogroup BOARD_RA8M2_EK_V2_LEDS
  *
  * @{
  **********************************************************************************************************************/
 
-#ifndef BOARD_LEDS_H
-#define BOARD_LEDS_H
-
-/** Common macro for FSP header files. There is also a corresponding FSP_FOOTER macro at the end of this file. */
-FSP_HEADER
+/***********************************************************************************************************************
+ * Includes
+ **********************************************************************************************************************/
+#include "bsp_api.h"
+#if defined(BOARD_RA8M2_EK_V2)
 
 /***********************************************************************************************************************
  * Macro definitions
@@ -33,33 +29,34 @@ FSP_HEADER
  * Typedef definitions
  **********************************************************************************************************************/
 
-/** Information on how many LEDs and what pins they are on. */
-typedef struct st_bsp_leds
-{
-    uint16_t         led_count;        ///< The number of LEDs on this board
-    uint16_t const * p_leds;           ///< Pointer to an array of IOPORT pins for controlling LEDs
-} bsp_leds_t;
-
-/** Available user-controllable LEDs on this board. These enums can be can be used to index into the array of LED pins
- * found in the bsp_leds_t structure. */
-typedef enum e_bsp_led
-{
-    BSP_LED_LED1,                      ///< LED1
-    BSP_LED_LED2,                      ///< LED2
-    BSP_LED_LED3,                      ///< LED3
-} bsp_led_t;
-
 /***********************************************************************************************************************
- * Exported global variables
+ * Private global variables and functions
  **********************************************************************************************************************/
 
+/** Array of LED IOPORT pins. */
+static const uint16_t g_bsp_prv_leds[] =
+{
+    (uint16_t) BSP_IO_PORT_07_PIN_11,  ///< LED1
+    (uint16_t) BSP_IO_PORT_07_PIN_13,  ///< LED2
+    (uint16_t) BSP_IO_PORT_10_PIN_07,  ///< LED3
+};
+
 /***********************************************************************************************************************
- * Public Functions
+ * Exported global variables (to be accessed by other files)
  **********************************************************************************************************************/
 
-/** Common macro for FSP header files. There is also a corresponding FSP_HEADER macro at the top of this file. */
-FSP_FOOTER
+/** Structure with LED information for this board. */
+
+const bsp_leds_t g_bsp_leds =
+{
+    .led_count = (uint16_t) ((sizeof(g_bsp_prv_leds) / sizeof(g_bsp_prv_leds[0]))),
+    .p_leds    = &g_bsp_prv_leds[0]
+};
+
+/***********************************************************************************************************************
+ * Exported global variables (to be accessed by other files)
+ **********************************************************************************************************************/
 
 #endif
 
-/** @} (end defgroup BOARD_RA8M2_EK_LEDS) */
+/** @} (end addtogroup BOARD_RA8M2_EK_V2_LEDS) */

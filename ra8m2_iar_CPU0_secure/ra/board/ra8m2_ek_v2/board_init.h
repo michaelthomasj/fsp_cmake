@@ -5,10 +5,10 @@
 */
 
 /*******************************************************************************************************************//**
- * @addtogroup BOARD_RA8M2_EK
- * @brief Board specific code for the RA8M2-EK Board
+ * @addtogroup BOARD_RA8M2_EK_V2
+ * @brief Board specific code for the RA8M2_EK Board
  *
- * This include file is specific to the RA8M2-EK board.
+ * This include file is specific to the RA8M2_EK board.
  *
  * @{
  **********************************************************************************************************************/
@@ -41,4 +41,4 @@ FSP_FOOTER
 
 #endif
 
-/** @} (end addtogroup BOARD_RA8M2_EK) */
+/** @} (end addtogroup BOARD_RA8M2_EK_V2) */

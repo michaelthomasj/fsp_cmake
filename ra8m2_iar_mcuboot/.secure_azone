@@ -3,8 +3,8 @@
     <rzone name="R7KA8M2JFLCAC.rzone"/>
     <partition>
         <memory parent="RAM_NS" name="RAM_NS_CPU0_N" size="0xEA000" offset="0xEA000" security="n" Pname="CPU0"/>
-        <memory parent="RAM" name="RAM_CPU0_S" size="0xE9F80" offset="0x0" security="s" Pname="CPU0"/>
-        <memory parent="RAM" name="RAM_CPU0_C" size="0x80" offset="0xE9F80" security="c" Pname="CPU0"/>
+        <memory parent="RAM" name="RAM_CPU0_S" size="0xE9C00" offset="0x0" security="s" Pname="CPU0"/>
+        <memory parent="RAM" name="RAM_CPU0_C" size="0x400" offset="0xE9C00" security="c" Pname="CPU0"/>
         <memory parent="FLASH_NS" name="__BL_1_P_H" size="0x200" offset="0xB0000" security="n" Pname="CPU0" info="@user"/>
         <memory parent="FLASH_NS" name="FLASH_NS_CPU0_N" size="0x27E00" offset="0xB0200" security="n" Pname="CPU0"/>
         <memory parent="FLASH_NS" name="__BL_1_P_T" size="0x0" offset="0xD8000" security="n" Pname="CPU0" info="@user"/>
@@ -15,8 +15,8 @@
         <memory parent="FLASH" name="DF_EMULATION" size="0x10000" offset="0x10000" security="s" Pname="CPU0" info="@user"/>
         <memory parent="FLASH" name="__BL_0_S_H" size="0x200" offset="0x20000" security="s" Pname="CPU0" info="@user"/>
         <memory parent="FLASH" name="__BL_0_S_I" size="0x47E00" offset="0x20200" security="s" Pname="CPU0" info="@user"/>
-        <memory parent="FLASH" name="__BL_0_P_H" size="0x200" offset="0x68000" security="s" Pname="CPU0" info="@user"/>
         <memory parent="FLASH" name="__BL_0_S_T" size="0x0" offset="0x68000" security="s" Pname="CPU0" info="@user"/>
+        <memory parent="FLASH" name="__BL_0_P_H" size="0x200" offset="0x68000" security="s" Pname="CPU0" info="@user"/>
         <memory parent="FLASH" name="FLASH_CPU0_S" size="0x47A00" offset="0x68200" security="s" Pname="CPU0"/>
         <memory parent="FLASH" name="FLASH_CPU0_C" size="0x400" offset="0xAFC00" security="c" Pname="CPU0"/>
         <memory parent="FLASH" name="__BL_0_P_T" size="0x0" offset="0xB0000" security="s" Pname="CPU0" info="@user"/>
@@ -97,10 +97,9 @@
             <slot name="P214.CPU0" secure="true"/>
             <slot name="P215.CPU0" secure="true"/>
         </peripheral>
-        <peripheral name="PORT3.CPU0" group="PORT">
-            <slot name="P303.CPU0" secure="true"/>
-        </peripheral>
         <peripheral name="PORT4.CPU0" group="PORT">
+            <slot name="P400.CPU0" secure="true"/>
+            <slot name="P401.CPU0" secure="true"/>
             <slot name="P402.CPU0" secure="true"/>
             <slot name="P405.CPU0" secure="true"/>
             <slot name="P406.CPU0" secure="true"/>
@@ -113,7 +112,6 @@
             <slot name="P512.CPU0" secure="true"/>
         </peripheral>
         <peripheral name="PORT6.CPU0" group="PORT">
-            <slot name="P600.CPU0" secure="true"/>
             <slot name="P601.CPU0" secure="true"/>
             <slot name="P602.CPU0" secure="true"/>
             <slot name="P603.CPU0" secure="true"/>
@@ -127,6 +125,8 @@
             <slot name="P703.CPU0" secure="true"/>
             <slot name="P705.CPU0" secure="true"/>
             <slot name="P706.CPU0" secure="true"/>
+            <slot name="P711.CPU0" secure="true"/>
+            <slot name="P713.CPU0" secure="true"/>
         </peripheral>
         <peripheral name="PORT8.CPU0" group="PORT">
             <slot name="P800.CPU0" secure="true"/>
@@ -142,6 +142,7 @@
             <slot name="P907.CPU0" secure="true"/>
             <slot name="P908.CPU0" secure="true"/>
             <slot name="P909.CPU0" secure="true"/>
+            <slot name="P911.CPU0" secure="true"/>
         </peripheral>
         <peripheral name="PORTA.CPU0" group="PORT">
             <slot name="PA02.CPU0" secure="true"/>

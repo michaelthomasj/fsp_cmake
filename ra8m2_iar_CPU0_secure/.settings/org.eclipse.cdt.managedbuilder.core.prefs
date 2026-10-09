@@ -1,5 +1,9 @@
 eclipse.preferences.version=1
-environment/buildEnvironmentInclude/iar.arm.toolchain.project.cdt.exe.configuration.debug.v8.0.0.1817912551/append=true
-environment/buildEnvironmentInclude/iar.arm.toolchain.project.cdt.exe.configuration.debug.v8.0.0.1817912551/appendContributed=true
-environment/buildEnvironmentLibrary/iar.arm.toolchain.project.cdt.exe.configuration.debug.v8.0.0.1817912551/append=true
-environment/buildEnvironmentLibrary/iar.arm.toolchain.project.cdt.exe.configuration.debug.v8.0.0.1817912551/appendContributed=true
+environment/buildEnvironmentInclude/iar.arm.toolchain.project.cdt.exe.configuration.debug.v8.0.0.731677162/C_INCLUDE/delimiter=;
+environment/buildEnvironmentInclude/iar.arm.toolchain.project.cdt.exe.configuration.debug.v8.0.0.731677162/C_INCLUDE/operation=remove
+environment/buildEnvironmentInclude/iar.arm.toolchain.project.cdt.exe.configuration.debug.v8.0.0.731677162/append=true
+environment/buildEnvironmentInclude/iar.arm.toolchain.project.cdt.exe.configuration.debug.v8.0.0.731677162/appendContributed=true
+environment/buildEnvironmentLibrary/iar.arm.toolchain.project.cdt.exe.configuration.debug.v8.0.0.731677162/LIBRARY_PATH/delimiter=;
+environment/buildEnvironmentLibrary/iar.arm.toolchain.project.cdt.exe.configuration.debug.v8.0.0.731677162/LIBRARY_PATH/operation=remove
+environment/buildEnvironmentLibrary/iar.arm.toolchain.project.cdt.exe.configuration.debug.v8.0.0.731677162/append=true
+environment/buildEnvironmentLibrary/iar.arm.toolchain.project.cdt.exe.configuration.debug.v8.0.0.731677162/appendContributed=true
