@@ -113,12 +113,12 @@ Effort is rough: **S** ≤ 1 day, **M** 2–4 days, **L** 1–2 weeks.
 | # | Task | Size |
 |---|---|---|
 | B1 | `ra/arm/!dsn/tf_psa_crypto_module.xml`. Follow `mbed_crypto_module.xml`: enumerate sources, include folders (`library`, `include/`, `ra_cfg/arm/`), and `<cfg_xml_file>`. | S |
-| B2 | `Arm##PSA##Crypto##TF-PSA-Crypto####x.xx.xx.xml`. **The big one.** `<config path="arm/tf-psa-crypto/crypto_config.h">` plus a `<property>` per `PSA_WANT_*` / `MBEDTLS_PSA_*` knob worth exposing. Do **not** transcribe all 301 mbedCrypto properties — TF-PSA-Crypto's config surface is `PSA_WANT_*`, a different and smaller vocabulary. | L |
+| B2 | `Arm##PSA##Crypto##TF-PSA-Crypto####x.xx.xx.xml`. **The big one**, but smaller than it looks. `<config path="arm/tf-psa-crypto/crypto_config.h">` plus a `<property>` per knob worth exposing. **Measured ceiling: `crypto_config.h` carries 132 defines — 79 `PSA_*` and 49 `MBEDTLS_*`** — against mbedCrypto's 301 properties. Do not transcribe the mbedCrypto description; the vocabulary is different and less than half the size. | M–L |
 | B3 | `rm_tf_psa_crypto/!dsn/module.xml` + its module description. Small — mirrors the 13-line `rm_psa_crypto` manifest. | S |
 | B4 | `r_rsip_cm/!dsn/module.xml` + its module description, with the properties that select which RSIP capabilities are compiled in. | M |
 | B5 | **Per-MCU `<enum>` blocks** in each supporting part's BSP module description, declaring which RSIP the part has and which key formats it supports. **Model them on the existing `enum.mcu.psa_crypto.*` blocks and get the defaults right** — [D111] is a worked example of what a wrong capability assumption costs downstream. | M |
 | B6 | `<requires>` / `<provides>` so RASC enforces the dependency chain, and `<constraint>`s that make an unsupported combination un-selectable rather than a link error. | M |
-| B7 | Mutual exclusion with `rm_psa_crypto`. Both provide `psa_crypto_init()`. Selecting both must be refused in RASC, not discovered at link. | S |
+| B7 | Mutual exclusion with `rm_psa_crypto`. **Confirmed collision:** both define `psa_crypto_init()` — `rm_tf_psa_crypto/psa_crypto.c:8923` against the Mbed TLS one. Selecting both must be refused in RASC, not discovered at link. | S |
 
 ### Phase C — validation
 
@@ -187,7 +187,7 @@ named and accepted before upstreaming is discussed.
 |---|---|
 | **RA path unproven** | rsip7's RA sources have no test project. A4 is the honest first task and could expose real work. |
 | **Driver wrapper divergence** | `psa_crypto_driver_wrappers*.c` are generated upstream and checked in here. A TF-PSA-Crypto uprev produces a hand-merge unless A5 is settled properly. This is the same class of defect `BRIDGING_FILES.md` exists to catch. |
-| **Module description scale** | mbedCrypto's is 5008 lines. B2 is the long pole and resists estimation until the property set is agreed. |
+| **Module description scale** | mbedCrypto's is 5008 lines, but that is the wrong anchor: TF-PSA-Crypto's whole config is 132 defines. B2 is still the long pole, and the real unknown is how many of the 132 deserve a RASC property rather than a sensible fixed default. |
 | **Flash budget** | TF-PSA-Crypto plus a transparent driver against Mbed TLS 3.x plus ALT files is an open question. 670 B spare on RA8M2 today. Measure at C3, not at the end. |
 | **Throwaway risk, stated by the requester** | The mitigation is sequencing, not caution: A4 and C2 are the two points where the work can be stopped with most of its value already banked — a working RA driver, and a measured comparison. |
 | **Two crypto stacks in one package** | B7 and E2 mean `rm_psa_crypto` and `rm_tf_psa_crypto` coexist for at least one release. Mutual exclusion must be enforced in RASC. |
