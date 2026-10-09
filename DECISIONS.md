@@ -5175,3 +5175,69 @@ that is equally dead under the stock toolchain file.
 | `tfm_ns` `_SEGGER_RTT` | `0x320ed45c` | `0x320ed45c` |
 
 Slightly smaller than [D107]'s build - the semihosting modules are gone. Secondaries re-signed.
+
+---
+
+## D109 — the IAR BL2 log works; it closes [D106]'s open item and refines [D099]'s `%zx` finding
+
+**Date:** 2026-10-09 · **Status:** Accepted · Confirms [D108] on hardware
+
+`ra8m2_TFM_update_iar`, BL2 RTT at `0x22002d68`. The full log, first boot then second:
+
+```
+[INF] Image index: 1, Swap type: test            [INF] Image index: 1, Swap type: none
+[INF] Image 1 upgrade secondary slot -> primary slot
+[INF] Erasing the primary slot
+[INF] Image 1 copying ...: 0x28000 bytes
+[INF] Image index: 0, Swap type: test            [INF] Image index: 0, Swap type: none
+[INF] Image 0 upgrade secondary slot -> primary slot
+[INF] Erasing the primary slot
+[INF] Image 0 copying ...: 0x48000 bytes
+                                                 [INF] Bootloader chainload address offset: 0x68000
+                                                 [INF] Image version: v2.3.0
+```
+
+**[D108] is confirmed on hardware.** `__dwrite` reaches RTT, no semihosting, no halt.
+
+### Three things this closes
+
+**1. [D106]'s open item.** That entry recorded the IAR install but noted the erase half was not
+observed. The second boot reports `Swap type: none` for **both** images, so the secondary is
+erased once installed and a reset does not re-install. The IAR upgrade cycle is now evidenced
+end to end, as GCC's was in [D100].
+
+**2. The chainload is stated outright, not inferred.** `chainload address offset: 0x68000` and
+`Image version: v2.3.0` - BL2 naming the slot and the version it hands control to. [D106] had
+to read this out of a `boot_rsp` watch because BL2 was silent. `0x02068000 - 0x02000000 =
+0x68000` is `__BL_0_P_H_START`, the primary, confirming [D100]'s reverse slot order from BL2's
+own mouth.
+
+**3. The copied byte counts check out against the slots:**
+
+| | logged | slot / signed image |
+|---|---|---|
+| Image 1 (NS) | `0x28000` = 163,840 | 163,840 |
+| Image 0 (S) | `0x48000` = 294,912 | 294,912 |
+
+Whole-slot copies, which is what OVERWRITE_ONLY does.
+
+### [D099]'s `%zx` finding was right about the cause and too broad about the scope
+
+[D099] recorded the GCC log printing `0xzx bytes` and attributed it to `mcuboot/.../loader.c`
+using `0x%zx` while BL2 links newlib-nano's integer-only formatter, which recognises the `z`
+length modifier only under `_WANT_IO_C99_FORMATS`. It then said this "affects every platform
+linking nano printf".
+
+**Under IAR the byte count prints correctly** - `0x28000`, `0x48000` above. IAR builds with
+`--dlib_config=full` ([D102]'s toolchain flags), and full DLIB handles `%z`. So the defect is
+specific to the **newlib-nano** formatter, not to MCUboot's format string, and the decision not
+to patch upstream MCUboot stands on firmer ground than when it was made: the format string is
+valid C99 and the limitation is in the library a platform chooses to link.
+
+Worth noting for anyone comparing transcripts: the same build under two toolchains will differ
+in this one line, and the GCC one is the degraded one.
+
+### Status
+
+Every RA8M2 suite and the upgrade path now pass on both toolchains, with BL2's own log
+available under both. Nothing is outstanding against M5.

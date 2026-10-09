@@ -293,7 +293,9 @@ and FSP's `flash_area_open()` then opens the same controller and returns −1 on
   SPE 2.2.0, both SHA-256 measurements equal to the signed images' TLVs (D095, D096).
   IAR side: all six trees build and **the regression, crypto, attestation and storage suites
   all pass on silicon, matching GCC**; measured boot verified from the boot record (D104,
-  D105). The secondary-slot update test also installs correctly under IAR (D106).
+  D105). The secondary-slot update test passes end to end under IAR - both images install
+  and the second boot reports `Swap type: none`, so the secondary is erased (D106, D109).
+  BL2's own RTT log needed two IAR-specific fixes to appear at all (D107, D108).
 - **D077 back-ports go the other way.** This part has the generated OFS addresses and 22
   enabled-but-unplaced `#error` guards; RA6M5 and RA6E1 have neither. The open work is bringing
   them up to this part, not changing this one.
