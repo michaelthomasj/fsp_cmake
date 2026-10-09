@@ -10,8 +10,9 @@ the flash backend, §7 for the SAU), `RA6E1_TEMPLATE_CHECKLIST.md` (what a solut
 > `TF-M v2.2.0+94dbaa08f`). Every secure and non-secure suite, zero failures, including the
 > FLIH IRQ tests - the first complete run on this part. That exercised the SAU programming, the
 > MRAM dual-alias driver, DF_EMULATION as ITS/PS backing, the RSIP-E50D, measured boot, and the
-> RDPM values below. **IAR now matches GCC**: the full regression, all three PSA Arch suites
-> and measured boot all pass on silicon. DECISIONS D095, D101-D105.
+> RDPM values below. **IAR now matches GCC on everything**: the full regression, all three
+> PSA Arch suites, measured boot and the MCUboot upgrade path all pass on silicon.
+> **M5 is met on both toolchains.** DECISIONS D095, D101-D106.
 
 ---
 
@@ -292,7 +293,7 @@ and FSP's `flash_area_open()` then opens the same controller and returns −1 on
   SPE 2.2.0, both SHA-256 measurements equal to the signed images' TLVs (D095, D096).
   IAR side: all six trees build and **the regression, crypto, attestation and storage suites
   all pass on silicon, matching GCC**; measured boot verified from the boot record (D104,
-  D105). Only the secondary-slot update test (`ra8m2_TFM_update_iar`) is still unrun.
+  D105). The secondary-slot update test also installs correctly under IAR (D106).
 - **D077 back-ports go the other way.** This part has the generated OFS addresses and 22
   enabled-but-unplaced `#error` guards; RA6M5 and RA6E1 have neither. The open work is bringing
   them up to this part, not changing this one.

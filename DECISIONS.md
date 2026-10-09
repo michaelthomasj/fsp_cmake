@@ -4940,3 +4940,65 @@ deterministic ECDSA as unsupported for signing under both, consistent with [D040
 ### M5 status
 
 Only `ra8m2_TFM_update_iar` is unrun. Everything else on this part passes on both toolchains.
+
+---
+
+## D106 — the MCUboot upgrade installs under IAR too; M5 is met on both toolchains
+
+**Date:** 2026-10-09 · **Status:** Accepted · Last of the five IAR runs; closes M5
+
+`ra8m2_TFM_update_iar`. Primary slots flashed at 2.2.0 / 0.0.0, secondary at 2.3.0 / 0.1.0 by
+`scripts/sign_secondary.py`. From the debugger after `boot_go`:
+
+| `rsp.br_hdr` field | value | reading |
+|---|---|---|
+| `ih_magic` | `0x96f3b83d` | `IMAGE_MAGIC` |
+| `ih_ver` | **2.3.0** (`iv_major 2`, `iv_minor 3`) | **the secondary's version** |
+| `br_image_off` | `0x68000` | the **primary** slot ([D100]: slots are reverse-ordered) |
+| `br_flash_dev_id` | `0x64` | `FLASH_DEVICE_ID` 100 |
+
+The launch wrote 2.2.0 to `0x68000`, so only BL2 can have put 2.3.0 there. **The upgrade path
+works under IAR.**
+
+Not observed this run: the second boot reporting `Swap type: none`. [D100] proved the erase half
+on GCC and it is the same bootutil code, but the IAR evidence covers the install only. A reset
+with the BL2 RTT attached at `0x22002d6c` would close it.
+
+### `ih_img_size` is identical under both toolchains, and that is correct
+
+Worth recording because it looks like a mis-flash. The watch shows `0x47a40` on IAR, exactly
+what the GCC run showed - yet IAR's `tfm_s` text is **2,126 B smaller** ([D102]). Both images on
+disk really do carry `0x47a40`, so it is not a stale binary. The reason is the layout:
+
+```
+secure payload starts      0x02068200
+NSC veneer region starts   0x020AFC00   (fixed address)
+payload 0x47a40 ends at    0x020AFC40
+-> 0x47A00 of code region + 0x40 of veneers = 0x47A40
+```
+
+The image runs to the NSC veneers, which sit at a **fixed** address, so `ih_img_size` is set by
+the memory map rather than by how much code the compiler emitted. The text difference is slack
+inside the region. Expect this field to match across toolchains and to change only when the
+partition layout changes.
+
+### M5 is met
+
+Both toolchains, on silicon, on RA8M2:
+
+| | GCC | IAR |
+|---|---|---|
+| full regression (7 NS suites, FLIH IRQ) | [D095] | [D105] |
+| PSA Arch crypto | 62/1/1 ([D099]) | 62/1/1 ([D104]) |
+| PSA Arch attestation | 1/0/0 | 1/0/0 ([D105]) |
+| PSA Arch storage | 11/0/6 | 11/0/6 ([D105]) |
+| measured boot, verified from the record | [D096] | [D105] |
+| MCUboot secondary-slot install | [D100] | **this entry** |
+
+Against a 27 Nov target, **49 days early**. The one failing test in the whole matrix is PSA Arch
+crypto 216, the plaintext RSA-2048 keygen gap, which [D098] established is a key-format
+limitation selected by our own `PSA_CRYPTO_CFG_RSA_FORMAT` and which fails identically under
+both toolchains.
+
+Still carried, neither gating M5: the `BSP_TZ_CFG_MSAR=0` workaround until the e2 generator is
+fixed ([D093]), and the never-run suites in `PROJECT_PLAN.md` (FWU foremost).
