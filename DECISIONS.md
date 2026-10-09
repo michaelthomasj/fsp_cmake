@@ -5083,3 +5083,95 @@ confirmed from a `boot_rsp` watch rather than from the swap lines.
 
 `setvbuf` pulls in stdio machinery both images had been linking without. Signed images are
 still exact slot fits and the secondaries have been re-signed.
+
+---
+
+## D108 — supersedes [D107]'s fix: the real hook is `__dwrite`, because TF-M redirects `__write`
+
+**Date:** 2026-10-09 · **Status:** Accepted · [D107]'s diagnosis was half right and its fix made the symptom worse
+
+### What [D107] got wrong
+
+[D107] found BL2's RTT control block correctly initialised with `WrOff == 0`, concluded DLIB
+stdout buffering was holding the text, and added `setvbuf(stdout, NULL, _IONBF, 0)`. The
+buffering is real and that call is still needed. **It was not the reason `__write` never ran.**
+
+After the change BL2 did not print - it **halted**, and the call stack named the cause:
+
+```
+__iar_sh_stdout()          <- SEMIHOSTING
+__dwrite()
+__write_buffered()
+fflushOne() / fputc() / putchar() / _Prout() / _PrintfFullNoMb()
+printf()
+tfm_plat_provisioning_perform()  provisioning.c:348
+```
+
+`toolchain_IARARM.cmake:68-70`:
+
+```cmake
+add_link_options(
+    --silent
+    --semihosting
+    --redirect __write=__write_buffered
+```
+
+**Every reference to `__write` is redirected to DLIB's buffered writer.** The port's `__write`
+in `rtt_stdout.o` was defined, present in `nm` and in the map, and unreachable - an orphan. The
+live path ran to `__iar_sh_stdout` from `iarwstd.o`.
+
+So [D107] converted a silent failure into a halt: with buffering, the text never flushed and
+semihosting was never reached; unbuffered, the first character hit the semihosting breakpoint
+and stopped the core. **Correct direction, wrong mechanism, and worse in the interim.**
+
+### Fix
+
+Define **`__dwrite()`** as well. It is declared in IAR's `<LowLevelIOInterface.h>` with
+`__write`'s exact signature:
+
+```c
+__ATTRIBUTES size_t __dwrite(int, const unsigned char *, size_t);
+```
+
+Both hooks now share one implementation in `<part>/rtt/rtt_stdout.c`, on **both parts**:
+`__write` for builds without the redirect, `__dwrite` for builds with it - which TF-M always
+has. Defining it keeps `dwrite.o` and `iarwstd.o` out of the link entirely.
+
+Verified on the rebuild:
+
+| | before | after |
+|---|---|---|
+| `__dwrite` provider | `dwrite.o` (library) | **`rtt_stdout.o`** |
+| `__iar_sh_stdout` | `iarwstd.o`, linked | **absent - semihosting not linked** |
+
+**Both fixes are needed; neither alone is sufficient.** `__dwrite` gets the bytes to RTT
+instead of semihosting; `setvbuf` gets them out of the FILE buffer before BL2 chainloads.
+
+### Method note
+
+Three wrong turns on one defect, each ruled out by measurement rather than argument: the RTT
+address (checked three ways, correct), the viewer (control block well formed), and buffering
+([D107], real but secondary). **The call stack settled in one look what four rounds of static
+checking could not** - the symbol tables showed `__write` present and said nothing about
+whether anything called it. Where a hook is defined but appears not to run, read the stack
+before reasoning about the build.
+
+### Upstream
+
+Filed as item **14** in `UPSTREAM_CHANGES.md`. It is a report, not a carried diff: no upstream
+file is modified, so the 21-file count there is unchanged. The argument is that the two options
+are unconditional and together make it impossible for *any* IAR platform to supply its own
+low-level stdout - TF-M's own `platform/ext/common/uart_stdout.c` defines an IAR `__write()`
+that is equally dead under the stock toolchain file.
+
+### Cost and the addresses, again
+
+| | [D107] | now |
+|---|---|---|
+| `bl2` text | 39,184 | **38,954** |
+| `tfm_s` text | 279,060 | **278,828** |
+| `bl2` `_SEGGER_RTT` | `0x22002d70` | **`0x22002d68`** |
+| `tfm_s` `_SEGGER_RTT` | `0x2200ab64` | `0x2200ab64` |
+| `tfm_ns` `_SEGGER_RTT` | `0x320ed45c` | `0x320ed45c` |
+
+Slightly smaller than [D107]'s build - the semihosting modules are gone. Secondaries re-signed.

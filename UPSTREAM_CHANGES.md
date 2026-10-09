@@ -204,6 +204,58 @@ future port: `DEFAULT_MCUBOOT_FLASH_MAP=OFF` buys the map **data** only - the st
 `flash_area_*` functions remain TF-M's, and corstone1000 and rse, the only upstream users,
 both populate TF-M's struct with `.fa_driver = &FLASH_DEV_NAME`.
 
+### 14. IAR: `--redirect __write=__write_buffered` makes a platform `__write()` unreachable
+
+`toolchain_IARARM.cmake` lines 68-70 - **report only; no upstream file is modified for
+this item.** The port works around it inside `platform/ext/target/renesas/`, so it does
+not appear in the 21-file diff above.
+
+```cmake
+add_link_options(
+    --silent
+    --semihosting
+    --redirect __write=__write_buffered
+    ...
+```
+
+Both options are unconditional, and together they make it **impossible for a platform to
+supply its own low-level stdout under IAR**. The redirect sends every reference to `__write`
+to DLIB's buffered writer, so a platform's `__write()` is defined, visible in `nm` and in the
+map, and never called. The chain ends in semihosting:
+
+```
+printf -> _Prout -> fputc -> fflushOne -> __write_buffered -> __dwrite -> __iar_sh_stdout
+```
+
+**Why it is a defect and not a preference.** `__write()` is the hook IAR documents for exactly
+this purpose, and TF-M's own `platform/ext/common/uart_stdout.c` defines one for IAR. Under the
+stock toolchain file that definition is dead code: console output goes to semihosting instead
+of the platform's UART. The failure is silent with no debugger attached, and with one the core
+**halts on the semihosting breakpoint** - neither of which names the cause.
+
+**How it presents.** Found on RA8M2/IAR with an RTT console. BL2 printed nothing while the
+secure and non-secure images printed normally - TF-M's SPM logging calls
+`stdio_output_string()` directly, so only MCUboot's `BOOT_LOG_*`, which expand to `printf()`,
+went through DLIB. That asymmetry reads as a BL2-specific fault and cost a day pointed at the
+wrong thing: the RTT control block address was checked three ways and was correct all along,
+and the block itself was correctly initialised with `aUp[0].WrOff == 0`, which is the tell -
+`SEGGER_RTT_Init()` ran and the write hook never fired.
+
+**Suggested fix**, in preference order:
+
+1. Drop `--redirect __write=__write_buffered`, so DLIB calls `__write()` as documented and
+   platform hooks work. Buffering is then the platform's choice via `setvbuf()`.
+2. Failing that, make both options opt-out - e.g. `TFM_IAR_SEMIHOSTING`, default ON - so a
+   platform with a real console can turn them off.
+3. At minimum, document in the porting guide that an IAR platform must implement **`__dwrite()`**
+   (declared in `<LowLevelIOInterface.h>`, same signature as `__write`) rather than `__write()`.
+
+**Workaround carried here.** `<part>/rtt/rtt_stdout.c` defines both `__write()` and
+`__dwrite()` against one implementation, which also keeps `dwrite.o` and `iarwstd.o` out of
+the link. A platform `setvbuf(stdout, NULL, _IONBF, 0)` is needed alongside it, because BL2
+logs a few hundred bytes and chainloads without ever flushing. DECISIONS D107, D108.
+
+
 ## Local — not for upstream
 
 ### `cmsis_override.h` additions
@@ -227,10 +279,12 @@ when two EK-RA6M4 boards were lost. Keep local or drop before submitting.
 
 ## Submission notes
 
-- Items 1–3 are IAR-template defects found while bringing up the first IAR build of this
-  port. Each produced a silent failure — a reset loop, a hard fault, or no console output —
-  rather than a build error, which is the argument for fixing them in the template rather
-  than working around them per-platform.
+- Items 1-3 and 14 are IAR defects found while bringing up the IAR builds of this port. Each
+  produced a silent failure - a reset loop, a hard fault, no console output, or a halt on a
+  semihosting breakpoint - rather than a build error, which is the argument for fixing them
+  centrally rather than working around them per-platform. Item 14 differs from 1-3 in being a
+  defect in the **toolchain file** rather than a linker template, and in affecting every IAR
+  platform that has a console, not only those with unusual linker needs.
 - Items 4, 5 and 6 are already in the tree labelled "Upstream:" or "Upstream + RA6E1:".
   Items 7, 8, 9 are not labelled but belong in the same series.
 - Verification: all items exercised on EK-RA6E1. GNU (arm-none-eabi 13.2) and IAR (10.10.2)
