@@ -259,10 +259,12 @@ on a first build:
 | [TROUBLESHOOTING.md](TROUBLESHOOTING.md) | a symptom you are looking at right now |
 | [DECISIONS.md](DECISIONS.md) | **why** something is the way it is. Append-only, numbered `D001`… — the rest of the docs cite it by number |
 | [ADDING_FSP_MODULES.md](ADDING_FSP_MODULES.md) | you enabled a driver in RASC and TF-M does not link it |
+| [RECONFIGURING_THE_LAYOUT.md](RECONFIGURING_THE_LAYOUT.md) | you are resizing a slot or moving the storage area |
+| [PORTING.md](PORTING.md) | you are adding a new RA part |
 | [BRIDGING_FILES.md](BRIDGING_FILES.md) | before an FSP package uprev — the files that carry FSP code but do not move with it |
 | [UPSTREAM_CHANGES.md](UPSTREAM_CHANGES.md) | what this port changes outside `platform/ext/target/renesas/`, and why |
 | [PROJECT_PLAN.md](PROJECT_PLAN.md) | milestones, phases and test-coverage gaps |
-| [RA6E1_TEMPLATE_CHECKLIST.md](RA6E1_TEMPLATE_CHECKLIST.md) | you are adding a new RA part |
+| [RA6E1_TEMPLATE_CHECKLIST.md](RA6E1_TEMPLATE_CHECKLIST.md) | what a RASC project must emit — the other half of `PORTING.md` |
 | [RSIP7_INTEGRATION_PLAN.md](RSIP7_INTEGRATION_PLAN.md) | the planned move to TF-PSA-Crypto (Mbed TLS 4.x) |
 | [DOCUMENTATION_PLAN.md](DOCUMENTATION_PLAN.md) | you are adding to these documents |
 

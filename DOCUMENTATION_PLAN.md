@@ -74,9 +74,9 @@ and three retirements**, not a programme of writing.
 | 2 | ~~`BUILDING.md`~~ | **superseded by `GETTING_STARTED.md`** — see below |
 | 2a | `GETTING_STARTED.md` | **done 2026-10-09** — clone to running board, with a document map |
 | 3 | `CONFIGURATION.md` | **done** |
-| 4 | `RECONFIGURING_THE_LAYOUT.md` | **not written** — the one real gap |
+| 4 | `RECONFIGURING_THE_LAYOUT.md` | **done 2026-10-09** — the chain that follows automatically, the four things that do not, and the 35 assertions |
 | 5 | `ADDING_FSP_MODULES.md` | **done 2026-10-09** — and the earlier claim here that it was "folded into `DESIGN.md`" was **wrong**: DESIGN.md has no such section. The only guidance was in `archive/ra6m4/TFM_INTEGRATION_COMPLETE.md`, which this plan had listed for retirement, and **19 live source files pointed at a path that did not exist**. Rescued, rewritten against the live mechanism, all 19 pointers repaired |
-| 6 | `PORTING.md` | **substantially covered** by `RA6E1_TEMPLATE_CHECKLIST.md`; promote and rename when a third part is actually added |
+| 6 | `PORTING.md` | **done 2026-10-09** — the checklist covers the RASC half only; this is the TF-M platform half, sized by diffing the two live ports (8 files to author, 31 to copy) |
 | 7 | `TROUBLESHOOTING.md` | **done** |
 | + | `BRIDGING_FILES.md` | **done** ([D089]) — was the highest-value item on the original list |
 | + | `UPSTREAM_CHANGES.md` | **done**, 14 items ([D108] added the IAR toolchain defect) |
@@ -93,13 +93,24 @@ solution build (the step everyone misses), the firmware build, flashing, reading
 good run looks like, the first-build failure table, and the map to everything else. README
 keeps the orientation and repository map and hands over.
 
+### Revised 2026-10-09 — the target set is complete
+
+Items 1-7 are all done or deliberately resolved. Three were written today (`ADDING_FSP_MODULES`,
+`PORTING`, `RECONFIGURING_THE_LAYOUT`) after the owner pointed out that the plan's own status
+for two of them was wrong: item 5 was recorded as "folded into DESIGN.md" when DESIGN.md has no
+such section, and item 6 as "covered by the checklist" when the checklist is only the RASC half.
+
+**Both errors were in this file, written by the same hand that wrote the documents they
+describe.** That is the argument for item 3 below.
+
 ### Remaining work, in order
 
-1. **`RECONFIGURING_THE_LAYOUT.md`** - the repartitioning procedure. The only target document
-   with no substitute. What follows automatically from the solution (`bsp_linker_info.h` ->
-   `bsp_partitions.h` -> `region_defs.h`, all three linkers), what does **not** (RDPM
-   boundaries, `PS_NUM_ASSETS` capacity, the NSC-window LMA budget), which `_Static_assert`s
-   catch mistakes, and the order to do it in.
+1. **A `## Settled questions` banner table** at the top of `DECISIONS.md`. 111 entries carry
+   **20 supersession threads** and **none of the superseded entries says so in place** - every
+   one still reads `Status: Accepted`. The owner's call (2026-10-09): group related entries
+   under a banner periodically rather than back-annotate, since the append-only rule protects
+   the *reasoning*. The chain extraction is scripted; the one-line answers are written. Cadence:
+   at milestone boundaries, plus whenever a thread closes on a correction.
 2. **Retire the three superseded files** - `TFM_INTEGRATION_COMPLETE.md`,
    `BUILD_TEST_RESULTS.md`, `MACHINE_HANDOFF.md` - keeping their resolved-issue narratives,
    which are the valuable part, by folding them into `TROUBLESHOOTING.md` or a decision entry.
