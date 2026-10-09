@@ -9,7 +9,7 @@
 - `TZ_InitContextSystem_S`
 - `TZ_FreeModuleContext_S`
 
-**Solution**: See [../TRUSTZONE_FREERTOS_REQUIREMENTS.md](../TRUSTZONE_FREERTOS_REQUIREMENTS.md) for detailed explanation and implementation options.
+**Solution**: See [../archive/ra6m4/TRUSTZONE_FREERTOS_REQUIREMENTS.md](../archive/ra6m4/TRUSTZONE_FREERTOS_REQUIREMENTS.md) for detailed explanation and implementation options.
 
 ## Build Commands
 

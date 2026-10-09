@@ -201,7 +201,7 @@ Each hazard gets a mechanism, not a comment:
   to flash"*. **A guard pointed at the wrong window is worse than none, because it reads as
   verification.** BL2 also passes `--require-segments`, so an empty result fails.
 - **`readelf -l` on the linked ELF** is the only place the coalescing is visible. In the
-  pre-flash checklist, `MACHINE_HANDOFF.md` §4.
+  pre-flash verification, `GETTING_STARTED.md` §6.
 
 ### What the port does with each FSP linker input
 

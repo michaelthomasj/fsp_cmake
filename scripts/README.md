@@ -153,3 +153,18 @@ The test builds set `RA6M5_RTT_BLOCKING` / `RA8M2_RTT_BLOCKING` = ON, which make
 the host instead of dropping writes when its buffer fills. Without it a suite out-runs the
 host's polling and whole tests vanish from the transcript while the run itself is fine. Off by
 default in the port, because with no viewer attached the first write past 4 KB blocks forever.
+
+## Documentation checks
+
+```sh
+python scripts/check_docs.py     # verify every D-citation and .md reference resolves
+sh scripts/install_hooks.sh      # install it as a pre-commit hook (once per clone)
+```
+
+Checks three things: every `D###` cited anywhere exists in `DECISIONS.md`; every relative
+`.md` link resolves; every `.md` filename named in a `.cmake` or `CMakeLists.txt` comment
+resolves. `DECISIONS.md` is exempt from the link checks because it is append-only - a reference
+there to a since-retired file is a historical fact, not a defect.
+
+Bypass with `git commit --no-verify` when a commit deliberately breaks a reference, such as the
+first half of a rename spanning both repositories.

@@ -111,10 +111,16 @@ describe.** That is the argument for item 3 below.
    under a banner periodically rather than back-annotate, since the append-only rule protects
    the *reasoning*. The chain extraction is scripted; the one-line answers are written. Cadence:
    at milestone boundaries, plus whenever a thread closes on a correction.
-2. **Retire the three superseded files** - `TFM_INTEGRATION_COMPLETE.md`,
-   `BUILD_TEST_RESULTS.md`, `MACHINE_HANDOFF.md` - keeping their resolved-issue narratives,
-   which are the valuable part, by folding them into `TROUBLESHOOTING.md` or a decision entry.
-3. **A sweep for stale cross-references.** Three have already been found and fixed by accident
+2. ~~**Retire the three superseded files**~~ **done 2026-10-09.** `MACHINE_HANDOFF.md`
+   deleted after its §4 pre-flash checklist was extracted to `GETTING_STARTED.md` §6 and its
+   three live citations repointed; the six references left in `DECISIONS.md` are historical and
+   stay. The other two were already quarantined in `archive/ra6m4/` and carry nothing live.
+   **Deleting it as this plan originally said would have destroyed the brick-safety checklist** -
+   the same shape of near-miss as item 5.
+3. ~~**A sweep for stale cross-references.**~~ **done 2026-10-09** - `scripts/check_docs.py`,
+   installed as a pre-commit hook by `scripts/install_hooks.sh`. It found three more broken
+   references on its first run, all pointing at files that had been moved to `archive/ra6m4/`
+   without their citations being updated. Now green and enforced. Original note: Three have already been found and fixed by accident
    rather than by checking ([D094]'s wrong D-numbers; `RA8M2_SOLUTION.md` describing the FSP
    MCUboot backend months after [D091] removed it; `app_build_ra8m2_iar.bat` claiming the two
    project sets were out of sync after they had been reconciled). **There is no check for

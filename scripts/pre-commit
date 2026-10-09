@@ -1,0 +1,24 @@
+#!/bin/sh
+# Documentation cross-reference check.
+#
+# Install:   scripts/install_hooks.sh      (or copy this file to .git/hooks/pre-commit)
+# Bypass:    git commit --no-verify        (for a commit that deliberately breaks a reference,
+#                                           e.g. the first half of a two-repo rename)
+#
+# Only runs when the commit touches something that can carry a reference: .md, .cmake or
+# CMakeLists.txt. A code-only commit is not delayed.
+
+changed=$(git diff --cached --name-only --diff-filter=ACMR)
+echo "$changed" | grep -qE '\.md$|\.cmake$|CMakeLists\.txt$' || exit 0
+
+root=$(git rev-parse --show-toplevel)
+[ -f "$root/scripts/check_docs.py" ] || exit 0
+
+python "$root/scripts/check_docs.py" --quiet
+status=$?
+if [ $status -ne 0 ]; then
+    echo
+    echo "pre-commit: documentation references are broken (above)."
+    echo "            Fix them, or commit with --no-verify if that is deliberate."
+fi
+exit $status

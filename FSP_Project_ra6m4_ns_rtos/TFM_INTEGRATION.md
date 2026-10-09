@@ -368,4 +368,4 @@ When building standalone, these functions come from the secure project's SmartBu
 
 For questions or issues, see:
 - [TF-M RA6M4 Platform README](C:\Users\Michael\Documents\GitHub\trusted-firmware-m\platform\ext\target\renesas\ra6m4\README.md)
-- [TF-M Integration Complete Guide](C:\Users\Michael\Documents\GitHub\fsp_cmake\TFM_INTEGRATION_COMPLETE.md)
+- [TF-M Integration Complete Guide](../archive/ra6m4/TFM_INTEGRATION_COMPLETE.md)

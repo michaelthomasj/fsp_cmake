@@ -174,6 +174,37 @@ Each has an `_iar` twin. In e2: `Run → Debug Configurations…`, pick one, `De
 Also leave **erase code flash** and **erase data flash** enabled on connect. A stale ITS/PS area
 survives a reflash and makes the storage suites fail in ways that look like code faults.
 
+### Pre-flash verification — run on every new build
+
+Two commands, and they take seconds. Both guard the brick path, and **a clean `.srec` does not
+prove either of them**.
+
+```bat
+rem  1. The option-setting words must be SMALL DISCRETE LOAD segments, never one span.
+arm-none-eabi-readelf -l C:\b\m2app\bin\bl2.axf
+
+rem  2. Their contents must be the known-good values.
+arm-none-eabi-objdump -s -j .option_setting_ofs0 -j .option_setting_ofs1_sec ^
+                         -j .option_setting_ofs1_sel C:\b\m2app\bin\bl2.axf
+```
+
+Expect `ffffffff` / `fffdffff` / `f8f8ffff`. One coalesced segment spanning the option memory is
+the failure that cost two EK-RA6M4 boards — the linker gap-fills between the words and writes
+values nobody chose ([D002], [D094]). `check_ofs.py` runs this during the build; these commands
+are how you confirm it by hand on an image you are about to flash.
+
+Then:
+
+- **Flash `bl2.elf` or `bl2.hex`, never `bl2.bin`** (above).
+- **Re-read the RTT addresses for the exact image you are flashing.** They move on every relink
+  *and* differ per toolchain for the same source on the same part. Nothing in the launch carries
+  them, so a wrong address is a silent "prints nothing", not an error. There is deliberately no
+  table of them in this repository — any such table is wrong within one rebuild.
+- **First flash on an unfamiliar board:** consider `-D<PART>_BL2_HALT_AT_MAIN=ON`, which spins
+  BL2 at `main()` so FAWMON/FSPR can be read back before MCUboot runs. Note the image is **not
+  bootable** with it set, and it does not help capture BL2's log — it halts before the first
+  print ([D107]).
+
 ### Seeing the output
 
 Console output goes over **SEGGER RTT**, not a UART. Each image has its own control block and

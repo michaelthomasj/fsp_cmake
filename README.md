@@ -110,7 +110,7 @@ every build today and is pure diagnostics.
 | `scripts/README.md` | what each build script does |
 | `RA6E1_TEMPLATE_CHECKLIST.md` | the contract a new part's RASC projects must satisfy |
 | `RA8x2_DUAL_CORE_DESIGN.md` | forward design for the dual-core parts |
-| `MACHINE_HANDOFF.md` | two-machine reconciliation, and §4 is the **pre-flash checklist** — the brick-safety steps to run on every new build |
+| [GETTING_STARTED.md](GETTING_STARTED.md) | clone to running board; §6 carries the **pre-flash verification** — the brick-safety steps to run on every new build |
 | `RA6E1_SOLUTION.md` | the RA6E1 layout and resolved-issue log. Dormant part, but it is the port RA6M5 and RA8M2 are derived from |
 
 **Planning and history.**
