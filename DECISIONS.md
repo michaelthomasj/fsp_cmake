@@ -5241,3 +5241,54 @@ in this one line, and the GCC one is the degraded one.
 
 Every RA8M2 suite and the upgrade path now pass on both toolchains, with BL2's own log
 available under both. Nothing is outstanding against M5.
+
+---
+
+## D110 — corrects the framing of [D107]/[D108]: the root cause is the call route, not the buffering
+
+**Date:** 2026-10-09 · **Status:** Accepted · Correction from the rm_psa_crypto owner
+
+The owner's summary, which is the right one: *the issue was not that IAR buffered BL2's 400
+bytes and failed to flush them - it was that BL2 printed by a different call than the secure
+image.* Both earlier entries led with buffering and buried that.
+
+### The two effects, separated
+
+| | cause | effect |
+|---|---|---|
+| **Output never reached RTT** | BL2 logs via `printf` -> DLIB -> `__write` **redirected** to `__write_buffered` -> `__dwrite` -> `__iar_sh_stdout`. The secure image calls `stdio_output_string()` **directly** and never enters DLIB. | `aUp[0].WrOff == 0` |
+| Symptom was *silent* rather than *halt* | DLIB buffering - the bytes never flushed, so the semihosting trap was never reached | no halt, no diagnostic |
+
+**What [D107] got wrong specifically.** Its comment said the buffering was why `WrOff` was 0 -
+"the text never left the C library". Wrong. `WrOff` was 0 because the output went to
+semihosting. A perfect flush would have produced the same `WrOff == 0`, which is exactly what
+[D107]'s own build then demonstrated by halting instead of printing.
+
+Buffering decided **which failure you saw**, not **where the bytes went**.
+
+### Both fixes are still required, and the evidence is three builds
+
+Checked rather than assumed, because the obvious follow-on question is whether `setvbuf` is now
+redundant. It is not. Three builds differing only in these two changes:
+
+| setvbuf | `__dwrite` | result |
+|---|---|---|
+| no | no | silent, `WrOff` 0, no halt - the buffer holds it |
+| **yes** | no | **HALT in `__iar_sh_stdout`** - buffer released it, backend was semihosting |
+| yes | yes | full log on RTT |
+
+The middle row is the proof that buffering alone blocks delivery: releasing it changed the
+failure mode, so the bytes were genuinely stuck. Remove `setvbuf` today and BL2's output would
+sit in the FILE buffer and never reach `__dwrite`. No fourth build was needed - the three
+already run answer it.
+
+### Why this matters beyond the wording
+
+The asymmetry is the generalisable part. **Two logging routes exist in this codebase** -
+`stdio_output_string()` direct, and `printf` through the C library - and only one of them was
+ever exercised by the images that print. Any future backend change must be tested against BL2,
+not just the secure image, or it will look correct while MCUboot's logging is dead. That is
+the lesson, not "IAR buffers stdout".
+
+Comments in `<part>/rtt/rtt_stdout.c` corrected on both parts to lead with the route and to
+carry the three-build table.
