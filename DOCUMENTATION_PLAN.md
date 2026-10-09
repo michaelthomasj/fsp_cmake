@@ -105,12 +105,19 @@ describe.** That is the argument for item 3 below.
 
 ### Remaining work, in order
 
-1. **A `## Settled questions` banner table** at the top of `DECISIONS.md`. 111 entries carry
-   **20 supersession threads** and **none of the superseded entries says so in place** - every
-   one still reads `Status: Accepted`. The owner's call (2026-10-09): group related entries
-   under a banner periodically rather than back-annotate, since the append-only rule protects
-   the *reasoning*. The chain extraction is scripted; the one-line answers are written. Cadence:
-   at milestone boundaries, plus whenever a thread closes on a correction.
+1. ~~**A `## Settled questions` banner table**~~ **in place 2026-10-09, 12 of 23 rows written.**
+   At the top of `DECISIONS.md`, one row per QUESTION rather than per thread. The remaining
+   `_TBD_` rows are the owner's to write. Two supporting findings:
+
+   - **Rule 2 already required the back-annotation I had asked about.** It says a superseded
+     entry gets `Status: Superseded by Dyyy`, and `D001` shows the form. **One entry of twenty
+     threads carried it.** Nine more applied by `scripts/decision_threads.py --status --apply`;
+     a normalised diff confirms Status values were the only bytes that changed.
+   - **`D041` was excluded by hand.** `D044` supersedes *the second fix in* `D041`; the first
+     is still live in shipped FSP code. A `Status` field cannot say "half superseded", and an
+     attempt to detect that case automatically misfired on three clean entries. The script now
+     prints the citing text and a human reads eleven lines.
+
 2. ~~**Retire the three superseded files**~~ **done 2026-10-09.** `MACHINE_HANDOFF.md`
    deleted after its §4 pre-flash checklist was extracted to `GETTING_STARTED.md` §6 and its
    three live citations repointed; the six references left in `DECISIONS.md` are historical and

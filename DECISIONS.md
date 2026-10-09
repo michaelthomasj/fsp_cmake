@@ -24,6 +24,50 @@ Statuses: `Accepted` · `Superseded by Dxxx` · `Provisional` (taken, not yet va
 
 ---
 
+## Settled questions
+
+What the record has **concluded**, so a reader does not have to walk a chain to find out. One
+row per QUESTION, which is not the same as one row per thread — `scripts/decision_threads.py`
+finds candidate threads mechanically and they over-merge, so the grouping here is by hand.
+Regenerate the candidates at each milestone:
+
+```
+python scripts/decision_threads.py              # thread worksheet
+python scripts/decision_threads.py --status     # entries needing a Status back-annotation
+```
+
+**This table is a navigation aid, not the record.** Where it and an entry disagree, the entry
+wins. Nothing above supersedes anything; the entries carry their own `Status`.
+
+Rows marked _TBD_ are not yet written.
+
+| Question | Settled position | Thread |
+|---|---|---|
+| Can RSIP-E50D generate RSA-2048 keys? | **Not in plaintext.** The guard in `rsa_alt_process.c` is on `BSP_FEATURE_RSIP_*_SUPPORTED` — silicon, not configuration. `PSA_CRYPTO_CFG_RSA_FORMAT` is already `3`; **there is no switch**. RA6M5 passes because SCE9 is in the list. | D097→D098→D099→**D111** |
+| Who owns the MCUboot flash map? | **TF-M's map and backend**, with FSP's HAL behind `fa_driver` as an `ARM_DRIVER_FLASH` — the arrangement four ST platforms already use. `rm_mcuboot_port` is in `FSP_MODULES_NEVER_BUILT`; `bl2/CMakeLists.txt` is byte-identical to TF-Mv2.2.0. | D075→D076→D079→D082→D085→D090→**D091** |
+| Why did RA8M2's first boot HardFault? | **MRAM's MRCPFB was non-secure.** `BSP_CFG_CLOCKS_SECURE (0)` clears `BSP_TZ_CFG_MSAR` bit 4 and the first MRAM access faults at `0x4013C000`. Worked around with `BSP_TZ_CFG_MSAR=0`, **still open** pending an e2 generator fix. | D092→**D093** |
+| Why was BL2 silent on RTT under IAR? | **Two independent blockers.** TF-M's `toolchain_IARARM.cmake` redirects `__write` to DLIB's buffered writer, so the port's hook is unreachable and output goes to semihosting — fixed by implementing `__dwrite`. DLIB also buffers stdout and BL2 never flushes — fixed by `setvbuf`. Neither alone is sufficient. | D107→D108→**D110** |
+| Does a passing attestation suite prove measured boot? | **No.** With `component_cnt == 0` the token carries `IAT_NO_SW_COMPONENTS` and the suite passes anyway. Read the boot record at the start of secure RAM and match both measurements to the images' SHA-256 TLVs. | D080→**D081** |
+| How must OFS memory be linked? | **One linker `MEMORY` region per OFS group.** ⚠ Coalescing lets the linker gap-fill between words and write values nobody chose. Flash `bl2.elf`/`bl2.hex`, never `bl2.bin`. `check_ofs.py` enforces it. | **D002** (supersedes D001) |
+| What bricked the two EK-RA6M4 boards? | **Segment coalescing is proven; the killed field is not.** The bricked image's OFS1_SEL is the known-good `f8f8ffff`, so the original attribution was wrong. Measured gap fill is `0x00 ×376`, not `0xFF`. | D093→**D094** |
+| Why is DF_EMULATION 64 KB on RA8M2? | **FSP's MRAM sector size forces it.** On a 1 MB device with a 64 KB BL2 it is the only value that leaves a workable split. ITS, PS and the NV counters share it; the part has no data flash. | D041→D043→D044→D051→**D054** |
+| Is deterministic ECDSA available? | **No — FSP does not support it, by design.** PSA Arch test 252 skips with code `0x2d` on every part and both toolchains. | D036→D037→**D038** |
+| How much secure-slot headroom is there? | **1,693 B on RA6M5, 670 B on RA8M2.** Earlier figures of 1,984 / 960 omitted ~275 B of imgtool TLVs. Measured from the `0xFF` gap below the trailer. | D084→**D087** |
+| Do the RA8M2 IAR and GCC projects agree? | **Yes, as of 2026-10-08.** A full property diff of all three pairs shows no real differences; `vector_data.h`, `bsp_cfg.h` and every `BSP_PARTITION_*` match except `RAM_BL_CPU0_S_SIZE`, which nothing consumes. | D095→D096→**D101** |
+| Which project hosts the IAR debug launches? | **The IAR project**, with `PROJECT_BUILD_CONFIG_AUTO_ATTR=false`. `serverParam` builds the `.jlink` path from `${ProjName}`, so sharing one host makes both toolchains write to the same directory. Diverges from RA6M5 deliberately. | D102→**D103** |
+| _TBD_ — the FLIH/SLIH interrupt fixture | _TBD_ | D062→D067→**D068** |
+| _TBD_ | _TBD_ | D006→**D012** |
+| _TBD_ | _TBD_ | D017→**D018** |
+| _TBD_ | _TBD_ | D029→**D048** |
+| _TBD_ | _TBD_ | D031→**D033** |
+| _TBD_ | _TBD_ | D045→**D046** |
+| _TBD_ | _TBD_ | D052→**D053** |
+| _TBD_ | _TBD_ | D061→**D069** |
+| _TBD_ | _TBD_ | D071→**D072** |
+| _TBD_ | _TBD_ | D073→**D074** |
+
+---
+
 ## D001 — Option-setting (OFS) memory must never be linked into an image
 
 **Date:** 2026-07-21 · **Status:** Superseded by D002 · **Back-filled** from commit `c78602fff` and
@@ -1523,7 +1567,7 @@ ECDSA on either engine, by design.
 
 ## D052 — The E50D pack is missing both session-leak fixes; RA8M2 bring-up proceeds anyway
 
-**Date:** 2026-09-24 · **Status:** Accepted · Known-failing, deliberately
+**Date:** 2026-09-24 · **Status:** Superseded by D053 · Known-failing, deliberately
 
 **The gap.** Of the 35 `rm_psa_crypto` ALT sources, the only two that differ between the SCE9
 and E50D packs are `aes_alt.c` and `cipher_alt.c` — and the E50D copies are the **unfixed**
@@ -2817,7 +2861,7 @@ authoritative source and a wrong one fails the build instead of the board.
 
 ## D075 — BL2 must enable the SAU on RA8M2; the right alias is not enough
 
-**Date:** 2026-10-01 · **Status:** Accepted · Completes [D073]/[D074], which were necessary
+**Date:** 2026-10-01 · **Status:** Superseded by D076 · Completes [D073]/[D074], which were necessary
 but not sufficient
 
 **Symptom after [D073].** With `MRAM_ADDR()` fixed and verified in the disassembly, BL2
@@ -3090,7 +3134,7 @@ for the other port before theorising about the tool.
 
 ## D079 — BL2 takes its MCUboot flash backend from FSP; closes [D076]
 
-**Date:** 2026-10-02 · **Status:** Accepted · Closes [D076], supersedes the `rm_mcuboot_port`
+**Date:** 2026-10-02 · **Status:** Superseded by D091 · Closes [D076], supersedes the `rm_mcuboot_port`
 exclusion in DESIGN.md 4
 
 **Decision.** BL2 links FSP's `ra/fsp/src/rm_mcuboot_port/flash_map.c` instead of TF-M's
@@ -3298,7 +3342,7 @@ when a platform option appears not to take.**
 
 ## D082 — RA6M5 follows [D079]: BL2 takes its MCUboot flash backend from FSP
 
-**Date:** 2026-10-02 · **Status:** Accepted · Extends [D079] to the second active part
+**Date:** 2026-10-02 · **Status:** Superseded by D091 · Extends [D079] to the second active part
 
 **Same change, one motivation missing.** RA6M5 now links FSP's
 `rm_mcuboot_port/flash_map.c` instead of TF-M's `bl2/src/flash_map.c`,
@@ -3546,7 +3590,7 @@ first claim, not after the second.
 
 ## D085 — RA6M5 reverts to TF-M's MCUboot flash backend; [D082] is withdrawn
 
-**Date:** 2026-10-04 · **Status:** Accepted · **Supersedes** [D082]
+**Date:** 2026-10-04 · **Status:** Superseded by D090 · **Supersedes** [D082]
 
 [D082] switched RA6M5 to FSP's MCUboot flash backend for consistency with [D079]. It is
 reverted. BL2 reached MCUboot and then could not validate the non-secure image:
@@ -3833,7 +3877,7 @@ Remaining from the plan: `RECONFIGURING_THE_LAYOUT.md`.
 
 ## D090 — the RA6M5 FSP-backend failure was a struct flash_area mismatch; [D085] is superseded
 
-**Date:** 2026-10-05 · **Status:** Accepted · **Supersedes** [D085], **restores** [D082]
+**Date:** 2026-10-05 · **Status:** Superseded by D091 · **Supersedes** [D085], **restores** [D082]
 
 [D085] reverted RA6M5 to TF-M's MCUboot flash backend and recorded the failure as unexplained
 after eliminating nine hypotheses. The cause is now known, fixed, and **verified on hardware:
@@ -4398,7 +4442,7 @@ one. The tail is worth capturing before this is reported as a final result.
 
 ## D098 — refines [D097]: the RSA-2048 keygen failure is the PLAINTEXT path, and the config selects it
 
-**Date:** 2026-10-08 · **Status:** Accepted · **Corrects the reasoning in** [D097]
+**Date:** 2026-10-08 · **Status:** Superseded by D111 · **Corrects the reasoning in** [D097]
 
 [D097] concluded "the RSIP-E50D does not implement RSA-2048 key generation". The observation
 was right and the reason was not. The precise position, from three independent sources:
@@ -4685,7 +4729,7 @@ project side is outstanding now; what remains is building and running them.
 
 ## D102 — RA8M2 IAR: all six trees build, five launches generated; the ewarm staleness was already gone
 
-**Date:** 2026-10-08 · **Status:** Accepted · Follows [D101] (project gaps) and [D089] (the path fix)
+**Date:** 2026-10-08 · **Status:** Superseded by D103 · Follows [D101] (project gaps) and [D089] (the path fix)
 
 ### [D089]'s sweep was already complete; the remaining matches are not defects
 
@@ -5007,7 +5051,7 @@ fixed ([D093]), and the never-run suites in `PROJECT_PLAN.md` (FWU foremost).
 
 ## D107 — BL2 is silent under IAR because DLIB buffers stdout; `rtt_stdout.c` now makes it unbuffered
 
-**Date:** 2026-10-09 · **Status:** Accepted · Affects **both** parts; explains a symptom that looked like a wrong RTT address
+**Date:** 2026-10-09 · **Status:** Superseded by D108 · Affects **both** parts; explains a symptom that looked like a wrong RTT address
 
 ### The symptom and what it was not
 
