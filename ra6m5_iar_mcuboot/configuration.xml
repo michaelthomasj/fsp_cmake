@@ -274,7 +274,7 @@
       <property id="config.middleware.mcuboot.validate_primary" value="config.middleware.mcuboot.validate_primary.enabled"/>
       <property id="config.middleware.mcuboot.downgrade_prevention" value="config.middleware.mcuboot.downgrade_prevention.disabled"/>
       <property id="config.middleware.mcuboot.watchdog_feed" value=""/>
-      <property id="config.middleware.mcuboot.measured_boot" value="config.middleware.mcuboot.measured_boot.disabled"/>
+      <property id="config.middleware.mcuboot.measured_boot" value="config.middleware.mcuboot.measured_boot.enabled"/>
       <property id="config.middleware.mcuboot.data_sharing" value="config.middleware.mcuboot.data_sharing.disabled"/>
       <property id="config.middleware.mcuboot.flash_lp.dual_bank" value="enum.mcu.flash_lp.dual_bank.disabled"/>
       <property id="config.middleware.mcuboot.max_measured_boot_record" value="0x64"/>

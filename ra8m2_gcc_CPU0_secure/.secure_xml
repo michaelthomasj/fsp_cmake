@@ -44,7 +44,7 @@
       <property id="config.bsp.common.main_osc_wait" value="config.bsp.common.main_osc_wait.wait_8163"/>
     </config>
   </raBspConfiguration>
-  <raClockConfiguration>
+  <raClockConfiguration security="s">
     <node id="board.clock.xtal.freq" mul="24000000" option="_edit"/>
     <node id="board.clock.hoco.freq" option="board.clock.hoco.freq.48m"/>
     <node id="board.clock.loco.freq" option="board.clock.loco.freq.32768"/>

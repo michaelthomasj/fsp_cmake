@@ -697,7 +697,7 @@ FSP Configuration
     General: Validate Primary Image: Enabled
     General: Downgrade Prevention (Overwrite Only): Disabled
     General: Watchdog Feed: 
-    General: Measured Boot: Disabled
+    General: Measured Boot: Enabled
     General: Data Sharing: Disabled
     Flash Configuration: Dual Bank Mode: Configure in the BSP tab
     Data Sharing: Maximum Measured Boot Record Size (Bytes): 0x64

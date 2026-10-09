@@ -10,6 +10,7 @@
     <option key="#RTOS#" value="_none"/>
     <option key="#pinconfiguration#" value="R7KA8M2JFLCAC.pincfg"/>
     <option key="#FSPVersion#" value="6.7.0-beta0+20260925.818e720c"/>
+    <option key="#ConfigurationFragments#" value="Renesas##BSP##Board##ra8m2_ek##"/>
     <option key="#SELECTED_TOOLCHAIN#" value="gcc-arm-embedded"/>
     <option key="#ToolchainVersion#" value="13.2.1.arm-13-7"/>
   </generalSettings>
@@ -144,7 +145,8 @@
     <node id="board.clock.ethphyclk.display" option="board.clock.ethphyclk.display.value"/>
   </raClockConfiguration>
   <raPinConfiguration>
-    <pincfg active="true" name="" symbol="">
+    <pincfg active="true" name="" symbol=""/>
+    <pincfg active="false" name="solution" symbol="">
       <configSetting altId="adc0.an001.p001" configurationId="adc0.an001" peripheral="ADC0"/>
       <configSetting altId="adc0.an002.p002" configurationId="adc0.an002" peripheral="ADC0"/>
       <configSetting altId="adc0.an003.p003" configurationId="adc0.an003" peripheral="ADC0"/>
