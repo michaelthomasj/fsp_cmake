@@ -4873,3 +4873,70 @@ on connect, which wipes `DF_EMULATION`.
 
 Attestation, storage, the regression/FLIH suite and the secondary-slot update test. The
 launches and trees for all four exist.
+
+---
+
+## D105 — RA8M2 IAR matches GCC on every suite, and measured boot is verified from the boot record
+
+**Date:** 2026-10-09 · **Status:** Accepted · Completes the IAR test evidence begun in [D104]
+
+Three more runs on silicon, all from the launches [D102]/[D103] generated.
+
+| Run | Result | GCC |
+|---|---|---|
+| `ra8m2_TFM_flih_iar` (regression) | **all 7 NS suites PASSED**, FLIH IRQ included | same |
+| `ra8m2_TFM_test_attestation_iar` | **1 / 0 / 0** | same |
+| `ra8m2_TFM_test_storage_iar` | **11 / 0 / 6** of 17 | same |
+
+With [D104]'s crypto (62/1/1 of 64), **every suite now returns the same result under both
+toolchains on this part.** The six storage skips are the optional `psa_ps_create` /
+`psa_ps_set_extended` APIs TF-M does not implement; 414 passes by confirming they refuse
+correctly. Test 403 filled ITS at UID 13 and PS at UID 8 and recovered - the same DF_EMULATION
+boundary GCC hit, so the 64 KB split behaves identically.
+
+### Measured boot: decoded and matched, not assumed
+
+[D080] established that a passing attestation suite proves nothing about measured boot -
+`component_cnt == 0` emits `IAT_NO_SW_COMPONENTS` and returns success. So the record at
+`0x22000000` was dumped and decoded rather than inferred from the 1/1 pass.
+
+Header: magic `0x2016`, total length **195 bytes**. Two TLV records:
+
+| | type | version | measurement (SHA-256) | signer id |
+|---|---|---|---|---|
+| NSPE | `0x107f` | 0.0.0 | `567106de…389a7ad2` | `82a5b443…063efda9` |
+| SPE | `0x103f` | 2.2.0 | `ac4d305d…2c71ac7e` | `e30466f6…2bb538b6` |
+
+Both measurements were compared against the `IMAGE_TLV_SHA256` (`0x10`) entries of the exact
+images that launch flashes, parsed out of the signed binaries:
+
+```
+m2iatt/bin/tfm_ns_signed.bin  v0.0.0  567106de…389a7ad2   MATCH
+m2icry/bin/tfm_s_signed.bin   v2.2.0  ac4d305d…2c71ac7e   MATCH
+```
+
+Versions match too. **Measured boot works under IAR**, on the same evidence [D096] used for GCC.
+
+The CBOR claim ids are worth recording because the obvious reading is wrong: in
+`IAT_SW_COMPONENT`, **2 is the measurement value and 5 is the signer id**, with 1 the
+measurement type, 4 the version and 6 the measurement description. Reading the first 32-byte
+string in each record as the measurement gives the signer id instead, and it will not match
+any image.
+
+### One difference between the toolchains, and it is correct
+
+Regression test `TFM_NS_CRYPTO_TEST_1053` (ECDSA P-256 sign and verify) prints a **different
+signature** under each toolchain over the identical hash `8d2da584…5eb7cf54`:
+
+```
+GCC  093ae879…01fd569f
+IAR  50e798d1…e3b1fd46
+```
+
+Both verify and both pass. ECDSA signing is randomized, so identical signatures would be the
+finding - it would mean the nonce was not coming from the TRNG. Test 1044 reports
+deterministic ECDSA as unsupported for signing under both, consistent with [D040].
+
+### M5 status
+
+Only `ra8m2_TFM_update_iar` is unrun. Everything else on this part passes on both toolchains.

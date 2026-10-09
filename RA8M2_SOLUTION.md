@@ -10,8 +10,8 @@ the flash backend, §7 for the SAU), `RA6E1_TEMPLATE_CHECKLIST.md` (what a solut
 > `TF-M v2.2.0+94dbaa08f`). Every secure and non-secure suite, zero failures, including the
 > FLIH IRQ tests - the first complete run on this part. That exercised the SAU programming, the
 > MRAM dual-alias driver, DF_EMULATION as ITS/PS backing, the RSIP-E50D, measured boot, and the
-> RDPM values below. **The IAR side has now started**: all six IAR trees build and the PSA
-> Arch crypto suite runs on silicon with results identical to GCC. DECISIONS D095, D101-D104.
+> RDPM values below. **IAR now matches GCC**: the full regression, all three PSA Arch suites
+> and measured boot all pass on silicon. DECISIONS D095, D101-D105.
 
 ---
 
@@ -215,13 +215,17 @@ Seen on the first RA8M2 boot, 2026-10-05. **RA6M5 cannot hit this** - it has no 
 | tfm_s | 278,594 B | `0x47A00` (293,376 B) | signed payload ends at 294,226 of a 294,912 slot — **670 B spare** |
 | tfm_ns | 105,944 B | `0x27E00` (163,328 B) | 35% free |
 
-**PSA Arch suites on silicon.** GCC complete; IAR has run crypto.
+**PSA Arch suites on silicon. Both toolchains complete.**
 
 | Suite | RA8M2 GCC | RA8M2 IAR | RA6M5 (both) |
 |---|---|---|---|
 | crypto | **62 / 1 / 1** of 64 | **62 / 1 / 1** of 64 | 63 / 0 / 1 |
-| attestation | 1 / 0 / 0 | not yet run | 1 / 0 / 0 |
-| storage (ITS + PS) | 11 / 0 / 6 | not yet run | 11 / 0 / 6 |
+| attestation | 1 / 0 / 0 | **1 / 0 / 0** | 1 / 0 / 0 |
+| storage (ITS + PS) | 11 / 0 / 6 | **11 / 0 / 6** | 11 / 0 / 6 |
+
+The full regression suite also passes under IAR - all seven NS suites including FLIH IRQ - and
+**measured boot is verified from the boot record**, both measurements matching the signed
+images' SHA-256 TLVs. D105.
 
 **The two toolchains agree test for test** - same tally, same failing test (216), same skip
 (252), on `TF-M v2.2.0+94dbaa08f` in both. That is the same pattern RA6M5 showed, where GCC and
@@ -286,9 +290,9 @@ and FSP's `flash_area_open()` then opens the same controller and returns −1 on
 - **Run the IAR trees.** The GCC side is done: full regression, PSA Arch attestation (1/1), and
   measured boot verified from the boot record at `0x22000000` - magic `0x2016`, NSPE 0.0.0 and
   SPE 2.2.0, both SHA-256 measurements equal to the signed images' TLVs (D095, D096).
-  IAR side: all six trees build, and PSA Arch **crypto has run on silicon with results
-  identical to GCC** (62/1/1 of 64, D104). Five IAR launches exist (D102, D103). Still to run:
-  IAR attestation, storage, the regression/FLIH suite and the secondary-slot update test.
+  IAR side: all six trees build and **the regression, crypto, attestation and storage suites
+  all pass on silicon, matching GCC**; measured boot verified from the boot record (D104,
+  D105). Only the secondary-slot update test (`ra8m2_TFM_update_iar`) is still unrun.
 - **D077 back-ports go the other way.** This part has the generated OFS addresses and 22
   enabled-but-unplaced `#error` guards; RA6M5 and RA6E1 have neither. The open work is bringing
   them up to this part, not changing this one.
