@@ -5292,3 +5292,67 @@ the lesson, not "IAR buffers stdout".
 
 Comments in `<part>/rtt/rtt_stdout.c` corrected on both parts to lead with the route and to
 carry the three-build table.
+
+---
+
+## D111 — supersedes [D098]: there is no config switch for the RSA-2048 keygen gap; the guard is on the engine
+
+**Date:** 2026-10-09 · **Status:** Accepted · Corrects [D098], and the wording it put into [D099], [D104] and the management milestone page
+
+### What [D098] claimed, and why it was wrong
+
+[D098] concluded the plaintext RSA-2048 keygen failure was "a key-format limitation **selected by
+our own config**", named `PSA_CRYPTO_CFG_RSA_FORMAT` as "where to change it", and cited
+`rsip_e50d_fsp_cfg.h` as setting it to plaintext. Checked against the generated tree today:
+
+| claim | reality |
+|---|---|
+| `rsip_e50d_fsp_cfg.h` sets the format | **No such file** in `ra8m2_gcc_CPU0_secure/ra/fsp/src/rm_psa_crypto/` |
+| our config selects plaintext | `ra_cfg/arm/mbedtls/config.h:29` -> **`PSA_CRYPTO_CFG_RSA_FORMAT 3`** = plaintext **and** wrapped |
+| the RASC project asks for plaintext | **both** parts set `config.driver.psa_crypto.rsa_format.vendor_plaintext_wrapped`, which is also the RA8M2 BSP default |
+
+### The actual mechanism
+
+`rsa_alt_process.c`, in `mbedtls_rsa_gen_key()` at `nbits == RSA_2048_BITS`:
+
+```c
+p_hw_sce_rsa_generatekey = g_rsa_keygen_lookup[(uint32_t) ctx->vendor_ctx];
+if (true == (bool) ctx->vendor_ctx) {          /* WRAPPED - no guard */
+    ...
+} else {                                       /* PLAINTEXT */
+#if !(BSP_FEATURE_RSIP_SCE7_SUPPORTED || BSP_FEATURE_RSIP_SCE9_SUPPORTED || \
+      BSP_FEATURE_RSIP_RSIP_E51A_SUPPORTED)
+    ret = MBEDTLS_ERR_PLATFORM_FEATURE_UNSUPPORTED;
+#endif
+```
+
+The guard is **entirely on `BSP_FEATURE_RSIP_*_SUPPORTED`** - the silicon. E50D is not in that
+list, so plaintext RSA-2048 keygen is refused on RA8M2 and permitted on RA6M5 (SCE9). The format
+config does not appear in the guard at all; it only controls which entries of
+`g_rsa_keygen_lookup[]` are **compiled**, and with `3` both are.
+
+PSA Arch test 216 calls `psa_generate_key` with default attributes, which is a plaintext key, so
+it takes the refused branch.
+
+### What this changes
+
+- **There is no switch.** [D098]'s "if wrapped RSA keys are acceptable, `PSA_CRYPTO_CFG_RSA_FORMAT`
+  is where to change it" is wrong: it is already `3`, and raising it cannot help because the
+  refusal is not conditioned on it. Getting hardware RSA keygen on E50D requires the *caller* to
+  request a wrapped/vendor key (`ctx->vendor_ctx` true), which a conformance test neither does
+  nor should.
+- **The one-line summary becomes simpler and worse:** RSIP-E50D has no plaintext RSA-2048 key
+  generation primitive. Not a configuration choice - a capability the part lacks and SCE9 has.
+  [D097]'s original instinct was closer than [D098]'s correction of it.
+- **Management page corrected.** It said "our configuration asks for the plain format... a known
+  switch". Both halves were false and it was the only false statement on a page sent outside the
+  team.
+
+### Method note
+
+[D098] was itself written to correct [D097], after two user corrections in two turns, and it
+over-corrected: it reached for a config explanation and cited a file without opening it in the
+tree the result came from. **Three entries on one question, and the error that survived longest
+was the one written to fix an earlier error.** The check that would have caught it at any point
+is `grep PSA_CRYPTO_CFG_RSA_FORMAT ra_cfg/arm/mbedtls/config.h` on the project that produced the
+failing run - one command against generated output, rather than reasoning from module sources.
