@@ -5002,3 +5002,84 @@ both toolchains.
 
 Still carried, neither gating M5: the `BSP_TZ_CFG_MSAR=0` workaround until the e2 generator is
 fixed ([D093]), and the never-run suites in `PROJECT_PLAN.md` (FWU foremost).
+
+---
+
+## D107 — BL2 is silent under IAR because DLIB buffers stdout; `rtt_stdout.c` now makes it unbuffered
+
+**Date:** 2026-10-09 · **Status:** Accepted · Affects **both** parts; explains a symptom that looked like a wrong RTT address
+
+### The symptom and what it was not
+
+BL2 produced no RTT output under IAR on RA8M2 while the secure and non-secure images printed
+normally. The obvious reading - stale or wrong control-block address - was wrong. Measured
+first, which is what settled it:
+
+| check | result |
+|---|---|
+| `_SEGGER_RTT` from `nm bl2.axf`, `bl2.map`, `nm bl2.elf` | **all three agree**, `0x22002d6c` |
+| `MCUBOOT_LOG_LEVEL` in the tree | `INFO` |
+| log strings in `bl2.bin` (`Starting bootloader`, `Erasing the primary slot`) | **present** |
+| `__write` provider in `bl2.map` | `rtt_stdout.o` - the **same object** the printing `tfm_s` uses |
+
+Then the control block itself, dumped from the halted target:
+
+```
+acID              'SEGGER RTT'          <- initialised, so stdio_init() ran
+MaxNumUpBuffers   3     MaxNumDownBuffers 3
+aUp[0].pBuffer    0x22002E14   SizeOfBuffer 4096
+aUp[0].WrOff      0                     <- BL2 wrote NOTHING
+aUp[0].RdOff      0     Flags 0
+```
+
+A correctly formed block with `WrOff == 0` is the whole diagnosis: `SEGGER_RTT_Init()` ran and
+`__write()` was never called. Nothing to do with the viewer or the address.
+
+### Cause
+
+MCUboot's `BOOT_LOG_*` expand to `printf()`. **IAR's DLIB buffers stdout** and only calls
+`__write()` when the FILE buffer fills or something flushes it. BL2 logs a few hundred bytes and
+then chainloads - it never fills a buffer, never calls `fflush`, never exits. The text died in
+the C library.
+
+**The secure image hid it completely.** TF-M's SPM logging calls `stdio_output_string()`
+directly and never goes through `printf`, so it was unaffected. That asymmetry is what made the
+symptom look BL2-specific and therefore like an address problem.
+
+newlib line-buffers stdout, so GCC was never affected - which is why this survived a full GCC
+bring-up plus [D104]-[D106]'s IAR runs.
+
+### Fix
+
+`setvbuf(stdout, NULL, _IONBF, 0)` in `stdio_init()`, guarded to `__ICCARM__`, in
+**`ra8m2/rtt/rtt_stdout.c` and `ra6m5/rtt/rtt_stdout.c`**. RA6M5 carries the same backend and
+the same latent defect; its IAR BL2 would also have been silent, unnoticed because the suite
+output comes from the other two images.
+
+Verified: `setvbuf` now links into `bl2.axf` at `0x02004810`.
+
+### The previous fix was right and incomplete
+
+The same file already carried an IAR-specific `__write()`, added because DLIB calls `__write`
+and never `_write`, with a comment stating that was why BL2 produced no output under IAR. That
+diagnosis was correct and the hook was necessary - but getting a hook in place is not the same
+as output reaching it. **Two independent defects on the same path, with the same symptom.**
+
+### Scope
+
+**No test result changes.** The images were correct and the suites genuinely ran; [D104]-[D106]
+stand. What was broken is BL2's own logging under IAR, which is why [D106]'s upgrade had to be
+confirmed from a `boot_rsp` watch rather than from the swap lines.
+
+### Cost, and the addresses move
+
+| | before | after |
+|---|---|---|
+| `bl2` text | 37,683 | **39,184** (+1,501) |
+| `tfm_s` text | 276,468 | **279,060** (+2,592, 14,316 B still free) |
+| `bl2` `_SEGGER_RTT` | `0x22002d6c` | **`0x22002d70`** |
+| `tfm_s` `_SEGGER_RTT` | `0x2200aa64` | **`0x2200ab64`** |
+| `tfm_ns` `_SEGGER_RTT` | `0x320ed35c` | **`0x320ed45c`** |
+
+`setvbuf` pulls in stdio machinery both images had been linking without. Signed images are
+still exact slot fits and the secondaries have been re-signed.
