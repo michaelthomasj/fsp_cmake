@@ -169,6 +169,65 @@ named and accepted before upstreaming is discussed.
 
 ---
 
+## 4a. Timeline
+
+**These are my estimates from file counts and analogy, not the implementer's.** Nobody who will
+do the work has reviewed them. Treat the shape as more reliable than the numbers.
+
+### Bottom-up, from the task sizes above
+
+| Phase | Engineer-days | |
+|---|---|---|
+| A — get it building | **7 – 14** | import, RA test project, the wrappers decision |
+| B — FSP packaging | **11 – 22** | B2 alone is 3.5 – 7 |
+| C — validation | **6.5 – 13** | two toolchains, two suites, sizes |
+| D — Zephyr | **2.5 – 5** | assumes D1 is answered, not discovered |
+| **A+B+C+D** | **27 – 54** | **5.4 – 10.8 engineer-weeks** |
+| E — upstreaming | 7 – 14 | **excluded from the funded scope** |
+
+### Calendar, one engineer
+
+Engineer-days are not calendar days. Nobody is 100% on one task, the phases are largely
+sequential because of the checkpoints, and two of the five decisions in §5 need someone else.
+At ~70% utilisation:
+
+| | Calendar | What it assumes |
+|---|---|---|
+| **Optimistic** | **7 weeks** | RA path works at A4 with no real driver work; D1 answered in week 1; B2 lands near its low estimate |
+| **Likely** | **11 weeks** | one round of rework at A4 or C2; normal decision latency |
+| **Pessimistic** | **16+ weeks** | A4 exposes genuine RA driver work, or D1's answer forces a second packaging target |
+
+The pessimistic case is **not bounded by this plan** — if the RA driver needs work, that is new
+scope, not a slip.
+
+### The useful way to fund it
+
+```
+    A1 A2 A3 A4 A5          B1…B7              C1…C4           (E)
+    └──── 1.5–3 wk ────┘ └── 2–4.5 wk ──┘ └── 1.5–3 wk ──┘
+           ▲                                      ▲
+    CHECKPOINT 1                           CHECKPOINT 2
+```
+
+**Phase A is ~15% of the cost and resolves the largest unknown.** rsip7 has RA sources and no
+RA test project, so whether the driver runs on RA silicon is untested today. Fund A alone
+(**1.5 – 3 weeks**), then decide. Everything after it is packaging against a known-good driver,
+which is predictable work; everything before it is not.
+
+Given the requester's own "may be throwaway" framing, that is also where the work can be
+stopped with most of its value banked: a proven RA driver is useful whatever happens to the
+packaging.
+
+### Calibration, and why I would not lean on it
+
+This team has beaten its own estimates twice running — M4 by 23 days, M5 by 49. But both were
+**ports of an established pattern on a familiar codebase**. This is packaging work in an
+unfamiliar repository, against an external consumer, with an unproven hardware path. The prior
+does not transfer, and the honest read is that the A4 unknown dominates everything else in the
+table.
+
+---
+
 ## 5. Decisions needed before starting
 
 | # | Decision | Why it cannot wait |
