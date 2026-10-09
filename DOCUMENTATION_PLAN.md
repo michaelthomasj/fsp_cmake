@@ -75,7 +75,7 @@ and three retirements**, not a programme of writing.
 | 2a | `GETTING_STARTED.md` | **done 2026-10-09** — clone to running board, with a document map |
 | 3 | `CONFIGURATION.md` | **done** |
 | 4 | `RECONFIGURING_THE_LAYOUT.md` | **not written** — the one real gap |
-| 5 | `ADDING_FSP_MODULES.md` | **folded into `DESIGN.md`** rather than extracted; revisit only if someone needs it standalone |
+| 5 | `ADDING_FSP_MODULES.md` | **done 2026-10-09** — and the earlier claim here that it was "folded into `DESIGN.md`" was **wrong**: DESIGN.md has no such section. The only guidance was in `archive/ra6m4/TFM_INTEGRATION_COMPLETE.md`, which this plan had listed for retirement, and **19 live source files pointed at a path that did not exist**. Rescued, rewritten against the live mechanism, all 19 pointers repaired |
 | 6 | `PORTING.md` | **substantially covered** by `RA6E1_TEMPLATE_CHECKLIST.md`; promote and rename when a third part is actually added |
 | 7 | `TROUBLESHOOTING.md` | **done** |
 | + | `BRIDGING_FILES.md` | **done** ([D089]) — was the highest-value item on the original list |

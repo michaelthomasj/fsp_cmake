@@ -258,6 +258,7 @@ on a first build:
 | [scripts/README.md](scripts/README.md) | build trees, test configurations, RTT, the upgrade test |
 | [TROUBLESHOOTING.md](TROUBLESHOOTING.md) | a symptom you are looking at right now |
 | [DECISIONS.md](DECISIONS.md) | **why** something is the way it is. Append-only, numbered `D001`… — the rest of the docs cite it by number |
+| [ADDING_FSP_MODULES.md](ADDING_FSP_MODULES.md) | you enabled a driver in RASC and TF-M does not link it |
 | [BRIDGING_FILES.md](BRIDGING_FILES.md) | before an FSP package uprev — the files that carry FSP code but do not move with it |
 | [UPSTREAM_CHANGES.md](UPSTREAM_CHANGES.md) | what this port changes outside `platform/ext/target/renesas/`, and why |
 | [PROJECT_PLAN.md](PROJECT_PLAN.md) | milestones, phases and test-coverage gaps |
