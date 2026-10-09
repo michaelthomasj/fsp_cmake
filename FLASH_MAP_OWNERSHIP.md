@@ -1,4 +1,8 @@
-# Who owns the flash map — TF-M, MCUboot, FSP
+# Whose `flash_map.c` does BL2 link — TF-M's, MCUboot's or FSP's?
+
+*(The question is which implementation of the `flash_area_*` API is compiled in. The image
+layout is a separate question with a separate answer, and conflating the two is the mistake
+§5 is about.)*
 
 > **RESOLVED 2026-10-05: Option 3 adopted and verified on hardware ([D091]).** Both parts take
 > TF-M's MCUboot map and backend, with FSP's HAL behind `fa_driver` via the port's own

@@ -85,7 +85,9 @@ Work through these in order — the first three are the common causes:
    `0x8000`, slots come out 9.875 sectors long; every build step accepts it and it fails here.
    [D054].
 
-5. **A `struct flash_area` layout mismatch**, if BL2 takes its flash map from FSP. TF-M's and
+5. **A `struct flash_area` layout mismatch** — **no longer possible as configured** ([D091]
+   removed FSP's `flash_map.c` from the build, so the two headers never meet; kept because it
+   returns the moment anyone links FSP's backend again, here or on a new part). TF-M's and
    FSP's headers share the guard `H_UTIL_FLASH_MAP_` and define the struct differently - 16
    bytes against 12 - so the first one reached silently suppresses the other and every member
    after `pad16` is read one slot late. The image is fine; `fa_size` is not. The signature in a

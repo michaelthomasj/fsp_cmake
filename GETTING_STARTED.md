@@ -283,7 +283,7 @@ on a first build:
 | Document | Read it when you want |
 |---|---|
 | [README.md](README.md) | the one-page orientation and repository map |
-| [DESIGN.md](DESIGN.md) | **how the port works** — the config-truth principle, the flash map, the SAU, MCUboot integration |
+| [DESIGN.md](DESIGN.md) | **how the port works** — the config-truth principle, the memory map, the SAU, MCUboot integration |
 | [CONFIGURATION.md](CONFIGURATION.md) | every knob you may legitimately change, with its constraints |
 | [RA8M2_SOLUTION.md](RA8M2_SOLUTION.md) / [RA6M5_SOLUTION.md](RA6M5_SOLUTION.md) | the per-part memory map, board settings and open items |
 | [scripts/README.md](scripts/README.md) | build trees, test configurations, RTT, the upgrade test |
