@@ -23,6 +23,13 @@ config truth — the TF-M build consumes the generated projects, it does not for
 `DESIGN.md` §1. Deliberate exceptions are listed in §1.1; anything else that diverges is a
 defect, not a choice.
 
+## Start here
+
+**New to this port?** [GETTING_STARTED.md](GETTING_STARTED.md) takes you from `git clone` to a
+board running the test suite, with commands, versions and the first-build failure table.
+
+The condensed version follows; the long one has the detail that makes it work.
+
 ## Shortest path to a build
 
 1. Open the solution for your part in e2 studio (`ra6m5_gcc`, `ra8m2_gcc`) and **build it**.

@@ -281,13 +281,23 @@ and FSP's `flash_area_open()` then opens the same controller and returns −1 on
 
 ## Open items
 
-- **RSA-2048 key generation in PLAINTEXT format is unavailable.** PSA Arch crypto test 216
-  check 4 returns `PSA_ERROR_NOT_SUPPORTED` (-134). Every other RSA-2048 operation passes.
-  E50D generates RSA-2048 keys in **wrapped** format only (`rm_psa_crypto_usage_notes.md`), and
-  `rsip_e50d_fsp_cfg.h` sets `PSA_CRYPTO_CFG_RSA_FORMAT` to plaintext, so PSA asks for the one
-  format this engine does not offer. RA6M5 passes because `BSP_FEATURE_RSIP_SCE9_SUPPORTED` is
-  in the guard in `rsa_alt_process.c`. Changing the format affects RSA import, export and
-  storage too, not just generation. D097, D098.
+- **RSA-2048 key generation in PLAINTEXT format is unavailable, and there is no switch for it.**
+  PSA Arch crypto test 216 check 4 returns `PSA_ERROR_NOT_SUPPORTED` (-134) under both
+  toolchains. Every other RSA-2048 operation passes. The guard in `rsa_alt_process.c`
+  `mbedtls_rsa_gen_key()` is on the silicon, not on any config:
+
+  ```c
+  else {                                     /* PLAINTEXT */
+  #if !(BSP_FEATURE_RSIP_SCE7_SUPPORTED || BSP_FEATURE_RSIP_SCE9_SUPPORTED ||         BSP_FEATURE_RSIP_RSIP_E51A_SUPPORTED)
+      ret = MBEDTLS_ERR_PLATFORM_FEATURE_UNSUPPORTED;
+  #endif
+  ```
+
+  E50D is absent from that list; RA6M5 passes because SCE9 is in it. `PSA_CRYPTO_CFG_RSA_FORMAT`
+  is **3** (plaintext *and* wrapped) in the generated `ra_cfg/arm/mbedtls/config.h`, and both
+  parts select `vendor_plaintext_wrapped` in RASC, so the format config is not what selects the
+  failing path and raising it cannot help. Hardware RSA keygen on E50D requires the *caller* to
+  ask for a wrapped key, which a conformance test does not do. D097, D098, **D111**.
 - **Run the IAR trees.** The GCC side is done: full regression, PSA Arch attestation (1/1), and
   measured boot verified from the boot record at `0x22000000` - magic `0x2016`, NSPE 0.0.0 and
   SPE 2.2.0, both SHA-256 measurements equal to the signed images' TLVs (D095, D096).

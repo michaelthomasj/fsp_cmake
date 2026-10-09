@@ -63,6 +63,62 @@ is not what a user reconfiguring the port needs, and a diary ages badly because 
 says which entries are still true.
 
 
+## Status, 2026-10-09
+
+Rewritten after five of the seven target documents landed. **What is left is one new document
+and three retirements**, not a programme of writing.
+
+| # | Document | State |
+|---|---|---|
+| 1 | `README.md` | **done** — one page, repo map, now points at `GETTING_STARTED.md` for procedure |
+| 2 | ~~`BUILDING.md`~~ | **superseded by `GETTING_STARTED.md`** — see below |
+| 2a | `GETTING_STARTED.md` | **done 2026-10-09** — clone to running board, with a document map |
+| 3 | `CONFIGURATION.md` | **done** |
+| 4 | `RECONFIGURING_THE_LAYOUT.md` | **not written** — the one real gap |
+| 5 | `ADDING_FSP_MODULES.md` | **folded into `DESIGN.md`** rather than extracted; revisit only if someone needs it standalone |
+| 6 | `PORTING.md` | **substantially covered** by `RA6E1_TEMPLATE_CHECKLIST.md`; promote and rename when a third part is actually added |
+| 7 | `TROUBLESHOOTING.md` | **done** |
+| + | `BRIDGING_FILES.md` | **done** ([D089]) — was the highest-value item on the original list |
+| + | `UPSTREAM_CHANGES.md` | **done**, 14 items ([D108] added the IAR toolchain defect) |
+
+### Why `BUILDING.md` became `GETTING_STARTED.md`
+
+The original plan split "one-page orientation" (README) from "real build procedures"
+(BUILDING). In practice the reader those were written for - someone handed the repository who
+wants a board running - needs one continuous path, not two documents to interleave. A split
+makes the reader decide which half they are in, at exactly the moment they know least.
+
+`GETTING_STARTED.md` is that continuous path: prerequisites with versions, clone, the e2
+solution build (the step everyone misses), the firmware build, flashing, reading RTT, what a
+good run looks like, the first-build failure table, and the map to everything else. README
+keeps the orientation and repository map and hands over.
+
+### Remaining work, in order
+
+1. **`RECONFIGURING_THE_LAYOUT.md`** - the repartitioning procedure. The only target document
+   with no substitute. What follows automatically from the solution (`bsp_linker_info.h` ->
+   `bsp_partitions.h` -> `region_defs.h`, all three linkers), what does **not** (RDPM
+   boundaries, `PS_NUM_ASSETS` capacity, the NSC-window LMA budget), which `_Static_assert`s
+   catch mistakes, and the order to do it in.
+2. **Retire the three superseded files** - `TFM_INTEGRATION_COMPLETE.md`,
+   `BUILD_TEST_RESULTS.md`, `MACHINE_HANDOFF.md` - keeping their resolved-issue narratives,
+   which are the valuable part, by folding them into `TROUBLESHOOTING.md` or a decision entry.
+3. **A sweep for stale cross-references.** Three have already been found and fixed by accident
+   rather than by checking ([D094]'s wrong D-numbers; `RA8M2_SOLUTION.md` describing the FSP
+   MCUboot backend months after [D091] removed it; `app_build_ra8m2_iar.bat` claiming the two
+   project sets were out of sync after they had been reconciled). **There is no check for
+   this.** A script that extracts every `DECISIONS.md` citation from every document and
+   verifies the entry exists and its title matches the claim would have caught all three.
+
+### A documentation rule this port has earned
+
+Every one of the stale cross-references above was written true and became false when the code
+moved. The cheap defence is not more prose - it is **citing a command rather than a fact**
+wherever possible. `BRIDGING_FILES.md` already does this: each entry names a check you can run
+instead of a state you must trust. Apply the same to `RECONFIGURING_THE_LAYOUT.md`.
+
+---
+
 ## Target set
 
 Each document self-contained, stating its scope and audience at the top, and cross-referencing rather
