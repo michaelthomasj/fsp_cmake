@@ -1,11 +1,13 @@
 # TF-M on Renesas RA — RA6E1 → RA6M5 → RA8x2 (single-core), FSP 6.7, GNUARM + IAR
 
-**Project plan · Firmware security · revised 2026-09-23**
+**Project plan · Firmware security · revised 2026-10-12**
 
-RA6E1 and **RA6M5 are both complete on both toolchains**, validated well beyond
-the original bar — RA6M5 is also the first platform here with hardware crypto
-actually doing the work rather than only supplying entropy. The remaining piece
-is **RA8x2 single-core**, which opens 2026-10-19.
+RA6E1, **RA6M5 and RA8M2 are all complete on both toolchains**, validated well
+beyond the original bar — RA6M5 was the first platform here with hardware crypto
+doing the work rather than only supplying entropy, and RA8M2 adds RSIP-E50D,
+measured boot verified from the boot record, and MCUboot secondary-slot upgrade.
+**M5 was met 2026-10-09, 49 days early** (D106). What remains on the primary
+track is FWU on RA6M5.
 
 **TF-M 2.3 is future work (revised 2026-09-21).** TF-M 2.3 replaces Mbed TLS with
 TF-PSA-Crypto, which has no `*_ALT` mechanism. It moves to the end of the plan,
@@ -26,10 +28,10 @@ dates rather than cutting scope.
 | | |
 |---|---|
 | **RA6E1 (GNUARM + IAR)** | **done 2026-09-14** (target was ~09-25) |
-| **RA6M5 — upstream vehicle** | **~2026-10-16 (target)** |
-| **Primary goal — RA8x2 single-core** | **~2026-11-27 (target)** |
+| **RA6M5 — upstream vehicle** | **done 2026-09-23** (target was ~10-16) |
+| **Primary goal — RA8x2 single-core** | **done 2026-10-09** (target was ~11-27) |
 | TF-M 2.3 / TF-PSA-Crypto | future — after the rsip7 update |
-| Revised | 2026-09-21 |
+| Revised | 2026-10-12 |
 | Toolchains | GNUARM + IAR |
 | Validation | boot + crypto NSC app; PSA Arch suites where available |
 | Resourcing | 1 engineer |
@@ -59,12 +61,23 @@ dates rather than cutting scope.
 - Three defects found in FSP's `*_ALT` sources, two now fixed in the pack
   (D041, D043, D044).
 
-**In progress — RA8M2 single-core (P5 opened early, 2026-09-24)**
+**Done — RA8M2 single-core, both toolchains (2026-10-09, M5 met 49 days early)**
 - Started ~3.5 weeks before its Oct 19 window, because P4 finished 23 days early.
 - **BL2, `tfm_s` and `tfm_ns` all build and link, on BOTH toolchains** (IAR then GNUARM).
 - Memory map, OFS placement and M85 TCM attribution verified pre-silicon; the OFS brick
   guard passes on both toolchains with six discrete per-word segments.
-- Boards in hand. **Not yet run on silicon** — that is the remaining M5 work.
+- Full chain **BL2 → S → NS** on an EK-RA8M2, GNUARM and IAR, on FSP 6.7.
+- **PSA Arch identical on both toolchains** — crypto 62/1/1, attestation 1/0/0,
+  storage 11/0/6. The single failure is crypto 216, plaintext RSA-2048 keygen,
+  which RSIP-E50D has no primitive for (D111) — not a port defect.
+- **Measured boot verified from the boot record**, not inferred from a passing
+  attestation suite — both SHA-256 TLVs matched (D096, D105).
+- **MCUboot secondary-slot upgrade proven** on both toolchains, install and erase
+  (D100, D106).
+- RSIP-E50D active; **RA8M2 image 0's slot order is reversed** — secondary sits
+  below primary.
+- Still carried, neither gating M5: the `BSP_TZ_CFG_MSAR=0` workaround pending an
+  e2 generator fix (D093), and FWU on RA6M5.
 - Note the part is **RA8M2** (R7KA8M2JFLCAC) with **RSIP-E50D**, not SCE9; earlier revisions
   of this plan said RSIP-E51A.
 
@@ -93,7 +106,7 @@ dates rather than cutting scope.
 | **P2** | RA6E1 non-secure · full boot · crypto NSC app (GNUARM) | 2026-08-17 | 2026-09-04 | ✅ done |
 | **P3** | IAR toolchain for RA6E1 | 2026-09-07 | **2026-09-14** | ✅ done, 11d early |
 | **P4** | RA6M5 port + SCE9 crypto acceleration | 2026-09-15 | **2026-09-23** | ✅ done, 23d early |
-| **P5** | RA8x2 single-core — TrustZone cfg + BSP | 2026-10-19 | 2026-11-27 | RA8x2 (key) |
+| **P5** | RA8x2 single-core — TrustZone cfg + BSP | **2026-09-24** | **2026-10-09** | ✅ done, 49d early |
 | **P6** | *Stretch* — upstream to Arm TF-M | 2027-01-11 | 2027-03-26 | Stretch |
 | **P7** | *Future* — TF-M 2.3 / TF-PSA-Crypto | after rsip7 | — | Future |
 | **P8** | *Future* — NS image in OSPI (XIP) | after P7 | — | Future |
@@ -139,13 +152,15 @@ rebase that sat ahead of RA8x2 is now future work. P7 is undated.
 > **Sequencing note.** The ALT route is Mbed TLS 3.6-only. It is built now because
 > TF-M 2.3 is deferred to P7, where SCE9 is redone as a PSA transparent driver.
 
-### P5 · RA8x2 single-core — TrustZone cfg + BSP (Oct 19 – Nov 27)
+### P5 · RA8x2 single-core — TrustZone cfg + BSP (Sep 24 – Oct 9)
 - New `platform/ext/target/renesas/ra8x2`; RASC projects on FSP 6.7 ([[D047]]).
 - TrustZone configuration (`target_cfg.c` — SAU/PPC/MPC), isolation HAL, DDSC bridge.
 - BSP update: memory map, RSIP crypto driver, entropy source, Cortex-M85
   PACBTI / FPU-in-SPE.
 - Linker scripts for both toolchains; boot chain + crypto NSC app.
-- **Exit M5** — RA8x2 single-core full chain + crypto app, GNUARM + IAR.
+- ✅ **Exit M5 met 2026-10-09** — RA8M2 single-core full chain on silicon, GNUARM and
+  IAR, all three PSA Arch suites identical across toolchains, measured boot verified
+  from the record, MCUboot upgrade proven. 49 days early. Evidence table in D106.
 
 ### P6 · Stretch — upstream to the Arm TF-M repository (Jan 11 – Mar 26, 2027)
 - **Submission is via Gerrit** (`review.trustedfirmware.org`), not a GitHub PR —
@@ -214,7 +229,7 @@ which P7 rewrites against TF-PSA-Crypto. Doing it first would be done twice.
 | M2 | 2026-09-04 | ✅ Full RA6E1 boot + crypto NSC app (GNUARM) |
 | M3 | **2026-09-14** | ✅ RA6E1 full chain + crypto app, GNUARM **and** IAR |
 | M4 | **2026-09-23** | ✅ RA6M5 full chain, both toolchains, SCE9 ciphers active — 23 days early |
-| **M5** | **~2026-11-27** | **RA8x2 single-core full chain + crypto app, GNUARM + IAR** (primary goal) |
+| **M5** | **2026-10-09** | ✅ RA8M2 single-core full chain, both toolchains, RSIP-E50D, measured boot + MCUboot upgrade verified — 49 days early |
 | M6 | ~2027 Q1–Q2 | *Stretch* — merged into Arm TF-M upstream (port waits on M7) |
 | M7 | future | *Future* — TF-M 2.3 / TF-PSA-Crypto, after the rsip7 update |
 | M8 | future | *Future* — RA8x2 NS image in OSPI, executed in place (after M7) |
@@ -225,7 +240,7 @@ which P7 rewrites against TF-PSA-Crypto. Doing it first would be done twice.
 
 | Severity | Risk |
 |---|---|
-| **High** | **RA8x2 new silicon on FSP 6.7.** First bring-up — M85 FPU/caches, RSIP-E50D, TrustZone config. Concentrated in P5. **Reduced 2026-09-25**: all three images build and link on both toolchains, and the memory map, OFS placement and TCM attribution are verified pre-silicon. What remains is first-boot behaviour, which only hardware settles. |
+| ~~High~~ | ~~**RA8x2 new silicon on FSP 6.7.**~~ **Retired 2026-10-09.** First bring-up carried M85 FPU/caches, RSIP-E50D and TrustZone config. All of it is now exercised on silicon on both toolchains, with the PSA Arch suites identical across them. The one first-boot surprise was MRAM's MRCPFB being non-secure (D092/D093), worked around and tracked. |
 | ~~Med~~ | ~~**SCE9 cipher wiring.**~~ **Retired 2026-09-23.** FSP's crypto stack and TF-M's mbedcrypto now coexist; the port builds TF-M's crypto from FSP's Mbed TLS. The ALT route remains Mbed TLS 3.6-only — redone as a PSA driver in P7, and every FSP ALT fix carried here is debt against that rebase. |
 | ~~Med~~ | ~~**IAR replication, round 2.**~~ **Retired 2026-09-25.** RA8M2 builds and links on **both** toolchains. IAR came first; GNUARM then found two defects IAR had masked — an archive-ordering dependency for the `gp_ddsc_*` TCM symbols, and `Debug` not fitting. The `.icf`/startup patterns transferred as expected. |
 | ~~Med~~ | ~~**Hardware.**~~ **Retired 2026-09-25.** The EK-RA8M2 boards are in hand, ahead of the Oct 19 need-by. The RA6M5 board is in hand. 2× EK-RA6M4 remain bricked (RA6E1 was the RA6 vehicle) — the reason the OFS brick guard exists. |
