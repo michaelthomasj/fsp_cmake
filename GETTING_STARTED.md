@@ -296,7 +296,7 @@ on a first build:
 | [UPSTREAM_CHANGES.md](UPSTREAM_CHANGES.md) | what this port changes outside `platform/ext/target/renesas/`, and why |
 | [PROJECT_PLAN.md](PROJECT_PLAN.md) | milestones, phases and test-coverage gaps |
 | [RA6E1_TEMPLATE_CHECKLIST.md](RA6E1_TEMPLATE_CHECKLIST.md) | what a RASC project must emit — the other half of `PORTING.md` |
-| [RSIP7_INTEGRATION_PLAN.md](RSIP7_INTEGRATION_PLAN.md) | the planned move to TF-PSA-Crypto (Mbed TLS 4.x) |
+| — | the planned move to TF-PSA-Crypto (Mbed TLS 4.x) is **not in this repo**: see the sibling `fsp_tf_psa_crypto`, which carries its plan and its own decision log |
 | [DOCUMENTATION_PLAN.md](DOCUMENTATION_PLAN.md) | you are adding to these documents |
 
 **If you read one other document, make it `DESIGN.md` §1.** It explains why the e2 projects are
