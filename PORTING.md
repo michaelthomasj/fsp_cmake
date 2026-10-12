@@ -186,6 +186,7 @@ Do not skip ahead; each catches a different class of mistake.
 | PSA Arch crypto | the engine. Compare against 62/1/1 (RA8M2) or 63/0/1 (RA6M5) |
 | Measured boot read from the record | **not** the attestation suite, which passes with zero components ([D080]) |
 | Both toolchains | IAR has produced defects GNU did not, four times ([D083], [D089], [D107], [D108]) |
+| **Azone parity, not only property parity** | Peripheral-to-zone security. `configuration.xml` does not hold it — diff `.secure_azone` and `.secure_rzone` across the toolchain pair as well. RASC rewrote the IAR azone where it patched the GCC one and dropped a peripheral in the process ([D112]) |
 
 ---
 

@@ -53,7 +53,7 @@ Rows marked _TBD_ are not yet written.
 | Why is DF_EMULATION 64 KB on RA8M2? | **FSP's MRAM sector size forces it.** On a 1 MB device with a 64 KB BL2 it is the only value that leaves a workable split. ITS, PS and the NV counters share it; the part has no data flash. | D041→D043→D044→D051→**D054** |
 | Is deterministic ECDSA available? | **No — FSP does not support it, by design.** PSA Arch test 252 skips with code `0x2d` on every part and both toolchains. | D036→D037→**D038** |
 | How much secure-slot headroom is there? | **1,693 B on RA6M5, 670 B on RA8M2.** Earlier figures of 1,984 / 960 omitted ~275 B of imgtool TLVs. Measured from the `0xFF` gap below the trailer. | D084→**D087** |
-| Do the RA8M2 IAR and GCC RASC projects emit the same configuration? | **Yes, as of 2026-10-08.** A full property diff of all three pairs shows no real differences; `vector_data.h`, `bsp_cfg.h` and every `BSP_PARTITION_*` match except `RAM_BL_CPU0_S_SIZE`, which nothing consumes. | D095→D096→**D101** |
+| Do the RA8M2 IAR and GCC RASC projects emit the same configuration? | **Yes, but a property diff does not prove it.** No real differences in `configuration.xml`, `vector_data.h`, `bsp_cfg.h` or any `BSP_PARTITION_*` except `RAM_BL_CPU0_S_SIZE`, which nothing consumes. But **peripheral-to-zone security lives in `.secure_azone`, which that diff never read** - it hid a missing `ICU.IRQ0` assignment on IAR. Diff the azones too. | D095→D096→D101→**D112** |
 | Which project hosts the IAR debug launches? | **The IAR project**, with `PROJECT_BUILD_CONFIG_AUTO_ATTR=false`. `serverParam` builds the `.jlink` path from `${ProjName}`, so sharing one host makes both toolchains write to the same directory. Diverges from RA6M5 deliberately. | D102→**D103** |
 | _TBD_ — the FLIH/SLIH interrupt fixture | _TBD_ | D062→D067→**D068** |
 | _TBD_ | _TBD_ | D006→**D012** |
@@ -5400,3 +5400,63 @@ tree the result came from. **Three entries on one question, and the error that s
 was the one written to fix an earlier error.** The check that would have caught it at any point
 is `grep PSA_CRYPTO_CFG_RSA_FORMAT ra_cfg/arm/mbedtls/config.h` on the project that produced the
 failing run - one command against generated output, rather than reasoning from module sources.
+
+---
+
+## D112 — [D101]'s parity method cannot read the azone; one regenerate produced different TrustZone assignments per toolchain
+
+**Date:** 2026-10-12 · **Status:** Accepted · **Refines** [D101] · RA8M2, both toolchains
+
+[D101] declared the RA8M2 IAR and GCC projects configuration-identical on the strength of "a
+full `<property id=... value=...>` diff of all three pairs". That diff reads
+`configuration.xml`. **Peripheral-to-zone assignments are not in that file** - they live in
+`.secure_azone` / `.secure_rzone`, which the method never opened.
+
+What the blind spot held, measured today:
+
+| Azone content, NS project | GCC | IAR, before today |
+|---|---|---|
+| `<peripheral name="AGT0.CPU0" group="AGT" security="s"/>` | present | present |
+| `<peripheral name="ICU.CPU0"><slot name="IRQ0.CPU0" secure="true"/>` | present | **absent** |
+| `<assign group="AGT" peripheral="AGT0"/>` | present | present |
+| `<assign peripheral="ICU.IRQ0"/>` | present | **absent** |
+
+### The mechanism is the finding; the damage is nil
+
+The ICU block is **inert on both toolchains.** Nothing in any RA8M2 project instantiates
+`r_icu` or `external_irq` - grepping all six `configuration.xml` files for either name returns
+nothing - so no driver claims IRQ0 and no vector entry is emitted for it. That is why IAR
+passed the full regression including the FLIH interrupt test ([D105]) without it: the FLIH
+fixture is AGT-based ([D061], [D101]) and the AGT half was present on both sides all along.
+
+**Where it came from is what is worth keeping.** `2b5015c` ("Regenerate the RA6M5 and RA8M2
+GCC/IAR projects with the secure AGT timer", 2026-10-01) touched all six RA6M5/RA8M2 azones in
+one step:
+
+- GCC NS tree: a **6-line addition** - the AGT peripheral, the ICU block, and both assigns.
+- IAR NS tree: a **28-line rewrite** (14+/14-) that did not include ICU.
+- `git log -S'ICU' -- ra8m2_iar_CPU0_nonsecure/.secure_azone` returns nothing. The IAR file
+  never carried the block at any point.
+
+**One regeneration step, two different azones.** RASC rewrote the IAR azone wholesale where it
+patched the GCC one, and the rewrite dropped a peripheral the patch added.
+
+### Consequence
+
+- The IAR azone is brought into line; the three lines are now identical across toolchains.
+- **`.secure_azone` and `.secure_rzone` join the parity check.** A property diff of
+  `configuration.xml` is necessary and not sufficient: TrustZone peripheral security is decided
+  in files it does not read. Any future "the projects agree" claim must diff the azones too.
+- [D101]'s *conclusion* stands - the remaining differences really are inert - but it was reached
+  by a method that could not have found a non-inert one. The claim was true by luck.
+
+### Rejected
+
+**Leave the IAR azone alone, since the block is inert.** It is inert *today*, because no module
+claims IRQ0. The first module that does would make the two toolchains disagree on whether that
+interrupt is secure, and the symptom would surface in the NS image on one toolchain only -
+the most expensive shape of defect this port has had. Parity costs three lines.
+
+**Treat it as evidence that [D101] was wrong.** It is not. [D101] fixed three real gaps and its
+parity finding holds; what this entry corrects is the sufficiency of the *method*, which matters
+for the next port (`PORTING.md`) rather than for RA8M2.
