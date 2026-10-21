@@ -6133,3 +6133,69 @@ tree still unrun.
   untested arm of [D114]'s fix.
 - RA6M5 L1+IPC (`m5gl1i`) still unrun - unchanged from [D116]/[D117].
 - Item 9's classification in `UPSTREAM_CHANGES.md` is still unresolved ([D117] item 6).
+---
+
+## D119 — [D114]'s second macro confirmed under IAR; RA8M2 is complete at every level on both toolchains
+
+**Date:** 2026-10-21 · **Status:** Accepted · closes the gap [D118] named · RA8M2 measured
+
+**Result: RA8M2 at isolation 3, IAR 10.10.2 — secure 9/9, non-secure 7/7, both FLIH tests
+PASSED.** [D118] identified `m2il3` as "the single most informative tree still unrun" because
+level 2 takes the `!= 3` branch and therefore cannot exercise `CONFIG_TFM_PARTITION_META`. It
+has now run, and it does exercise it:
+
+```
+TF-M isolation level is: 0x00000003
+[MPU] enabled after static boundaries: 0x00000005
+  idx 3   base  0x22000400
+          limit 0x22000400          <- TFM_SP_META_PTR, 32 bytes
+```
+
+Base and limit read identically because `RLAR` masks bits [4:0], so a 32-byte region cannot
+show a span - the same signature [D114] recorded on RA6M5 under GNUARM, at the same address.
+**Both arms of [D114]'s fix are now confirmed on both toolchains**, which was the last piece of
+that entry carrying only GNUARM evidence.
+
+### IAR's two levels side by side, same part
+
+| Region | isolation 2 | isolation 3 |
+|---|---|---|
+| combined unprivileged/ARoT code | 23,552 | 23,552 |
+| PSA RoT code | 219,648 | 219,904 |
+| RO data | 41,536 | 41,696 |
+| App RoT data | 5,248 | **replaced** |
+| `TFM_SP_META_PTR` | - | **32** |
+| PSA RoT data | 59,264 | 59,392 |
+| AGT0 (MMIO) | 256 | not static - reprogrammed per switch |
+| **static count** | **5, +1 at bind** | **5** |
+
+The level-3 table replaces the App RoT data region with the 32-byte metadata pointer and grows
+the PSA RoT data region to cover what it gave up, exactly as the shared HAL's if/elif
+prescribes. AGT0's absence from the level-3 dump is correct and proves nothing either way -
+[D114] already established that MMIO is programmed per context switch above level 2, so the
+post-partition hook cannot see it.
+
+These are MPU region extents, not section sizes: they include alignment padding, so the
+level-2-to-3 growth here is **not** comparable to [D113]'s measured +156 bytes of text for the
+same step.
+
+### Coverage
+
+| | L1 SFN | L1 IPC | L2 | L3 |
+|---|---|---|---|---|
+| RA6M5 GNUARM | green | **built, unrun** | green | green |
+| RA8M2 GNUARM | green | green | green | green |
+| RA6M5 IAR | green | - | **unrun** | **unrun** |
+| RA8M2 IAR | green | - | green | green |
+
+**RA8M2 is complete**: every level this port supports, on both toolchains. IAR has produced no
+defect above isolation 1 on this part, after producing four below it ([D083], [D089], [D107],
+[D108]).
+
+### Carried
+
+- **`m5il2` and `m5il3`** - RA6M5 under IAR at both levels. The remaining substantive work.
+  RA8M2 passing both reduces the expected yield, but the two parts differ in the ways that have
+  mattered before: `__SAUREGION_PRESENT`, MRAM versus flash, and `MCUBOOT_ALIGN_VAL`.
+- **`m5gl1i`** - RA6M5 L1+IPC, still unrun ([D116], [D117]).
+- Item 9's classification in `UPSTREAM_CHANGES.md` ([D117] item 6).

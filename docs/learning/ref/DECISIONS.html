@@ -164,6 +164,7 @@
           <li><a href="#d116">D116 — the L1+IPC HardFault was the same undefined macro; closes [D113]/[D114]/[D115]&#x27;s carried items</a></li>
           <li><a href="#d117">D117 — six corrections from an external review: [D113] overstated FLIH, [D116] closed a question that was answerable, and three ports deny the IDAU exists</a></li>
           <li><a href="#d118">D118 — first IAR run above isolation 1: RA8M2 L2 green, and the MMIO region is the only toolchain-invariant in the table</a></li>
+          <li><a href="#d119">D119 — [D114]&#x27;s second macro confirmed under IAR; RA8M2 is complete at every level on both toolchains</a></li>
         </ol>
       </li>
     </ol>
@@ -4865,6 +4866,60 @@ tree still unrun.</p>
 untested arm of <a href="DECISIONS.html#d114">D114</a>&#x27;s fix.</li>
 <li>RA6M5 L1+IPC (<code>m5gl1i</code>) still unrun - unchanged from <a href="DECISIONS.html#d116">D116</a>/<a href="DECISIONS.html#d117">D117</a>.</li>
 <li>Item 9&#x27;s classification in <code>UPSTREAM_CHANGES.md</code> is still unresolved (<a href="DECISIONS.html#d117">D117</a> item 6).</li>
+</ul>
+<hr>
+<h2 id="d119">D119 — <a href="DECISIONS.html#d114">D114</a>&#x27;s second macro confirmed under IAR; RA8M2 is complete at every level on both toolchains</h2>
+<p><strong>Date:</strong> 2026-10-21 · <strong>Status:</strong> Accepted · closes the gap <a href="DECISIONS.html#d118">D118</a> named · RA8M2 measured</p>
+<p>**Result: RA8M2 at isolation 3, IAR 10.10.2 — secure 9/9, non-secure 7/7, both FLIH tests
+PASSED.** <a href="DECISIONS.html#d118">D118</a> identified <code>m2il3</code> as &quot;the single most informative tree still unrun&quot; because
+level 2 takes the <code>!= 3</code> branch and therefore cannot exercise <code>CONFIG_TFM_PARTITION_META</code>. It
+has now run, and it does exercise it:</p>
+<pre><code>TF-M isolation level is: 0x00000003
+[MPU] enabled after static boundaries: 0x00000005
+  idx 3   base  0x22000400
+          limit 0x22000400          &lt;- TFM_SP_META_PTR, 32 bytes</code></pre>
+<p>Base and limit read identically because <code>RLAR</code> masks bits [4:0], so a 32-byte region cannot
+show a span - the same signature <a href="DECISIONS.html#d114">D114</a> recorded on RA6M5 under GNUARM, at the same address.
+<strong>Both arms of <a href="DECISIONS.html#d114">D114</a>&#x27;s fix are now confirmed on both toolchains</strong>, which was the last piece of
+that entry carrying only GNUARM evidence.</p>
+<h3 id="iars-two-levels-side-by-side-same-part">IAR&#x27;s two levels side by side, same part</h3>
+<div class="table-wrap"><table>
+<tr><th>Region</th><th>isolation 2</th><th>isolation 3</th></tr>
+<tr><td>combined unprivileged/ARoT code</td><td>23,552</td><td>23,552</td></tr>
+<tr><td>PSA RoT code</td><td>219,648</td><td>219,904</td></tr>
+<tr><td>RO data</td><td>41,536</td><td>41,696</td></tr>
+<tr><td>App RoT data</td><td>5,248</td><td><strong>replaced</strong></td></tr>
+<tr><td><code>TFM_SP_META_PTR</code></td><td>-</td><td><strong>32</strong></td></tr>
+<tr><td>PSA RoT data</td><td>59,264</td><td>59,392</td></tr>
+<tr><td>AGT0 (MMIO)</td><td>256</td><td>not static - reprogrammed per switch</td></tr>
+<tr><td><strong>static count</strong></td><td><strong>5, +1 at bind</strong></td><td><strong>5</strong></td></tr>
+</table></div>
+<p>The level-3 table replaces the App RoT data region with the 32-byte metadata pointer and grows
+the PSA RoT data region to cover what it gave up, exactly as the shared HAL&#x27;s if/elif
+prescribes. AGT0&#x27;s absence from the level-3 dump is correct and proves nothing either way -
+<a href="DECISIONS.html#d114">D114</a> already established that MMIO is programmed per context switch above level 2, so the
+post-partition hook cannot see it.</p>
+<p>These are MPU region extents, not section sizes: they include alignment padding, so the
+level-2-to-3 growth here is <strong>not</strong> comparable to <a href="DECISIONS.html#d113">D113</a>&#x27;s measured +156 bytes of text for the
+same step.</p>
+<h3 id="coverage">Coverage</h3>
+<div class="table-wrap"><table>
+<tr><th></th><th>L1 SFN</th><th>L1 IPC</th><th>L2</th><th>L3</th></tr>
+<tr><td>RA6M5 GNUARM</td><td>green</td><td><strong>built, unrun</strong></td><td>green</td><td>green</td></tr>
+<tr><td>RA8M2 GNUARM</td><td>green</td><td>green</td><td>green</td><td>green</td></tr>
+<tr><td>RA6M5 IAR</td><td>green</td><td>-</td><td><strong>unrun</strong></td><td><strong>unrun</strong></td></tr>
+<tr><td>RA8M2 IAR</td><td>green</td><td>-</td><td>green</td><td>green</td></tr>
+</table></div>
+<p><strong>RA8M2 is complete</strong>: every level this port supports, on both toolchains. IAR has produced no
+defect above isolation 1 on this part, after producing four below it (<a href="DECISIONS.html#d083">D083</a>, <a href="DECISIONS.html#d089">D089</a>, <a href="DECISIONS.html#d107">D107</a>,
+<a href="DECISIONS.html#d108">D108</a>).</p>
+<h3 id="carried_7">Carried</h3>
+<ul>
+<li><strong><code>m5il2</code> and <code>m5il3</code></strong> - RA6M5 under IAR at both levels. The remaining substantive work.
+RA8M2 passing both reduces the expected yield, but the two parts differ in the ways that have
+mattered before: <code>__SAUREGION_PRESENT</code>, MRAM versus flash, and <code>MCUBOOT_ALIGN_VAL</code>.</li>
+<li><strong><code>m5gl1i</code></strong> - RA6M5 L1+IPC, still unrun (<a href="DECISIONS.html#d116">D116</a>, <a href="DECISIONS.html#d117">D117</a>).</li>
+<li>Item 9&#x27;s classification in <code>UPSTREAM_CHANGES.md</code> (<a href="DECISIONS.html#d117">D117</a> item 6).</li>
 </ul>
 </main>
 </div>
