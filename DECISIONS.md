@@ -5825,3 +5825,81 @@ configuration that exposes it is by definition one nobody builds.
 - RA8M2 isolation 3's non-secure half has not been captured.
 - The hook and the region dump remain enabled at isolation 2 and above on both ports. They
   produced [D113], [D114] and items 1 and 3 of this entry; they are still diagnostics.
+---
+
+## D116 — the L1+IPC HardFault was the same undefined macro; closes [D113]/[D114]/[D115]'s carried items
+
+**Date:** 2026-10-21 · **Status:** Accepted · **Closes** carried items in [D113], [D114], [D115] · RA8M2 measured
+
+Two runs, both of which were explicitly listed as unproven in [D115].
+
+### 1. L1 + IPC is green, and the hypothesis was right
+
+**RA8M2 at isolation 1 with the IPC backend, GNUARM — secure 9/9, non-secure 7/7, both FLIH
+tests PASSED.** This configuration had HardFaulted since it was first attempted, on the PendSV
+write in `arch_attempt_schedule()` (`backend_ipc.c:517`), precise BusFault, BFAR `0xE000ED04`.
+
+[D113] recorded the fault and could not explain it; [D114] and [D115] carried the standing
+hypothesis that it was the *same* undefined `TFM_ISOLATION_LEVEL`, because with the macro
+undefined `#if TFM_ISOLATION_LEVEL == 1` is false and the HAL falls through to
+`privileged = IS_PSA_ROT()` - de-privileging ARoT partitions at a level where upstream intends
+`true` for every partition. Nothing was changed for this run beyond the fixes already in
+[D113]-[D115], and the configuration now passes end to end. **Hypothesis confirmed.**
+
+Worth stating plainly because [D114] flagged it as a gap: the hypothesis never explained why
+L1+IPC failed *earlier in boot* than L2 did, and that is still not explained from first
+principles - it is simply consistent. An unprivileged thread reaching the PendSV write in the
+scheduler faults sooner than one reaching a peripheral in a test body, which is the obvious
+reading, but no one instrumented it. The configuration passes; the boot-order question is
+closed by irrelevance, not by analysis.
+
+L1+IPC remains a configuration this port does not ship. Its value was diagnostic and it has
+now delivered it.
+
+### 2. The hook gate confirmed at run time, not just at link time
+
+[D115] fixed `CONFIG_TFM_POST_PARTITION_INIT_HOOK` by gating it on
+`CONFIG_TFM_ENABLE_MEMORY_PROTECT` and verified the result by linking and by comparing
+binaries. The run adds the behavioural half:
+
+```
+TF-M isolation level is: 0x00000001
+#### Execute test suites for the Secure area ####     <- no [MPU] lines anywhere
+```
+
+No region dump at all, which is correct and is the point: both the in-init `ra_mpu_report()`
+and the post-partition hook sit inside `CONFIG_TFM_ENABLE_MEMORY_PROTECT`, so at isolation 1
+the whole diagnostic compiles out. A dump appearing here would have meant the gate was wrong
+in the other direction.
+
+Note the banner reads `Booting TF-M v2.2.0+4c9a9e687`, the commit *before* `c690534cc`. The
+binary was built from the working tree before that commit was made, and `c690534cc` committed
+exactly what had been built - so the version string understates the content. Anyone reading
+this log later should not conclude the binary predates the fixes.
+
+### 3. RA8M2 isolation 3, non-secure half
+
+Captured: **7/7 suites PASSED**, `TFM_NS_IRQ_TEST_FLIH_1101` and `1102` included. With
+[D115]'s secure-side result, **RA8M2 is now fully green at isolation 1+IPC, 2 and 3**, matching
+RA6M5. [D115]'s "isolation 3's non-secure half has not been captured" is closed.
+
+### Coverage as it now stands
+
+| | L1 SFN | L1 IPC | L2 | L3 |
+|---|---|---|---|---|
+| RA6M5 GNUARM | green | **built, unrun** | green | green |
+| RA8M2 GNUARM | green | **green** | green | green |
+| RA6M5 IAR | green | - | **unrun** | **unrun** |
+| RA8M2 IAR | green | - | **unrun** | **unrun** |
+
+### Carried
+
+- **The four IAR trees remain the substantive unrun work**: `m5il2`, `m5il3`, `m2il2`, `m2il3`.
+  Unchanged from [D115] - built in the same batch as the green GNUARM trees, both defines
+  verified present in each `build.ninja`. IAR has produced defects GNUARM did not four times on
+  this port ([D083], [D089], [D107], [D108]).
+- **RA6M5 L1+IPC (`m5gl1i`) is built but unrun.** RA8M2 passing makes a failure there unlikely,
+  but the original fault was observed on both parts, so only one of the two is actually closed.
+- The hook and region dump remain enabled at isolation 2 and above on both ports. Every entry
+  from [D113] to this one depended on them; they are still diagnostics and still want a
+  decision before the port is called done.

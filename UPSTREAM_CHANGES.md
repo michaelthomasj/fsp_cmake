@@ -292,6 +292,19 @@ isolation 1 as well, where upstream intends `true` for every partition.
 the full regression suite then passed at isolation 2, FLIH IRQ tests included. DECISIONS
 D113.
 
+**The isolation-1 consequence is measured too, and it is the more serious one.** At isolation
+1 the undefined macro makes `#if TFM_ISOLATION_LEVEL == 1` false, so the HAL falls through to
+`privileged = IS_PSA_ROT()` and de-privileges ARoT partitions at a level that is supposed to
+have no isolation between them. With the IPC backend that is not a latent inefficiency - it
+is a boot failure: a HardFault on the PendSV write in `arch_attempt_schedule()`
+(`backend_ipc.c:517`), precise BusFault, BFAR `0xE000ED04`, reproducible on both RA6M5 and
+RA8M2. Defining the macro fixes it; RA8M2 then passes the full regression suite at isolation 1
+with the IPC backend, secure and non-secure, FLIH tests included. DECISIONS D116.
+
+So the defect is not confined to isolation 2 and 3. **Isolation 1 + IPC does not boot at all**
+on a platform using the shared v8-m HAL, which is a plausible explanation for why no upstream
+CI job appears to cover that pair.
+
 **Fix** - either link the target that already carries it:
 
 ```cmake
