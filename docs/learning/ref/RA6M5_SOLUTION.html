@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RA6M5 Solution Project — layout, TrustZone boundaries, project requirements</title>
+<meta name="description" content="Rendered from RA6M5_SOLUTION.md by scripts/build_doc_html.py.">
+<link rel="stylesheet" href="../assets/style.css">
+<script src="../assets/site.js"></script>
+</head>
+<body>
+<!-- GENERATED from RA6M5_SOLUTION.md by scripts/build_doc_html.py. Do not edit: the next commit touching the Markdown overwrites it. -->
+<div class="layout">
+<aside class="sidebar">
+  <div class="brand"><a href="../index.html">Cortex-M, TrustZone &amp; TF-M on Renesas RA</a><button class="menu-toggle" aria-expanded="false">Menu</button></div>
+  <nav>
+    <ol>
+      <li><a href="../index.html">← Course</a></li>
+      <li><a href="index.html">Reference documents</a>
+        <ol>
+      <li><a href="ADDING_FSP_MODULES.html">ADDING_FSP_MODULES.md</a></li>
+      <li><a href="BRIDGING_FILES.html">BRIDGING_FILES.md</a></li>
+      <li><a href="CONFIGURATION.html">CONFIGURATION.md</a></li>
+      <li><a href="DECISIONS.html">DECISIONS.md</a></li>
+      <li><a href="DESIGN.html">DESIGN.md</a></li>
+      <li><a href="DOCUMENTATION_PLAN.html">DOCUMENTATION_PLAN.md</a></li>
+      <li><a href="FLASH_MAP_OWNERSHIP.html">FLASH_MAP_OWNERSHIP.md</a></li>
+      <li><a href="GETTING_STARTED.html">GETTING_STARTED.md</a></li>
+      <li><a href="PORTING.html">PORTING.md</a></li>
+      <li><a href="PROJECT_PLAN.html">PROJECT_PLAN.md</a></li>
+      <li><a href="RA6E1_SOLUTION.html">RA6E1_SOLUTION.md</a></li>
+      <li><a href="RA6E1_TEMPLATE_CHECKLIST.html">RA6E1_TEMPLATE_CHECKLIST.md</a></li>
+      <li><a href="RA6M5_SOLUTION.html" aria-current="page">RA6M5_SOLUTION.md</a></li>
+      <li><a href="RA8M2_SOLUTION.html">RA8M2_SOLUTION.md</a></li>
+      <li><a href="RA8x2_DUAL_CORE_DESIGN.html">RA8x2_DUAL_CORE_DESIGN.md</a></li>
+      <li><a href="README.html">README.md</a></li>
+      <li><a href="RECONFIGURING_THE_LAYOUT.html">RECONFIGURING_THE_LAYOUT.md</a></li>
+      <li><a href="TROUBLESHOOTING.html">TROUBLESHOOTING.md</a></li>
+      <li><a href="UPSTREAM_CHANGES.html">UPSTREAM_CHANGES.md</a></li>
+      <li><a href="scripts_README.html">scripts/README.md</a></li>
+        </ol>
+      </li>
+    </ol>
+    <ol class="doc-toc">
+      <li><a href="#top">RA6M5_SOLUTION.md</a>
+        <ol>
+          <li><a href="#layout">Layout</a></li>
+          <li><a href="#trustzone-boundary-values-for-this-layout">TrustZone boundary values for this layout</a></li>
+          <li><a href="#what-the-e2-projects-must-provide">What the e2 projects must provide</a></li>
+          <li><a href="#status">Status</a></li>
+          <li><a href="#device-differences-from-ra6e1-that-the-port-had-to-absorb">Device differences from RA6E1 that the port had to absorb</a></li>
+          <li><a href="#open-items">Open items</a></li>
+        </ol>
+      </li>
+    </ol>
+    <button class="theme-toggle" type="button">Dark theme</button>
+  </nav>
+</aside>
+<main id="top" class="ref-doc">
+<p class="src">Rendered from <a href="../../../RA6M5_SOLUTION.md"><code>RA6M5_SOLUTION.md</code></a>. Edit the Markdown, not this page.</p>
+<h1 id="ra6m5-solution-project--layout-trustzone-boundaries-project-requirements">RA6M5 Solution Project — layout, TrustZone boundaries, project requirements</h1>
+<p>Device: <strong>R7FA6M5BH3CFC</strong> on the <strong>CK-RA6M5 V2</strong> (<code>board.ra6m5ckv2</code>) — 2 MB code flash, 512 KB SRAM,
+8 KB data flash, SCE9, Cortex-M33.</p>
+<p>Companion docs: <code>RA6E1_SOLUTION.md</code> (the port this is derived from), <code>DESIGN.md</code> (why),
+<code>RA6E1_TEMPLATE_CHECKLIST.md</code> (what a solution must emit — it applies here unchanged).</p>
+<hr>
+<h2 id="layout">Layout</h2>
+<p>2 MB, all of it allocated. Every boundary falls on a 32 KB erase block, which is the
+region-1 block size (<code>BSP_FEATURE_FLASH_HP_CF_REGION1_BLOCK_SIZE</code>).</p>
+<div class="table-wrap"><table>
+<tr><th>name</th><th>parent</th><th>security</th><th>offset</th><th>size</th><th>role</th></tr>
+<tr><td><code>RAM_CM33_S</code></td><td>RAM</td><td>s</td><td>0x0</td><td>0x3FC00</td><td>secure RAM (255 KB)</td></tr>
+<tr><td><code>RAM_CM33_C</code></td><td>RAM</td><td>c</td><td>0x3FC00</td><td>0x400</td><td>NSC RAM</td></tr>
+<tr><td><code>RAM_CM33_N</code></td><td>RAM</td><td>n</td><td>0x40000</td><td>0x40000</td><td>NS RAM (256 KB)</td></tr>
+<tr><td><code>FLASH_CM33_B</code></td><td>FLASH</td><td>s</td><td>0x0</td><td>0x18000</td><td>BL2 (96 KB)</td></tr>
+<tr><td><em>scratch</em></td><td>FLASH</td><td>s</td><td>0x18000</td><td>0x8000</td><td>reserved, see below</td></tr>
+<tr><td><code>__BL_0_S_H</code></td><td>FLASH</td><td>s</td><td>0x20000</td><td>0x200</td><td>image 0 secondary header</td></tr>
+<tr><td><code>__BL_0_S_I</code></td><td>FLASH</td><td>s</td><td>0x20200</td><td>0x7FE00</td><td>image 0 secondary</td></tr>
+<tr><td><code>__BL_0_S_T</code></td><td>FLASH</td><td>s</td><td>0xA0000</td><td>0x0</td><td></td></tr>
+<tr><td><code>__BL_0_P_H</code></td><td>FLASH</td><td>s</td><td>0xA0000</td><td>0x200</td><td>image 0 primary header</td></tr>
+<tr><td><code>FLASH_CM33_S</code></td><td>FLASH</td><td>s</td><td>0xA0200</td><td>0x7F600</td><td>secure code</td></tr>
+<tr><td><code>FLASH_CM33_C</code></td><td>FLASH</td><td>c</td><td>0x11F800</td><td>0x800</td><td>NSC veneers</td></tr>
+<tr><td><code>__BL_0_P_T</code></td><td>FLASH</td><td>n</td><td>0x120000</td><td>0x0</td><td></td></tr>
+<tr><td><code>__BL_1_P_H</code></td><td>FLASH</td><td>n</td><td>0x120000</td><td>0x200</td><td>image 1 primary header</td></tr>
+<tr><td><code>FLASH_CM33_N</code></td><td>FLASH</td><td>n</td><td>0x120200</td><td>0x6FE00</td><td>NS code</td></tr>
+<tr><td><code>__BL_1_P_T</code></td><td>FLASH</td><td>n</td><td>0x190000</td><td>0x0</td><td></td></tr>
+<tr><td><code>__BL_1_S_H</code></td><td>FLASH</td><td>n</td><td>0x190000</td><td>0x200</td><td>image 1 secondary header</td></tr>
+<tr><td><code>__BL_1_S_I</code></td><td>FLASH</td><td>n</td><td>0x190200</td><td>0x6FE00</td><td>image 1 secondary</td></tr>
+<tr><td><code>__BL_1_S_T</code></td><td>FLASH</td><td>n</td><td>0x200000</td><td>0x0</td><td></td></tr>
+<tr><td><code>DATA_FLASH_CM33_S</code></td><td>DATA_FLASH</td><td>s</td><td>0x0</td><td>0x2000</td><td>ITS + PS + NV counters</td></tr>
+<tr><td><code>DATA_FLASH_CM33_N</code></td><td>DATA_FLASH</td><td>n</td><td>0x2000</td><td>0x0</td><td></td></tr>
+</table></div>
+<p>In 32 KB units: BL2 3, scratch 1, secure slots 16 each, NS slots 14 each — 64 units, no
+remainder.</p>
+<p><strong>The scratch block is SECURE and deliberately empty.</strong> MCUboot is overwrite-only here, so
+nothing uses it; <code>FLASH_AREA_SCRATCH_SIZE</code> is 0 in <code>flash_layout.h</code>. It exists so a later
+move to swap-using-scratch does not have to re-partition and re-provision the part. It is
+secure because during a swap the scratch holds fragments of the <strong>secure</strong> image — an
+NS-writable scratch would expose and could corrupt it.</p>
+<p><strong>Data flash is entirely secure.</strong> ITS, PS and the MCUboot NV counters all live there:
+NV counters 2048 B, PS 3072 B, ITS 3072 B. <code>flash_layout.h</code> splits the partition
+proportionally and <code>#error</code>s below 4 KB; <code>PS_MAX_ASSET_SIZE</code> 512 / <code>PS_NUM_ASSETS</code> 5 in
+<code>config_tfm_target.h</code> are derived from the resulting 1536-byte FS block. Do not give the
+NS side a half like the stock template does.</p>
+<hr>
+<h2 id="trustzone-boundary-values-for-this-layout">TrustZone boundary values for this layout</h2>
+<p>Programmed once per board with the <strong>Renesas Device Partition Manager</strong>, in KB. Nothing in
+the firmware sets them. See <code>DESIGN.md</code> §7.1 for the granularity rules.</p>
+<div class="table-wrap"><table>
+<tr><th>Boundary</th><th>Value (KB)</th><th>Check</th></tr>
+<tr><td>Code flash Secure</td><td><strong>1150</strong></td><td>S + NSC = 1152 = 36 × 32 ✓</td></tr>
+<tr><td>Code flash NSC</td><td><strong>2</strong></td><td></td></tr>
+<tr><td>Data flash Secure</td><td><strong>8</strong></td><td>whole device</td></tr>
+<tr><td>SRAM Secure</td><td><strong>255</strong></td><td>S + NSC = 256 = 32 × 8 ✓</td></tr>
+<tr><td>SRAM NSC</td><td><strong>1</strong></td><td></td></tr>
+</table></div>
+<p>Resulting NS regions: 896 KB of code flash from 0x120000, 256 KB of SRAM from 0x20040000.</p>
+<p>RDPM erases the part — reflash all three images afterwards. Every launch configuration must
+keep <code>com.renesas.hardwaredebug.arm.jlink.setTZBoundaries</code> = <strong>false</strong> (<code>DESIGN.md</code> §7.2).</p>
+<p><strong>Dual-bank mode must be off.</strong> The OFS <code>DUALSEL</code> word must select linear mode. In dual-bank
+mode each bank is 1 MB and the upper half is not at 0x100000, which breaks this layout.
+<code>BSP_FEATURE_FLASH_HP_CF_DUAL_BANK_START</code> is 0x00200000 on this part.</p>
+<hr>
+<h2 id="what-the-e2-projects-must-provide">What the e2 projects must provide</h2>
+<p>Three projects, as on RA6E1 — <code>ra6m5_mcuboot</code>, <code>ra6m5_secure</code>, <code>ra6m5_nonsecure</code>. The
+<code>RA6E1_TEMPLATE_CHECKLIST.md</code> contract applies unchanged. RA6M5-specific points, all of
+them learned from the first <code>ra6m5_gcc_*</code> generation:</p>
+<p>All of these were missing in the first <code>ra6m5_gcc_*</code> generation. All but the last are now in
+place:</p>
+<div class="table-wrap"><table>
+<tr><th>Project</th><th>Requirement</th></tr>
+<tr><td><code>ra6m5_gcc_secure</code></td><td><code>r_flash_hp</code>, instance named <strong><code>g_flash0</code></strong></td></tr>
+<tr><td><code>ra6m5_gcc_secure</code></td><td><code>r_sce</code> (TRNG backs the PSA external RNG)</td></tr>
+<tr><td><code>ra6m5_gcc_secure</code></td><td><code>BSP_CFG_STACK_MAIN_BYTES</code> = 0x1000</td></tr>
+<tr><td><code>ra6m5_gcc_mcuboot</code></td><td>flash instance named <strong><code>g_flash0</code></strong>, not <code>g_flashRA_NOT_DEFINED</code></td></tr>
+<tr><td>all</td><td>the partitioning above, with <code>__BL_*_T</code> sizes <strong>0</strong></td></tr>
+<tr><td><code>ra6m5_gcc_secure</code>, <code>ra6m5_gcc_mcuboot</code></td><td><strong><code>BSP_CFG_EARLY_INIT</code> = 1</strong> — still 0; BSP tab → Early BSP Initialization</td></tr>
+</table></div>
+<p>The flash instance name is not cosmetic: <code>cmsis_drivers/Driver_Flash.c</code> refers to
+<code>g_flash0_ctrl</code> / <code>g_flash0_cfg</code> by name, and those come from the generated
+<code>ra_gen/hal_data.c</code>.</p>
+<p><strong><code>BSP_CFG_EARLY_INIT</code> is load-bearing.</strong> TF-M&#x27;s <code>Reset_Handler</code> runs <code>SystemInit()</code> before
+the C runtime zeroes <code>.bss</code>. With early init off, FSP leaves <code>SystemCoreClock</code> in <code>.bss</code>, so it
+is wiped right after <code>SystemInit()</code> computed it, <code>R_FLASH_HP_Open()</code> derives FCLK = 0 and fails
+with <code>FSP_ERR_FCLK</code> — BL2 first, since MCUboot opens the flash before anything else. The port
+keeps <code>.ram_noinit</code> out of <code>.bss</code>, but early init is what puts the clock state there. This was
+missed on the first RA6M5 hardware run (2026-09-21); <code>ra6m5_layout_checks.c</code> and
+<code>bl2_option_setting.c</code> now <code>#error</code> on it, so it fails the build instead of the board.</p>
+<p><code>S_MSP_STACK_SIZE</code> in <code>region_defs.h</code> is <code>BSP_CFG_STACK_MAIN_BYTES + STACKSEAL_SIZE</code> and is
+asserted at build time, so the project and the port have to agree. 0x1000 matches RA6E1.</p>
+<hr>
+<h2 id="status">Status</h2>
+<p><strong>2026-09-21 — all three images build for RA6M5 on GNUARM</strong>, from the <code>ra6m5_gcc_*</code> projects
+now carried in this repo: modules added, partitions set to the layout above, regenerated and
+built in e2.</p>
+<p>First hardware run (2026-09-21, CK-RA6M5 V2): <code>FSP_ERR_FCLK</code> from <code>R_FLASH_HP_Open</code> —
+<code>BSP_CFG_EARLY_INIT</code> was 0 in both secure and bootloader projects. See below.</p>
+<p><strong>2026-09-23 — all three PSA Arch suites pass from both toolchains</strong> (profile_large, isolation
+3, IPC), on FSP 6.7.0-beta0 — crypto 63/0/1, attestation 1/0/0, storage 11/0/6, identical on
+GCC and IAR, zero failures (<a href="DECISIONS.html#d046">D046</a>). Launches for all six are in <code>ra6m5_gcc_nonsecure/</code>.</p>
+<p>**2026-09-22 — SCE9 acceleration validated on hardware: PSA Arch crypto 63 passed, 0 failed,
+1 skipped** (profile_large, isolation 3, IPC). The skip is deterministic ECDSA, which FSP does not
+support (<a href="DECISIONS.html#d040">D040</a>). TF-M&#x27;s crypto is built from FSP&#x27;s Mbed TLS (<a href="DECISIONS.html#d042">D042</a>) with FSP&#x27;s SCE9 ALT set
+minus CCM (<a href="DECISIONS.html#d043">D043</a>); BL2 hashes images on the SCE9 too.</p>
+<p>Accelerated: cipher, AES, GCM, CMAC, SHA-256, ECP/ECDSA, RSA. In software: CCM, because FSP&#x27;s
+SCE9 CCM caps associated data at 110 B and Protected Storage exceeds it — CCM still reaches the
+engine per block through the cipher and AES ALTs.</p>
+<p>Re-confirmed the same day on <strong>FSP 6.7.0-beta0</strong> with no port-local patches at all (<a href="DECISIONS.html#d045">D045</a>).
+Two defects found here — both of the shape &quot;an abandoned operation leaves the SCE mid-session and
+wedges every later user&quot; — are fixed in the pack itself: <code>mbedtls_aes_free()</code> (<a href="DECISIONS.html#d041">D041</a>) and
+<code>mbedtls_cipher_free()</code> for CMAC (<a href="DECISIONS.html#d043">D043</a>). A third fix, to <code>mbedtls_aes_crypt_ctr()</code>, was
+reverted: that function is not an FSP API and is unreachable through PSA (<a href="DECISIONS.html#d044">D044</a>).</p>
+<p>Build it with:</p>
+<pre><code class="language-sh">cmake -S . -B build_ra6m5 -GNinja -DCMAKE_BUILD_TYPE=Debug       -DTFM_PLATFORM=renesas/ra6m5       -DFSP_S_APP_DIR=&lt;fsp_cmake&gt;/ra6m5_gcc_secure       -DFSP_BL2_APP_DIR=&lt;fsp_cmake&gt;/ra6m5_gcc_mcuboot       -DFSP_NS_APP_DIR=&lt;fsp_cmake&gt;/ra6m5_gcc_nonsecure</code></pre>
+<p><code>tfm_s.bin</code> is byte-identical whether the projects are read from this repo or from
+<code>e2_studio/workspace66</code>. <code>bl2</code> differs by 16 bytes of embedded source paths only.</p>
+<p>Measured with <code>arm-none-eabi-size</code> (Debug, isolation 1, <code>text</code> only):</p>
+<div class="table-wrap"><table>
+<tr><th>Image</th><th>Used</th><th>Slot code region</th><th>Headroom</th></tr>
+<tr><td>bl2</td><td>54.2 KB</td><td>0x18000 (96 KB)</td><td>43% free</td></tr>
+<tr><td>tfm_s</td><td>174.8 KB</td><td>0x7F600 (509.5 KB)</td><td>334.7 KB free</td></tr>
+<tr><td>tfm_ns</td><td>6.1 KB</td><td>0x6FE00 (447.5 KB)</td><td>—</td></tr>
+</table></div>
+<p>Verified on the built images:</p>
+<ul>
+<li>secure image spans <code>0xA0000</code>–<code>0xCBD50</code>; veneers at <code>0x11F800</code>, inside the signed payload and
+clear of the MCUboot trailer</li>
+<li>signed images pad to exactly 512 KB and 448 KB — the full slots</li>
+<li>BL2 emits <strong>discrete</strong> OFS LOAD segments (<code>0x0100A100</code> / <code>0x0100A200</code> / <code>0x0100A280</code>) — the
+brick guard from <code>DESIGN.md</code> §8.4 holds on this device</li>
+<li>the SCE9 TRNG links into <code>tfm_s</code> (28 <code>HW_SCE_*</code> symbols, 8.9 KB after <code>--gc-sections</code>)</li>
+<li><code>ra6m5_layout_checks.c</code> and the orphan-section check pass</li>
+</ul>
+<p>An earlier pass over a staged copy of the projects caught four project-side gaps before the
+real build: see <a href="DECISIONS.html#d031">D031</a>.</p>
+<hr>
+<h2 id="device-differences-from-ra6e1-that-the-port-had-to-absorb">Device differences from RA6E1 that the port had to absorb</h2>
+<ul>
+<li><strong>Block-protect OFS words are wider.</strong> <code>BPS</code>, <code>PBPS</code> and their <code>_SEC</code> / <code>_SEL</code> mirrors are
+0x10, not 0xC, because 2 MB of flash has more protectable blocks. The starts are the same.
+Wrong lengths here are in brick territory — the values come from the generated
+<code>Debug/memory_regions.ld</code>.</li>
+<li><strong>OSPI.</strong> The RA6M5 has <code>OSPI0_CS0</code> / <code>OSPI0_CS1</code> regions the RA6E1 has not. Nothing in the
+port uses them; they appear in the generated partition list.</li>
+<li>Everything else transfers: same 8 KB / 32 KB flash block geometry, same 128-byte write
+size, same 64-byte data-flash block, same 112-entry vector table, same 13 OFS groups,
+same SCE9 source tree (181 files, byte-identical layout).</li>
+</ul>
+<hr>
+<h2 id="open-items">Open items</h2>
+<ul>
+<li><p><strong>TODO — <code>psa_arch_spe.bat</code> fix is stranded on the RA8 branch.</strong> <code>39e0597</code> quotes the
+compiler path so the default <code>GCC_BIN</code> (<code>C:/Program Files (x86)/...</code>) stops breaking the
+script: unquoted, the <code>)</code> in <code>(x86)</code> closed the enclosing <code>if not exist (</code> block early, so
+cmake never ran, the script printed <code>/Arm was unexpected at this time</code> <strong>and exited 0</strong>. It
+affects the RA6M5 PSA Arch build too, but it was committed after PR #4 and so is not on
+<code>main</code>. If RA6 work is picked up before <code>ra8m2_gen_6_7_TFM</code> merges back,
+cherry-pick it: <code>git cherry-pick 39e0597</code>.</p></li>
+<li><p><strong>Toolchain.</strong> <code>ra6m5_iar</code> is named for IAR but its solution selects <code>gcc-arm-embedded</code>.
+RASC can generate an IAR CMake project (<code>ToolchainIarCMakeGenerator</code>,
+<code>template/cmake/iar.cmake</code> in the SC 2026-07 plugin set) — set the solution toolchain to
+IAR before doing the IAR leg, so the flags come from RASC rather than being carried over
+from RA6E1 by hand.</p></li>
+<li><p><strong>FSP version drift.</strong> <code>ra6m5_gcc</code> is now on 6.7.0-beta0, matching the RA6E1 solutions. The
+plan targets 6.6, so either the plan or the projects should move.</p></li>
+<li><p><strong>CCM associated-data limit.</strong> FSP&#x27;s SCE9 CCM caps associated data at 110 B, and reports the
+overflow as a plain <code>PSA_ERROR_INVALID_ARGUMENT</code>. A software fallback above the threshold, or a
+documented limit, would make SCE9 CCM usable from PSA (<a href="DECISIONS.html#d043">D043</a>). The two session-leak fixes are
+already in the pack.</p></li>
+<li><p><strong>Open question — acceleration delta.</strong> How does the acceleration actually differ between
+this approach (FSP&#x27;s Mbed TLS + FSP&#x27;s <code>*_ALT</code> set) and the previous one (ARM&#x27;s Mbed TLS
+accelerated with the same ALT sources)? Which operations changed hands, and where does the
+PSA core route differently. To be answered with measurements, not inspection.</p></li>
+</ul>
+</main>
+</div>
+</body>
+</html>

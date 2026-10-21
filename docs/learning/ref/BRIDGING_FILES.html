@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bridging files — what carries FSP code or FSP values, and the check for each</title>
+<meta name="description" content="Rendered from BRIDGING_FILES.md by scripts/build_doc_html.py.">
+<link rel="stylesheet" href="../assets/style.css">
+<script src="../assets/site.js"></script>
+</head>
+<body>
+<!-- GENERATED from BRIDGING_FILES.md by scripts/build_doc_html.py. Do not edit: the next commit touching the Markdown overwrites it. -->
+<div class="layout">
+<aside class="sidebar">
+  <div class="brand"><a href="../index.html">Cortex-M, TrustZone &amp; TF-M on Renesas RA</a><button class="menu-toggle" aria-expanded="false">Menu</button></div>
+  <nav>
+    <ol>
+      <li><a href="../index.html">← Course</a></li>
+      <li><a href="index.html">Reference documents</a>
+        <ol>
+      <li><a href="ADDING_FSP_MODULES.html">ADDING_FSP_MODULES.md</a></li>
+      <li><a href="BRIDGING_FILES.html" aria-current="page">BRIDGING_FILES.md</a></li>
+      <li><a href="CONFIGURATION.html">CONFIGURATION.md</a></li>
+      <li><a href="DECISIONS.html">DECISIONS.md</a></li>
+      <li><a href="DESIGN.html">DESIGN.md</a></li>
+      <li><a href="DOCUMENTATION_PLAN.html">DOCUMENTATION_PLAN.md</a></li>
+      <li><a href="FLASH_MAP_OWNERSHIP.html">FLASH_MAP_OWNERSHIP.md</a></li>
+      <li><a href="GETTING_STARTED.html">GETTING_STARTED.md</a></li>
+      <li><a href="PORTING.html">PORTING.md</a></li>
+      <li><a href="PROJECT_PLAN.html">PROJECT_PLAN.md</a></li>
+      <li><a href="RA6E1_SOLUTION.html">RA6E1_SOLUTION.md</a></li>
+      <li><a href="RA6E1_TEMPLATE_CHECKLIST.html">RA6E1_TEMPLATE_CHECKLIST.md</a></li>
+      <li><a href="RA6M5_SOLUTION.html">RA6M5_SOLUTION.md</a></li>
+      <li><a href="RA8M2_SOLUTION.html">RA8M2_SOLUTION.md</a></li>
+      <li><a href="RA8x2_DUAL_CORE_DESIGN.html">RA8x2_DUAL_CORE_DESIGN.md</a></li>
+      <li><a href="README.html">README.md</a></li>
+      <li><a href="RECONFIGURING_THE_LAYOUT.html">RECONFIGURING_THE_LAYOUT.md</a></li>
+      <li><a href="TROUBLESHOOTING.html">TROUBLESHOOTING.md</a></li>
+      <li><a href="UPSTREAM_CHANGES.html">UPSTREAM_CHANGES.md</a></li>
+      <li><a href="scripts_README.html">scripts/README.md</a></li>
+        </ol>
+      </li>
+    </ol>
+    <ol class="doc-toc">
+      <li><a href="#top">BRIDGING_FILES.md</a>
+        <ol>
+          <li><a href="#run-these-after-any-fsp-pack-uprev">Run these after any FSP pack uprev</a></li>
+          <li><a href="#the-inventory-grouped-by-how-each-drifts">The inventory, grouped by how each drifts</a></li>
+          <li><a href="#the-linker-and-ofs-family--the-highest-consequence-case">The linker and OFS family — the highest-consequence case</a></li>
+          <li><a href="#sequencing">Sequencing</a></li>
+        </ol>
+      </li>
+    </ol>
+    <button class="theme-toggle" type="button">Dark theme</button>
+  </nav>
+</aside>
+<main id="top" class="ref-doc">
+<p class="src">Rendered from <a href="../../../BRIDGING_FILES.md"><code>BRIDGING_FILES.md</code></a>. Edit the Markdown, not this page.</p>
+<h1 id="bridging-files--what-carries-fsp-code-or-fsp-values-and-the-check-for-each">Bridging files — what carries FSP code or FSP values, and the check for each</h1>
+<p><strong>The concern.</strong> Some files in the ports exist only to bridge FSP to TF-M. They carry FSP&#x27;s
+code, restate FSP-generated configuration, or depend on FSP internals — but they are <strong>not</strong>
+FSP files, so regenerating the e2 projects does not update them and nothing in the build
+compares them against their origin. They drift silently on an FSP pack uprev, and the failure
+mode is the worst kind: a stale constant that links cleanly and is wrong at run time.</p>
+<p><strong>A list of filenames is not the point. The check is.</strong> Every entry below names something you
+can run or an assertion that fires.</p>
+<p>This has already happened more than once:</p>
+<ul>
+<li><code>FLASH_AREA_IMAGE_SECTOR_SIZE</code> was <code>0x1000</code> in the RA8M2 <code>flash_layout.h</code> while FSP&#x27;s
+generated <code>mcuboot_config.h</code> had it as <code>0x8000</code>. Slots came out 9.875 sectors long, every
+build step accepted it, and it failed only on hardware as <code>BOOT_EFLASH</code> (<a href="DECISIONS.html#d054">D054</a>).</li>
+<li><code>fsp_sce.cmake</code> and <code>fsp_bsp.cmake</code> both hardcoded <code>crypto_procedures/src/sce9/...</code>, carried
+from RA6M5 into a part whose engine directory is <code>rsip_e50d</code>. Both now discover it.</li>
+<li><code>config.cmake</code> asserted <code>BSP_FEATURE_RSIP_SCE9_SUPPORTED == 1</code> on a part where it is <code>0</code>.</li>
+<li>An 87-line Protected Storage comment in <code>ra8m2/config_tfm_target.h</code> was RA6M5&#x27;s arithmetic
+verbatim, opening &quot;the RA8M2&#x27;s 8 KB data flash&quot; — a part with no data flash (<a href="DECISIONS.html#d086">D086</a>).</li>
+</ul>
+<p>Verified 2026-10-04 against both live parts.</p>
+<hr>
+<h2 id="run-these-after-any-fsp-pack-uprev">Run these after any FSP pack uprev</h2>
+<h3 id="s1">1. The mbedTLS patch set — content comparison</h3>
+<p>The ports carry five patches in <code>&lt;part&gt;/mbedtls/</code>. Four of them (<code>0003</code>, <code>0004</code>, <code>0006</code>,
+<code>0007</code>) are <strong>TF-M&#x27;s own patches, rebased onto FSP&#x27;s mbedTLS tree.</strong> They are identical in
+content to <code>lib/ext/mbedcrypto/</code> but differ in commit SHA, blob index and hunk offsets, so a
+plain <code>cmp</code> always reports a difference and tells you nothing.</p>
+<p>Strip the three noise line types and compare the rest:</p>
+<pre><code class="language-sh">cd &lt;trusted-firmware-m&gt;
+for n in 0003-Allow-SE-key-to-use-key-vendor-id-within-PSA-crypto \
+         0004-Initialise-driver-wrappers-as-first-step-in-psa_cryp \
+         0006-Enable-psa_can_do_hash \
+         0007-P256M-Add-option-to-force-not-use-of-asm; do
+  diff &lt;(sed '/^From /d;/^index /d;/^@@ /d' lib/ext/mbedcrypto/$n.patch) \
+       &lt;(sed '/^From /d;/^index /d;/^@@ /d' platform/ext/target/renesas/ra8m2/mbedtls/$n.patch) \
+    &gt;/dev/null &amp;&amp; echo "SAME  $n" || echo "DRIFT $n"
+done</code></pre>
+<p>All four report <code>SAME</code> as of 2026-10-04. A <code>DRIFT</code> means TF-M changed the patch and the port&#x27;s
+rebased copy has not followed — read the diff and rebase it.</p>
+<p><code>0100-FSP-fit-TF-M-config-file-name-and-owner-key-ids.patch</code> is port-specific, has no upstream
+counterpart, and <strong>differs between RA6M5 and RA8M2.</strong> Compare it only against the previous
+revision of the same part.</p>
+<p>The four shared patches are byte-identical between RA6M5 and RA8M2, so they can be compared to
+each other as a cheap cross-check.</p>
+<h3 id="s2">2. FSP&#x27;s generated MCUboot config</h3>
+<pre><code class="language-sh">grep RM_MCUBOOT_MRAM_BLOCK_SIZE \
+  &lt;fsp_cmake&gt;/ra8m2_gcc_mcuboot/ra_cfg/mcu-tools/include/mcuboot_config/mcuboot_config.h</code></pre>
+<p>Must still be <code>0x8000</code>, matching <code>FLASH_AREA_IMAGE_SECTOR_SIZE</code> in <code>ra8m2/flash_layout.h</code>.</p>
+<p><strong>This one cannot be machine-checked</strong>, which is why it needs a manual step: FSP hardcodes the
+value rather than deriving it from a <code>BSP_FEATURE</code> macro, and the same header also defines
+<code>FLASH_AREA_IMAGE_SECTOR_SIZE</code>, so it cannot be included beside the port&#x27;s to compare. What
+<em>is</em> asserted in <code>&lt;part&gt;_layout_checks.c</code> is that the part reports MRAM and that the sector is
+a whole number of MRAM write units (<a href="DECISIONS.html#d086">D086</a>).</p>
+<h3 id="s3">3. struct flash_area - the guard collision, checked from DWARF</h3>
+<p>The highest-consequence drift surface found so far, because <strong>nothing in the build signals it</strong>.</p>
+<p>TF-M&#x27;s <code>bl2/ext/mcuboot/include/flash_map/flash_map.h</code> and FSP&#x27;s
+<code>rm_mcuboot_port/flash_map_backend/flash_map_backend.h</code> both guard with <code>H_UTIL_FLASH_MAP_</code>,
+so the first one reached silently suppresses the other. They do not define the same type:</p>
+<div class="table-wrap"><table>
+<tr><th></th><th></th></tr>
+<tr><td>TF-M</td><td><strong>16 bytes</strong> - extra <code>ARM_DRIVER_FLASH *fa_driver</code> between <code>pad16</code> and <code>fa_off</code></td></tr>
+<tr><td>FSP</td><td><strong>12 bytes</strong> - no such member</td></tr>
+</table></div>
+<p>With the wrong one in bootutil, every member after <code>pad16</code> is read one slot late. Both are
+complete types, the link succeeds, and the only symptom is a bootloader rejecting a correct
+image (<a href="DECISIONS.html#d090">D090</a>). An FSP uprev that adds a member, or a TF-M bump that changes its struct, breaks
+this again with no warning.</p>
+<p><strong>The check</strong> - every linked object must report 12:</p>
+<pre><code class="language-sh">for o in $(find &lt;build&gt;/bl2 &lt;build&gt;/platform -name '*.o'); do
+  arm-none-eabi-readelf --debug-dump=info "$o" 2&gt;/dev/null |     awk -v f="$o" '/DW_TAG_structure_type/{s=1;n="";b=""}
+         s&amp;&amp;/DW_AT_name.*: flash_area$/{n=1}
+         s&amp;&amp;/DW_AT_byte_size/{b=$NF}
+         n&amp;&amp;b{if(b!=12)print b" bytes: "f; exit}'
+done</code></pre>
+<p>Objects reporting 16 are only acceptable if they are TF-M&#x27;s own backend files left stale on
+disk - confirm with <code>grep -c &lt;object&gt; build.ninja</code> returning 0.</p>
+<h3 id="s4">4. The rm_psa_crypto tree — the cheapest canary found so far</h3>
+<pre><code class="language-sh">cd &lt;peaks-working&gt; &amp;&amp; git diff --stat ra/fsp/src/rm_psa_crypto/</code></pre>
+<p>Of 35 files, only <code>aes_alt.c</code> and <code>cipher_alt.c</code> have ever differed between the SCE9 and E50D
+packs, so a diff here is high-signal at near-zero cost (<a href="DECISIONS.html#d053">D053</a>).</p>
+<h3 id="s5">5. The ALT source list</h3>
+<p>The accelerator <code>CMakeLists.txt</code> selects a <strong>subset</strong> of what FSP ships — CCM is deliberately
+excluded (<a href="DECISIONS.html#d043">D043</a>, <a href="DECISIONS.html#d051">D051</a>). FSP adding, removing or fixing a source does not change the list,
+and this is how two session-leak fixes were nearly missed (<a href="DECISIONS.html#d053">D053</a>, which supersedes <a href="DECISIONS.html#d052">D052</a> -
+the pack does ship both fixes). After an uprev,
+list FSP&#x27;s <code>*_alt.c</code> files and compare against the list.</p>
+<hr>
+<h2 id="the-inventory-grouped-by-how-each-drifts">The inventory, grouped by how each drifts</h2>
+<h3 id="replaces-an-fsp-source-that-the-build-excludes">Replaces an FSP source that the build EXCLUDES</h3>
+<p>The exclusion in <code>fsp_bsp.cmake</code> keeps applying after FSP changes the original, so nothing
+complains.</p>
+<div class="table-wrap"><table>
+<tr><th>File</th><th>Stands in for</th><th>Check</th></tr>
+<tr><td><code>&lt;part&gt;_ddsc.c</code></td><td><code>bsp_linker.c</code>&#x27;s <code>gp_ddsc_*</code> definitions</td><td><code>#error</code>s on empty partitions. Lives in the <code>fsp_bsp</code> module, not <code>platform_s</code> — GNU ld does not revisit archives</td></tr>
+<tr><td><code>bsp_init_stub.c</code></td><td>FSP&#x27;s init / copy / nocache tables, and the <code>g_main_stack</code> alias</td><td>the alias is asserted via <code>S_MSP_STACK_SIZE == BSP_CFG_STACK_MAIN_BYTES + STACKSEAL_SIZE</code></td></tr>
+<tr><td><code>bl2_option_setting.c</code></td><td>the OFS sections <code>bsp_linker.c</code> emits</td><td><strong>has the best guard in the port</strong> — see below</td></tr>
+</table></div>
+<h3 id="restates-an-fsp-generated-value">Restates an FSP-GENERATED value</h3>
+<p>The generated value changes; the restatement does not.</p>
+<div class="table-wrap"><table>
+<tr><th>Restatement</th><th>Origin</th><th>Check</th></tr>
+<tr><td><code>FLASH_AREA_IMAGE_SECTOR_SIZE</code> in <code>flash_layout.h</code></td><td>FSP&#x27;s generated <code>mcuboot_config.h</code></td><td>manual, §2 above</td></tr>
+<tr><td>accelerator <code>&lt;engine&gt;_fsp_cfg.h</code></td><td><code>ra_cfg/arm/mbedtls/config.h</code></td><td>diff after regenerate</td></tr>
+<tr><td><code>mbedtls_accelerator_config.h</code>, <code>crypto_accelerator_config.h</code>, and the <code>bl2_*</code> variants</td><td>FSP&#x27;s mbedTLS config</td><td>diff after regenerate</td></tr>
+<tr><td><code>MCUBOOT_ALIGN_VAL</code></td><td><code>BSP_FEATURE_MRAM_PROGRAMMING_SIZE_BYTES</code> (32 on RA8M2)</td><td>not asserted — <code>MCUBOOT_ALIGN_VAL</code> is not visible in <code>platform_s</code>, where the checks live</td></tr>
+<tr><td><code>RA8M2_VECTOR_TABLE_ENTRIES</code> (112)</td><td><code>BSP_VECTOR_TABLE_MAX_ENTRIES</code></td><td><strong>now asserted</strong> via <code>S_CODE_VECTOR_TABLE_SIZE &gt;= entries * 4</code> in both parts (<a href="DECISIONS.html#d086">D086</a>)</td></tr>
+<tr><td>the RDPM KB figures</td><td>the generated partition sizes</td><td><strong>no build-time check is possible</strong> — provisioning does not come back. Derived rather than transcribed in the per-part solution docs</td></tr>
+</table></div>
+<h3 id="depends-on-fsp-internals-not-its-public-api">Depends on FSP INTERNALS, not its public API</h3>
+<p>FSP may refactor something it never promised to keep.</p>
+<div class="table-wrap"><table>
+<tr><th>File</th><th>Depends on</th></tr>
+<tr><td><code>cmsis_drivers/Driver_Flash.c</code></td><td><code>R_MRAM_Erase</code> / <code>R_FLASH_HP_Erase</code> block units, and the <code>InfoGet</code> field layout. Also declares the generated instance objects directly rather than including <code>ra_gen/hal_data.h</code>, which would pull FSP&#x27;s own <code>psa/crypto.h</code> and shadow TF-M&#x27;s for all of <code>platform_s</code></td></tr>
+<tr><td><code>ra_sce_init.c</code></td><td><code>extern fsp_err_t HW_SCE_McuSpecificInit(void);</code> — a private <code>r_sce_adapt.c</code> primitive</td></tr>
+<tr><td><code>sce_trng.c</code></td><td><code>extern fsp_err_t HW_SCE_RNG_Read(uint32_t *OutData_Text);</code> — likewise</td></tr>
+<tr><td>accelerator <code>crypto_hw.c</code></td><td><code>psa_aead_setup_vendor()</code>, declared locally in both engine trees</td></tr>
+<tr><td><code>&lt;part&gt;_fsp_sections.icf</code></td><td>FSP&#x27;s section names</td></tr>
+</table></div>
+<p>A link error is the good outcome here. The bad one is a signature that still matches with
+changed semantics.</p>
+<h3 id="shadows-an-fsp-module-wholesale">Shadows an FSP module wholesale</h3>
+<p><code>rm_mcuboot_port</code>, <code>rm_psa_crypto</code> + <code>ra/arm/mbedtls</code>, <code>r_sce</code>, <code>bsp_linker.c</code>, and
+<code>startup.c</code> / <code>ra_gen/main.c</code>. Each carries a stated reason.</p>
+<p><strong><code>rm_mcuboot_port</code> is no longer shadowed on RA8M2</strong> — it supplies the flash map and backend
+there (<a href="DECISIONS.html#d079">D079</a>), which is what removed the running cost that <a href="DECISIONS.html#d073">D073</a> / <a href="DECISIONS.html#d074">D074</a> paid. RA6M5 is back
+on TF-M&#x27;s (<a href="DECISIONS.html#d085">D085</a>), so this row differs per part.</p>
+<hr>
+<h2 id="the-linker-and-ofs-family--the-highest-consequence-case">The linker and OFS family — the highest-consequence case</h2>
+<p><strong>The failure mode is not a build error.</strong> Worked hazard: a user changes an OFS setting in e2,
+rebuilds, and expects the new value to be programmed.</p>
+<div class="table-wrap"><table>
+<tr><th>Stage</th><th>Comes from</th><th>What goes wrong silently</th></tr>
+<tr><td>OFS <strong>values</strong></td><td>the <strong>bootloader</strong> project&#x27;s <code>ra_cfg/.../bsp_mcu_ofs_cfg.h</code></td><td>Edited in the <strong>secure</strong> project instead — no effect, no warning. <code>bl2_option_setting.c</code> compiles into <code>platform_bl2</code>, so only <code>FSP_BL2_APP_DIR</code> is on the path. Both projects define the same groups</td></tr>
+<tr><td>OFS <strong>addresses</strong></td><td>the bootloader project&#x27;s generated <code>Debug/memory_regions.*</code>, filtered into <code>option_settings.h</code> at configure time</td><td>Hand-transcribed until 2026-09-24, and they were RA6M5&#x27;s: OFS0 linked at <code>0x0100A100</code> instead of <code>0x02c9f040</code>. <strong>RA6M5 and RA6E1 still transcribe theirs</strong> — the open back-port in <a href="DECISIONS.html#d077">D077</a></td></tr>
+<tr><td>which <strong>groups</strong> exist</td><td>the device; FSP emits a <code>BSP_CFG_OPTION_SETTING_*</code> only for what the user set</td><td>A group enabled in e2 that the port does not place is <strong>dropped with no diagnostic.</strong> OFS2, OFS3_SEC and OFS3_SEL were dropped exactly this way</td></tr>
+<tr><td><strong>placement</strong></td><td><code>&lt;part&gt;_bl2.ld</code> MEMORY + sections, <code>&lt;part&gt;_bl2.icf</code> region + keep + place</td><td>One coalesced <code>PT_LOAD</code> zero-fills the gaps and programs block protect to 0 → <strong>permanent brick</strong> (<a href="DECISIONS.html#d002">D002</a>). Invisible in the srec</td></tr>
+</table></div>
+<h3 id="the-checks-that-exist-and-the-pattern-to-follow">The checks that exist, and the pattern to follow</h3>
+<p>Each hazard gets a mechanism, not a comment:</p>
+<ul>
+<li><strong><code>bl2_option_setting.c</code> ends in a guard</strong> listing every <code>BSP_CFG_OPTION_SETTING_*</code> FSP knows
+for the part that the port does <strong>not</strong> place. Any of them being set is an <code>#error</code> naming the
+three edits needed. Verified to fire for <code>BPS</code> and <code>OTP_PBPS_SEC</code>, and correctly not to fire
+for the <code>OFS1_SEC_NO_HOCOFRQ</code> variant. **RA8M2 has 22 of these guards; RA6M5 and RA6E1 have
+none** (<a href="DECISIONS.html#d077">D077</a>).</li>
+<li><strong><code>check_ofs.py</code> requires its region.</strong> It used to hardcode RA6&#x27;s <code>0x0100A100</code> window and,
+run against an RA8M2 BL2 carrying six OFS segments, printed *&quot;CLEAN (no OFS segments) … safe
+to flash&quot;*. **A guard pointed at the wrong window is worse than none, because it reads as
+verification.** BL2 also passes <code>--require-segments</code>, so an empty result fails.</li>
+<li><strong><code>readelf -l</code> on the linked ELF</strong> is the only place the coalescing is visible. In the
+pre-flash verification, <code>GETTING_STARTED.md</code> §6.</li>
+</ul>
+<h3 id="what-the-port-does-with-each-fsp-linker-input">What the port does with each FSP linker input</h3>
+<div class="table-wrap"><table>
+<tr><th>FSP file</th><th>Treatment</th></tr>
+<tr><td><code>Debug/bsp_linker_info.h</code></td><td><strong>consumed</strong>, filtered to <code>bsp_partitions.h</code> — macros only, because it also declares C types and a <code>flash_map[]</code> that would collide</td></tr>
+<tr><td><code>Debug/memory_regions.{ld,icf}</code></td><td><strong>consumed</strong> on RA8M2, filtered to <code>option_settings.h</code> for the OFS addresses</td></tr>
+<tr><td><code>bsp_linker.c</code></td><td><strong>excluded</strong>; its three jobs are reimplemented in <code>bl2_option_setting.c</code>, <code>bsp_init_stub.c</code> and <code>&lt;part&gt;_ddsc.c</code></td></tr>
+<tr><td><code>Debug/fsp_gen.{ld,icf}</code>, <code>script/fsp.{ld,icf}</code></td><td><strong>unused</strong> — TF-M supplies its own. Worth keeping as the reference for what FSP would have done; they were the source for the discrete-region pattern</td></tr>
+<tr><td>port-owned</td><td><code>&lt;part&gt;_bl2.ld</code>, <code>&lt;part&gt;_bl2.icf</code>, <code>&lt;part&gt;_fsp_sections.icf</code></td></tr>
+</table></div>
+<hr>
+<h2 id="sequencing">Sequencing</h2>
+<p><strong>Read this before the FSP pack uprev in <code>PROJECT_PLAN.md</code>, not after.</strong> The uprev is the event
+this document exists to survive, and doing it second means auditing from memory.</p>
+</main>
+</div>
+</body>
+</html>

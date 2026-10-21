@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Test builds and debug launches — RA6M5 and RA8M2</title>
+<meta name="description" content="Rendered from scripts/README.md by scripts/build_doc_html.py.">
+<link rel="stylesheet" href="../assets/style.css">
+<script src="../assets/site.js"></script>
+</head>
+<body>
+<!-- GENERATED from scripts/README.md by scripts/build_doc_html.py. Do not edit: the next commit touching the Markdown overwrites it. -->
+<div class="layout">
+<aside class="sidebar">
+  <div class="brand"><a href="../index.html">Cortex-M, TrustZone &amp; TF-M on Renesas RA</a><button class="menu-toggle" aria-expanded="false">Menu</button></div>
+  <nav>
+    <ol>
+      <li><a href="../index.html">← Course</a></li>
+      <li><a href="index.html">Reference documents</a>
+        <ol>
+      <li><a href="ADDING_FSP_MODULES.html">ADDING_FSP_MODULES.md</a></li>
+      <li><a href="BRIDGING_FILES.html">BRIDGING_FILES.md</a></li>
+      <li><a href="CONFIGURATION.html">CONFIGURATION.md</a></li>
+      <li><a href="DECISIONS.html">DECISIONS.md</a></li>
+      <li><a href="DESIGN.html">DESIGN.md</a></li>
+      <li><a href="DOCUMENTATION_PLAN.html">DOCUMENTATION_PLAN.md</a></li>
+      <li><a href="FLASH_MAP_OWNERSHIP.html">FLASH_MAP_OWNERSHIP.md</a></li>
+      <li><a href="GETTING_STARTED.html">GETTING_STARTED.md</a></li>
+      <li><a href="PORTING.html">PORTING.md</a></li>
+      <li><a href="PROJECT_PLAN.html">PROJECT_PLAN.md</a></li>
+      <li><a href="RA6E1_SOLUTION.html">RA6E1_SOLUTION.md</a></li>
+      <li><a href="RA6E1_TEMPLATE_CHECKLIST.html">RA6E1_TEMPLATE_CHECKLIST.md</a></li>
+      <li><a href="RA6M5_SOLUTION.html">RA6M5_SOLUTION.md</a></li>
+      <li><a href="RA8M2_SOLUTION.html">RA8M2_SOLUTION.md</a></li>
+      <li><a href="RA8x2_DUAL_CORE_DESIGN.html">RA8x2_DUAL_CORE_DESIGN.md</a></li>
+      <li><a href="README.html">README.md</a></li>
+      <li><a href="RECONFIGURING_THE_LAYOUT.html">RECONFIGURING_THE_LAYOUT.md</a></li>
+      <li><a href="TROUBLESHOOTING.html">TROUBLESHOOTING.md</a></li>
+      <li><a href="UPSTREAM_CHANGES.html">UPSTREAM_CHANGES.md</a></li>
+      <li><a href="scripts_README.html" aria-current="page">scripts/README.md</a></li>
+        </ol>
+      </li>
+    </ol>
+    <ol class="doc-toc">
+      <li><a href="#top">scripts/README.md</a>
+        <ol>
+          <li><a href="#three-configurations-on-purpose">Three configurations, on purpose</a></li>
+          <li><a href="#build-trees">Build trees</a></li>
+          <li><a href="#building">Building</a></li>
+          <li><a href="#the-mcuboot-upgrade-test">The MCUboot upgrade test</a></li>
+          <li><a href="#launches">Launches</a></li>
+          <li><a href="#rtt">RTT</a></li>
+          <li><a href="#documentation-checks">Documentation checks</a></li>
+        </ol>
+      </li>
+    </ol>
+    <button class="theme-toggle" type="button">Dark theme</button>
+  </nav>
+</aside>
+<main id="top" class="ref-doc">
+<p class="src">Rendered from <a href="../../../scripts/README.md"><code>scripts/README.md</code></a>. Edit the Markdown, not this page.</p>
+<h1 id="test-builds-and-debug-launches--ra6m5-and-ra8m2">Test builds and debug launches — RA6M5 and RA8M2</h1>
+<p>How the test images are built and flashed, for both toolchains and both parts. Reasoning is in
+<code>DECISIONS.md</code> (D046 for the arrangement, D084 for why the options are stated rather than
+defaulted, D101 for the RA8M2 IAR project parity); layouts and board settings are in
+<code>RA6M5_SOLUTION.md</code> and <code>RA8M2_SOLUTION.md</code>.</p>
+<h2 id="three-configurations-on-purpose">Three configurations, on purpose</h2>
+<div class="table-wrap"><table>
+<tr><th></th><th>PSA Arch suites</th><th>Regression suites</th><th>User application</th></tr>
+<tr><td>NS side</td><td>the PSA Arch suite</td><td>tf-m-tests <code>tests_reg</code></td><td>the port&#x27;s <code>ns_app</code></td></tr>
+<tr><td>Profile</td><td>profile_large</td><td>default</td><td>default</td></tr>
+<tr><td>Isolation</td><td>3</td><td>1</td><td>1</td></tr>
+<tr><td>SPM backend</td><td>IPC</td><td>SFN</td><td>SFN</td></tr>
+<tr><td>SPM trace</td><td>off (required at L3 + IPC)</td><td>on</td><td>on</td></tr>
+<tr><td>Build type</td><td>MinSizeRel</td><td>MinSizeRel</td><td>Debug</td></tr>
+<tr><td>Secure-side logging</td><td>on</td><td><strong>off</strong></td><td>on</td></tr>
+</table></div>
+<p>Secure-side logging is the one that cannot be shared. It costs ~3,785 B, and the regression
+secure image has 960 B spare on RA8M2 — so it is set per script, not in the platform
+<code>config.cmake</code>. <strong>MinSizeRel is mandatory on RA8M2</strong>: <code>Debug</code> is ~414 KB against a 293 KB
+slot (D059).</p>
+<h2 id="build-trees">Build trees</h2>
+<p>One SPE serves all three PSA Arch suites — profile_large enables crypto, ITS, PS, attestation
+and platform — and each suite gets its own NS app. The regression SPE is separate because its
+configuration differs in every row of the table above.</p>
+<div class="table-wrap"><table>
+<tr><th></th><th>PSA SPE</th><th>NS crypto</th><th>NS attest</th><th>NS storage</th><th>Reg SPE</th><th>Reg NS</th></tr>
+<tr><td>RA6M5 GCC</td><td><code>m5cry</code></td><td><code>m5cryns</code></td><td><code>m5att</code></td><td><code>m5sto</code></td><td>—</td><td>—</td></tr>
+<tr><td>RA6M5 IAR</td><td><code>m5icry</code></td><td><code>m5icryns</code></td><td><code>m5iatt</code></td><td><code>m5isto</code></td><td>—</td><td>—</td></tr>
+<tr><td>RA8M2 GCC</td><td><code>m2cry</code></td><td><code>m2cryns</code></td><td><code>m2att</code></td><td><code>m2sto</code></td><td><code>m2gflih</code></td><td><code>m2gflihns</code></td></tr>
+<tr><td>RA8M2 IAR</td><td><code>m2icry</code></td><td><code>m2icryns</code></td><td><code>m2iatt</code></td><td><code>m2isto</code></td><td><code>m2iflih</code></td><td><code>m2iflihns</code></td></tr>
+</table></div>
+<p>All under <code>C:\b\</code>. Short paths on purpose: a deep one overruns Windows&#x27; path limit partway
+through the Mbed TLS overlay clone, and reports <code>Filename too long</code> on
+<code>3rdparty/everest/...</code> rather than anything about length.</p>
+<h2 id="building">Building</h2>
+<pre><code class="language-bat">rem  PSA Arch. Third argument selects the part; omitted means ra6m5.
+scripts\psa_arch_spe.bat      C:\b\m2cry   CRYPTO ra8m2
+scripts\psa_arch_spe_iar.bat  C:\b\m2icry  CRYPTO ra8m2
+scripts\psa_arch_ns.bat       C:\b\m2iatt  C:\b\m2icry\api_ns INITIAL_ATTESTATION iar
+
+rem  Regression. Fourth argument picks the IRQ suite: flih (default), slih, or none —
+rem  they are mutually exclusive in tf-m-tests.
+scripts\reg_build_iar.bat     C:\b\m2iflih C:\b\m2iflihns ra8m2 flih
+
+rem  Application chain.
+scripts\app_build_ra8m2_gcc.bat C:\b\m2app  C:\b\m2appns
+scripts\app_build_ra8m2_iar.bat C:\b\m2iapp C:\b\m2iappns</code></pre>
+<p>Suites: <code>CRYPTO</code>, <code>INITIAL_ATTESTATION</code>, <code>STORAGE</code> (runs ITS and PS), <code>PROTECTED_STORAGE</code>,
+<code>INTERNAL_TRUSTED_STORAGE</code>.</p>
+<p>Rebuild the SPE before the NS apps whenever the secure side changes — the NS build links
+against the interface the SPE installs into <code>api_ns\</code>. **Regenerating an FSP project in RASC
+counts as the secure side changing**, and a stale tree carries the old generated values with no
+diagnostic.</p>
+<p>Toolchain and repository locations are variables at the top of each script; set them in the
+environment to override.</p>
+<h2 id="the-mcuboot-upgrade-test">The MCUboot upgrade test</h2>
+<pre><code class="language-bat">python scripts\sign_secondary.py C:\b\m2iflih\build-spe C:\b\m2iflihns</code></pre>
+<p>Re-signs both images at a bumped version into <code>*_signed_secondary.bin</code> beside the primaries.
+It recovers the exact command the build used out of <code>build.ninja</code> and changes only the version
+and the output name, so the key, alignment, header size and measured-boot record cannot drift
+from the primary. Run it after every rebuild — the secondary must match the primary in
+everything but version. The <code>*_TFM_update_*</code> launches add the two secondary slots as extra
+download rows. Expected behaviour and the reverse slot order are in D100.</p>
+<h2 id="launches">Launches</h2>
+<pre><code class="language-bat">rem  RA6M5, from scratch
+python scripts\make_psa_arch_launch.py ra6m5_TFM_test_storage_gcc C:\b\m5cry C:\b\m5sto
+
+rem  RA8M2 IAR, derived from the known-good GCC launches
+python scripts\mk_iar_launches.py --check
+python scripts\mk_iar_launches.py</code></pre>
+<p>The launch <strong>files</strong> live in <code>ra6m5_gcc_nonsecure/</code> (RA6M5) and <code>ra8m2_gcc_mcuboot/</code> (RA8M2).
+Names carry the toolchain: <code>_gcc</code> or <code>_iar</code>.</p>
+<p>The <strong>host project</strong> in <code>PROJECT_ATTR</code> differs between the two parts, on purpose:</p>
+<div class="table-wrap"><table>
+<tr><th></th><th>host project</th></tr>
+<tr><td>RA6M5, both toolchains</td><td><code>ra6m5_gcc_nonsecure</code></td></tr>
+<tr><td>RA8M2 GCC</td><td><code>ra8m2_gcc_CPU0_nonsecure</code></td></tr>
+<tr><td>RA8M2 IAR</td><td><strong><code>ra8m2_iar_CPU0_nonsecure</code></strong></td></tr>
+</table></div>
+<p><code>serverParam</code> builds the J-Link settings path from <code>${ProjName}</code>:</p>
+<pre><code>-uJLinkSetting= "${workspace_loc:/${ProjName}}/${LaunchConfigName}.jlink"</code></pre>
+<p>so hosting both toolchains in one project makes them share a directory for those sidecars.
+Giving each toolchain its own host keeps them apart. Nothing is built either way —
+<code>ATTR_BUILD_BEFORE_LAUNCH_ATTR</code> is <code>2</code> (disabled) — so the host project supplies only that name
+and the debug context. Keep <code>MAPPED_RESOURCE_PATHS</code> in step with <code>PROJECT_ATTR</code>.</p>
+<p><code>PROJECT_BUILD_CONFIG_AUTO_ATTR</code> is <strong><code>false</code></strong> in every IAR launch, which is what all six
+working RA6M5 IAR launches use. The GCC launches have <code>true</code>, so it cannot be inherited.</p>
+<p><code>mk_iar_launches.py</code> derives each IAR launch from its GCC twin by swapping build-tree names and
+the three project attributes above; nothing else differs, verified against the RA6M5 pair. It
+refuses to write a launch that still names a GCC tree or the GCC project, or that has
+<code>setTZBoundaries</code> true anywhere. Run <code>--check</code> first: it reports <code>same</code> when the generator
+reproduces what is on disk, which is how a hand edit gets folded back in rather than lost.</p>
+<p><strong>Two attributes are safety-critical in every launch:</strong></p>
+<ul>
+<li><code>setTZBoundaries</code> = <strong>false</strong>. The debugger writing the TrustZone boundaries is a brick
+hazard (<code>DESIGN.md</code> §7.2). RA8M2 launches carry the key <strong>twice</strong> — <code>...arm.jlink.</code> and
+<code>...arm.e2lite.</code> — and e2 defaults the e2lite one to <code>true</code>. Only the namespace matching the
+selected probe is read, so the J-Link launches here are safe, but set both.</li>
+<li><code>ueraseRomOnDownload</code> and <code>ueraseDataRomOnDownload</code> = <strong>1</strong>. Otherwise a stale ITS/PS area
+survives a reflash and the storage suites fail in ways that look like code faults.</li>
+</ul>
+<p>Flash <code>bl2.elf</code> or <code>bl2.hex</code>, <strong>never <code>bl2.bin</code></strong> — the OFS words land at their link addresses
+only in a format that carries them.</p>
+<h2 id="rtt">RTT</h2>
+<p>Each image has its own control block and the address moves on every rebuild, so read it rather
+than reusing a remembered value:</p>
+<pre><code class="language-sh">arm-none-eabi-nm &lt;build&gt;/bin/tfm_ns.axf | grep ' _SEGGER_RTT$'</code></pre>
+<p><strong>BL2&#x27;s block cannot be recovered after the chainload.</strong> <code>region_defs.h</code> gives BL2 and the SPE
+the same RAM, so the SPE&#x27;s <code>.bss</code> zeroing wipes BL2&#x27;s control block microseconds after the
+jump, and a viewer that auto-detects after reset always finds the SPE&#x27;s. To capture BL2, halt
+in it first (<code>RA8M2_BL2_HALT_AT_MAIN=ON</code>, or a breakpoint), point the viewer at BL2&#x27;s address
+while halted, then run. D100.</p>
+<p>The test builds set <code>RA6M5_RTT_BLOCKING</code> / <code>RA8M2_RTT_BLOCKING</code> = ON, which makes RTT wait for
+the host instead of dropping writes when its buffer fills. Without it a suite out-runs the
+host&#x27;s polling and whole tests vanish from the transcript while the run itself is fine. Off by
+default in the port, because with no viewer attached the first write past 4 KB blocks forever.</p>
+<h2 id="documentation-checks">Documentation checks</h2>
+<pre><code class="language-sh">python scripts/check_docs.py     # verify every D-citation and .md reference resolves
+sh scripts/install_hooks.sh      # install it as a pre-commit hook (once per clone)</code></pre>
+<p>Checks three things: every <code>D###</code> cited anywhere exists in <code>DECISIONS.md</code>; every relative
+<code>.md</code> link resolves; every <code>.md</code> filename named in a <code>.cmake</code> or <code>CMakeLists.txt</code> comment
+resolves. <code>DECISIONS.md</code> is exempt from the link checks because it is append-only - a reference
+there to a since-retired file is a historical fact, not a defect.</p>
+<p>Bypass with <code>git commit --no-verify</code> when a commit deliberately breaks a reference, such as the
+first half of a rename spanning both repositories.</p>
+</main>
+</div>
+</body>
+</html>

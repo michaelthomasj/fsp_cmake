@@ -1,0 +1,446 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Renesas RA TF-M Port — Architecture &amp; Design</title>
+<meta name="description" content="Rendered from DESIGN.md by scripts/build_doc_html.py.">
+<link rel="stylesheet" href="../assets/style.css">
+<script src="../assets/site.js"></script>
+</head>
+<body>
+<!-- GENERATED from DESIGN.md by scripts/build_doc_html.py. Do not edit: the next commit touching the Markdown overwrites it. -->
+<div class="layout">
+<aside class="sidebar">
+  <div class="brand"><a href="../index.html">Cortex-M, TrustZone &amp; TF-M on Renesas RA</a><button class="menu-toggle" aria-expanded="false">Menu</button></div>
+  <nav>
+    <ol>
+      <li><a href="../index.html">← Course</a></li>
+      <li><a href="index.html">Reference documents</a>
+        <ol>
+      <li><a href="ADDING_FSP_MODULES.html">ADDING_FSP_MODULES.md</a></li>
+      <li><a href="BRIDGING_FILES.html">BRIDGING_FILES.md</a></li>
+      <li><a href="CONFIGURATION.html">CONFIGURATION.md</a></li>
+      <li><a href="DECISIONS.html">DECISIONS.md</a></li>
+      <li><a href="DESIGN.html" aria-current="page">DESIGN.md</a></li>
+      <li><a href="DOCUMENTATION_PLAN.html">DOCUMENTATION_PLAN.md</a></li>
+      <li><a href="FLASH_MAP_OWNERSHIP.html">FLASH_MAP_OWNERSHIP.md</a></li>
+      <li><a href="GETTING_STARTED.html">GETTING_STARTED.md</a></li>
+      <li><a href="PORTING.html">PORTING.md</a></li>
+      <li><a href="PROJECT_PLAN.html">PROJECT_PLAN.md</a></li>
+      <li><a href="RA6E1_SOLUTION.html">RA6E1_SOLUTION.md</a></li>
+      <li><a href="RA6E1_TEMPLATE_CHECKLIST.html">RA6E1_TEMPLATE_CHECKLIST.md</a></li>
+      <li><a href="RA6M5_SOLUTION.html">RA6M5_SOLUTION.md</a></li>
+      <li><a href="RA8M2_SOLUTION.html">RA8M2_SOLUTION.md</a></li>
+      <li><a href="RA8x2_DUAL_CORE_DESIGN.html">RA8x2_DUAL_CORE_DESIGN.md</a></li>
+      <li><a href="README.html">README.md</a></li>
+      <li><a href="RECONFIGURING_THE_LAYOUT.html">RECONFIGURING_THE_LAYOUT.md</a></li>
+      <li><a href="TROUBLESHOOTING.html">TROUBLESHOOTING.md</a></li>
+      <li><a href="UPSTREAM_CHANGES.html">UPSTREAM_CHANGES.md</a></li>
+      <li><a href="scripts_README.html">scripts/README.md</a></li>
+        </ol>
+      </li>
+    </ol>
+    <ol class="doc-toc">
+      <li><a href="#top">DESIGN.md</a>
+        <ol>
+          <li><a href="#s0">0. Goals (these drive every decision below)</a></li>
+          <li><a href="#s1">1. Core principle — RASC is the source of config truth; consume, don&#x27;t fork</a></li>
+          <li><a href="#s2">2. Repositories</a></li>
+          <li><a href="#s3">3. Memory map — authoritative source</a></li>
+          <li><a href="#s4">4. Flash driver geometry</a></li>
+          <li><a href="#s5">5. MCUboot / BL2</a></li>
+          <li><a href="#s6">6. Crypto</a></li>
+          <li><a href="#s7">7. TrustZone: SAU/IDAU, veneers, NSC</a></li>
+          <li><a href="#s8">8. The BL2 image: linker, runtime state, and option memory</a></li>
+          <li><a href="#s9">9. Console / logging — SEGGER RTT (switchable)</a></li>
+          <li><a href="#s10">10. Non-secure app</a></li>
+          <li><a href="#s11">11. Toolchains</a></li>
+          <li><a href="#s12">12. Bring-up</a></li>
+        </ol>
+      </li>
+    </ol>
+    <button class="theme-toggle" type="button">Dark theme</button>
+  </nav>
+</aside>
+<main id="top" class="ref-doc">
+<p class="src">Rendered from <a href="../../../DESIGN.md"><code>DESIGN.md</code></a>. Edit the Markdown, not this page.</p>
+<h1 id="renesas-ra-tf-m-port--architecture--design">Renesas RA TF-M Port — Architecture &amp; Design</h1>
+<p>Design and rationale record for the Renesas RA TF-M port. Written for a future maintainer: it
+captures <strong>why</strong> things are the way they are, so the port can be updated against newer FSP and
+newer TF-M without re-deriving the reasoning.</p>
+<p><strong>Live parts: RA6M5 and RA8M2.</strong> RA6M4 and RA6E1 are in-tree but dormant — both EK-RA6M4 boards
+were bricked by the OFS coalescing defect (DECISIONS D002). Sections below are part-neutral
+unless they name a part; per-part specifics live in <code>RA6M5_SOLUTION.md</code> and <code>RA6E1_SOLUTION.md</code>,
+and the RA6M4-era documents are under <code>archive/ra6m4/</code>.</p>
+<blockquote><p>This file is the stable companion to <code>DECISIONS.md</code>, which is the append-only log of <em>why</em>.
+Where the two disagree, DECISIONS.md is authoritative and carries the date.</p></blockquote>
+<h2 id="s0">0. Goals (these drive every decision below)</h2>
+<ol>
+<li><strong>Upstream the RA6M5 and RA8M2 ports</strong> to the official TF-M repo.</li>
+<li><strong>Preserve the user&#x27;s RASC/e2 configuration</strong> — the FSP modules they enabled and the memory
+layout they chose stay as configured; the TF-M build consumes them (§1).</li>
+<li><strong>Let the user add or remove FSP modules</strong> in the secure and non-secure projects and have the
+new files picked up by the TF-M build. The gap — e2 does not emit CMake modules — is bridged
+by documentation rather than by code.</li>
+<li><strong>Use as much FSP code as possible</strong>, so future FSP fixes arrive by updating the pack in
+e2/RASC and regenerating, not by patching this port.</li>
+</ol>
+<h2 id="s1">1. Core principle — RASC is the source of config truth; consume, don&#x27;t fork</h2>
+<ul>
+<li>The user generates the base project(s) from <strong>RASC</strong> (Smart Configurator). BSP, clocks, pins,
+drivers, MPU, <strong>OFS</strong>, etc. are configured there and generated as code.</li>
+<li>The TF-M <strong>BL2 / secure / non-secure</strong> builds <strong>consume</strong> that generated code — they do not
+hand-fork it. Mechanism: <code>FSP_BL2_APP_DIR</code> / <code>FSP_S_APP_DIR</code> / <code>FSP_NS_APP_DIR</code> point the build at
+the RASC projects (with an embedded <code>fsp/</code> snapshot as fallback default).</li>
+<li>Prefer <strong>TF-M&#x27;s own config hooks/macros</strong> over copying/forking TF-M files, and **directory globs of
+the RASC tree** (as RASC&#x27;s own <code>GeneratedSrc.cmake</code> does) over hand-maintained file lists. This is
+what keeps &quot;update FSP&quot; and &quot;update TF-M&quot; cheap.</li>
+<li><strong>Corollary:</strong> whenever a value/section could come from RASC config, source it from there
+(e.g. OFS values from <code>BSP_CFG_OPTION_SETTING_*</code>), even if the emitting shim is small.</li>
+</ul>
+<h3 id="s1-1">1.1 Documented deviations from the principle</h3>
+<p>Deliberate exceptions. Anything not listed here that diverges from RASC is a defect, not a choice.</p>
+<p><strong>Image version — TF-M owns it, not FSP. USAGE NOTE: do not set <code>MCUBOOT_IMAGE_VERSION</code>.</strong></p>
+<p>FSP takes the signed image version from an <strong>environment variable</strong>. Its
+<code>rm_mcuboot_port_sign.py</code> (lines 23–36) reads <code>MCUBOOT_IMAGE_VERSION</code>, injects
+<code>--version &lt;value&gt;</code> into the imgtool argv, and errors out if <code>-v</code>/<code>--version</code> is already present in
+the e2 <em>Signing Options &gt; Custom</em> field:</p>
+<pre><code class="language-python">if os.getenv("MCUBOOT_IMAGE_VERSION") is not None:
+    if "-v" in sys.argv or "--version" in sys.argv:
+        sys.exit("ERROR: Remove -v and --version from Signing Options ...")
+    sys.argv.insert(sys.argv.index("sign") + 1, "--version")
+    sys.argv.insert(sys.argv.index("sign") + 2, os.getenv("MCUBOOT_IMAGE_VERSION"))</code></pre>
+<p>This port does <strong>not</strong> use that script and does not read that variable. Versions come from TF-M&#x27;s
+cache variables, passed to imgtool by <code>cmake/spe-CMakeLists.cmake</code>:</p>
+<div class="table-wrap"><table>
+<tr><th></th><th>Variable</th><th>Default</th></tr>
+<tr><td>secure</td><td><code>MCUBOOT_IMAGE_VERSION_S</code></td><td><code>${TFM_VERSION}</code> — 2.2.0 today</td></tr>
+<tr><td>non-secure</td><td><code>MCUBOOT_IMAGE_VERSION_NS</code></td><td><code>0.0.0</code></td></tr>
+</table></div>
+<p>Both are defined in <code>bl2/ext/mcuboot/mcuboot_default_config.cmake:73-74</code> and are overridable per
+platform in <code>config.cmake</code>, or on the command line.</p>
+<p><strong>Why the deviation is accepted.</strong> FSP&#x27;s mechanism is one version for one image, because a
+standalone FSP bootloader signs a single application. TF-M signs <strong>two</strong> images that must be
+versioned independently — the secure image tracks the TF-M release, the non-secure image tracks the
+application — and the attestation token reports them as separate software components. That is
+visible in the boot record: <code>SPE 2.2.0</code> alongside <code>NSPE 0.0.0</code> (<a href="DECISIONS.html#d081">D081</a>). One environment variable
+cannot express that.</p>
+<p><strong>The trap.</strong> Setting <code>MCUBOOT_IMAGE_VERSION</code> in your environment has <strong>no effect</strong> on a TF-M build
+here. It is ignored silently — no warning, no error — so an image will simply carry the default
+version and the attestation token will report it. If a version is wrong, change
+<code>MCUBOOT_IMAGE_VERSION_S</code> / <code>_NS</code>, not the environment. If you also build the standalone FSP
+bootloader project from the same shell, note the two take their version from different places and
+will not agree unless you set both.</p>
+<p><strong>2. <code>BSP_TZ_CFG_MSAR=0</code> on RA8M2 - a workaround, not a decision. RA8 parts only.</strong></p>
+<p>FSP derives the MRAM Security Attribution register from <code>BSP_CFG_CLOCKS_SECURE</code>, which the e2
+generator emits as <code>(0)</code>, marking <code>MRCPFB</code> non-secure. The secure image then bus-faults the
+first time it programs MRAM. Setting Clocks to Secure in the e2 Security tab does <strong>not</strong>
+change the generated value - <code>ra6e1_secure</code> carries that attribute and still emits <code>(0)</code> -
+so this is believed to be a generator defect.</p>
+<p>The port therefore defines <code>BSP_TZ_CFG_MSAR=0</code> in <code>ra8m2/CMakeLists.txt</code>. **Remove it when e2
+is fixed**; the test is whether <code>ra_gen/bsp_clock_cfg.h</code> emits <code>BSP_CFG_CLOCKS_SECURE (1)</code>
+after a regenerate. D092, D093.</p>
+<p>The trap: nothing in the build warns if the generated value later becomes correct - the port&#x27;s
+define simply keeps winning, silently, and the deviation outlives its reason.</p>
+<h2 id="s2">2. Repositories</h2>
+<ul>
+<li><code>fsp_cmake</code> — RASC-generated FSP projects (bl2 / s / ns / …) + modular CMake + this doc + status doc
+<ul>
+<li>bring-up scripts. FSP 6.1.0 / RASC <code>sc_v2025-07</code>.</li>
+</ul></li>
+<li><code>trusted-firmware-m</code> — the port under <code>platform/ext/target/renesas/&lt;part&gt;/</code>. Base <code>TF-Mv2.2.0</code>.</li>
+</ul>
+<h2 id="s3">3. Memory map — authoritative source</h2>
+<ul>
+<li><strong><code>flash_layout.h</code> + <code>region_defs.h</code> are authoritative</strong> for the build (MCUboot and TF-M read
+them). The <code>FLASH_*_PARTITION_*</code> cache vars in <code>config.cmake</code> are <strong>vestigial</strong> here (only mps3
+platforms consume them) and are kept only for documentation — they must match <code>flash_layout.h</code>.</li>
+<li>Layout (1 MB flash, dual-image MCUboot): BL2 <code>0x0</code> 128K · S primary <code>0x20000</code> 192K · NS primary
+<code>0x50000</code> 128K · S secondary <code>0x70000</code> 192K · NS secondary <code>0xA0000</code> 128K · scratch <code>0xC0000</code> 256K.
+RAM 256K: S <code>0x20000000</code> 128K · NS <code>0x20020000</code> 128K.</li>
+</ul>
+<h2 id="s4">4. Flash driver geometry</h2>
+<p>Per-part, and the one place where getting a constant wrong fails only on hardware.</p>
+<div class="table-wrap"><table>
+<tr><th></th><th>RA6M5</th><th>RA8M2</th></tr>
+<tr><td>Memory</td><td>HP code flash</td><td>MRAM</td></tr>
+<tr><td>Block size under the slots</td><td>32 KB (region 1, <code>0x10000+</code>; region 0 is 8 KB)</td><td>32 KB uniform</td></tr>
+<tr><td><code>FLASH_AREA_IMAGE_SECTOR_SIZE</code></td><td><code>0x8000</code></td><td><code>0x8000</code></td></tr>
+</table></div>
+<p>The hazard is restating a block size that FSP already generates. <code>FLASH_AREA_IMAGE_SECTOR_SIZE</code>
+was once <code>0x1000</code> in the RA8M2 <code>flash_layout.h</code> while FSP&#x27;s generated <code>mcuboot_config.h</code> had it
+as <code>RM_MCUBOOT_MRAM_BLOCK_SIZE</code> (<code>0x8000</code>); slots came out 9.875 sectors long, every build step
+accepted it, and it failed on hardware as <code>BOOT_EFLASH</code> (D054).</p>
+<p><strong>Settled, 2026-10-05 (D091).</strong> This section recorded a long argument about whether BL2 should
+take its MCUboot flash backend from FSP. The answer is no, and the reasoning is in
+<code>FLASH_MAP_OWNERSHIP.md</code>:</p>
+<ul>
+<li>MCUboot&#x27;s porting contract is that <strong>the port supplies <code>flash_map_backend.h</code></strong> - the struct
+and the <code>flash_area_*</code> functions. Zephyr and Mynewt delegate it to the surrounding system,
+so FSP shipping one is idiomatic.</li>
+<li><strong>TF-M occupies that slot</strong>, and there is room for exactly one. Its struct carries an extra
+<code>ARM_DRIVER_FLASH *fa_driver</code> and its backend dispatches through it.</li>
+<li><code>DEFAULT_MCUBOOT_FLASH_MAP=OFF</code> lets a platform supply the map <strong>data</strong>, not the backend.
+corstone1000 and rse are the only upstream users and both keep TF-M&#x27;s struct.</li>
+<li><strong>ST solves the same problem by wrapping STM32Cube HAL behind a CMSIS driver</strong> and leaving
+the flag ON. This port does the same with <code>Driver_FLASH0</code>/<code>Driver_FLASH1</code> over
+<code>R_FLASH_HP</code>/<code>R_MRAM</code>.</li>
+</ul>
+<p>So both live parts use <strong>TF-M&#x27;s</strong> map and backend, <code>DEFAULT_MCUBOOT_FLASH_MAP</code> is ON, and
+<code>DEFAULT_MCUBOOT_FLASH_BACKEND</code> no longer exists. RA8M2&#x27;s SAU programming, which FSP&#x27;s
+<code>flash_area_open()</code> had provided, now lives in <code>bl2_boot_hal.c</code> with the bounds imported from
+FSP&#x27;s <code>flash_map.c</code>.</p>
+<p><strong>The layout is unaffected either way</strong> - <code>FLASH_AREA_*_OFFSET/SIZE</code> derive from
+<code>BSP_PARTITION_*</code>, so the Solution owns the image layout regardless of backend. Conflating the
+two is what made this take three attempts.</p>
+<h2 id="s5">5. MCUboot / BL2</h2>
+<ul>
+<li><strong>Bootutil:</strong> TF-M downloads a Renesas MCUboot fork. It is <strong>not</strong> the copy RASC ships, and the
+difference is load-bearing: RASC&#x27;s <code>boot_hooks.h</code> is 287 lines against TF-M&#x27;s 181, adding
+<code>BOOT_HOOK_FLASH_AREA_CALL</code>, <code>BOOT_HOOK_FIND_SLOT_CALL</code> and <code>BOOT_HOOK_GO_CALL_FIH</code>. Any FSP
+source that calls those hooks would need a shim when built against TF-M&#x27;s copy. No FSP
+MCUboot source is built any more - <code>rm_mcuboot_port</code> is in <code>FSP_MODULES_NEVER_BUILT</code> on
+both parts and <code>mcuboot_hook_shim.h</code> was deleted with it (DECISIONS D079 for the original
+coupling, D091 for its removal). TF-M&#x27;s copy also provides build glue
+(<code>bootutil/CMakeLists.txt</code>, <code>scripts/imgtool.py</code>) that RASC strips; pointing <code>MCUBOOT_PATH</code> at
+the RASC tree means supplying that glue yourself.</li>
+<li><strong>Signing:</strong> TF-M&#x27;s default flow, which invokes <code>${MCUBOOT_PATH}/scripts/imgtool.py</code> — i.e. RASC&#x27;s
+imgtool when <code>MCUBOOT_PATH</code> is the RASC tree. The RASC <code>rm_mcuboot_port_sign.py</code> wrapper is NOT used
+(it&#x27;s for standalone RASC MCUboot projects).</li>
+<li><strong>NV rollback counters:</strong> TF-M&#x27;s <code>bl2/src/security_cnt.c</code> (not provided by <code>rm_mcuboot_port</code>).</li>
+</ul>
+<h2 id="s6">6. Crypto</h2>
+<ul>
+<li><strong>Now:</strong> software crypto — TF-M&#x27;s own mbedcrypto for BL2 image verification (<code>CRYPTO_HW_ACCELERATOR
+OFF</code>). FSP&#x27;s mbedTLS is entangled with the FSP MCUboot config (<code>bsp_linker_info.h</code>) and was NOT grafted.</li>
+<li><strong>Later (TODO):</strong> hardware crypto via SCE9/RSIP. Staged: <code>mbedtls_user_config.h</code> (disables the SCE9
+<code>*_ALT</code> macros for SW; KEEP <code>MBEDTLS_ENTROPY_HARDWARE_ALT</code> — the TRNG stays the entropy source even in
+SW mode). Switching to HW = re-enable the ALT path + isolate the FSP-mbedTLS/FSP-MCUboot-config coupling.</li>
+</ul>
+<h2 id="s7">7. TrustZone: SAU/IDAU, veneers, NSC</h2>
+<p><strong>The one per-part difference that matters most.</strong> Both live parts attribute memory through the
+IDAU from values burned at provisioning, and the port programs neither the boundaries nor (on
+RA6M5) the SAU in software. But RA8M2 has a second address alias and an SAU, and RA6M5 does not:</p>
+<div class="table-wrap"><table>
+<tr><th></th><th>RA6M5</th><th>RA8M2</th></tr>
+<tr><td><code>__SAUREGION_PRESENT</code></td><td><code>0</code></td><td><code>1</code></td></tr>
+<tr><td><code>BSP_FEATURE_TZ_NS_OFFSET</code></td><td><code>0x00000000</code></td><td><code>0x10000000</code></td></tr>
+<tr><td>Flash aliases</td><td>one</td><td>secure <code>0x02000000</code>, non-secure <code>0x12000000</code></td></tr>
+</table></div>
+<p>The consequence is not cosmetic. With no SAU, Armv8-M attributes <strong>every</strong> address Secure (the
+combined SAU/IDAU takes the more secure of the two), so on RA8M2 a secure transaction to the
+non-secure alias is refused until the SAU is programmed. That is why BL2 on RA8M2 takes FSP&#x27;s
+flash backend, whose <code>flash_area_open()</code> programs the SAU from <code>R_PSCU-&gt;CFSAMONA_b.CFS2</code> and
+tears it down in <code>flash_on_chip_cleanup()</code> (§4, D073/D079). Once RDPM has programmed
+<code>CFSAMONA.CFS2</code>, each alias reaches only its own half.</p>
+<p>Attribution itself is entirely what is burned via RFP/RDPM — see §7.1.</p>
+<ul>
+<li><strong>Veneers/NSC:</strong> pinned at a <strong>fixed</strong> address, taken from the generated layout, using TF-M&#x27;s
+own generated linker via the <code>region_defs.h</code> macros <code>TFM_LINKER_VENEERS_LOCATION_END</code> and
+<code>TFM_LINKER_VENEERS_START = CMSE_VENEER_REGION_START</code> (both <code>#ifndef</code>-overridable). **No custom
+secure linker** — the nordic/laird upstream pattern. Fixed rather than end-of-code so the NSC
+window is stable across firmware updates, which matters because RA TZ boundaries are set once
+at provisioning.</li>
+<li><strong>Boundaries to program:</strong> deliberately <strong>not listed here.</strong> They are per-part, they are RDPM
+input, and a stale copy in a third document is how a board gets provisioned wrong. The owning
+documents are <code>RA6M5_SOLUTION.md</code> §&quot;TrustZone boundary values&quot; and <code>RA6E1_SOLUTION.md</code>; both
+derive the values from the generated layout and show the 32 KB / 8 KB block checks. RDPM
+<strong>erases the part</strong> — reflash all three images afterwards.</li>
+</ul>
+<h3 id="s7-1">7.1 Boundary provisioning — the boundaries are NEVER set by our software</h3>
+<p><code>BSP_FEATURE_TZ_HAS_DLM = 1</code> on every RA part this port targets (verified: ra6m4,
+ra6e1, ra6m5, ra8m2), so this block in FSP&#x27;s <code>R_BSP_SecurityInit()</code> is
+<strong>compiled out</strong>:</p>
+<pre><code class="language-c">#if 0 == BSP_FEATURE_TZ_HAS_DLM   /* false on all four parts -&gt; not compiled */
+    R_PSCU-&gt;CFSAMONA = ...  R_PSCU-&gt;CFSAMONB = ...
+    R_PSCU-&gt;SSAMONA  = ...  R_PSCU-&gt;SSAMONB  = ...  R_PSCU-&gt;DFSAMON = ...
+#endif</code></pre>
+<p><code>R_BSP_SAUInit()</code> still runs, but the <strong>SAU only refines the IDAU</strong> — an address is secure if <em>either</em>
+says so — and <code>BSP_FEATURE_TZ_NS_OFFSET = 0x00</code> means there is no separate non-secure alias for code
+flash. So IDAU attribution, burned into the device, is the only thing that makes the NS slot
+non-secure. An unprogrammed part faults on the S→NS <code>BLXNS</code> with <strong>SecureFault / <code>INVEP</code></strong>
+(<code>SCB-&gt;SFSR</code> @ <code>0xE000EDE4</code>, bit 0) — the S→NS jump is the first thing that can possibly notice.</p>
+<p><strong>Register granularities differ, and two are coarse.</strong> A layout is only programmable if the sums land
+on them:</p>
+<div class="table-wrap"><table>
+<tr><th>Boundary</th><th>Register</th><th>Granularity</th></tr>
+<tr><td>Code flash S → NSC</td><td><code>CFSAMONB.CFS1</code></td><td>1 KB</td></tr>
+<tr><td>Code flash NSC → NS</td><td><code>CFSAMONA.CFS2</code></td><td><strong>32 KB</strong></td></tr>
+<tr><td>SRAM S → NSC</td><td><code>SSAMONB.SS1</code></td><td>1 KB</td></tr>
+<tr><td>SRAM NSC → NS</td><td><code>SSAMONA.SS2</code></td><td><strong>8 KB</strong></td></tr>
+<tr><td>Data flash S → NS</td><td><code>DFSAMON.DFS</code></td><td>1 KB</td></tr>
+</table></div>
+<p>So <em>Code Secure + Code NSC</em> must be a multiple of 32 KB, and <em>SRAM Secure + SRAM NSC</em> a multiple of
+8 KB. Check this when choosing partition sizes in RASC — a layout that fails it cannot be programmed
+at all and must be repartitioned, not worked around.</p>
+<p>Programmed with the <strong>Renesas Device Partition Manager</strong> (e2 studio → Run → Renesas Debug Tools),
+which takes <strong>KB</strong>. Expect it to erase the part and require SSD lifecycle state — re-flash all images
+afterwards. Verify by reading <code>CFSAMONA</code>/<code>CFSAMONB</code> back.</p>
+<h3 id="s7-2">7.2 ⚠ Disable the debugger&#x27;s automatic TZ-boundary programming</h3>
+<p>e2 studio debug configurations carry:</p>
+<pre><code class="language-xml">&lt;booleanAttribute key="com.renesas.hardwaredebug.arm.jlink.setTZBoundaries" value="false"/&gt;</code></pre>
+<p><strong>Default is enabled, and it must be <code>false</code> for this port.</strong> The tooling derives the boundaries from
+the symbols of the project being launched, and it does not understand a bootloader <em>and</em> a secure
+image both living in the secure region. Launched against the bootloader — which has no TrustZone
+knowledge at all — it marks <strong>everything secure</strong>, silently undoing a correct partition. The next
+S→NS jump then fails with the <code>INVEP</code> SecureFault above, on a board that was working minutes earlier.</p>
+<p>This bites TF-M exactly as hard as the standalone solution: BL2 is precisely such a
+TrustZone-unaware bootloader ahead of the secure image. Set the boundaries once with the Partition
+Manager and keep this option off in <strong>every</strong> launch configuration.</p>
+<h2 id="s8">8. The BL2 image: linker, runtime state, and option memory</h2>
+<p>BL2 is the one image where TF-M&#x27;s startup model and FSP&#x27;s expectations collide. All four
+sub-decisions below came out of hardware bring-up in July 2026 and cost real boards; treat them
+as load-bearing.</p>
+<h3 id="s8-1">8.1 <code>.ram_noinit</code> and the FCLK / <code>SystemCoreClock</code> hazard</h3>
+<p>TF-M&#x27;s <code>Reset_Handler</code> calls <code>SystemInit()</code> (→ <code>bsp_clock_init()</code>) <strong>before</strong> <code>__PROGRAM_START()</code>
+runs the C-runtime init. FSP does not expect that ordering: anything <code>SystemInit</code> computes that
+lands in <code>.bss</code> is zeroed immediately afterwards. <code>SystemCoreClock</code> was the casualty —
+<code>R_FLASH_HP_Open</code> derives FCLK from it, read 0, and failed with <code>FSP_ERR_FCLK</code>.</p>
+<p>FSP&#x27;s own mechanism for this is <code>BSP_CFG_EARLY_INIT</code>, which places such state in <code>.ram_noinit</code>.
+Decisions:</p>
+<ul>
+<li>Set <strong><code>BSP_CFG_EARLY_INIT = 1</code></strong> in the vendored FSP snapshot (and in any external RASC/e2
+project used via <code>FSP_*_APP_DIR</code> — this does not flow automatically).</li>
+</ul>
+<p><strong>Which images need it — it is not all three.</strong> The hazard exists only where <em>TF-M&#x27;s</em> startup runs,
+because it is TF-M&#x27;s <code>Reset_Handler</code> that inverts FSP&#x27;s ordering:</p>
+<div class="table-wrap"><table>
+<tr><th>Image</th><th>Startup</th><th>Needs <code>BSP_CFG_EARLY_INIT = 1</code>?</th></tr>
+<tr><td>Secure</td><td>TF-M&#x27;s (<code>startup_ra6xx.c</code>)</td><td><strong>Yes</strong></td></tr>
+<tr><td>BL2</td><td>TF-M&#x27;s (<code>startup_ra6xx.c</code>)</td><td><strong>Yes</strong> — see below</td></tr>
+<tr><td>Non-secure</td><td><strong>FSP&#x27;s own</strong> <code>startup.c</code></td><td><strong>No.</strong> FSP&#x27;s Reset_Handler does the C-runtime init in the order FSP expects, so nothing is zeroed after <code>SystemInit</code> computed it.</td></tr>
+</table></div>
+<p>Set on RA6E1 (2026-08-26): secure only. <strong>BL2 is still exposed.</strong> It uses TF-M&#x27;s startup and it is
+the image that actually failed in July: MCUboot → <code>ARM_Flash_Initialize</code> → <code>R_FLASH_HP_Open</code> reads
+<code>SystemCoreClock</code> as 0 and returns <code>FSP_ERR_FCLK</code>. Nothing restores it on the BL2 path —
+<code>SystemCoreClockUpdate()</code> lives in <code>tfm_hal_platform_init()</code>, which is an SPM hook the <strong>secure</strong>
+image calls and BL2 never does. (A comment in the RA6E1 <code>tfm_hal_platform.c</code> claims <code>Driver_Flash.c</code>
+also does it defensively; it does not.)</p>
+<p>Two ways to close it, pick one:</p>
+<ol>
+<li><code>BSP_CFG_EARLY_INIT = 1</code> in the bootloader project too — but that project is shared with the
+standalone e2 bootloader build, so it changes something outside the TF-M port.</li>
+<li>Override the <code>__WEAK boot_platform_post_init()</code> in the port and call <code>SystemCoreClockUpdate()</code>
+there. <code>bl2_main.c</code> runs it after <code>boot_platform_init()</code> and before <code>boot_go_for_image_id()</code>
+touches flash, so it is early enough, it is one-time system state at the right layer, and it
+leaves the e2 project untouched. <strong>This is the preferred fix</strong> — it makes BL2 correct whatever
+the RASC config says.</li>
+</ol>
+<p>Note that option 2 is <em>not</em> the thing rejected below: the rejection is about <code>ARM_Flash_Initialize</code>,
+a driver entry point re-entered per device, not about a one-shot boot hook.</p>
+<ul>
+<li>Declare <code>.ram_noinit</code> <strong>explicitly</strong> in <code>&lt;part&gt;_bl2.ld</code>: <strong>before <code>.bss</code></strong> (so the prefixed
+<code>.bss.ram_noinit</code> variant isn&#x27;t swallowed by <code>*(.bss*)</code>) and <strong><code>NOLOAD</code></strong> (so it emits no flash
+image and is neither copied nor zeroed), placed <strong>outside</strong> <code>ADDR(.bss)..SIZEOF(.bss)</code> so the
+zero table never covers it. As an orphan section it survived only by luck of ld&#x27;s placement and
+wasted flash.</li>
+<li>Keep the one-time <code>SystemCoreClockUpdate()</code> in <code>tfm_hal_platform_init()</code>. Not redundant: the
+<strong>secure</strong> image uses TF-M&#x27;s <em>generated</em> linker, which has no <code>.ram_noinit</code> rule, so its
+<code>.ram_noinit</code> is still an orphan whose placement isn&#x27;t guaranteed across TF-M versions.
+Rejected: calling it from <code>ARM_Flash_Initialize</code> — wrong layer (a driver entry point, re-entered
+per device and on <code>FSP_ERR_ALREADY_OPEN</code>) for one-time system state.</li>
+</ul>
+<p>Verify: <code>.ram_noinit</code> NOBITS, ending exactly where <code>__bss_start__</code> begins, with <code>g_clock_freq</code> and
+<code>SystemCoreClock</code> inside it.</p>
+<h3 id="s8-2">8.2 The forked linker scripts</h3>
+<p>Each part forks three: <code>&lt;part&gt;_bl2.ld</code> (GNU), <code>&lt;part&gt;_bl2.icf</code> and <code>&lt;part&gt;_fsp_sections.icf</code>
+(IAR) — six files across RA6M5 and RA8M2. <code>&lt;part&gt;_bl2.ld</code> is a copy of TF-M&#x27;s
+<code>tfm_common_bl2.ld</code> plus §8.1 and §8.4; it is forked because GNU ld <code>INSERT</code> cannot augment a
+<code>-T</code> main script from a second <code>-T</code> fragment. Keep them in sync with TF-M on version bumps. The
+secure and non-secure sides stay on FSP&#x27;s generated linker scripts (§7), unforked.</p>
+<h3 id="s8-3">8.3 BL2 lives at the base of flash</h3>
+<p><code>BL2_CODE_START</code> derives from <code>FLASH_BASE_ADDRESS</code>, <strong>not</strong> <code>S_ROM_ALIAS_BASE</code>. The latter is the
+<em>secure image</em> base (<code>0x20000</code> when BL2 is on), so it linked the bootloader into the secure slot:
+nothing at the reset vector, and the flash step for <code>tfm_s_signed.bin</code> landed on top of the
+misplaced bootloader. The device never ran BL2 at all — which is why a run of earlier fixes
+appeared to change nothing. Verify: <code>__Vectors</code> at <code>0x0</code> in <code>bl2.axf</code>.</p>
+<h3 id="s8-4">8.4 OFS (option-setting memory) — BL2 only, DISCRETE regions</h3>
+<p>OFS (<code>0x0100A100</code>–<code>0x0100A2CC</code>) is emitted into the <strong>BL2 image only</strong>. Reasons: (a) the secure/NS
+images are MCUboot-signed and imgtool needs a <strong>contiguous</strong> payload — OFS is non-contiguous with
+code flash; (b) two images programming OFS would collide. FSP&#x27;s <code>bsp_linker.c</code> gates OFS on
+<code>#ifndef BSP_BOOTLOADED_APPLICATION</code> (bootloader only) for the same reason.</p>
+<p><strong>Implementation:</strong> <code>bl2_option_setting.c</code> emits <code>.option_setting_*</code> with values from the RASC
+config (<code>BSP_CFG_OPTION_SETTING_*</code>), compiled straight into the <code>bl2</code> executable — <em>not</em> a static
+lib, since nothing references the OFS symbols and the linker would never pull the object out of an
+archive (<code>KEEP</code> only helps once linked).</p>
+<p><strong>⚠ The critical decision — one MEMORY region per option group.</strong> The option-setting map is
+<strong>sparse</strong>: thirteen register groups holding 92 bytes of real data spread across a 460-byte span.
+The 368 bytes between them are other FCU configuration, including the <strong>FSPR permanence word</strong>, and
+are not ours to write.</p>
+<ul>
+<li><strong>Correct</strong> (what FSP&#x27;s generated <code>fsp_gen.ld</code> does, and what we now do): declare thirteen
+discrete <code>MEMORY</code> regions, each sized to exactly its group, and assign every section with
+<code>&gt; OPTION_SETTING_xxx</code>. ld then emits <strong>one PT_LOAD per group</strong> and physically cannot fill
+between them.</li>
+<li><strong>Fatal</strong> (what we did until 2026-07-21): bare addressed sections with no <code>&gt; REGION</code>
+— <code>.option_setting_ofs0 0x0100A100 : { ... }</code>. ld coalesces all thirteen into <strong>one PT_LOAD</strong>
+spanning the full 460 bytes and <strong>zero-fills the gaps</strong>. A debugger loading the ELF writes that
+whole span, clearing FSPR → <strong>the part is permanently bricked</strong>. This destroyed two EK-RA6M4
+boards.</li>
+</ul>
+<p><strong>The zero fill is invisible in the srec.</strong> It lives in the program header, not in any section, and
+<code>objcopy -O srec</code> emits from sections. This is why the srec-diff approach (the premise of the
+&quot;always emit .srec&quot; build change) cannot catch a regression here. The only valid check is:</p>
+<pre><code>arm-none-eabi-readelf -l bin/bl2.axf</code></pre>
+<p>Expect small separate LOAD segments (<code>FileSiz</code> 0x4 or 0xc) in the <code>0x0100Axxx</code> range and <strong>never</strong>
+one segment spanning <code>0x1CC</code>. Confirm the values match a known-good image before flashing.</p>
+<p><strong>This is now enforced by the build, not by remembering to run it.</strong> <code>check_ofs.py</code> in the TF-M
+platform directory runs after every <code>bl2</code> and <code>tfm_s</code> link and fails the build if any <code>PT_LOAD</code>
+overlapping <code>0x0100A100</code>-<code>0x0100A2CF</code> exceeds 12 bytes (the largest single option word). It is a
+hard error with no opt-out switch — the failure it guards is silent, instant and unrecoverable, so
+a warning that scrolls past would be worth nothing. <code>tfm_s</code> is checked too and must report CLEAN.</p>
+<p>The guard is verified against the real artifact rather than assumed to work:
+<code>bringup/bricking_evidence/bl2_BRICKED.elf</code> is the image that destroyed the boards, and the guard
+rejects it with <code>0x0100A100+388B</code> — 388 = <code>0x184</code>, the span itself. That file is the regression
+fixture for this check; do not delete it.</p>
+<p>Wired on <strong>both</strong> platforms, from a single shared copy at
+<code>platform/ext/target/renesas/common/check_ofs.py</code>. The option-setting map is byte-identical on
+RA6M4 and RA6E1, and the three copies that existed had already drifted — the RA6E1 one claimed
+RA6E1 boards were bricked. One guard, one place.</p>
+<p><strong>Related:</strong> <code>BSP_CFG_CLOCKS_SECURE = 1</code>. <code>bsp_mcu_ofs_cfg.h</code> computes
+<code>OFS1_SEL = 0xFFFFF8F8 | ((BSP_CFG_CLOCKS_SECURE == 0) ? 0xF00 : 0)</code>. With <code>0</code>, the clock-related
+OFS1 fields are marked <strong>non-secure</strong>; on a TZ part with boundaries programmed that attribution
+mismatch can lock out the debug interface. BL2 and the secure image own the clocks, so clocks must
+be secure. External RASC projects must set this in the RASC BSP configuration too.</p>
+<p><strong>Note on <code>bl2.bin</code>:</strong> because OFS sits at <code>0x0100Axxx</code>, a plain <code>objcopy -O binary</code> pads
+<code>bl2.bin</code> to ~16.8 MB, zero-filling PBPS at <code>0x0100A1E0</code> — the brick, from an ELF that passes
+every check. <strong>Flash <code>bl2.hex</code> or <code>bl2.srec</code>, never <code>bl2.bin</code>.</strong></p>
+<p>Since 2026-09-29 all four ports re-emit the flat binary with <code>--remove-section=.option_setting*</code>
+and verify the result with <code>check_ofs.py --check-flat-bin</code>, so a <code>.bin</code> from a current build is
+~27 KB and safe. <strong>The rule stands regardless:</strong> a <code>.bin</code> from an older build dir, another
+toolchain path, or a hand-run <code>objcopy</code> is lethal and looks identical in a file listing. Size is
+the only tell — over ~1 MB means it spans the option memory.</p>
+<h2 id="s9">9. Console / logging — SEGGER RTT (switchable)</h2>
+<ul>
+<li><code>&lt;PART&gt;_STDOUT_RTT</code> (e.g. <code>RA6M5_STDOUT_RTT</code>, <code>RA8M2_STDOUT_RTT</code>; default ON): routes TF-M/MCUboot stdout to SEGGER RTT over J-Link (no UART wiring,
+no S/NS peripheral contention). <code>rtt/rtt_stdout.c</code> implements TF-M&#x27;s <code>stdio_*</code> backend; the common
+<code>uart_stdout.c</code> is disabled. OFF → FSP SCI UART via the untouched <code>Driver_USART.c</code>. Each image (BL2/S/NS)
+has its own RTT control block.</li>
+</ul>
+<h2 id="s10">10. Non-secure app</h2>
+<ul>
+<li>FreeRTOS NS app from the RASC <code>_ns_rtos</code> project (<code>FSP_NS_APP_DIR</code>). Its <code>memory_regions.ld</code> was fixed
+to the TF-M NS partition (RAM <code>0x20020000</code>, flash <code>0x50400</code>) — RASC had generated a standalone layout
+(secure-RAM <code>0x20002000</code>) that would have SecureFaulted the S→NS jump.</li>
+</ul>
+<h2 id="s11">11. Toolchains</h2>
+<ul>
+<li><strong>GNU Arm</strong> (13.2) is the working toolchain today.</li>
+<li><strong>IAR (and armclang): TODO, required soon.</strong> All linker/OFS/veneer decisions must be expressible for
+IAR (<code>.icf</code>) too: an IAR BL2 linker with the OFS sections, and confirmation/porting of the veneer
+macros for TF-M&#x27;s IAR isolation linker. Design compiler-agnostically from the start (§7/§8).</li>
+</ul>
+<h2 id="s12">12. Bring-up</h2>
+<ul>
+<li><code>fsp_cmake/bringup/</code> — J-Link flash + RTT scripts. Images are Debug builds (full symbols for
+GDB/Ozone). Flash from an erased chip; program the TZ boundaries (§7) via RFP; OFS (§8) is in <code>bl2.hex</code>.</li>
+</ul>
+<hr>
+<p><em>Maintainer note: when bumping TF-M, re-check §5 (bootutil glue), §7 (veneer macros still honored by the
+generated linker), and §8 (<code>&lt;part&gt;_bl2.ld</code> vs the new <code>tfm_common_bl2.ld</code>). When bumping FSP, the RASC
+config (§1) flows through; re-verify OFS (§8) and clock/flash-geometry assumptions (§4).</em></p>
+</main>
+</div>
+</body>
+</html>

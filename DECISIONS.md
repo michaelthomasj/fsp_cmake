@@ -6078,3 +6078,58 @@ wanted, state what would falsify it.
 - Nothing here was re-measured on silicon, and nothing needed to be: every change in this entry
   is to a comment or a document, except the PXN configure, which was done in a throwaway tree
   (`C:\b\pxnchk`). The green runs in [D115] and [D116] are unaffected.
+---
+
+## D118 — first IAR run above isolation 1: RA8M2 L2 green, and the MMIO region is the only toolchain-invariant in the table
+
+**Date:** 2026-10-21 · **Status:** Accepted · RA8M2 measured · partially closes the IAR item carried since [D113]
+
+**Result: RA8M2 at isolation 2, IAR 10.10.2 — secure 9/9, non-secure 7/7, both FLIH tests
+PASSED.** Every entry from [D113] to [D117] carried "the four IAR trees are rebuilt but not
+yet run" as the substantive open item, on the grounds that IAR has produced defects GNUARM did
+not four times on this port ([D083], [D089], [D107], [D108]). It produced none this time. One
+of the four is closed; `m5il2`, `m5il3` and `m2il3` remain.
+
+### The region table, both toolchains, same part and level
+
+Sizes in bytes, computed as `limit - base + 0x20` because the dump prints RLAR masked to
+bits [31:5]:
+
+| idx | Region | GNUARM | IAR | delta |
+|---|---|---|---|---|
+| 0 | combined unprivileged/ARoT code | 21,152 | 23,552 | +2,400 |
+| 1 | PSA RoT code | 225,760 | 219,648 | -6,112 |
+| 2 | RO data | 37,600 | 41,536 | +3,936 |
+| 3 | App RoT data | 5,312 | 5,248 | -64 |
+| 4 | PSA RoT data | 58,912 | 59,264 | +352 |
+| 5 | **AGT0 (MMIO)** | **256** | **256** | **0 - byte-identical** |
+| | total | 348,992 | 349,504 | +512 |
+
+**idx 5 is identical in base and limit; every other region differs.** That is exactly the
+right invariant and is the useful result here. Regions 0-4 are derived from linker symbols, so
+they move with whatever the toolchain decides about section placement and padding. Region 5
+comes from `tfm_peripherals_def.c`'s `platform_data_t` - a literal base and limit in port
+source - so it cannot move, and it does not. The MMIO path that [D113] found broken is
+therefore toolchain-independent, which was not previously demonstrated: every measurement
+behind [D113]-[D117] was GNUARM.
+
+Both toolchains also pack the table tightly: all ten regions 32-byte aligned, and every
+adjacent pair inside the same memory area exactly `0x20` apart, with no slack.
+
+### What this does and does not cover
+
+Covered: the two defines reaching `platform_s` under IAR, the MMIO region being programmed at
+bind time, an unprivileged ARoT partition reaching its peripheral, and the FLIH path including
+the privileged/unprivileged split across `tfm_timer0_irq.c` and `plat_test.c`.
+
+Not covered: **isolation 3 under IAR on either part**, which is where the `CONFIG_TFM_PARTITION_META`
+arm from [D114] lives. Level 2 takes the `!= 3` branch and cannot exercise it, so the
+metadata-pointer region remains GNUARM-only evidence. `m2il3` is the single most informative
+tree still unrun.
+
+### Carried
+
+- **Three IAR trees unrun**: `m5il2`, `m5il3`, `m2il3`. `m2il3` and `m5il3` carry the only
+  untested arm of [D114]'s fix.
+- RA6M5 L1+IPC (`m5gl1i`) still unrun - unchanged from [D116]/[D117].
+- Item 9's classification in `UPSTREAM_CHANGES.md` is still unresolved ([D117] item 6).

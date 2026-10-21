@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Troubleshooting — indexed by what you actually see</title>
+<meta name="description" content="Rendered from TROUBLESHOOTING.md by scripts/build_doc_html.py.">
+<link rel="stylesheet" href="../assets/style.css">
+<script src="../assets/site.js"></script>
+</head>
+<body>
+<!-- GENERATED from TROUBLESHOOTING.md by scripts/build_doc_html.py. Do not edit: the next commit touching the Markdown overwrites it. -->
+<div class="layout">
+<aside class="sidebar">
+  <div class="brand"><a href="../index.html">Cortex-M, TrustZone &amp; TF-M on Renesas RA</a><button class="menu-toggle" aria-expanded="false">Menu</button></div>
+  <nav>
+    <ol>
+      <li><a href="../index.html">← Course</a></li>
+      <li><a href="index.html">Reference documents</a>
+        <ol>
+      <li><a href="ADDING_FSP_MODULES.html">ADDING_FSP_MODULES.md</a></li>
+      <li><a href="BRIDGING_FILES.html">BRIDGING_FILES.md</a></li>
+      <li><a href="CONFIGURATION.html">CONFIGURATION.md</a></li>
+      <li><a href="DECISIONS.html">DECISIONS.md</a></li>
+      <li><a href="DESIGN.html">DESIGN.md</a></li>
+      <li><a href="DOCUMENTATION_PLAN.html">DOCUMENTATION_PLAN.md</a></li>
+      <li><a href="FLASH_MAP_OWNERSHIP.html">FLASH_MAP_OWNERSHIP.md</a></li>
+      <li><a href="GETTING_STARTED.html">GETTING_STARTED.md</a></li>
+      <li><a href="PORTING.html">PORTING.md</a></li>
+      <li><a href="PROJECT_PLAN.html">PROJECT_PLAN.md</a></li>
+      <li><a href="RA6E1_SOLUTION.html">RA6E1_SOLUTION.md</a></li>
+      <li><a href="RA6E1_TEMPLATE_CHECKLIST.html">RA6E1_TEMPLATE_CHECKLIST.md</a></li>
+      <li><a href="RA6M5_SOLUTION.html">RA6M5_SOLUTION.md</a></li>
+      <li><a href="RA8M2_SOLUTION.html">RA8M2_SOLUTION.md</a></li>
+      <li><a href="RA8x2_DUAL_CORE_DESIGN.html">RA8x2_DUAL_CORE_DESIGN.md</a></li>
+      <li><a href="README.html">README.md</a></li>
+      <li><a href="RECONFIGURING_THE_LAYOUT.html">RECONFIGURING_THE_LAYOUT.md</a></li>
+      <li><a href="TROUBLESHOOTING.html" aria-current="page">TROUBLESHOOTING.md</a></li>
+      <li><a href="UPSTREAM_CHANGES.html">UPSTREAM_CHANGES.md</a></li>
+      <li><a href="scripts_README.html">scripts/README.md</a></li>
+        </ol>
+      </li>
+    </ol>
+    <ol class="doc-toc">
+      <li><a href="#top">TROUBLESHOOTING.md</a>
+        <ol>
+          <li><a href="#brick-hazards">Brick hazards</a></li>
+          <li><a href="#boot-failures">Boot failures</a></li>
+          <li><a href="#link-and-build-failures">Link and build failures</a></li>
+          <li><a href="#things-that-look-like-failures-and-are-not">Things that look like failures and are not</a></li>
+          <li><a href="#when-nothing-here-matches">When nothing here matches</a></li>
+        </ol>
+      </li>
+    </ol>
+    <button class="theme-toggle" type="button">Dark theme</button>
+  </nav>
+</aside>
+<main id="top" class="ref-doc">
+<p class="src">Rendered from <a href="../../../TROUBLESHOOTING.md"><code>TROUBLESHOOTING.md</code></a>. Edit the Markdown, not this page.</p>
+<h1 id="troubleshooting--indexed-by-what-you-actually-see">Troubleshooting — indexed by what you actually see</h1>
+<p>Each entry: the symptom as it appears, the cause, the fix, and where the full account lives.
+Harvested from <code>DECISIONS.md</code> and from comments at the fix sites, so the detail is one hop
+away rather than reproduced here.</p>
+<p><strong>The two that cost hardware are first.</strong> Everything else is recoverable.</p>
+<hr>
+<h2 id="brick-hazards">Brick hazards</h2>
+<h3 id="the-part-reads-back-0xda-and-will-not-respond">The part reads back <code>0xDA</code> and will not respond</h3>
+<p><strong>Permanent. The board is dead.</strong> FSPR, the option-memory permanence word, has been cleared and
+block protection is latched on. Two EK-RA6M4 boards were lost this way on 2026-07-21.</p>
+<p><strong>Cause.</strong> A BL2 image whose option-setting words were coalesced by the linker into <strong>one</strong>
+<code>PT_LOAD</code> segment spanning <code>0x0100A100</code>–<code>0x0100A2CC</code>. The gaps between the real words are
+zero-filled by the loader, and zero in those positions means &quot;protect, permanently&quot;.</p>
+<p><strong>What makes it lethal is that nothing warns you.</strong> The linker is content, the srec is clean,
+and <code>check_ofs.py --ra6-default</code> once validated against a hardcoded RA6 window that still
+contained the stale address, so it printed CLEAN.</p>
+<p><strong>Prevention, all three of which are in place:</strong></p>
+<ul>
+<li>One <code>MEMORY</code> region per option word, never a shared span.</li>
+<li><code>readelf -l</code> on the linked ELF is <strong>the only place the coalescing is visible.</strong> The pre-flash
+checklist in <code>MACHINE_HANDOFF.md</code> §4 runs it.</li>
+<li><code>check_ofs.py</code> now <strong>requires</strong> its region and BL2 passes <code>--require-segments</code>, so an empty
+result fails rather than reading as a pass.</li>
+</ul>
+<p><strong>Flash <code>bl2.elf</code> or <code>bl2.hex</code>, never <code>bl2.bin</code>.</strong> The option words live in discrete segments a
+flat binary cannot express. <code>DESIGN.md</code> §8.4, <a href="DECISIONS.html#d002">D002</a>, <a href="DECISIONS.html#d065">D065</a>.</p>
+<h3 id="the-part-is-provisioned-with-the-wrong-trustzone-boundaries">The part is provisioned with the wrong TrustZone boundaries</h3>
+<p><strong>RDPM erases the part</strong> — reflash all three images afterwards. The values are per-part and
+derived from the generated layout; they live in <code>RA6M5_SOLUTION.md</code> and <code>RA8M2_SOLUTION.md</code> and
+nowhere else, deliberately, because a third copy is how one goes stale.</p>
+<p><strong>Also: <code>setTZBoundaries</code> must be <code>false</code> in every launch configuration.</strong> The debugger
+otherwise derives boundaries from the launched project&#x27;s symbols, and launched against BL2 it
+gets them wrong. <code>DESIGN.md</code> §7.2.</p>
+<hr>
+<h2 id="boot-failures">Boot failures</h2>
+<h3 id="r_flash_hp_open--r_mram_open-returns-fsp_err_fclk"><code>R_FLASH_HP_Open</code> / <code>R_MRAM_Open</code> returns <code>FSP_ERR_FCLK</code></h3>
+<p><strong>Cause.</strong> <code>BSP_CFG_EARLY_INIT</code> is 0 in the e2 project. TF-M&#x27;s <code>Reset_Handler</code> runs
+<code>SystemInit()</code> <em>before</em> the C runtime zeroes <code>.bss</code>; with early init off, FSP leaves
+<code>SystemCoreClock</code> in <code>.bss</code>, so it is wiped immediately after <code>SystemInit()</code> computed it,
+<code>R_FLASH_HP_Open()</code> derives FCLK = 0 and refuses. BL2 fails first, because MCUboot opens the
+flash before anything else runs.</p>
+<p><strong>Fix.</strong> e2 → BSP tab → Early BSP Initialization = Enabled, in <strong>both</strong> the secure and
+bootloader projects. Regenerate.</p>
+<p><strong>Now caught at build time</strong> — <code>&lt;part&gt;_layout_checks.c</code> and <code>bl2_option_setting.c</code> <code>#error</code> on
+it, so it fails the build rather than the board. <a href="DECISIONS.html#d034">D034</a>, <code>DESIGN.md</code> §8.1.</p>
+<h3 id="bootloader-panic-immediately-before-any-mcuboot-output">Bootloader panic immediately, before any MCUboot output</h3>
+<p><strong>Cause (RA8M2, and RA6M5 if FSP&#x27;s backend is ever re-enabled).</strong> The flash controller is opened
+twice. <code>boot_platform_init()</code> opens <code>g_mram0_ctrl</code> / <code>g_flash0_ctrl</code>, then FSP&#x27;s
+<code>flash_area_open()</code> opens the same controller, gets <code>FSP_ERR_ALREADY_OPEN</code> and returns −1.</p>
+<p><strong>Fix, already in place.</strong> <code>&lt;part&gt;_flash_release_for_mcuboot()</code> calls <code>R_MRAM_Close()</code> /
+<code>R_FLASH_HP_Close()</code> and is the first thing <code>boot_platform_post_init()</code> does. <a href="DECISIONS.html#d085">D085</a>.</p>
+<h3 id="err-image-in-the-primary-slot-is-not-valid--unable-to-find-bootable-image"><code>[ERR] Image in the primary slot is not valid!</code> / <code>Unable to find bootable image</code></h3>
+<p>Work through these in order — the first three are the common causes:</p>
+<ol>
+<li><p><strong>Signed at a different <code>MCUBOOT_ALIGN_VAL</code>.</strong> imgtool encodes <code>max_align</code> into the trailer
+magic whenever it is not 8, so an image signed at 128 is rejected by a BL2 built at 32.
+RA6M5 uses 128 and RA8M2 uses 32, so <strong>the two parts&#x27; images are not interchangeable.</strong>
+Reflash every slot rather than mixing.</p></li>
+<li><p><strong>Flashed to the wrong address.</strong> The addresses are per-part; see the per-part solution doc.</p></li>
+<li><p><strong>A stale image in the other slot.</strong> Erase code <em>and</em> data flash on connect.</p></li>
+<li><p><strong><code>FLASH_AREA_IMAGE_SECTOR_SIZE</code> disagreeing with the device.</strong> At <code>0x1000</code> against a real
+<code>0x8000</code>, slots come out 9.875 sectors long; every build step accepts it and it fails here.
+<a href="DECISIONS.html#d054">D054</a>.</p></li>
+<li><p><strong>A <code>struct flash_area</code> layout mismatch</strong> — <strong>no longer possible as configured</strong> (<a href="DECISIONS.html#d091">D091</a>
+removed FSP&#x27;s <code>flash_map.c</code> from the build, so the two headers never meet; kept because it
+returns the moment anyone links FSP&#x27;s backend again, here or on a new part). TF-M&#x27;s and
+FSP&#x27;s headers share the guard <code>H_UTIL_FLASH_MAP_</code> and define the struct differently - 16
+bytes against 12 - so the first one reached silently suppresses the other and every member
+after <code>pad16</code> is read one slot late. The image is fine; <code>fa_size</code> is not. The signature in a
+debugger is <code>fap-&gt;fa_off</code> holding what should be the size. Or check from DWARF that every
+linked object reports <code>sizeof(struct flash_area) == 12</code> (<code>BRIDGING_FILES.md</code> §3). This
+produced exactly this error on RA6M5 (<a href="DECISIONS.html#d090">D090</a>, which supersedes <a href="DECISIONS.html#d085">D085</a>).</p></li>
+</ol>
+<h3 id="boot_eflash-from-boot_read_sectors"><code>BOOT_EFLASH</code> from <code>boot_read_sectors()</code></h3>
+<p>A slot offset or size that is not a whole multiple of the erase sector.
+<code>&lt;part&gt;_layout_checks.c</code> asserts this now, so it should fail the build; if it reaches hardware,
+the partitioning changed without a rebuild. <a href="DECISIONS.html#d054">D054</a>.</p>
+<h3 id="hardfault-in-bl2-reading-an-address-like-0x000b0000">HardFault in BL2, reading an address like <code>0x000b0000</code></h3>
+<p><strong>RA8M2 only.</strong> An MRAM offset used without its alias prefix — the address should be
+<code>0x020B0000</code> (secure) or <code>0x120B0000</code> (non-secure). <code>MRAM_ADDR()</code> in
+<code>cmsis_drivers/Driver_Flash.c</code> adds the right one by comparing against the boundary. <a href="DECISIONS.html#d073">D073</a>,
+<a href="DECISIONS.html#d074">D074</a>.</p>
+<h3 id="hardfault-with-bfar--0x4013c000-in-bsp_prv_clear_pfb-ra8m2">HardFault with <code>BFAR = 0x4013C000</code> in <code>bsp_prv_clear_pfb</code> (RA8M2)</h3>
+<p><strong>Clocks are not Secure in the e2 secure project.</strong> <code>BSP_CFG_CLOCKS_SECURE (0)</code> in
+<code>ra_gen/bsp_clock_cfg.h</code> sets bit 4 of <code>BSP_TZ_CFG_MSAR</code>, and <code>R_BSP_SecurityInit()</code> writes
+that to <code>R_MRMS-&gt;MSAR</code>, assigning the MRAM <code>MRCPFB</code> register non-secure. The secure image then
+bus-faults the first time it programs MRAM - provisioning writing OTP into DF_EMULATION, via
+<code>mram_program_control()</code> -&gt; <code>bsp_prv_clear_pfb()</code>.</p>
+<p><code>BFSR 0x82</code> (PRECISERR | BFARVALID) with <code>BFAR</code> at the <code>R_MRMS</code> base is the signature.</p>
+<p><strong>Fix:</strong> e2 secure project, Security -&gt; Clocks = <strong>Secure</strong>, regenerate. <a href="DECISIONS.html#d092">D092</a>.</p>
+<p>RA6M5 cannot hit this: no MRAM, so no <code>MSAR</code>.</p>
+<h3 id="hfsrforced-set-with-every-cfsr--bfsr--mmfsr--ufsr--sfsr-bit-clear"><code>HFSR.FORCED</code> set with every <code>CFSR</code> / <code>BFSR</code> / <code>MMFSR</code> / <code>UFSR</code> / <code>SFSR</code> bit clear</h3>
+<p><strong>This is the signature of a masked SVCall, not a fault in the code you were running.</strong> With
+PRIMASK set, SVCall is masked and the first <code>svc</code> escalates to HardFault. It is easily misread
+as a fault in whatever was being logged from, because the usual trigger is
+<code>LOG_INFFMT</code> → <code>printf</code> → <code>tfm_output_unpriv_string()</code>&#x27;s <code>svc 2</code>. <a href="DECISIONS.html#d064">D064</a>.</p>
+<hr>
+<h2 id="link-and-build-failures">Link and build failures</h2>
+<h3 id="region-code_ram-overflowed"><code>region CODE_RAM overflowed</code></h3>
+<p><strong>RA6M5 only.</strong> <code>S_RAM_CODE_SIZE</code> in <code>region_defs.h</code> is too small for the RAM-resident flash
+P/E routines. It is <code>0xA00</code> for <code>0x7d0</code> of code **plus a long-branch veneer that ld inserts
+inside the section**; <code>0x800</code> fit with nothing to spare. Revisit on any FSP uprev. RA8M2 has no
+such window — <code>r_mram.c</code> needs no RAM-resident code.</p>
+<h3 id="region-flash-overflowed-while-the-map-shows-tens-of-kb-free"><code>region FLASH overflowed</code> while the map shows tens of KB free</h3>
+<p>Check whether the overflow is the <em>slot</em> rather than the region: the signed image carries a
+~275 B imgtool TLV block and a 16-byte trailer on top of the raw image, and the slot must hold
+all of it. True spare is 1,693 B on RA6M5 and 670 B on RA8M2 — see <code>README.md</code> §&quot;Freeing space
+in the secure image&quot; for what to turn off, and <a href="DECISIONS.html#d087">D087</a> for why the older, larger figures were
+wrong.</p>
+<h3 id="undefined-symbol-imagearm_lib_stackzibase---with-single-"><code>undefined symbol `Image$ARM_LIB_STACK$ZI$Base`</code> — with single <code>$</code></h3>
+<p><strong>A CMake/Ninja escaping difference, not a missing symbol.</strong> The symbol needs <code>$$</code>, and how
+many <code>$</code> a CMake string needs to survive as two on the link line is version dependent: the
+literal worked under CMake 3.27.6 / Ninja 1.11.1 and was halved under 4.1.1 / 1.13.1.</p>
+<p><strong>Fix, already in place.</strong> The option is written to a response file with <code>file(WRITE)</code> and
+passed as <code>-Wl,@file</code>, so no escaping layer is left to disagree. <a href="DECISIONS.html#d010">D010</a>.</p>
+<h3 id="ielftool-is-not-recognized--after-a-successful-link"><code>'ielftool' is not recognized</code> — after a successful link</h3>
+<p>IAR&#x27;s post-link steps need <code>C:\iar\ewarmc-10.10.2\arm\bin</code> on <code>PATH</code>. Note <strong><code>ewarmc</code></strong>, not
+<code>ewarm</code>; the missing <code>c</code> was frozen into four PSA-arch build trees&#x27; caches and survived
+<code>--regenerate-during-build</code>, because regeneration reads the same cache. <code>scripts\vs_build.bat</code>
+prepends it. <a href="DECISIONS.html#d083">D083</a>.</p>
+<h3 id="targetconfiggenc1-fatal-error-c1083-cannot-open-include-file-stdioh"><code>targetConfigGen.c(1): fatal error C1083: Cannot open include file: 'stdio.h'</code></h3>
+<p><strong>The MSVC installation is fine.</strong> <code>stdio.h</code> is a <strong>UCRT</strong> header from the Windows SDK and has
+never shipped in the MSVC toolset, so its absence from <code>VC\Tools\MSVC\&lt;ver&gt;\include</code> is normal.
+The real failure is that <code>INCLUDE</code> was unset.</p>
+<p><strong>Cause.</strong> The psa-arch-tests build compiles <code>targetConfigGen.c</code> with <code>cl.exe</code> as a <strong>host</strong>
+tool. Only a Visual Studio developer environment sets <code>INCLUDE</code> and <code>LIB</code>.</p>
+<p><strong>Fix.</strong> Build through <code>scripts\vs_build.bat</code>. Required for every PSA Arch build and nothing
+else. <a href="DECISIONS.html#d083">D083</a>.</p>
+<h3 id="vswhereexe-is-not-recognized-from-vcvars"><code>'vswhere.exe' is not recognized</code> from vcvars</h3>
+<p><strong>Cosmetic.</strong> vcvars falls back to the registry and sets the SDK paths correctly. This is why
+<code>vs_build.bat</code> checks the <em>result</em> — does <code>INCLUDE</code> mention &quot;Windows Kits&quot; — rather than
+vcvars&#x27; exit code. <a href="DECISIONS.html#d083">D083</a>.</p>
+<h3 id="an-option-you-set-appears-to-have-no-effect">An option you set appears to have no effect</h3>
+<p><strong>Check <code>CMakeCache.txt</code> in the build tree, not the config file.</strong> <code>set(X ON CACHE BOOL "")</code>
+does <strong>not</strong> overwrite an existing cache entry without <code>FORCE</code>, so a value added to
+<code>config.cmake</code> after a tree was first configured never reaches it. Either pass <code>-DX=...</code>
+explicitly or delete the tree.</p>
+<p>This has produced two false conclusions already: a tree carrying hand-set debug options that no
+script reproduced (<a href="DECISIONS.html#d084">D084</a>), and a stale tool path surviving regeneration (<a href="DECISIONS.html#d083">D083</a>).</p>
+<p>Also check you are not expecting <code>TFM_PROFILE</code> to win. **It loses to the port&#x27;s cache
+defaults** — <code>TFM_ISOLATION_LEVEL</code> and the <code>TFM_PARTITION_*</code> set are already in the cache by
+the time the profile file is read. <a href="DECISIONS.html#d007">D007</a>.</p>
+<h3 id="the-secure-primary-slot-generates-as-512-bytes">The secure primary slot generates as 512 bytes</h3>
+<p><strong>Partition emission order in the e2 solution</strong>, not geometry: <code>__BL_0_S_T</code> was emitted before
+<code>__BL_0_P_H</code>. After any repartition, read <code>Debug/bsp_linker_info.h</code> back and check that
+<code>__BL_0_P_H_START</code> equals <code>__BL_0_S_T_START</code>. <a href="DECISIONS.html#d078">D078</a>.</p>
+<hr>
+<h2 id="things-that-look-like-failures-and-are-not">Things that look like failures and are not</h2>
+<h3 id="rtt-prints-nothing">RTT prints nothing</h3>
+<p><strong>Re-read the <code>_SEGGER_RTT</code> address for the exact image you flashed.</strong> It moves on every
+relink, and — the part that actually bites — it differs <strong>per toolchain</strong> for the same source
+on the same part. Nothing in the launch configuration carries it, so a wrong address is a
+silent &quot;prints nothing&quot;, not an error.</p>
+<pre><code>arm-none-eabi-nm &lt;image&gt;.axf | grep -w _SEGGER_RTT</code></pre>
+<p>Also: BL2 has no RTT at all unless <code>MCUBOOT_LOG_LEVEL</code> is <code>INFO</code> — at the default <code>OFF</code> the
+symbol is absent, which is expected rather than broken.</p>
+<h3 id="the-attestation-suite-passes-so-measured-boot-works">The attestation suite passes, so measured boot works</h3>
+<p><strong>It does not follow.</strong> With <code>component_cnt == 0</code> under the default
+<code>ATTEST_TOKEN_PROFILE_PSA_IOT_1</code>, <code>attest_add_all_sw_components()</code> emits
+<code>IAT_NO_SW_COMPONENTS</code> and returns <strong>success</strong>. The suite passes whether or not measured boot
+is enabled, and every attestation pass recorded before 2026-10-02 was on a token with no
+measurements.</p>
+<p><strong>Verify by reading the boot record</strong> at the start of secure RAM instead: look for
+<code>SHARED_DATA_TLV_INFO_MAGIC</code> = <code>0x2016</code>. <a href="DECISIONS.html#d080">D080</a>, <a href="DECISIONS.html#d081">D081</a>.</p>
+<h3 id="setting-mcuboot_image_version-changes-nothing">Setting <code>MCUBOOT_IMAGE_VERSION</code> changes nothing</h3>
+<p>Correct, and <strong>it fails silently.</strong> That environment variable is FSP&#x27;s, read by
+<code>rm_mcuboot_port_sign.py</code>. This port uses TF-M&#x27;s <code>MCUBOOT_IMAGE_VERSION_S</code> / <code>_NS</code>. A
+documented deviation — <code>DESIGN.md</code> §1.1.</p>
+<h3 id="its-partition-init-fails-and-reports-pid-257">ITS partition init fails and reports pid 257</h3>
+<p>The reported pid is ITS, but <strong>it is usually the PS half that failed</strong> — the ITS half succeeds
+silently first. <code>tfm_its_init()</code> initialises both, and both go through
+<code>its_flash_fs_validate_config()</code>. Check the PS geometry: <code>num_blocks &lt; 2</code> fails outright, and
+<code>PS_MAX_ASSET_SIZE</code> has both a ceiling and a floor that move with <code>PS_NUM_ASSETS</code>. See
+<code>ra6m5/config_tfm_target.h</code>, which carries the full derivation.</p>
+<hr>
+<h2 id="when-nothing-here-matches">When nothing here matches</h2>
+<p>The decision log is searchable and indexed by cause rather than symptom:
+<code>grep -n "^## D0" DECISIONS.md</code>. Entries are append-only, so a later one may supersede what an
+earlier one concluded — the later entry always says so.</p>
+</main>
+</div>
+</body>
+</html>

@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Configuration reference — every knob you may legitimately change</title>
+<meta name="description" content="Rendered from CONFIGURATION.md by scripts/build_doc_html.py.">
+<link rel="stylesheet" href="../assets/style.css">
+<script src="../assets/site.js"></script>
+</head>
+<body>
+<!-- GENERATED from CONFIGURATION.md by scripts/build_doc_html.py. Do not edit: the next commit touching the Markdown overwrites it. -->
+<div class="layout">
+<aside class="sidebar">
+  <div class="brand"><a href="../index.html">Cortex-M, TrustZone &amp; TF-M on Renesas RA</a><button class="menu-toggle" aria-expanded="false">Menu</button></div>
+  <nav>
+    <ol>
+      <li><a href="../index.html">← Course</a></li>
+      <li><a href="index.html">Reference documents</a>
+        <ol>
+      <li><a href="ADDING_FSP_MODULES.html">ADDING_FSP_MODULES.md</a></li>
+      <li><a href="BRIDGING_FILES.html">BRIDGING_FILES.md</a></li>
+      <li><a href="CONFIGURATION.html" aria-current="page">CONFIGURATION.md</a></li>
+      <li><a href="DECISIONS.html">DECISIONS.md</a></li>
+      <li><a href="DESIGN.html">DESIGN.md</a></li>
+      <li><a href="DOCUMENTATION_PLAN.html">DOCUMENTATION_PLAN.md</a></li>
+      <li><a href="FLASH_MAP_OWNERSHIP.html">FLASH_MAP_OWNERSHIP.md</a></li>
+      <li><a href="GETTING_STARTED.html">GETTING_STARTED.md</a></li>
+      <li><a href="PORTING.html">PORTING.md</a></li>
+      <li><a href="PROJECT_PLAN.html">PROJECT_PLAN.md</a></li>
+      <li><a href="RA6E1_SOLUTION.html">RA6E1_SOLUTION.md</a></li>
+      <li><a href="RA6E1_TEMPLATE_CHECKLIST.html">RA6E1_TEMPLATE_CHECKLIST.md</a></li>
+      <li><a href="RA6M5_SOLUTION.html">RA6M5_SOLUTION.md</a></li>
+      <li><a href="RA8M2_SOLUTION.html">RA8M2_SOLUTION.md</a></li>
+      <li><a href="RA8x2_DUAL_CORE_DESIGN.html">RA8x2_DUAL_CORE_DESIGN.md</a></li>
+      <li><a href="README.html">README.md</a></li>
+      <li><a href="RECONFIGURING_THE_LAYOUT.html">RECONFIGURING_THE_LAYOUT.md</a></li>
+      <li><a href="TROUBLESHOOTING.html">TROUBLESHOOTING.md</a></li>
+      <li><a href="UPSTREAM_CHANGES.html">UPSTREAM_CHANGES.md</a></li>
+      <li><a href="scripts_README.html">scripts/README.md</a></li>
+        </ol>
+      </li>
+    </ol>
+    <ol class="doc-toc">
+      <li><a href="#top">CONFIGURATION.md</a>
+        <ol>
+          <li><a href="#how-the-three-layers-interact-and-the-one-trap">How the three layers interact, and the one trap</a></li>
+          <li><a href="#s1">1. Build inputs — required</a></li>
+          <li><a href="#s2">2. FSP module selection</a></li>
+          <li><a href="#s3">3. MCUboot and the flash layout</a></li>
+          <li><a href="#s4">4. Isolation, partitions and the SPM</a></li>
+          <li><a href="#s5">5. Crypto</a></li>
+          <li><a href="#s6">6. Diagnostics — and what they cost</a></li>
+          <li><a href="#s7">7. Header-level tunables</a></li>
+          <li><a href="#s8">8. What is NOT a setting</a></li>
+        </ol>
+      </li>
+    </ol>
+    <button class="theme-toggle" type="button">Dark theme</button>
+  </nav>
+</aside>
+<main id="top" class="ref-doc">
+<p class="src">Rendered from <a href="../../../CONFIGURATION.md"><code>CONFIGURATION.md</code></a>. Edit the Markdown, not this page.</p>
+<h1 id="configuration-reference--every-knob-you-may-legitimately-change">Configuration reference — every knob you may legitimately change</h1>
+<p>Scope: the options a user of this port sets, where each is defined, and the constraint that
+makes it non-obvious. Verified against the code on <strong>2026-10-04</strong> for the two live parts,
+RA6M5 and RA8M2.</p>
+<p>Read <code>DESIGN.md</code> §1 first. The core principle is that <strong>RASC is the source of config truth</strong>:
+the memory layout and the enabled FSP modules come from the e2 projects, and the options here
+sit on top of that rather than replacing it. Anything that contradicts the generated layout is
+a defect, not a setting.</p>
+<hr>
+<h2 id="how-the-three-layers-interact-and-the-one-trap">How the three layers interact, and the one trap</h2>
+<pre><code>e2 / RASC solution          partitions, FSP modules, OFS values, BSP_CFG_*
+      |  generated Debug/bsp_linker_info.h, Debug/memory_regions.*
+      v
+&lt;part&gt;/config.cmake         the port's opinions - cache defaults
+      |
+      v
+your -D on the command line wins over both</code></pre>
+<p><strong>The trap (D007):</strong> a cache default in <code>&lt;part&gt;/config.cmake</code> <strong>beats <code>TFM_PROFILE</code></strong>. Passing
+<code>-DTFM_PROFILE=profile_medium</code> does <em>not</em> override <code>TFM_ISOLATION_LEVEL</code> or the
+<code>TFM_PARTITION_*</code> set, because those are already in the cache by the time the profile file is
+read. To change them, pass them explicitly.</p>
+<p><strong>The second trap:</strong> <code>set(X ON CACHE BOOL "")</code> does <strong>not</strong> overwrite an existing cache entry
+without <code>FORCE</code>. If an option appears not to take effect, check <code>CMakeCache.txt</code> in the build
+tree, not the config file. This has cost real debugging time twice (<a href="DECISIONS.html#d083">D083</a>, <a href="DECISIONS.html#d084">D084</a>).</p>
+<hr>
+<h2 id="s1">1. Build inputs — required</h2>
+<div class="table-wrap"><table>
+<tr><th>Option</th><th>Meaning</th></tr>
+<tr><td><code>TFM_PLATFORM</code></td><td><code>renesas/ra6m5</code> or <code>renesas/ra8m2</code></td></tr>
+<tr><td><code>FSP_S_APP_DIR</code></td><td>the generated <strong>secure</strong> e2 project. Supplies <code>Debug/bsp_linker_info.h</code>, from which the whole layout is derived</td></tr>
+<tr><td><code>FSP_BL2_APP_DIR</code></td><td>the generated <strong>bootloader</strong> project. Supplies the OFS values and, on RA8M2, FSP&#x27;s MCUboot backend</td></tr>
+<tr><td><code>FSP_NS_APP_DIR</code></td><td>the generated <strong>non-secure</strong> project</td></tr>
+<tr><td><code>TFM_TOOLCHAIN_FILE</code></td><td><code>toolchain_GNUARM.cmake</code> or <code>toolchain_IARARM.cmake</code></td></tr>
+<tr><td><code>CMAKE_BUILD_TYPE</code></td><td><strong><code>MinSizeRel</code> is not optional on GNUARM.</strong> <code>Debug</code> does not fit — <code>tfm_s</code> comes out around 414 KB against RA8M2&#x27;s 293 KB secure region. IAR <code>Debug</code> does fit (<a href="DECISIONS.html#d056">D056</a>)</td></tr>
+</table></div>
+<p><strong>The e2 project must have been BUILT, not just generated.</strong> The TF-M build reads
+<code>Debug/bsp_linker_info.h</code> and <code>Debug/memory_regions.*</code>, which only an e2 build produces.</p>
+<hr>
+<h2 id="s2">2. FSP module selection</h2>
+<p>These decide which FSP sources are compiled into which image. They live in
+<code>&lt;part&gt;/CMakeLists.txt</code>, not <code>config.cmake</code>.</p>
+<div class="table-wrap"><table>
+<tr><th>Variable</th><th>RA6M5</th><th>RA8M2</th></tr>
+<tr><td><code>FSP_MODULES_S</code></td><td><code>bsp flash sce agt</code></td><td><code>bsp flash sce agt</code></td></tr>
+<tr><td><code>FSP_MODULES_BL2</code></td><td><code>bsp flash</code></td><td><code>bsp flash mcuboot_port</code></td></tr>
+<tr><td><code>FSP_MODULE_DIRS_flash</code></td><td><code>r_flash_hp</code></td><td><strong><code>r_mram</code></strong> — MRAM, not HP flash</td></tr>
+<tr><td><code>FSP_MODULE_DIRS_mcuboot_port</code></td><td>—</td><td><code>rm_mcuboot_port</code></td></tr>
+<tr><td><code>FSP_MODULES_NEVER_BUILT</code></td><td><code>r_sce rm_psa_crypto rm_mcuboot_port</code></td><td><code>r_sce rm_psa_crypto</code></td></tr>
+</table></div>
+<p><code>FSP_MODULES_NEVER_BUILT</code> lists modules whose sources the port supplies or compiles by another
+route; naming one here keeps the generic module glob from also building it.</p>
+<p><strong>Adding an FSP module you enabled in e2.</strong> e2 does not emit CMake modules, so a new module
+needs one line in <code>FSP_MODULES_S</code> (or <code>_BL2</code>) and one <code>FSP_MODULE_DIRS_&lt;name&gt;</code> giving its source
+directories. This is the known gap in goal 3 (<code>DESIGN.md</code> §0) and is bridged by documentation
+rather than by code.</p>
+<p><strong>Do not use a recursive glob for a module directory.</strong> <code>rm_mcuboot_port</code> is the cautionary
+case: <code>fsp_module_glob</code> is <code>GLOB_RECURSE</code> and would pull in <code>custom_crypto_stacks/</code>, <code>os/</code> and
+<code>rm_mcuboot_port.c</code> alongside the one wanted file (<a href="DECISIONS.html#d079">D079</a>).</p>
+<hr>
+<h2 id="s3">3. MCUboot and the flash layout</h2>
+<div class="table-wrap"><table>
+<tr><th>Option</th><th>RA6M5</th><th>RA8M2</th><th>Notes</th></tr>
+<tr><td><code>MCUBOOT_IMAGE_NUMBER</code></td><td>2</td><td>2</td><td>secure + non-secure. BL2 loads them in <strong>reverse</strong> order (<code>bl2_main.c</code>)</td></tr>
+<tr><td><code>MCUBOOT_SIGNATURE_TYPE</code></td><td><code>EC-P256</code></td><td><code>EC-P256</code></td><td>must match the solution</td></tr>
+<tr><td><code>MCUBOOT_UPGRADE_STRATEGY</code></td><td><code>OVERWRITE_ONLY</code></td><td><code>OVERWRITE_ONLY</code></td><td>scratch is unused; see <code>RA6M5_SOLUTION.md</code> on why its block is still reserved</td></tr>
+<tr><td><code>MCUBOOT_ALIGN_VAL</code></td><td><strong>128</strong></td><td><strong>32</strong></td><td><strong>flag day</strong> — imgtool encodes it into the boot magic when it is not 8, so images signed at one value are rejected by a BL2 built at another. The two parts&#x27; images are not interchangeable</td></tr>
+<tr><td><code>MCUBOOT_USE_PSA_CRYPTO</code></td><td>ON</td><td>ON</td><td>required for <code>EC-P256</code></td></tr>
+<tr><td><code>MCUBOOT_HW_KEY</code></td><td>OFF</td><td>OFF</td><td></td></tr>
+<tr><td><code>MCUBOOT_MEASURED_BOOT</code></td><td>ON</td><td>ON</td><td>boot record per image</td></tr>
+<tr><td><code>MCUBOOT_DATA_SHARING</code></td><td>ON</td><td>ON</td><td><strong>this is the one that does the work</strong> — without it BL2 writes no boot record and <code>MEASURED_BOOT</code> has nothing to carry</td></tr>
+</table></div>
+<p>| <code>DEFAULT_MCUBOOT_FLASH_MAP</code> | <strong>ON</strong> | <strong>ON</strong> | upstream default; the port does not set it. Both parts take TF-M&#x27;s map <strong>and</strong> backend, with FSP&#x27;s HAL behind <code>fa_driver</code> (<a href="DECISIONS.html#d091">D091</a>, superseding <a href="DECISIONS.html#d079">D079</a>, <a href="DECISIONS.html#d082">D082</a>, <a href="DECISIONS.html#d090">D090</a>) |</p>
+<p>| <code>DEFAULT_MCUBOOT_FLASH_BACKEND</code> | <em>gone</em> | <em>gone</em> | <strong>this variable no longer exists.</strong> It is not set in either <code>config.cmake</code>, and neither part supplies its own <code>flash_map_backend.h</code> or <code>sysflash.h</code> |</p>
+<p><strong>RA8M2&#x27;s SAU programming moved with it.</strong> It used to arrive as a side effect of FSP&#x27;s
+<code>flash_area_open()</code>, which is why the backend override was load-bearing on that part. Under
+<a href="DECISIONS.html#d091">D091</a> it lives in <code>bl2_boot_hal.c</code>, with the bounds imported from FSP&#x27;s <code>flash_map.c</code>.
+<code>DESIGN.md</code> §4 is the current account; the <code>struct flash_area</code> guard-collision note in
+<code>BRIDGING_FILES.md</code> still applies if you ever reintroduce a platform backend.</p>
+<p><strong>Measured boot cannot be verified by the attestation suite.</strong> With <code>component_cnt == 0</code> under
+the default <code>ATTEST_TOKEN_PROFILE_PSA_IOT_1</code>, <code>attest_add_all_sw_components()</code> emits
+<code>IAT_NO_SW_COMPONENTS</code> and returns success — so the suite passes whether or not measured boot
+works. Read the boot record out of RAM instead (<a href="DECISIONS.html#d080">D080</a>, <a href="DECISIONS.html#d081">D081</a>).</p>
+<p><strong><code>MCUBOOT_IMAGE_VERSION</code> is a documented deviation.</strong> FSP expects an environment variable of
+that name, read by <code>rm_mcuboot_port_sign.py</code>. This port uses TF-M&#x27;s <code>MCUBOOT_IMAGE_VERSION_S</code>
+(= <code>${TFM_VERSION}</code>) and <code>_NS</code> (= <code>0.0.0</code>) instead. **Setting the FSP variable has no effect and
+fails silently.** <code>DESIGN.md</code> §1.1.</p>
+<hr>
+<h2 id="s4">4. Isolation, partitions and the SPM</h2>
+<div class="table-wrap"><table>
+<tr><th>Option</th><th>Default here</th><th>Notes</th></tr>
+<tr><td><code>TFM_ISOLATION_LEVEL</code></td><td>1</td><td>the PSA Arch builds use 3</td></tr>
+<tr><td><code>CONFIG_TFM_SPM_BACKEND</code></td><td><code>SFN</code></td><td>no IPC overhead; the PSA Arch builds use <code>IPC</code></td></tr>
+<tr><td><code>PLATFORM_HAS_ISOLATION_L3_SUPPORT</code></td><td>ON</td><td>the shared Armv8-M isolation HAL implements L3 (<a href="DECISIONS.html#d008">D008</a>)</td></tr>
+<tr><td><code>TFM_PARTITION_CRYPTO</code> / <code>_INTERNAL_TRUSTED_STORAGE</code> / <code>_PROTECTED_STORAGE</code> / <code>_INITIAL_ATTESTATION</code> / <code>_PLATFORM</code></td><td>ON</td><td></td></tr>
+<tr><td><code>TFM_PARTITION_FIRMWARE_UPDATE</code></td><td>OFF</td><td></td></tr>
+<tr><td><code>CONFIG_TFM_USE_TRUSTZONE</code></td><td>ON</td><td></td></tr>
+<tr><td><code>TFM_MULTI_CORE_TOPOLOGY</code></td><td>OFF</td><td></td></tr>
+<tr><td><code>CONFIG_TFM_ENABLE_CP10CP11</code></td><td>OFF</td><td>soft float, matching TF-M</td></tr>
+</table></div>
+<p>The <code>PLATFORM_DEFAULT_*</code> set is pinned because the port supplies its own implementation:
+<code>PLATFORM_DEFAULT_ATTEST_HAL</code> OFF, <code>PLATFORM_DEFAULT_SYSTEM_RESET_HALT</code> OFF,
+<code>PLATFORM_DEFAULT_NV_SEED</code> OFF (the hardware TRNG is the entropy source), and
+<code>PLATFORM_DEFAULT_NV_COUNTERS</code> / <code>_CRYPTO_KEYS</code> / <code>_OTP</code> / <code>_PROVISIONING</code> ON.</p>
+<hr>
+<h2 id="s5">5. Crypto</h2>
+<div class="table-wrap"><table>
+<tr><th>Option</th><th>RA6M5</th><th>RA8M2</th></tr>
+<tr><td><code>CRYPTO_HW_ACCELERATOR</code></td><td>ON</td><td>ON</td></tr>
+<tr><td><code>CRYPTO_HW_ACCELERATOR_TYPE</code></td><td><code>renesas/sce9</code></td><td><code>renesas/rsip_e50d</code></td></tr>
+<tr><td><code>&lt;PART&gt;_FSP_MBEDTLS</code></td><td>ON</td><td>ON</td></tr>
+<tr><td><code>PS_ENCRYPTION</code></td><td>ON</td><td>ON (AES-GCM)</td></tr>
+<tr><td><code>TFM_CRYPTO_TEST_ALG_CFB</code></td><td>OFF</td><td>OFF</td></tr>
+</table></div>
+<p><strong>CCM is deliberately in software on RA6M5.</strong> FSP&#x27;s SCE9 CCM caps associated data at 110 B and
+Protected Storage exceeds it; CCM still reaches the engine per block through the cipher and AES
+ALTs (<a href="DECISIONS.html#d043">D043</a>).</p>
+<hr>
+<h2 id="s6">6. Diagnostics — and what they cost</h2>
+<p>The secure slot is nearly full on both parts, so these are a space decision, not a free choice:</p>
+<pre><code>            raw tfm_s.bin   signed payload ends   slot        true spare
+RA6M5           521,792             522,579    524,288         1,693 B
+RA8M2           293,440             294,226    294,912           670 B</code></pre>
+<p>Measured 2026-10-04 by locating the 0xFF gap between the signed payload and the 16-byte
+trailer at the top of the slot. Earlier figures here said 1,984 B and 960 B; those were
+<code>raw image + header</code> against the slot and omitted the ~275 B of imgtool TLVs (signature and
+hashes) and the trailer, which overstated RA8M2&#x27;s headroom by 30%.</p>
+<div class="table-wrap"><table>
+<tr><th>Option</th><th>Default</th><th>Cost</th></tr>
+<tr><td><code>&lt;PART&gt;_STDOUT_RTT</code></td><td>ON</td><td>SEGGER RTT over J-Link, no UART wiring. OFF selects <code>PLATFORM_DEFAULT_UART_STDOUT</code></td></tr>
+<tr><td><code>&lt;PART&gt;_RTT_BLOCKING</code></td><td>OFF</td><td>ON blocks rather than dropping output</td></tr>
+<tr><td><code>TFM_EXCEPTION_INFO_DUMP</code></td><td>ON</td><td>secure text ~3.4 KB. The one worth reconsidering for production</td></tr>
+<tr><td><code>TFM_SPM_DEBUG_TRACE</code></td><td>ON</td><td>a handful of bytes. <strong>Must stay off at isolation 3 + IPC</strong></td></tr>
+<tr><td><code>&lt;PART&gt;_BL2_HALT_AT_MAIN</code></td><td>OFF</td><td>BL2 spins at <code>main()</code> for debugger attach</td></tr>
+<tr><td><code>&lt;PART&gt;_ORPHAN_CHECK_STRICT</code></td><td>OFF</td><td>makes an orphan section fatal; intended for CI</td></tr>
+<tr><td><code>&lt;PART&gt;_NS_IN_SPE_BUILD</code></td><td>OFF</td><td>builds the NS image inside the secure build</td></tr>
+<tr><td><code>MCUBOOT_LOG_LEVEL</code></td><td><code>OFF</code></td><td><code>INFO</code> costs <strong>BL2</strong> text +5,960 B and bss +4,284 B. BL2 has its own region, so this does not touch the secure slot</td></tr>
+<tr><td><code>TFM_SPM_LOG_LEVEL</code>, <code>TFM_PARTITION_LOG_LEVEL</code>, <code>CONFIG_TFM_HALT_ON_CORE_PANIC</code></td><td>silent / OFF</td><td><strong>secure</strong> text +3,785 B for the three together — more than RA6M5&#x27;s 1,984 B of headroom, so they cannot be enabled globally</td></tr>
+</table></div>
+<p>The PSA Arch scripts pass the last two groups explicitly, because <code>profile_large</code> at isolation 3
+has the room and the ordinary builds do not. That is why they are per-script rather than in
+<code>config.cmake</code> (<a href="DECISIONS.html#d084">D084</a>).</p>
+<hr>
+<h2 id="s7">7. Header-level tunables</h2>
+<p>Not cache variables, but the ones people need to change, with the constraint that bites.</p>
+<div class="table-wrap"><table>
+<tr><th>Symbol</th><th>Where</th><th>Constraint</th></tr>
+<tr><td><code>S_RAM_CODE_SIZE</code></td><td><code>region_defs.h</code></td><td><strong>RA6M5 only</strong> (<code>0xA00</code>). Holds <code>0x7d0</code> of RAM-resident flash P/E code plus an ld-inserted long-branch veneer. Overflow is <code>region CODE_RAM overflowed</code>. Revisit on FSP uprev. RA8M2 has no such window — <code>r_mram.c</code> needs no RAM-resident code</td></tr>
+<tr><td><code>S_DATA_EXTRA_NOINIT_SECTION_NAME</code></td><td><code>region_defs.h</code></td><td>must stay outside <code>__bss_start__..__bss_end__</code> and be NOLOAD (<a href="DECISIONS.html#d012">D012</a>)</td></tr>
+<tr><td><code>S_MSP_STACK_SIZE</code></td><td><code>region_defs.h</code></td><td><code>BSP_CFG_STACK_MAIN_BYTES + STACKSEAL_SIZE</code>, asserted at build time, so the e2 project and the port must agree</td></tr>
+<tr><td><code>PS_NUM_ASSETS</code></td><td><code>config_tfm_target.h</code></td><td>5 on both, but the <strong>cap is per-part</strong>: RA6M5&#x27;s 1,536 B PS block allows 5, RA8M2&#x27;s 15,872 B allows 155. Asserted in <code>&lt;part&gt;_layout_checks.c</code>. <strong>Erase data flash before the first boot after any change</strong></td></tr>
+<tr><td><code>PS_MAX_ASSET_SIZE</code></td><td><code>config_tfm_target.h</code></td><td>512. Not the binding constraint — capacity is a sum — and it has a floor of its own around 448</td></tr>
+<tr><td><code>TFM_NV_COUNTERS_AREA_SIZE</code></td><td><code>flash_layout.h</code></td><td>2048 B; PS and ITS split what remains</td></tr>
+<tr><td><code>TFM_HAL_PS_SECTORS_PER_BLOCK</code></td><td><code>flash_layout.h</code></td><td><code>(area/sector)/2</code>. <code>num_blocks &lt; 2</code> fails ITS <strong>and</strong> PS init outright, reported as pid 257</td></tr>
+<tr><td><code>FLASH_AREA_IMAGE_SECTOR_SIZE</code></td><td><code>flash_layout.h</code></td><td><code>0x8000</code> on both. <strong>Restates an FSP value</strong> and is not machine-checkable against it — see the note in <code>&lt;part&gt;_layout_checks.c</code> and diff FSP&#x27;s generated <code>mcuboot_config.h</code> after a pack uprev (<a href="DECISIONS.html#d054">D054</a>)</td></tr>
+<tr><td>OFS <code>OPTION_SETTING_*</code></td><td><code>region_defs.h</code> (RA6M5), generated <code>option_settings.h</code> (RA8M2)</td><td><strong>BRICK HAZARD.</strong> One <code>MEMORY</code> region per word; a coalesced <code>PT_LOAD</code> zero-fills the gaps and programs block protect to 0, permanently. Invisible in the srec — <code>readelf -l</code> is the only place it shows. <code>check_ofs.py</code> enforces it (<a href="DECISIONS.html#d002">D002</a>)</td></tr>
+</table></div>
+<p><strong>OFS values are edited in the BOOTLOADER project</strong>, not the secure one. Both projects define
+the same <code>BSP_CFG_OPTION_SETTING_*</code> groups, so editing the wrong one has no effect and no
+warning. Only <code>FSP_BL2_APP_DIR</code> is on the path for <code>bl2_option_setting.c</code>.</p>
+<hr>
+<h2 id="s8">8. What is NOT a setting</h2>
+<ul>
+<li><strong>TrustZone boundaries.</strong> Programmed once per board with RDPM and never by firmware. Values
+are in <code>RA6M5_SOLUTION.md</code> and <code>RA8M2_SOLUTION.md</code>, derived from the generated layout. RDPM
+<strong>erases the part</strong> — reflash all three images afterwards.</li>
+<li><strong><code>setTZBoundaries</code> in a launch configuration.</strong> Must be <code>false</code> everywhere. The debugger
+derives boundaries from the launched project&#x27;s symbols and gets them wrong against BL2
+(<code>DESIGN.md</code> §7.2).</li>
+<li><strong>The memory layout.</strong> Change it in the e2 solution and regenerate; <code>region_defs.h</code> and all
+three linker scripts follow. What does <em>not</em> follow: the RDPM boundaries, PS capacity, and
+the NSC-window budget.</li>
+</ul>
+</main>
+</div>
+</body>
+</html>

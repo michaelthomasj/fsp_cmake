@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RA6E1 solution template — what it must emit for TF-M</title>
+<meta name="description" content="Rendered from RA6E1_TEMPLATE_CHECKLIST.md by scripts/build_doc_html.py.">
+<link rel="stylesheet" href="../assets/style.css">
+<script src="../assets/site.js"></script>
+</head>
+<body>
+<!-- GENERATED from RA6E1_TEMPLATE_CHECKLIST.md by scripts/build_doc_html.py. Do not edit: the next commit touching the Markdown overwrites it. -->
+<div class="layout">
+<aside class="sidebar">
+  <div class="brand"><a href="../index.html">Cortex-M, TrustZone &amp; TF-M on Renesas RA</a><button class="menu-toggle" aria-expanded="false">Menu</button></div>
+  <nav>
+    <ol>
+      <li><a href="../index.html">← Course</a></li>
+      <li><a href="index.html">Reference documents</a>
+        <ol>
+      <li><a href="ADDING_FSP_MODULES.html">ADDING_FSP_MODULES.md</a></li>
+      <li><a href="BRIDGING_FILES.html">BRIDGING_FILES.md</a></li>
+      <li><a href="CONFIGURATION.html">CONFIGURATION.md</a></li>
+      <li><a href="DECISIONS.html">DECISIONS.md</a></li>
+      <li><a href="DESIGN.html">DESIGN.md</a></li>
+      <li><a href="DOCUMENTATION_PLAN.html">DOCUMENTATION_PLAN.md</a></li>
+      <li><a href="FLASH_MAP_OWNERSHIP.html">FLASH_MAP_OWNERSHIP.md</a></li>
+      <li><a href="GETTING_STARTED.html">GETTING_STARTED.md</a></li>
+      <li><a href="PORTING.html">PORTING.md</a></li>
+      <li><a href="PROJECT_PLAN.html">PROJECT_PLAN.md</a></li>
+      <li><a href="RA6E1_SOLUTION.html">RA6E1_SOLUTION.md</a></li>
+      <li><a href="RA6E1_TEMPLATE_CHECKLIST.html" aria-current="page">RA6E1_TEMPLATE_CHECKLIST.md</a></li>
+      <li><a href="RA6M5_SOLUTION.html">RA6M5_SOLUTION.md</a></li>
+      <li><a href="RA8M2_SOLUTION.html">RA8M2_SOLUTION.md</a></li>
+      <li><a href="RA8x2_DUAL_CORE_DESIGN.html">RA8x2_DUAL_CORE_DESIGN.md</a></li>
+      <li><a href="README.html">README.md</a></li>
+      <li><a href="RECONFIGURING_THE_LAYOUT.html">RECONFIGURING_THE_LAYOUT.md</a></li>
+      <li><a href="TROUBLESHOOTING.html">TROUBLESHOOTING.md</a></li>
+      <li><a href="UPSTREAM_CHANGES.html">UPSTREAM_CHANGES.md</a></li>
+      <li><a href="scripts_README.html">scripts/README.md</a></li>
+        </ol>
+      </li>
+    </ol>
+    <ol class="doc-toc">
+      <li><a href="#top">RA6E1_TEMPLATE_CHECKLIST.md</a>
+        <ol>
+          <li><a href="#s1">1. Project set and names</a></li>
+          <li><a href="#s2">2. Generated files the port consumes</a></li>
+          <li><a href="#s3">3. Partition symbols — the actual contract</a></li>
+          <li><a href="#s4">4. Modules to enable, per project</a></li>
+          <li><a href="#s5">5. BSP configuration, per project</a></li>
+          <li><a href="#s6">6. MCUboot module settings</a></li>
+          <li><a href="#s7">7. Sizing the default layout</a></li>
+          <li><a href="#s8">8. Launch configurations</a></li>
+          <li><a href="#s9">9. What the template still cannot supply</a></li>
+        </ol>
+      </li>
+    </ol>
+    <button class="theme-toggle" type="button">Dark theme</button>
+  </nav>
+</aside>
+<main id="top" class="ref-doc">
+<p class="src">Rendered from <a href="../../../RA6E1_TEMPLATE_CHECKLIST.md"><code>RA6E1_TEMPLATE_CHECKLIST.md</code></a>. Edit the Markdown, not this page.</p>
+<h1 id="ra6e1-solution-template--what-it-must-emit-for-tf-m">RA6E1 solution template — what it must emit for TF-M</h1>
+<p>Derived from the TF-M port as it stands on 2026-08-26 (all three images building and signed).
+Everything below is something the port <strong>reads from a generated project</strong>. If the template emits
+it, a fresh solution builds TF-M with no hand-edits; if it does not, the failure mode is listed.</p>
+<p>Companion docs: <code>RA6E1_SOLUTION.md</code> (current layout and TZ boundaries), <code>DESIGN.md</code> (why),
+<code>ADDING_FSP_MODULES.md</code> (how to extend the CMake side).</p>
+<hr>
+<h2 id="s1">1. Project set and names</h2>
+<p>The port takes three directories, and validates each has <code>ra/</code>, <code>ra_gen/</code>, <code>ra_cfg/</code>:</p>
+<div class="table-wrap"><table>
+<tr><th>Variable</th><th>Project</th><th>Role in the TF-M build</th></tr>
+<tr><td><code>FSP_BL2_APP_DIR</code></td><td><code>ra6e1_mcuboot</code></td><td>FSP modules for BL2; <strong>flat build</strong></td></tr>
+<tr><td><code>FSP_S_APP_DIR</code></td><td><code>ra6e1_secure</code></td><td>FSP modules for the secure image; <strong>source of the layout</strong></td></tr>
+<tr><td><code>FSP_NS_APP_DIR</code></td><td><code>ra6e1_nonsecure</code></td><td>whole FSP application, built as <code>tfm_ns</code></td></tr>
+</table></div>
+<ul>
+<li><input type="checkbox" disabled> All three generate and <strong>build cleanly in e2 standalone</strong>. This is not optional politeness:
+the layout files are build outputs, so an unbuildable project is an unconfigurable TF-M.</li>
+</ul>
+<hr>
+<h2 id="s2">2. Generated files the port consumes</h2>
+<p>Emitted into <code>&lt;project&gt;/Debug/</code> by the e2 build, so they exist only after a build there.</p>
+<ul>
+<li><input type="checkbox" disabled> <code>Debug/bsp_linker_info.h</code> — <strong>all three projects</strong> (existence is validated per project;
+the secure project&#x27;s copy is the one actually parsed)</li>
+<li><input type="checkbox" disabled> <code>Debug/memory_regions.ld</code> — NS project (pulled in by <code>script/fsp.ld</code>)</li>
+<li><input type="checkbox" disabled> <code>script/fsp.ld</code> — NS project (used verbatim as the NS scatter file)</li>
+<li><input type="checkbox" disabled> <code>Debug/compile_commands.json</code> — not read by the build, but it is the reference for the
+generated-header include set in <code>cmake/modules/fsp_bsp.cmake</code>. Keep it emitted.</li>
+</ul>
+<blockquote><p>The port hardcodes <code>Debug/</code>. RASC writes these to the project root instead — a known
+divergence, deliberately not abstracted while e2 is the only shape that produces solutions.</p></blockquote>
+<hr>
+<h2 id="s3">3. Partition symbols — the actual contract</h2>
+<p><code>bsp_linker_info.h</code> is filtered down to its <code>#define BSP_PARTITION_*</code> lines at configure time
+(the rest of the file declares C types that cannot be preprocessed into a linker script). The
+port needs <strong>exactly these</strong>, in <code>_START</code> / <code>_SIZE</code> pairs unless noted:</p>
+<div class="table-wrap"><table>
+<tr><th>Group</th><th>Symbols</th></tr>
+<tr><td>Bootloader</td><td><code>FLASH_BL_CPU0_S_*</code>, <code>RAM_BL_CPU0_S_SIZE</code></td></tr>
+<tr><td>Image 0 (S) slots</td><td><code>__BL_0_P_H_*</code>, <code>__BL_0_P_T_*</code>, <code>__BL_0_S_H_*</code>, <code>__BL_0_S_T_*</code></td></tr>
+<tr><td>Image 1 (NS) slots</td><td><code>__BL_1_P_H_*</code>, <code>__BL_1_P_T_*</code>, <code>__BL_1_S_H_*</code>, <code>__BL_1_S_T_*</code></td></tr>
+<tr><td>Code partitions</td><td><code>FLASH_CPU0_S_*</code>, <code>FLASH_CPU0_C_*</code>, <code>FLASH_CPU0_N_*</code></td></tr>
+<tr><td>RAM partitions</td><td><code>RAM_CPU0_S_*</code>, <code>RAM_CPU0_C_*</code>, <code>RAM_CPU0_N_*</code></td></tr>
+<tr><td>Data flash</td><td><code>DATA_FLASH_CPU0_S_*</code>, <code>DATA_FLASH_CPU0_N_*</code></td></tr>
+</table></div>
+<ul>
+<li><input type="checkbox" disabled> <strong>The secure project emits the full set.</strong> The port reads the layout from <code>ra6e1_secure</code>
+specifically because it is a strict superset — it carries the <code>RAM_BL</code> / <code>DATA_FLASH_BL</code> /
+<code>QSPI_FLASH_BL</code> entries the bootloader&#x27;s own copy omits. If the template ever narrows what
+the secure project emits, the port loses the bootloader region.</li>
+<li><input type="checkbox" disabled> <code>FLASH_CPU0_C_START</code> lands <strong>below</strong> <code>__BL_0_P_T_START</code>, so the NSC veneers sit inside the
+signed payload. Currently <code>0x97800</code> vs <code>0x98000</code>. Re-check on every repartition — see
+<code>RA6E1_SOLUTION.md</code>, &quot;NSC placement&quot;.</li>
+<li><input type="checkbox" disabled> <strong>NSC is 2 KB, not 1</strong>, and ends exactly on the NS boundary. MCUboot needs the last
+<code>0x180</code> of the slot for its trailer at <code>MCUBOOT_ALIGN_VAL</code> 128, and the veneers are pinned
+at the NSC start — at 1 KB the signed image overran the trailer by 17 bytes. Take the extra
+kilobyte from the secure code region so the S/NS boundary does not move.</li>
+<li><input type="checkbox" disabled> <strong>Partitions are contiguous and both slot pairs are the same size.</strong> <code>fa_size</code> is a *sum of
+sizes* while the trailer magic is placed from the <em>address span</em>, so a hole makes imgtool
+and bootutil disagree on where the magic goes — and the image still boots, then fails on
+first upgrade. <code>ra6e1_layout_checks.c</code> asserts both; a 2026-08-29 regeneration that grew the
+NSC size without moving its start was caught this way.</li>
+</ul>
+<hr>
+<h2 id="s4">4. Modules to enable, per project</h2>
+<p>A module reaches a TF-M image only if the port declares it. Enabling more in e2 is harmless for
+the standalone build but produces a configure-time <strong>warning</strong> naming the module as not-in-image.</p>
+<div class="table-wrap"><table>
+<tr><th>Project</th><th>Must have</th><th>Also enabled, deliberately never linked into TF-M</th></tr>
+<tr><td><code>ra6e1_secure</code></td><td>BSP + IOPORT, <code>r_flash_hp</code>, <code>r_sce</code></td><td>—</td></tr>
+<tr><td><code>ra6e1_mcuboot</code></td><td>BSP + IOPORT, <code>r_flash_hp</code></td><td><code>r_sce</code>, <code>rm_psa_crypto</code>, <code>rm_mcuboot_port</code></td></tr>
+<tr><td><code>ra6e1_nonsecure</code></td><td>whatever the NS app needs</td><td>— (whole tree is globbed)</td></tr>
+</table></div>
+<ul>
+<li><input type="checkbox" disabled> <p><code>r_sce</code> in the <strong>secure</strong> project. Only the TRNG is taken (<code>sce_trng.c</code> → PSA external
+RNG); <code>--gc-sections</code> trims the rest to ~8 KB. Without it the secure image has no entropy
+source and falls back to the shared hard-coded NV seed.</p></li>
+<li><input type="checkbox" disabled> <p><code>r_flash_hp</code> in <strong>both</strong> S and BL2.</p></li>
+<li><input type="checkbox" disabled> <p>The excluded three keep their <strong>headers</strong> resolvable — generated <code>common_data.h</code> /
+<code>hal_data.h</code> include them unconditionally even when nothing is instantiated. Their include
+paths are already listed and <code>EXISTS</code>-guarded in <code>fsp_bsp.cmake</code>; if a regenerated project
+needs another, read it off <code>Debug/compile_commands.json</code> (entry for <code>ra_gen/hal_data.c</code>).</p></li>
+<li><input type="checkbox" disabled> <p>Generated file <strong>names</strong> stay standard. The port excludes <code>ra_gen/main.c</code>,
+<code>.../Source/startup.c</code> and <code>bsp_linker.c</code> by name for S and BL2 (TF-M supplies all three).
+Renaming them means FSP&#x27;s versions collide at link.</p></li>
+<li><input type="checkbox" disabled> <p><strong>Remove LittleFS from the FSP mbedTLS / <code>rm_psa_crypto</code> stack.</strong> The stock stacking wires
+PSA ITS down to LittleFS for key storage. TF-M provides ITS itself — the
+<code>TFM_PARTITION_INTERNAL_TRUSTED_STORAGE</code> partition owns the secure data flash, backed by
+<code>Driver_FLASH1</code> — so the two implementations both claim that role and the FSP one drags in
+a filesystem the secure image has no use for. Dropping LFS from the stack in the template
+avoids having to unpick it per project. See DESIGN.md §6.</p>
+<p>Note this does not change what TF-M links today: <code>rm_psa_crypto</code> and <code>ra/arm/mbedtls</code> are
+already in <code>FSP_MODULES_NEVER_BUILT</code>, so nothing from them reaches a signed image. The
+reason to fix it in the template is that the module has to stay **generatable and buildable
+standalone** — it is the path to hardware-accelerated crypto later, and that switch is much
+easier if the storage backend was never LittleFS.</p></li>
+</ul>
+<hr>
+<h2 id="s5">5. BSP configuration, per project</h2>
+<div class="table-wrap"><table>
+<tr><th>Setting</th><th><code>ra6e1_secure</code></th><th><code>ra6e1_mcuboot</code></th><th><code>ra6e1_nonsecure</code></th></tr>
+<tr><td><code>BSP_CFG_EARLY_INIT</code></td><td><strong>1</strong></td><td><strong>1</strong></td><td>0</td></tr>
+<tr><td><code>BSP_CFG_STACK_MAIN_BYTES</code></td><td>sane non-zero</td><td>sane non-zero</td><td>sane non-zero</td></tr>
+</table></div>
+<ul>
+<li><input type="checkbox" disabled> <code>BSP_CFG_EARLY_INIT = 1</code> in <strong>secure and bootloader</strong>. It is what puts <code>SystemCoreClockUpdate()</code>
+on the path before <code>main()</code>. Without it <code>R_FLASH_HP_Open()</code> sees FCLK 0 and returns
+<code>FSP_ERR_FCLK</code> — the July 2026 failure. NS does not need it (<code>DESIGN.md</code> §8.1).</li>
+<li><input type="checkbox" disabled> <code>BSP_CFG_STACK_MAIN_BYTES</code> — consumed by <code>bsp_init_stub.c</code>, which weakly replaces the
+<code>g_init_info</code> / <code>g_main_stack</code> that FSP&#x27;s excluded <code>bsp_linker.c</code> would have defined.</li>
+</ul>
+<p><strong><code>BSP_CFG_CLOCKS_SECURE</code> is no longer a requirement.</strong> It was, until BL2 became a flat build
+(commit <code>9e3a10ef4</code>). Flat takes the <code>#else</code> branch of <code>bsp_mcu_ofs_cfg.h</code>, which emits
+<code>OFS1_SEL = 0xFFFFF8F8</code> unconditionally and never reads the setting. BL2 is the only image that
+emits OFS at all, so the setting now has no effect on any TF-M image. Note also that
+<code>ra_gen/bsp_clock_cfg.h</code> defines it <strong>unguarded</strong>, so <code>-D</code> can never override it — if a future
+change does need it set, it has to be set in the project.</p>
+<hr>
+<h2 id="s6">6. MCUboot module settings</h2>
+<p><strong>TF-M builds its own BL2</strong> from its own vendored MCUboot, with its own keys; <code>ra6e1_mcuboot</code>
+contributes only FSP driver modules. So these settings govern the <strong>standalone</strong> bootloader, and
+only the ones the shared flash layout implies have to agree with <code>config.cmake</code>. Verified
+2026-08-26: switching this project from <code>signature.none</code> to ECDSA P-256 left <code>bl2.axf</code>,
+<code>tfm_s_signed.bin</code> and <code>tfm_ns_signed.bin</code> byte-identical.</p>
+<p>The two bootloaders are separate binaries with different keys — images signed for one will not
+boot under the other. A mismatch is not a build error.</p>
+<ul>
+<li><input type="checkbox" disabled> <code>MCUBOOT_IMAGE_NUMBER</code> = <strong>2</strong> — dual image</li>
+<li><input type="checkbox" disabled> Signature <strong>ECDSA P-256</strong>. ⚠ The template&#x27;s default is <strong>Signature Type: None</strong>, which
+silently reduces the standalone bootloader to a SHA-256 hash check — it boots, and looks
+like it validated. This project set ran that way until 2026-08-26. Does not affect TF-M&#x27;s
+BL2 (see the note above), but it is the wrong default to ship.</li>
+<li><input type="checkbox" disabled> Upgrade mode <strong>overwrite-only</strong> (hence no scratch area)</li>
+<li><input type="checkbox" disabled> <strong>Validate primary slot</strong> enabled — the secure image&#x27;s trailer is NS-writable by
+construction (RA has one secure region and it precedes the NSC), so this is what bounds
+that to a DoS. Do not turn it off.</li>
+<li><input type="checkbox" disabled> Header <strong><code>0x200</code></strong> / trailer <strong><code>0x100</code></strong>. <code>config.cmake</code> reads these out of
+<code>bsp_linker_info.h</code> (<code>___BL_0_P_H_SIZE</code>, <code>___BL_0_P_T_SIZE</code>) because TF-M&#x27;s own defaults
+are <code>0x400</code> — and those cache values are what <strong>imgtool signs with</strong>. Left at the default,
+the payload is placed <code>0x400</code> into the slot while the image is linked for slot+<code>0x200</code>:
+a silently unbootable image. <code>region_defs.h</code> now <code>#error</code>s on the mismatch.</li>
+</ul>
+<hr>
+<h2 id="s7">7. Sizing the default layout</h2>
+<p>Measured from the current build; leave headroom rather than fitting exactly.</p>
+<div class="table-wrap"><table>
+<tr><th>Image</th><th><code>text</code></th><th>Slot code region</th><th>Used</th></tr>
+<tr><td>bl2</td><td>55 540</td><td><code>0x18000</code> (96K)</td><td>57%</td></tr>
+<tr><td>tfm_s</td><td>175 838</td><td><code>0x3FD00</code> (255.25K)</td><td>67%</td></tr>
+<tr><td>tfm_ns</td><td>3 334</td><td><code>0x2FD00</code> (191.25K)</td><td>2%</td></tr>
+</table></div>
+<ul>
+<li><input type="checkbox" disabled> Secure slot <strong>≥ 256K</strong>. TF-M&#x27;s secure image is the binding constraint, and the current 67%
+is with <code>CRYPTO_HW_ACCELERATOR</code> <strong>off</strong> — the SCE cipher stack will grow it.</li>
+<li><input type="checkbox" disabled> Bootloader <strong>96K</strong> is comfortable at 57%.</li>
+<li><input type="checkbox" disabled> <strong>Data flash: give the secure side more than 4 KB if the template can.</strong> This is the one
+genuinely tight resource. The RA6M4 port uses ~7 KB of 8 KB (NV counters 2K + PS 3K +
+ITS 2K); the current solution gives the secure side 4 KB and the rest to NS. <code>flash_layout.h</code>
+splits what it has proportionally and <code>#error</code>s below 4 KB, but there is no wear-levelling
+headroom at that size.</li>
+</ul>
+<blockquote><p>Do not size the secure image from <code>ld --print-memory-usage</code> — it reports 99.85% because the
+veneers are pinned at the top of FLASH, so the region always reads as full. Use <code>arm-none-eabi-size</code>.</p></blockquote>
+<hr>
+<h2 id="s8">8. Launch configurations</h2>
+<ul>
+<li><input type="checkbox" disabled> <code>com.renesas.hardwaredebug.arm.jlink.setTZBoundaries</code> = <strong><code>false</code></strong> in <strong>every</strong> launch
+config the template emits. It defaults to <strong>enabled</strong>, derives boundaries from the launched
+project&#x27;s symbols, and cannot handle a bootloader <em>and</em> a secure image sharing the secure
+region — launched against the bootloader it marks everything secure and silently undoes a
+correct partition. TF-M&#x27;s BL2 is exactly the same shape. <code>DESIGN.md</code> §7.2.</li>
+</ul>
+<hr>
+<h2 id="s9">9. What the template still cannot supply</h2>
+<ul>
+<li><strong>TrustZone boundaries.</strong> Nothing in the firmware ever programs them; they are set once per
+board with the Renesas Device Partition Manager, in KB, and must be recomputed on every
+repartition against the 32 KB (code) / 8 KB (SRAM) granularity rule. Current values in
+<code>RA6E1_SOLUTION.md</code>.</li>
+<li><strong>The OFS discrete-region rule.</strong> <code>ra6e1_bl2.ld</code> must keep thirteen <strong>discrete</strong> <code>MEMORY</code>
+regions, each <code>&gt; REGION</code>. One coalesced <code>PT_LOAD</code> zero-fills 368 bytes of FCU config including
+the FSPR permanence word and permanently bricks the part — invisible in the srec, and it cost
+two EK-RA6M4 boards on 2026-07-21. This lives in the TF-M port, not the template, but any
+layout change should be re-verified: <code>arm-none-eabi-readelf -l bin/bl2.axf</code>.</li>
+</ul>
+</main>
+</div>
+</body>
+</html>

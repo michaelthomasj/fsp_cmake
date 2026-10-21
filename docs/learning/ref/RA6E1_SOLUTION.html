@@ -1,0 +1,562 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RA6E1 Solution Project — standalone bring-up (pre-TF-M)</title>
+<meta name="description" content="Rendered from RA6E1_SOLUTION.md by scripts/build_doc_html.py.">
+<link rel="stylesheet" href="../assets/style.css">
+<script src="../assets/site.js"></script>
+</head>
+<body>
+<!-- GENERATED from RA6E1_SOLUTION.md by scripts/build_doc_html.py. Do not edit: the next commit touching the Markdown overwrites it. -->
+<div class="layout">
+<aside class="sidebar">
+  <div class="brand"><a href="../index.html">Cortex-M, TrustZone &amp; TF-M on Renesas RA</a><button class="menu-toggle" aria-expanded="false">Menu</button></div>
+  <nav>
+    <ol>
+      <li><a href="../index.html">← Course</a></li>
+      <li><a href="index.html">Reference documents</a>
+        <ol>
+      <li><a href="ADDING_FSP_MODULES.html">ADDING_FSP_MODULES.md</a></li>
+      <li><a href="BRIDGING_FILES.html">BRIDGING_FILES.md</a></li>
+      <li><a href="CONFIGURATION.html">CONFIGURATION.md</a></li>
+      <li><a href="DECISIONS.html">DECISIONS.md</a></li>
+      <li><a href="DESIGN.html">DESIGN.md</a></li>
+      <li><a href="DOCUMENTATION_PLAN.html">DOCUMENTATION_PLAN.md</a></li>
+      <li><a href="FLASH_MAP_OWNERSHIP.html">FLASH_MAP_OWNERSHIP.md</a></li>
+      <li><a href="GETTING_STARTED.html">GETTING_STARTED.md</a></li>
+      <li><a href="PORTING.html">PORTING.md</a></li>
+      <li><a href="PROJECT_PLAN.html">PROJECT_PLAN.md</a></li>
+      <li><a href="RA6E1_SOLUTION.html" aria-current="page">RA6E1_SOLUTION.md</a></li>
+      <li><a href="RA6E1_TEMPLATE_CHECKLIST.html">RA6E1_TEMPLATE_CHECKLIST.md</a></li>
+      <li><a href="RA6M5_SOLUTION.html">RA6M5_SOLUTION.md</a></li>
+      <li><a href="RA8M2_SOLUTION.html">RA8M2_SOLUTION.md</a></li>
+      <li><a href="RA8x2_DUAL_CORE_DESIGN.html">RA8x2_DUAL_CORE_DESIGN.md</a></li>
+      <li><a href="README.html">README.md</a></li>
+      <li><a href="RECONFIGURING_THE_LAYOUT.html">RECONFIGURING_THE_LAYOUT.md</a></li>
+      <li><a href="TROUBLESHOOTING.html">TROUBLESHOOTING.md</a></li>
+      <li><a href="UPSTREAM_CHANGES.html">UPSTREAM_CHANGES.md</a></li>
+      <li><a href="scripts_README.html">scripts/README.md</a></li>
+        </ol>
+      </li>
+    </ol>
+    <ol class="doc-toc">
+      <li><a href="#top">RA6E1_SOLUTION.md</a>
+        <ol>
+          <li><a href="#why-a-solution-project-at-all">Why a solution project at all</a></li>
+          <li><a href="#layout">Layout</a></li>
+          <li><a href="#trustzone-boundary-values-for-this-layout">TrustZone boundary values for this layout</a></li>
+          <li><a href="#status">Status</a></li>
+          <li><a href="#open-issues">Open issues</a></li>
+        </ol>
+      </li>
+    </ol>
+    <button class="theme-toggle" type="button">Dark theme</button>
+  </nav>
+</aside>
+<main id="top" class="ref-doc">
+<p class="src">Rendered from <a href="../../../RA6E1_SOLUTION.md"><code>RA6E1_SOLUTION.md</code></a>. Edit the Markdown, not this page.</p>
+<h1 id="ra6e1-solution-project--standalone-bring-up-pre-tf-m">RA6E1 Solution Project — standalone bring-up (pre-TF-M)</h1>
+<p>Status of the RASC <strong>solution</strong> project set, being brought up <strong>independently of TF-M</strong> first.
+Device <strong>R7FA6E10F2CFP</strong>. FSP <strong>6.6.0-beta2</strong>, MCUboot <strong>2.4.0+renesas.0</strong>, RASC <code>sc_v2026-04.2</code>.</p>
+<div class="table-wrap"><table>
+<tr><th>Project</th><th>Role</th></tr>
+<tr><td><code>ra6e1</code></td><td>the solution — owns the shared flash layout</td></tr>
+<tr><td><code>ra6e1_mcuboot</code></td><td>bootloader</td></tr>
+<tr><td><code>ra6e1_secure</code></td><td>secure app</td></tr>
+<tr><td><code>ra6e1_nonsecure</code></td><td>non-secure app</td></tr>
+</table></div>
+<h2 id="why-a-solution-project-at-all">Why a solution project at all</h2>
+<p>MCUboot needs flash-layout information that a standalone project cannot produce: the partition
+symbols (<code>__BL_0/1_P/S_*</code>) are emitted into each project&#x27;s generated <code>bsp_linker_info.h</code> and
+<code>memory_regions.ld</code> <strong>by the solution</strong>. Without it, the bootloader, secure and non-secure projects
+have no shared, consistent view of the slots. This is the gap that blocks driving the TF-M port
+purely from individually-generated RASC projects.</p>
+<p>The solution&#x27;s bootloader is configured <strong>dual-image</strong> (<code>MCUBOOT_IMAGE_NUMBER 2</code>), which removes the
+incompatibility that forced abandoning the <code>rm_mcuboot_port</code> graft in July 2026 (the old RASC BL2
+project was single-image; see DESIGN.md §5).</p>
+<h2 id="layout">Layout</h2>
+<p><strong>Values below re-read from <code>ra6e1_secure/Debug/bsp_linker_info.h</code> on 2026-08-29</strong>, after the
+second repartition (2 KB NSC, for the MCUboot trailer — see the align section under Open issues).
+If you are looking at a copy where the secure slot is <code>0x17D00</code>, or the NSC is <code>0x400</code> at
+<code>0x97C00</code>, it predates this.</p>
+<div class="table-wrap"><table>
+<tr><th>Region</th><th>Start</th><th>Size</th><th>Components</th></tr>
+<tr><td>MCUboot</td><td><code>0x00000</code></td><td><code>0x18000</code></td><td>96K</td></tr>
+<tr><td>Image 0 <strong>secondary</strong> (S)</td><td><code>0x18000</code></td><td><code>0x40000</code></td><td>hdr <code>0x200</code>, image <code>0x3FE00</code> @ <code>0x18200</code></td></tr>
+<tr><td>Image 0 <strong>primary</strong> (S)</td><td><code>0x58000</code></td><td><code>0x40000</code></td><td>hdr <code>0x200</code>, code <code>0x3F600</code> @ <code>0x58200</code>, <strong>NSC <code>0x800</code> @ <code>0x97800</code></strong></td></tr>
+<tr><td>Image 1 <strong>primary</strong> (NS)</td><td><code>0x98000</code></td><td><code>0x30000</code></td><td>hdr <code>0x200</code>, code <code>0x2FE00</code> @ <code>0x98200</code></td></tr>
+<tr><td>Image 1 <strong>secondary</strong> (NS)</td><td><code>0xC8000</code></td><td><code>0x30000</code></td><td>hdr <code>0x200</code>, image <code>0x2FE00</code> @ <code>0xC8200</code></td></tr>
+</table></div>
+<p>All four trailer partitions are <strong>zero-size</strong>; MCUboot writes its own trailer into the last bytes
+of each slot at runtime. Both primary/secondary pairs are the same size, which MCUboot requires
+and <code>ra6e1_layout_checks.c</code> asserts. Partitions are contiguous with no holes — also asserted,
+because a hole makes the size sum and the address span disagree and the two sides then place the
+trailer magic differently.</p>
+<p>NSC flash <code>0x97800</code>+<code>0x800</code>, ending exactly on the NS boundary at <code>0x98000</code>. The veneers
+(<code>.gnu.sgstubs</code>, <code>0x40</code>) sit at its start, leaving room for the <code>0x180</code> trailer.
+RAM: S <code>0x20000000</code>+<code>0x1FC00</code>, NSC <code>0x2001FC00</code>+<code>0x400</code>, NS <code>0x20020000</code>+<code>0x20000</code>.
+Data flash: <strong>all 8K secure</strong> (<code>0x08000000</code>+<code>0x2000</code>), NS none. Flash use ends at <code>0xF8000</code> of 1 MB.
+Upgrade mode <strong>overwrite-only</strong> (hence no scratch), signature <strong>ECDSA P-256</strong>, validate-primary on,
+<strong><code>MCUBOOT_ALIGN_VAL</code> 128</strong>.</p>
+<p>The <strong>option-setting map is byte-identical to RA6M4</strong> — all thirteen groups at the same addresses and
+lengths. The <code>OPTION_SETTING_*</code> block in the TF-M port&#x27;s <code>region_defs.h</code> transfers verbatim, and the
+discrete-region rule (DESIGN.md §8.4) applies unchanged.</p>
+<h2 id="trustzone-boundary-values-for-this-layout">TrustZone boundary values for this layout</h2>
+<p>Programmed with the Renesas Device Partition Manager, which takes <strong>KB</strong>:</p>
+<blockquote><p>⚠ <strong>These have changed twice.</strong> Code Secure was <strong>287</strong>, then <strong>607</strong>; it is now <strong>606</strong> with the
+NSC at <strong>2</strong>. Programming a stale value puts part of the secure image in the non-secure region.</p></blockquote>
+<div class="table-wrap"><table>
+<tr><th>Field</th><th>Value (KB)</th><th>Bytes</th></tr>
+<tr><td>Code Secure</td><td><strong>606</strong></td><td><code>0x97800</code></td></tr>
+<tr><td>Code NSC</td><td><strong>2</strong></td><td><code>0x800</code></td></tr>
+<tr><td>Data Secure</td><td><strong>8</strong></td><td><code>0x2000</code></td></tr>
+<tr><td>SRAM Secure</td><td><strong>127</strong></td><td><code>0x1FC00</code></td></tr>
+<tr><td>SRAM NSC</td><td><strong>1</strong></td><td><code>0x400</code></td></tr>
+<tr><td>SiP Flash Secure</td><td><strong>0</strong></td><td>none on RA6E1</td></tr>
+</table></div>
+<p>Sums land on the coarse granularities: code 606+2 = 608 KB = <code>0x98000</code> (32 KB × 19); SRAM 127+1 =
+128 KB = <code>0x20000</code> (8 KB × 16). See DESIGN.md §7.1 for why that matters.</p>
+<p>The NSC grew from 1 KB to 2 KB on 2026-08-29 to make room for the MCUboot trailer at
+<code>MCUBOOT_ALIGN_VAL</code> 128. It is taken from the secure code region, so the S/NS boundary is
+unmoved and only Code Secure and Code NSC change. NSC granularity is 1 KB; only the S/NS
+boundary is bound by the 32 KB rule.</p>
+<h2 id="status">Status</h2>
+<ul>
+<li><input type="checkbox" disabled checked> Bootloader validates both images correctly — but note this was proven with the MCUboot
+module set to <strong>Signature Type: None</strong>, so it exercised the SHA-256 hash check only.
+ECDSA P-256 was enabled in <code>ra6e1_mcuboot</code> on 2026-08-26 and the signature path has <strong>not</strong>
+been run standalone since. (TF-M&#x27;s own BL2 is unaffected — it has always signed and verified
+EC-P256, from <code>MCUBOOT_SIGNATURE_TYPE</code> in its own cache, not from this project.)</li>
+<li><input type="checkbox" disabled checked> Secure application runs</li>
+<li><input type="checkbox" disabled checked> <strong>TF-M secure image boots to completion on hardware</strong> — 2026-08-29. Full SPM init, all
+partitions initialised, S→NS reached. Three defects had to be fixed to get here; all are
+described in the code at their fix sites:
+<ol>
+<li><code>tfm_hal_platform_init()</code> never called <code>__enable_irq()</code>. <code>Reset_Handler</code> does
+<code>__disable_irq()</code> (standard) and every reference port undoes it here. Under the <strong>SFN</strong>
+backend nothing else clears PRIMASK — the SPM&#x27;s only <code>cpsie i</code> sites are IPC-backend
+paths — so the first <code>SVC</code> escalated to HardFault. Signature: <code>HFSR=0x40000000</code> (FORCED)
+with every CFSR/BFSR/MMFSR/UFSR/SFSR bit clear.</li>
+<li><code>tfm_hal_platform_init()</code> never called <code>stdio_init()</code>, the only caller of
+<code>SEGGER_RTT_Init()</code>, so <code>--gc-sections</code> dropped it and the RTT control block stayed
+zeroed — invisible to RTT Viewer, which locates it by the <code>"SEGGER RTT"</code> ID string.</li>
+<li><code>PS_MAX_ASSET_SIZE</code> 2048 does not fit this part. See <code>config_tfm_target.h</code>.
+Both (1) and (2) were present in the RA6M4 port too and are fixed there as well.</li>
+</ol></li>
+<li><input type="checkbox" disabled checked> <strong>S→NS jump works</strong> — was failing with a security error until the TrustZone boundaries were
+programmed. Root cause: nothing in the firmware ever sets them (DESIGN.md §7.1)</li>
+<li><input type="checkbox" disabled checked> <strong>Non-secure application exercised beyond the jump</strong> — all 13 services smoke-tested from
+NS (2026-08-30), then the full <code>tf-m-tests</code> NS regression suite, 5/5 suites (2026-09-02)</li>
+<li><input type="checkbox" disabled checked> <strong>Re-partition for TF-M sizing</strong> — done; secure slot is now 255.25K (see Layout)</li>
+<li><input type="checkbox" disabled checked> <strong>TF-M port builds against this project set</strong> — 2026-08-26, all three images signed</li>
+</ul>
+<h3 id="before-flashing-the-tf-m-images-to-a-partitioned-board">Before flashing the TF-M images to a partitioned board</h3>
+<p>Both blockers previously listed here are <strong>resolved</strong> (2026-08-26, commit <code>9e3a10ef4</code>):</p>
+<ol>
+<li><del><code>BSP_CFG_CLOCKS_SECURE</code> unset</del> — moot. BL2 is now a <strong>flat</strong> build, matching how this
+solution defines the bootloader, so <code>bsp_mcu_ofs_cfg.h</code> takes its <code>#else</code> branch and emits
+<code>OFS1_SEL = 0xFFFFF8F8</code> without consulting the setting. Built BL2 now carries <code>f8f8ffff</code>, the
+RA6M4 known-good value, byte-identical to this solution&#x27;s own bootloader.</li>
+<li><del>BL2 has no <code>SystemCoreClockUpdate()</code></del> — <code>BSP_CFG_EARLY_INIT</code> is now enabled in
+<code>ra6e1_mcuboot</code>, so the clock is up before <code>R_FLASH_HP_Open()</code>.</li>
+</ol>
+<p>Still true, and worth knowing before you interpret a silent board:</p>
+<ul>
+<li>The NS image has <strong>no RTT output</strong>. <code>SEGGER_RTT.c</code> is linked but the FSP app never calls it, so
+<code>--gc-sections</code> drops the control block — the same defect that hid the secure image&#x27;s output
+until 2026-08-29, and it is still unfixed on the NS side. A successful S→NS jump therefore still
+looks identical to a hang from the console alone.</li>
+<li><strong>The RTT control block address moves between builds.</strong> It lives in <code>.bss</code>, so any change to
+secure-side buffer sizing shifts it. Re-read it rather than reusing a noted value:
+<code>arm-none-eabi-nm --defined-only bin/tfm_s.axf | grep _SEGGER_RTT</code>. Giving RTT Viewer a search
+range (<code>0x20000000 0x10000</code>) instead of a fixed address avoids the problem, and also survives the
+BL2→tfm_s handover, which swaps to a different control block.</li>
+<li><strong>The board is no longer in a virgin data-flash state.</strong> ITS metadata is valid from an earlier
+boot, so <code>its_flash_fs_prepare()</code> now succeeds outright and the ITS create path is not exercised
+on every boot. PS took the create path on 2026-08-29 and succeeded, so both branches are covered
+between the two services — but a fresh board will behave differently from this one.</li>
+</ul>
+<p>Turning this list into template defaults: <strong><code>RA6E1_TEMPLATE_CHECKLIST.md</code></strong>.</p>
+<h2 id="open-issues">Open issues</h2>
+<h3 id="-debugger-auto-programs-the-tz-boundaries-and-gets-them-wrong">⚠ Debugger auto-programs the TZ boundaries and gets them wrong</h3>
+<p><code>com.renesas.hardwaredebug.arm.jlink.setTZBoundaries</code> — <strong>default enabled, must be <code>false</code>.</strong> The
+tooling derives boundaries from the launched project&#x27;s symbols and cannot handle a bootloader <em>and</em>
+a secure image sharing the secure region; launched against the bootloader (which has no TrustZone
+knowledge) it marks everything secure and silently undoes a correct partition. Currently <code>false</code> in
+<code>ra6e1_solution_nonsecure/ra6e1_nonsecure Debug_SSD.launch</code>. Keep it off in <strong>every</strong> launch config —
+TF-M&#x27;s BL2 is exactly the same shape. Full note: DESIGN.md §7.2.</p>
+<h3 id="-resolved--nsc-placement-is-correct">✅ RESOLVED — NSC placement is correct</h3>
+<p><strong>Verified 2026-08-26 on the first TF-M secure image.</strong> <code>Image$$ER_VENEER$$Base</code> = <code>0x97C00</code>,
+exactly <code>BSP_PARTITION_FLASH_CPU0_C_START</code>, with the trailer at <code>0x98000</code> above it. So the order
+below holds, the veneers sit inside the signed payload, and <code>TFM_LINKER_VENEERS_START</code> derived from
+<code>region_defs.h</code> lands where the solution says. The suspicion below did not reproduce after the
+repartition; keep the check in the list for future layout changes.</p>
+<p>Original note follows. RASC was suspected of computing &quot;end of secure image&quot; for NSC/veneer
+placement without accounting for <code>__BL_0_P_T</code>. Required order:</p>
+<pre><code>[ FLASH_CM33_S ][ FLASH_CM33_C ][ __BL_0_P_T ][ FLASH_CM33_N ]
+   secure code     NSC veneers      trailer       NS image</code></pre>
+<p>If it measures to slot end instead, the NSC lands on or past the trailer → veneers outside the signed
+payload (NS→S calls SecureFault at the SG), or MCUboot clobbers them writing the trailer. Correct in
+the current 96K layout, so it may only surface once sizes change.</p>
+<p>Check: <code>FLASH_CM33_C</code> ends exactly at image end; <code>FLASH_NSC_START</code> == <code>BSP_PARTITION_FLASH_CPU0_C_START</code>;
+veneers inside <code>FLASH_CM33_C</code> in the map; NS→S call works on hardware.</p>
+<p>Note the trailer <strong>cannot</strong> be marked secure — RA has one secure region and it precedes the NSC
+(DESIGN.md §7.1). So the secure image&#x27;s trailer is NS-writable; bounded to DoS by
+<code>MCUBOOT_VALIDATE_PRIMARY_SLOT</code>, so don&#x27;t disable it.</p>
+<h3 id="-resolved--mcuboot_align_val-is-128-matching-the-code-flash-write-unit">✅ RESOLVED — MCUBOOT_ALIGN_VAL is 128, matching the code flash write unit</h3>
+<p>Done 2026-08-29. RA6E1 code flash has a <strong>128-byte</strong> minimum write
+(<code>BSP_FEATURE_FLASH_HP_CF_WRITE_SIZE</code>), so <code>MCUBOOT_ALIGN_VAL</code> and the code-flash
+<code>program_unit</code> in <code>Driver_Flash.c</code> must both be 128 — otherwise the first trailer write of an
+upgrade fails. They are now, and the artifacts confirm it end to end:</p>
+<pre><code>mcuboot_config.h                     MCUBOOT_BOOT_MAX_ALIGN 128
+tfm_s_signed.bin  @ 0x3FFF0          80 00 2d e1 5d 29 41 0b 8d 77 67 9c 11 0f 1f 8a
+bl2.bin           @ 0x00C980         (identical)</code></pre>
+<p>That magic is the <strong>align-encoded</strong> variant — <code>80 00</code> is 128 little-endian — which imgtool
+substitutes whenever <code>max_align != 8</code> (<code>image.py:189-202</code>). Signing and runtime agreeing on it
+is the check that matters; a mismatch means BL2 hunts for the magic where imgtool never wrote it.</p>
+<p>Two things had to change together:</p>
+<ol>
+<li><strong>Tooling.</strong> <code>scripts/wrapper/wrapper.py</code> and <code>mcuboot_default_config.cmake</code> now accept
+64…4096, matching the list Renesas ships in the FSP MCUboot module. Note the real constraint
+was <strong>wrapper.py&#x27;s own</strong> <code>click.Choice</code>, not imgtool&#x27;s: wrapper.py builds
+<code>imgtool.image.Image()</code> directly and never invokes imgtool&#x27;s CLI, and <code>Image()</code> only requires
+a power of two. The runtime already supported it for <code>OVERWRITE_ONLY</code> — the <code>&gt;=8 &amp;&amp; &lt;=32</code>
+assert is guarded on the SWAP modes.</li>
+<li><strong>Layout.</strong> At 128 the trailer is <code>max_align*2 + align_up(16,128)</code> = <code>0x180</code>. With the old
+1 KB NSC the veneers were pinned at <code>0x97C00</code> and the signed image ended at <code>0x97E91</code> — 17
+bytes past where the trailer must begin. The NSC is now <code>0x800</code> at <code>0x97800</code>.</li>
+</ol>
+<p>⚠ <strong>This was a flag day.</strong> Images signed at align 1 are not accepted by a BL2 built at 128, and
+vice versa — the magic differs. Every slot must be reflashed; do not mix.</p>
+<p>⚠ <strong>Not yet exercised on hardware.</strong> This only takes effect once BL2 <em>writes</em> code flash, i.e. on
+an upgrade; validate-and-boot reads only. Proving it needs a real two-version upgrade with a
+populated secondary slot. That is the next meaningful test.</p>
+<h3 id="-resolved--code-flash-pe-routines-run-from-ram-in-tfm_s">✅ RESOLVED — code-flash P/E routines run from RAM in <code>tfm_s</code></h3>
+<p>Fixed 2026-08-30. <code>bl2</code> got this on 2026-08-29; <code>tfm_s</code> had the same gap and it was latent, not
+absent.</p>
+<p>FSP marks the r_flash_hp code-flash program/erase routines <code>PLACE_IN_RAM_SECTION</code>
+(<code>.ram_from_flash</code>) because the FCU makes the <strong>entire code flash unreadable</strong> while a code-flash
+P/E is in progress. The data-flash path is deliberately <em>not</em> RAM-placed — <code>flash_hp_df_write</code>,
+<code>flash_hp_df_erase</code>, <code>flash_hp_enter_pe_df_mode</code> carry no attribute — because code flash stays
+readable during data-flash P/E.</p>
+<p><code>tfm_s</code> uses TF-M&#x27;s generated <code>tfm_isolation_s.ld</code>, which had no <code>.ram_from_flash</code> handling, so ld
+gave the section a plain flash VMA next to <code>.text</code>. All 21 routines sat at <code>0x00080xxx</code>.</p>
+<p>Latent because the secure image only ever touches data flash: it instantiates <code>Driver_FLASH1</code>
+(data) and not <code>Driver_FLASH0</code> (code). But <code>FLASH_HP_CFG_CODE_FLASH_PROGRAMMING_ENABLE</code> is <code>1</code> in
+<code>ra6e1_secure</code>, so the code-flash path is compiled in and <code>R_FLASH_HP_Write</code>/<code>Erase</code> dispatch to it
+on address. Anything that later hands it a code-flash address — <code>TFM_PARTITION_FIRMWARE_UPDATE</code>, a
+secure flash service for NS, an FSPR/access-window/startup-area call — takes a prefetch abort
+mid-operation with the FCU left in P/E mode.</p>
+<p><strong>Fix, port side</strong> (<code>region_defs.h</code>): define <code>S_RAM_CODE_SIZE</code> <code>0xA00</code>, <code>S_RAM_CODE_START</code> at the
+top of the secure RAM partition, <code>S_RAM_CODE_EXTRA_SECTION_NAME .ram_from_flash*</code>, and shrink
+<code>S_DATA_SIZE</code> by <code>S_RAM_CODE_SIZE</code>. TF-M&#x27;s secure linker already carries the whole mechanism gated
+on <code>S_RAM_CODE_START</code> — <code>.ER_CODE_SRAM</code> in a <code>CODE_RAM</code> region with its own copy-table entry, and
+<code>S_RAM_CODE_EXTRA_SECTION_NAME</code> as the vendor-section hook (nothing upstream uses it). The solution
+is untouched: <code>BSP_PARTITION_RAM_CPU0_S_SIZE</code> still describes the whole secure RAM, it is only
+subdivided. <code>S_DATA_START</code> and everything derived from it are unchanged, and BL2 takes
+<code>BL2_DATA_*</code> from the partition directly.</p>
+<p><strong>Fix, upstream</strong> (<code>platform/ext/common/gcc/tfm_isolation_s.ld.template</code>): move the
+<code>.ER_CODE_SRAM</code> block <em>above</em> the end-located <code>VENEERS()</code>. <code>.ER_CODE_SRAM</code> is <code>&gt; CODE_RAM AT &gt;
+FLASH</code>, so its LMA comes from the FLASH region pointer; the veneers are pinned at <code>0x97800</code>, which
+drags that pointer to the end of flash, and every <code>AT &gt; FLASH</code> section after it is allocated past
+the region end. <code>LOADADDR(.ER_CODE_SRAM)</code> came out at <code>0x97840</code> — inside the NSC window — and ld
+reported <em>&quot;region FLASH overflowed by 382 bytes&quot;</em> while <strong>82 KB sat unused</strong> below the veneers.
+<code>tfm_common_s.ld.template</code> already has the block in the earlier position, so this is an ordering
+inconsistency between the two templates, i.e. a genuine upstream bug. **This upstream edit is a
+real fix and should reach a merge** — unlike the instrumentation below.</p>
+<p>Verify:</p>
+<pre><code>arm-none-eabi-nm -S --defined-only bin/tfm_s.axf | grep flash_hp_cf_write   # 0x2001f...
+grep -n '^\.ER_CODE_SRAM' bin/tfm_s.map                                     # LMA well below 0x97800</code></pre>
+<p>Two things the memory report does <strong>not</strong> mean what it looks like:</p>
+<ul>
+<li><code>FLASH: 259966 B / 261632 B  99.36%</code> — ld measures to the end of the pinned NSC window. Real RO
+content ends around <code>0x84000</code>; there is ~82 KB free. The number that actually constrains the
+image is imgtool&#x27;s: payload must end by <code>0x40000 - 0x180</code>.</li>
+<li>The initialised-data LMAs (<code>.TFM_DATA</code>, <code>.ram_noinit</code>) still pack into the ~1.9 KB left over
+<em>inside</em> the NSC window after <code>.gnu.sgstubs</code>&#x27; 0x40 bytes. That works today and predates this
+change, but it is fragile — if secure <code>.data</code> grows past that leftover, the link fails with an
+overflow that points nowhere near the cause. Worth moving the veneers to the very end of the
+script if it ever bites; <code>Image$$PT_RO_END$$Base</code> has to stay after them.</li>
+</ul>
+<h3 id="-resolved--orphan-section-check-catches-unhandled-fsp-sections">✅ RESOLVED — orphan-section check catches unhandled FSP sections</h3>
+<p>Added 2026-08-30, after the <code>.ram_from_flash</code> bug turned out to be an instance of a general
+problem rather than a one-off.</p>
+<p><code>&lt;project&gt;/script/fsp.ld</code> is a stub that <code>INCLUDE</code>s <code>memory_regions.ld</code> and <code>fsp_gen.ld</code>, and
+<code>fsp_gen.ld</code> carries the device&#x27;s memory-section contract: <code>.ram_from_flash</code>,
+<code>.ram_code_from_flash</code>, <code>.fsp_dtc_vector_table</code>, <code>.ram_nocache</code> / <code>.bss.*_fsp_nocache</code> at 32-byte
+alignment, <code>.ram_noinit</code>, <code>.qspi_flash*</code>, <code>.data_flash*</code>, the <code>option_setting_*</code> windows.</p>
+<p><code>tfm_s</code> and <code>bl2</code> do not use <code>fsp.ld</code> — <code>tfm_s</code> links TF-M&#x27;s generated <code>tfm_isolation_s.ld</code>, <code>bl2</code>
+links <code>ra6e1_bl2.ld</code>. A section neither script names is not diagnosed: GNU ld <strong>orphans</strong> it,
+invents an output section, and places it next to whatever looks similar. No warning, no error.
+Only the NS image is safe; it is a full FSP application and keeps <code>fsp.ld</code>.</p>
+<p><strong>What the check is not.</strong> The first idea — diff <code>fsp_gen.ld</code> against our scripts — does not work,
+because <code>fsp_gen.ld</code> is <em>device boilerplate, not a per-module subset</em>. Measured: the secure,
+bootloader and non-secure projects place the same 53 sections despite different module sets,
+differing only in the TrustZone entries (<code>.flash_nsc</code>, <code>.gnu.sgstubs*</code>, <code>.ram_nsc</code>, and the
+<code>_sec</code>/<code>_sel</code> option-setting variants). Diffing would flag ~30 sections nothing emits into.</p>
+<p><code>ld --orphan-handling=warn</code> is the same idea and is the native mechanism, but it also reports every
+non-allocatable orphan — <code>.debug_*</code>, <code>.comment</code>, <code>.ARM.attributes</code> from every object, hundreds of
+lines on <code>tfm_s</code> — and TF-M links with <code>-Wl,-fatal-warnings</code>, so it cannot simply be switched on.</p>
+<p><strong>What it is.</strong> A post-link check on the ELF, <code>cmake/ra6e1_check_orphans.cmake</code>, run as a custom
+target after <code>tfm_s</code> and <code>bl2</code>. An orphan output section&#x27;s name appears nowhere in the linker
+script — that is what made it an orphan — so: list allocatable, non-empty sections in the ELF and
+report any whose name is not a token in the preprocessed, comment-stripped script. Substring
+matching, not grammar parsing; ld&#x27;s output-section syntax is <code>.NAME &lt;addr-expr&gt; &lt;(ATTRS)&gt; :</code> with
+an arbitrary address expression, and parsing it is not worth the fragility.</p>
+<p>The script comes from <code>$&lt;TARGET_OBJECTS:&lt;target&gt;_scatter&gt;</code> — <code>target_add_scatter_file()</code> in
+<code>toolchain_GNUARM.cmake</code> preprocesses the <code>.ld</code> with <code>-E -P -xc</code> into that object library and hands
+it to ld as <code>-T</code>. So the check reads the same text ld saw, with macros expanded and only the <code>#if</code>
+branches that applied. Reading the source <code>.ld</code> would give the wrong answer for <code>bl2</code>, whose script
+has both a CMSE and a non-CMSE arm.</p>
+<p><strong>Verified by reverting the fix.</strong> With <code>S_RAM_CODE_EXTRA_SECTION_NAME</code> commented out:</p>
+<pre><code>RA6E1 [tfm_s]: allocatable ORPHAN section(s) - present in the image, named
+nowhere in the linker script, so ld chose the address:
+    .ram_from_flash (2000 bytes at 0x00080b80)</code></pre>
+<p>Two known-benign orphans are allowlisted per image, with reasons, so a <em>new</em> one is still reported:</p>
+<div class="table-wrap"><table>
+<tr><th>Image</th><th>Section</th><th>Why it is harmless</th></tr>
+<tr><td><code>tfm_s</code></td><td><code>.ram_noinit</code> (110 B)</td><td>FSP BSP noinit data — <code>SystemCoreClock</code>, <code>g_bsp_group_irq_sources</code>, <code>g_protect_counters</code>, <code>g_protect_pfswe_counter</code>. FSP places it NOLOAD; orphaned it becomes a <em>loaded</em> section, so ~110 bytes of flash hold initialisers nothing copies — it is not in the copy table. The variables end up uninitialised either way, which is what <code>.ram_noinit</code> means. Wasteful, not wrong.</td></tr>
+<tr><td><code>bl2</code></td><td><code>.msp_stack_seal_res</code> (8 B)</td><td><code>bl2</code> is flat, so <code>__ARM_FEATURE_CMSE != 3</code> and <code>ra6e1_bl2.ld</code> takes the non-CMSE arm, which has no seal section. <code>startup_ra6e1.c</code> still emits the 8-byte <code>__StackSeal</code>, which orphans away from the stack top. Inert: FSP writes the seal only under <code>BSP_TZ_SECURE_BUILD</code>, TF-M&#x27;s startup only under CMSE, and both are false here.</td></tr>
+</table></div>
+<p>Warning, not error, by default — a TF-M or FSP update can add a benign section and that should not
+block a build. <code>RA6E1_ORPHAN_CHECK_STRICT=ON</code> escalates to a hard failure; use it in CI.</p>
+<p><strong>Still open, deliberately.</strong> The check tells you a section was placed by guesswork; it cannot tell
+you whether the guess was wrong. It also only covers the two images built here. And it complements
+rather than replaces the existing unclaimed-module warning in <code>fsp_add_modules()</code>, which catches the
+C-source half. Adding an FSP module to the secure or BL2 image remains a port change, not a
+configuration change — but it now fails loudly instead of silently.</p>
+<p>Follow-up worth doing: handle <code>.ram_noinit</code> properly in the secure script rather than allowlisting
+it. It would return 110 bytes of flash and relieve the LMA pressure inside the NSC window described
+above.</p>
+<h3 id="-resolved--every-secure-service-verified-from-non-secure-2026-08-30">✅ RESOLVED — every secure service verified from non-secure (2026-08-30)</h3>
+<p>Until this run the port had only ever been shown to BOOT. No PSA service had been called
+across the boundary: the NS app was <code>hal_entry.c</code> plus <code>hal_warmstart.c</code> and linked no
+client library at all. All 13 steps pass on hardware.</p>
+<pre><code>[NS] 1. psa_framework_version ............... ok  version=0x00000101
+[NS] 2. psa_version(crypto) ................. ok  version=0x00000001
+[NS] 3. psa_crypto_init ..................... ok
+[NS] 4. psa_generate_random (SCE9 TRNG) ..... ok
+[NS] 5. psa_hash_compute SHA-256 ............ ok
+[NS] 6-8.  psa_its_set / get+verify / remove  ok
+[NS] 9-11. psa_ps_set / get+verify / remove   ok   (AES-GCM)
+[NS] 12. psa_initial_attest_get_token_size .. ok  bytes=0x00000206
+[NS] 13. psa_version(platform) .............. ok
+[NS] ==== ALL PASSED ====</code></pre>
+<p>What each result actually establishes:</p>
+<ul>
+<li><code>version=0x00000101</code> - PSA Firmware Framework 1.1 negotiated across the boundary, not a
+stale constant.</li>
+<li>Step 4 - the SCE9 TRNG works through PSA&#x27;s external-RNG hook (<code>sce_trng.c</code>). This port
+deliberately does not use a stored NV seed, whose default provisioning value is a
+constant shared by every device.</li>
+<li>Steps 9-11 - PS round-trips with <code>PS_ENCRYPTION</code> ON, so AES-GCM runs <em>inside</em> the secure
+side, exercising crypto from the secure caller rather than only from NS.</li>
+<li>Steps 6-8 - ITS is healthy, confirming the <code>(area / sector) / 2</code> sectors-per-block
+derivation. <strong>The <code>num_blocks == 1</code> bug logged against RA6M4 does not affect RA6E1.</strong></li>
+<li><code>bytes=0x206</code> - a 518-byte token for a 32-byte challenge, so the attestation partition
+is alive and <code>attest_hal.c</code> answers.</li>
+</ul>
+<p><strong>Scope, honestly.</strong> This is a smoke test: one call per service, happy path only. It is not
+the official tf-m-tests regression suite, which still needs the split SPE/NSPE build. It
+proves the services function; it does not prove they are correct under error injection,
+concurrency, or boundary-case inputs.</p>
+<h3 id="-resolved--split-spenspe-build-all-13-services-passing-2026-08-30">✅ RESOLVED — split SPE/NSPE build, all 13 services passing (2026-08-30)</h3>
+<p>The non-secure image is now built by its own CMake project against the SPE&#x27;s installed
+<code>api_ns/</code> tree, links <code>tfm_api_ns</code>, and is signed on the NS side. All 13 smoke-test steps
+pass on hardware from that build — same results as the single-build spike, so the
+restructuring changed how the image is produced and nothing about what it does.</p>
+<p>This was a prerequisite, not a preference: <code>tfm_api_ns</code> is created by the NSPE build from
+the installed tree and cannot exist in the SPE build, so NS code could not call a PSA API
+until the split existed. It is also what the official <code>tf-m-tests</code> regression suite builds
+against.</p>
+<p>Three commands instead of one — the install step is what produces <code>api_ns/</code>, and the SPE
+build directory is not a valid <code>CONFIG_SPE_PATH</code>:</p>
+<pre><code class="language-sh">cmake --build   build_ra6e1
+cmake --install build_ra6e1
+cmake -S platform/ext/target/renesas/ra6e1/ns_app -B build_ra6e1_ns -GNinja       -DCONFIG_SPE_PATH=&lt;abs&gt;/build_ra6e1/api_ns
+cmake --build   build_ra6e1_ns</code></pre>
+<p><code>FSP_NS_APP_DIR</code> is not needed on the NS side: the SPE records which project it was built
+against and the NS build defaults to it. A <em>different</em> one is a hard error — the NS image
+is placed by that project&#x27;s generated <code>memory_regions.ld</code>, so a mismatch links cleanly and
+boots nowhere.</p>
+<p><strong>Flash</strong> <code>build_ra6e1/bin/bl2.srec</code>, <code>build_ra6e1/bin/tfm_s_signed.bin</code> @ <code>0x58000</code>, and
+<code>build_ra6e1_ns/bin/tfm_ns_signed.bin</code> @ <code>0x98000</code>. Note the changed directory for the last
+one; stale <code>tfm_ns*</code> in the SPE <code>bin/</code> are not regenerated and should be deleted, since a
+stale signed image sitting beside the real ones is what gets flashed by mistake.</p>
+<p><code>RA6E1_NS_IN_SPE_BUILD=ON</code> restores the old single-build path — a plain FSP application
+making no secure calls, useful only for answering &quot;does the S-&gt;NS jump still work&quot; without
+the install step in between.</p>
+<p><strong>The combined <code>tfm_s_ns_signed.bin</code> is deliberately not built.</strong> It was byte-for-byte the
+two signed images end to end, nothing consumed it (BL2 verifies two separate images in two
+separate slots), and as an extra row in the debug session&#x27;s program list it carries no
+address of its own — entered at its SIZE (<code>0x70000</code>) instead of its start (<code>0x58000</code>) it
+overwrites the secure slot, the NSC veneers at <code>0x97800</code>, all of the non-secure slot and
+part of the non-secure secondary, and being last in the list it does so <em>after</em> the correct
+images have been written.</p>
+<p>Things the split needed that were missing or wrong, worth knowing before porting this to
+RA6M4:</p>
+<ul>
+<li><code>ns/CMakeLists.txt</code> and <code>ns/cpuarch_ns.cmake</code> were RA6M4 copies that had never been
+exercised and could not have worked — the first included <code>cmake/modules/fsp_uart.cmake</code>,
+which does not exist in this port; the second included <code>../cpuarch.cmake</code>, not where the
+install puts it. Treat the RA6M4 pair as equally unproven.</li>
+<li><code>cpuarch_ns.cmake</code> must be included BEFORE <code>project()</code>, or every compile gets a bare
+<code>-march=</code>.</li>
+<li><code>syscalls_ns.c</code> belongs in the executable, not in <code>platform_ns</code>: libc references <code>_write</code>
+after the linker has finished with the archive, so <code>nosys.specs</code>&#x27; stubs win and warn — and
+NS links with <code>-Wl,-fatal-warnings</code>.</li>
+<li><code>tfm_ns_signed_bin</code> is not an <code>ALL</code> target upstream. The NS image was signed only as a
+side effect of the combined image depending on it, so dropping that stopped producing the
+one file BL2 verifies. It is now an <code>ALL</code> target in its own right, via <code>add_dependencies</code>
+on the target — a file-level <code>DEPENDS</code> does not cross into the SPE subdirectory scope.</li>
+<li><code>tfm_ns_interface_bare_metal.c</code> does NO locking. Correct for this single-threaded app,
+wrong the moment a scheduler appears; <code>tfm_ns_interface_rtos.c</code> is the swap.</li>
+</ul>
+<h3 id="-rtt-is-unreliable-across-the-boot-chain---by-construction">⚠ RTT is unreliable across the boot chain - by construction</h3>
+<p>BL2, <code>tfm_s</code> and <code>tfm_ns</code> each have their <strong>own</strong> RTT control block, each in its own
+<code>.bss</code>, and they collide: <code>tfm_s</code>&#x27;s <code>.ER_TFM_SP_CRYPTO_BSS</code> spans <code>0x200022D8 + 0x7E14</code>,
+which <strong>covers BL2&#x27;s block at <code>0x20003480</code></strong>. Starting the secure image therefore zeroes
+the block the viewer is attached to - the viewer does not error, it just goes quiet.
+<code>tfm_s</code> then initialises a different block at <code>0x2000C138</code>, and <code>tfm_ns</code> a third at
+<code>0x20020494</code>. On top of that <code>SEGGER_RTT_MODE_NO_BLOCK_SKIP</code> silently drops writes when no
+viewer is draining.</p>
+<p>Consequence: one image per viewer session, and output written before the viewer attaches is
+gone. Attaching to the NS block after boot works fine - it is the handoff that breaks.</p>
+<p>Two mitigations are in place. The NS smoke test also records everything to
+<code>g_ns_test_results</code> (magic / steps_run / failures / per-step status / name of the running
+step), readable from a debugger with no host tooling; <code>magic</code> is written last so it only
+appears on a completed run, and <code>status[]</code> starts at <code>0x7FFFFFFF</code> rather than 0 because
+<code>PSA_SUCCESS</code> is 0 and a step that never ran must not read as a pass.</p>
+<p>The real fix, not yet done: one shared control block at a fixed address that no image
+zeroes, initialised once by BL2 and <em>adopted</em> by the later two. It has to live in
+non-secure RAM - the only region all three can write, since NS cannot touch secure RAM -
+which makes secure log text NS-readable. Acceptable for bring-up, must be off in
+production.</p>
+<h3 id="-resolved--the-bring-up-instrumentation-is-now-a-documented-option">✅ RESOLVED — the bring-up instrumentation is now a documented option</h3>
+<p>Done 2026-08-30. What were hardcoded edits to two upstream SPM files are now one
+default-off option, <code>TFM_SPM_DEBUG_TRACE</code>, declared in <code>config/config_base.cmake</code> beside
+<code>TFM_EXCEPTION_INFO_DUMP</code> and plumbed to <code>tfm_spm</code> with the other SPM debug definitions.</p>
+<p>It covers both halves: the <code>tfm_core_panic()</code> caller trace in <code>utilities.c</code> (previously
+<code>#define TFM_PANIC_TRACE 1</code>) and the partition-init logging in <code>backend_sfn.c</code> (previously
+unguarded). The <code>"tfm_s: platform init"</code> probe is gone — the NS smoke test proves more.</p>
+<p>This changes what they are. As hardcoded edits they were a liability that must not reach a
+merge; as a default-off SPM option they are plausibly an upstream contribution, since TF-M
+has no equivalent and &quot;every panic funnels to one spin with no detail&quot; is not specific to
+this port.</p>
+<p><strong>The trap this exposed, and the guard for it.</strong> <code>SPMLOG_ERRMSGVAL</code> compiles to
+<code>(void)(val)</code> below <code>TFM_SPM_LOG_LEVEL_ERROR</code>, and <code>TFM_SPM_LOG_LEVEL</code> defaults to
+<strong>SILENCE outside a Debug build</strong>. So the option could read <code>ON</code>, the build succeed, and
+nothing be traced. Hit while verifying this work, from a reconfigure that lost
+<code>-DCMAKE_BUILD_TYPE=Debug</code>. <code>check_config.cmake</code> now rejects the combination:</p>
+<pre><code>INVALID CONFIG: TFM_SPM_DEBUG_TRACE AND TFM_SPM_LOG_LEVEL = TFM_SPM_LOG_LEVEL_SILENCE</code></pre>
+<p><strong>Both options are set in the port&#x27;s <code>config.cmake</code>, not in a build directory&#x27;s cache.</strong> A
+cache value survives rebuilds but not a clean reconfigure, so the next person to configure
+would silently get a quieter build with no way to know why. <code>TFM_EXCEPTION_INFO_DUMP</code> costs
+~3.4 KB of secure text; the trace is a handful of log calls. Turn both off for production —
+the trace reports partition ids and status codes on the console.</p>
+<p>Verified both ways: <code>ON</code> emits the three trace strings, <code>OFF</code> emits none. Note that
+<code>tfm_s.bin</code> is the SAME SIZE either way — it spans to the pinned NSC window at <code>0x97800</code>,
+so it is dominated by padding and <strong>is not a code-size metric on this port</strong>. Check the
+strings, or ld&#x27;s FLASH usage line, not the file size.</p>
+<p>The <code>__enable_irq()</code> and <code>stdio_init()</code> calls added in the same original session are
+permanent fixes, not instrumentation, and stay unconditionally.</p>
+<h3 id="-resolved--tf-m-tests-regression-suite-all-5-ns-suites-passing-2026-09-02">✅ RESOLVED — tf-m-tests regression suite, all 5 NS suites passing (2026-09-02)</h3>
+<p><code>TFM_NS_PS_TEST_1025</code> was the last failure and took three runs to pin down, because two
+plausible theories were both wrong: it fails identically at <code>PS_MAX_ASSET_SIZE</code> 512 and 448,
+and it fails just the same on freshly erased data flash.</p>
+<p>The real constraint is capacity, and it is a <em>sum</em>, not a per-object ceiling. PS runs with
+<code>num_blocks == 2</code>, so the flash FS keeps its metadata and logical data block 0 in the same
+physical block and every live object competes for one 1536-byte block:</p>
+<div class="table-wrap"><table>
+<tr><th></th><th>bytes at <code>PS_NUM_ASSETS</code> 10</th></tr>
+<tr><td>FS metadata, <code>8 + 12 + (N+3)*32</code></td><td>436</td></tr>
+<tr><td>two object tables, <code>2 * (48 + (N+1)*32)</code> — both FS IDs always resident</td><td>800</td></tr>
+<tr><td>test 1004&#x27;s write-once asset, <code>36 + 72</code> — unremovable by definition</td><td>108</td></tr>
+<tr><td><strong>left for one asset object</strong></td><td><strong>192</strong></td></tr>
+</table></div>
+<p>1025&#x27;s <em>smallest</em> cycle is <code>PS_MAX_ASSET_SIZE &gt;&gt; 2</code>, so 128 bytes plus 72 of object header
+= 200. It overflowed by 8 bytes on the first cycle. Lowering <code>PS_MAX_ASSET_SIZE</code> only moves
+which cycle overflows, which is exactly what the 448 bisect showed.</p>
+<p>Each asset costs <strong>96 bytes</strong> of fixed overhead — 32 of file metadata plus a 32-byte entry in
+each of the two tables — so free space is <code>1152 - 96*PS_NUM_ASSETS</code> and a full 512-byte asset
+needs 584. <code>PS_NUM_ASSETS</code> is therefore capped at <strong>5</strong>, and that is what the port now sets.
+<code>ra6e1_layout_checks.c</code> asserts the whole budget, derived from <code>TFM_HAL_PS_*</code> so it tracks a
+resized PS area rather than hard-coding today&#x27;s numbers.</p>
+<p>Struct sizes were measured out of the built objects rather than derived by hand
+(<code>arm-none-eabi-nm -S</code> gives <code>ps_obj_table_ctx</code> 408 and <code>g_ps_object</code> 584) — the earlier
+hand-derived figures in <code>config_tfm_target.h</code> had the object table wrong.</p>
+<p><strong>Not fixed, and not fixable by this knob:</strong> rewriting an existing max-size asset needs both
+copies resident, 1168 bytes, which does not fit at any <code>PS_NUM_ASSETS</code>. Growing an asset that
+is already near <code>PS_MAX_ASSET_SIZE</code> returns <code>PSA_ERROR_INSUFFICIENT_STORAGE</code> on this part.
+Raising that ceiling means giving PS more data flash, not retuning these two values.</p>
+<p>Erase data flash (<code>0x08000000</code>, 8 KB) before the first run after any <code>PS_NUM_ASSETS</code> change:
+the object table&#x27;s entry count is baked into its on-flash layout and PS has no migration path.</p>
+<p>Passing: SFN backend (5), PS (20), ITS (24), Crypto (~35), Platform (1).</p>
+<p>Still not attempted: <code>TEST_S</code> (secure-side suites). <code>TEST_NS_ATTESTATION</code> stays disabled —
+it needs <code>attest.h</code> / <code>attest_token.h</code>, which are secure-side internal headers not exported
+to NS.</p>
+<h3 id="-resolved--merged-the-original-machines-branch-then-cleaned-up-after-it-2026-09-07">✅ RESOLVED — merged the original machine&#x27;s branch, then cleaned up after it (2026-09-07)</h3>
+<p>The original machine&#x27;s post-07-23 work was merged and pushed from there, and pulled here as a clean
+fast-forward: 6 files into <code>trusted-firmware-m</code>, 734 into <code>fsp_cmake</code>, <strong>zero deletions</strong>. Nothing
+of the port was overwritten. Re-verified after the merge: 13 discrete OFS regions in both
+<code>*_bl2.ld</code>, three discrete <code>PT_LOAD</code>s at <code>0x0100A100</code>/<code>0x0100A200</code>/<code>0x0100A280</code> carrying
+<code>ffffffff</code>/<code>fffdffff</code>/<code>f8f8ffff</code> (byte-identical to the known-good values), both trees building
+clean, and the layout assertions passing.</p>
+<p>One merge change was worth keeping: <code>cmake/install.cmake</code> now guards the NS signing install on
+<code>TARGET signing_layout_ns</code>, so a BL2-first bring-up with <code>MCUBOOT_IMAGE_NUMBER &gt; 1</code> and no NS target
+configures instead of erroring. <code>signing_layout_ns</code> does exist in this split build, so <code>api_ns/</code>
+still receives both layout objects and all four keys — checked, because a silent skip there would
+have broken NS signing.</p>
+<p><strong>Removed as superseded:</strong></p>
+<ul>
+<li><code>FSP_Project_ra6e1_bl2/</code> (718 files) — the standalone FSP 6.1 BL2 project from the original
+machine&#x27;s bring-up. The live project set is the <strong>solution</strong>: <code>ra6e1_solution</code>, <code>ra6e1_mcuboot</code>,
+<code>ra6e1_secure</code>, <code>ra6e1_nonsecure</code> at FSP 6.6.0-beta2. A standalone BL2 project cannot produce the
+<code>__BL_0/1_*</code> partition symbols the layout depends on, which is the whole reason for the solution.</li>
+<li><code>bringup/ra6e1_hand_edits/</code> — existed only to re-apply hand edits to that project after a RASC
+regen. Its preserved <code>hal_entry.c</code> is FSP&#x27;s stock <code>rm_mcuboot_port</code> template, superseded by
+<code>ra6e1_mcuboot/src/hal_entry.c</code>.</li>
+<li>Three orphan sources the merge added to the TF-M platform, none referenced by any CMakeLists:
+<code>tfm_hal_isolation.c</code> (this port uses the shared <code>tfm_hal_isolation_v8m.c</code>),
+<code>cmsis_drivers/Driver_Flash_original.c</code>, and <code>cmake/modules/fsp_uart.cmake</code>. The Driver_Flash one
+was the real trap — an unused near-copy sitting beside the live driver.</li>
+</ul>
+<p><strong>Kept and now wired:</strong> <code>check_ofs.py</code>, the OFS brick guard. See DESIGN.md §8.4.</p>
+<h3 id="todo--bundle-a-default-project-set-inside-the-tf-m-port">TODO — bundle a default project set inside the TF-M port</h3>
+<p>An e2 build is now a prerequisite for building TF-M (the layout lives in
+<code>&lt;project&gt;/Debug/bsp_linker_info.h</code>). So the port should ship a copy of this project set —
+solution + bootloader + secure + non-secure — in a folder under
+<code>platform/ext/target/renesas/ra6e1/</code>, so it builds out of the box, with <code>FSP_BL2_APP_DIR</code> /
+<code>FSP_S_APP_DIR</code> / <code>FSP_NS_APP_DIR</code> defaulting to it and redirectable to the user&#x27;s own regenerated
+set.</p>
+<p>Exclude binaries (<code>.elf .map .srec .sbd .bin .rpd .o</code>) to limit size, but **keep the generated text
+layout files** — <code>Debug/bsp_linker_info.h</code>, <code>memory_regions.ld</code>, <code>fsp_gen.ld</code> — or the bundled set
+won&#x27;t build out of the box either. That&#x27;s a deliberate exception to the &quot;no Debug files&quot; rule, which
+applies to the working project set in <code>fsp_cmake/</code>.</p>
+<h3 id="-resolved--sizing">✅ RESOLVED — Sizing</h3>
+<p>The repartition fixed this. Measured from the first clean TF-M build (Debug, 2026-08-26):</p>
+<div class="table-wrap"><table>
+<tr><th>Image</th><th><code>text</code></th><th>Slot code region</th><th>Used</th></tr>
+<tr><td>bl2</td><td>55 540</td><td><code>0x18000</code> (96K)</td><td>57%</td></tr>
+<tr><td>tfm_s</td><td>167 916</td><td><code>0x3FD00</code> (255.25K)</td><td><strong>64%</strong></td></tr>
+<tr><td>tfm_ns</td><td>3 334</td><td><code>0x2FD00</code> (191.25K)</td><td>2%</td></tr>
+</table></div>
+<p>Beware <code>ld --print-memory-usage</code> on the secure image: it reports <strong>99.85%</strong> because the veneers are
+pinned at the top of FLASH, so the region always reads as full regardless of code size. Use
+<code>arm-none-eabi-size</code> for the real figure.</p>
+<p>Data flash is now <strong>all 8 KB secure</strong> (<code>BSP_PARTITION_DATA_FLASH_CPU0_N_SIZE</code> is 0), as DESIGN.md §7
+wants, split NV counters 2K + PS 3K + ITS 3K. The port&#x27;s <code>flash_layout.h</code> still carries a <code>#error</code>
+that fires if the secure partition drops below 4 KB. At 3 KB the PS area is a two-block filesystem
+with no wear-levelling headroom, and its capacity is what caps <code>PS_NUM_ASSETS</code> — see the regression
+section below.</p>
+<p>Any further repartition changes the Code Secure boundary, so the Partition Manager values above must
+be recomputed <strong>and re-checked against the 32 KB / 8 KB granularity rule</strong>.</p>
+<h3 id="divergences-from-the-current-tf-m-port-config">Divergences from the current TF-M port config</h3>
+<p>Signature ECDSA-P256 vs RSA-3072 · overwrite-only vs swap+256K scratch · MCUboot 2.4.0 vs 2.1.0 ·
+FSP 6.6.0-beta2 here vs 6.1.0 vendored in the port.</p>
+</main>
+</div>
+</body>
+</html>

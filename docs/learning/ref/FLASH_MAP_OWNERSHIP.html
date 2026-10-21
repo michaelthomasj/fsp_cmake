@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Whose flash_map.c does BL2 link — TF-M&#x27;s, MCUboot&#x27;s or FSP&#x27;s?</title>
+<meta name="description" content="Rendered from FLASH_MAP_OWNERSHIP.md by scripts/build_doc_html.py.">
+<link rel="stylesheet" href="../assets/style.css">
+<script src="../assets/site.js"></script>
+</head>
+<body>
+<!-- GENERATED from FLASH_MAP_OWNERSHIP.md by scripts/build_doc_html.py. Do not edit: the next commit touching the Markdown overwrites it. -->
+<div class="layout">
+<aside class="sidebar">
+  <div class="brand"><a href="../index.html">Cortex-M, TrustZone &amp; TF-M on Renesas RA</a><button class="menu-toggle" aria-expanded="false">Menu</button></div>
+  <nav>
+    <ol>
+      <li><a href="../index.html">← Course</a></li>
+      <li><a href="index.html">Reference documents</a>
+        <ol>
+      <li><a href="ADDING_FSP_MODULES.html">ADDING_FSP_MODULES.md</a></li>
+      <li><a href="BRIDGING_FILES.html">BRIDGING_FILES.md</a></li>
+      <li><a href="CONFIGURATION.html">CONFIGURATION.md</a></li>
+      <li><a href="DECISIONS.html">DECISIONS.md</a></li>
+      <li><a href="DESIGN.html">DESIGN.md</a></li>
+      <li><a href="DOCUMENTATION_PLAN.html">DOCUMENTATION_PLAN.md</a></li>
+      <li><a href="FLASH_MAP_OWNERSHIP.html" aria-current="page">FLASH_MAP_OWNERSHIP.md</a></li>
+      <li><a href="GETTING_STARTED.html">GETTING_STARTED.md</a></li>
+      <li><a href="PORTING.html">PORTING.md</a></li>
+      <li><a href="PROJECT_PLAN.html">PROJECT_PLAN.md</a></li>
+      <li><a href="RA6E1_SOLUTION.html">RA6E1_SOLUTION.md</a></li>
+      <li><a href="RA6E1_TEMPLATE_CHECKLIST.html">RA6E1_TEMPLATE_CHECKLIST.md</a></li>
+      <li><a href="RA6M5_SOLUTION.html">RA6M5_SOLUTION.md</a></li>
+      <li><a href="RA8M2_SOLUTION.html">RA8M2_SOLUTION.md</a></li>
+      <li><a href="RA8x2_DUAL_CORE_DESIGN.html">RA8x2_DUAL_CORE_DESIGN.md</a></li>
+      <li><a href="README.html">README.md</a></li>
+      <li><a href="RECONFIGURING_THE_LAYOUT.html">RECONFIGURING_THE_LAYOUT.md</a></li>
+      <li><a href="TROUBLESHOOTING.html">TROUBLESHOOTING.md</a></li>
+      <li><a href="UPSTREAM_CHANGES.html">UPSTREAM_CHANGES.md</a></li>
+      <li><a href="scripts_README.html">scripts/README.md</a></li>
+        </ol>
+      </li>
+    </ol>
+    <ol class="doc-toc">
+      <li><a href="#top">FLASH_MAP_OWNERSHIP.md</a>
+        <ol>
+          <li><a href="#s1">1. MCUboot&#x27;s actual contract</a></li>
+          <li><a href="#s2">2. What TF-M does</a></li>
+          <li><a href="#s3">3. Has TF-M broken MCUboot&#x27;s abstraction?</a></li>
+          <li><a href="#s4">4. Where this port sits, and the seams</a></li>
+          <li><a href="#s5">5. The decoupling that is being missed</a></li>
+          <li><a href="#s6">6. Inconsistencies against the objectives</a></li>
+          <li><a href="#6a-checked-against-latest-upstream-2026-10-05">6a. Checked against latest upstream (2026-10-05)</a></li>
+          <li><a href="#s7">7. Options</a></li>
+          <li><a href="#s8">8. What I would want decided</a></li>
+        </ol>
+      </li>
+    </ol>
+    <button class="theme-toggle" type="button">Dark theme</button>
+  </nav>
+</aside>
+<main id="top" class="ref-doc">
+<p class="src">Rendered from <a href="../../../FLASH_MAP_OWNERSHIP.md"><code>FLASH_MAP_OWNERSHIP.md</code></a>. Edit the Markdown, not this page.</p>
+<h1 id="whose-flash_mapc-does-bl2-link--tf-ms-mcuboots-or-fsps">Whose <code>flash_map.c</code> does BL2 link — TF-M&#x27;s, MCUboot&#x27;s or FSP&#x27;s?</h1>
+<p>*(The question is which implementation of the <code>flash_area_*</code> API is compiled in. The image
+layout is a separate question with a separate answer, and conflating the two is the mistake
+§5 is about.)*</p>
+<blockquote><p><strong>RESOLVED 2026-10-05: Option 3 adopted and verified on hardware (<a href="DECISIONS.html#d091">D091</a>).</strong> Both parts take
+TF-M&#x27;s MCUboot map and backend, with FSP&#x27;s HAL behind <code>fa_driver</code> via the port&#x27;s own
+<code>Driver_Flash.c</code> - the same shape ST uses for STM32Cube. The full RA6M5 regression suite
+passes, secure and non-secure. Upstream item 13 is withdrawn and <code>bl2/CMakeLists.txt</code> is
+byte-identical to TF-Mv2.2.0. The analysis below stands as written; §7 records the options as
+they were weighed.</p></blockquote>
+<p>Design review, 2026-10-05. Written to answer four questions: what MCUboot&#x27;s porting contract
+actually is, whether TF-M&#x27;s BL2 breaks it, what other vendors do, and where this port is
+inconsistent with the two standing objectives —</p>
+<ul>
+<li><strong>A. TF-M updates must keep flowing in.</strong> The port must not diverge from upstream so far that
+a TF-M bump becomes a merge exercise.</li>
+<li><strong>B. FSP updates must keep flowing in.</strong> A pack update plus a regenerate should carry FSP&#x27;s
+fixes into the port without hand-patching.</li>
+</ul>
+<p>Every claim below was checked against the source on 2026-10-05, not recalled.</p>
+<hr>
+<h2 id="s1">1. MCUboot&#x27;s actual contract</h2>
+<p><strong>MCUboot does not define <code>struct flash_area</code>.</strong> <code>bootutil</code> includes
+<code>&lt;flash_map_backend/flash_map_backend.h&gt;</code> (<code>bootutil_priv.h:35</code>, <code>bootutil_public.h:44</code>,
+<code>enc_key.h:32</code>) and <strong>every port supplies that header itself</strong>:</p>
+<pre><code>boot/zephyr/include/flash_map_backend/flash_map_backend.h
+boot/espressif/include/...
+boot/mynewt/flash_map_backend/include/...
+boot/nuttx/include/...
+boot/cypress/cy_flash_pal/include/...
+boot/mbed/include/...
+sim/mcuboot-sys/csupport/...</code></pre>
+<p>So the porting interface is: <strong>the port owns the type and the <code>flash_area_*</code> functions.</strong>
+MCUboot owns only the algorithms above them.</p>
+<p>How the ports fill that slot differs, and the pattern is informative:</p>
+<div class="table-wrap"><table>
+<tr><th>Port</th><th>Where the type comes from</th></tr>
+<tr><td><strong>zephyr</strong></td><td><code>#include &lt;zephyr/storage/flash_map.h&gt;</code> — the RTOS already has a flash map; the backend header just adapts it</td></tr>
+<tr><td><strong>mynewt</strong></td><td><code>#include &lt;flash_map/flash_map.h&gt;</code> + <code>&lt;sysflash/sysflash.h&gt;</code> — same, the OS owns it</td></tr>
+<tr><td><strong>nuttx</strong>, <strong>espressif</strong></td><td>define the struct inline, 12 bytes: <code>fa_id, fa_device_id, pad16, fa_off, fa_size</code></td></tr>
+</table></div>
+<p>**FSP supplying <code>rm_mcuboot_port/flash_map_backend/flash_map_backend.h</code> is therefore
+idiomatic MCUboot**, and structurally identical to what Zephyr and Mynewt do. FSP is not
+deviating; it is doing exactly what a platform is supposed to do.</p>
+<hr>
+<h2 id="s2">2. What TF-M does</h2>
+<p><strong>TF-M is itself an MCUboot port.</strong> It occupies that same single slot:</p>
+<pre><code>bl2/ext/mcuboot/include/flash_map_backend/flash_map_backend.h   guard __FLASH_MAP_BACKEND_H__
+  └── #include "flash_map/flash_map.h"                          guard H_UTIL_FLASH_MAP_</code></pre>
+<p>That is Mynewt&#x27;s two-file shape, inherited. FSP collapsed the same ancestry into one file and
+kept the <strong>inner</strong> guard. Hence the collision (<a href="DECISIONS.html#d090">D090</a>): both headers claim <code>H_UTIL_FLASH_MAP_</code>,
+the first one reached silences the other, and they do not define the same type.</p>
+<p>TF-M&#x27;s struct carries one member FSP&#x27;s does not:</p>
+<pre><code class="language-c">struct flash_area {
+    uint8_t  fa_id;
+    uint8_t  fa_device_id;
+    uint16_t pad16;
+    ARM_DRIVER_FLASH *fa_driver;   /* TF-M only - 16 bytes vs FSP's 12 */
+    uint32_t fa_off;
+    uint32_t fa_size;
+};</code></pre>
+<p>That member is not decoration. <strong>TF-M&#x27;s backend reaches flash through it</strong>:</p>
+<pre><code class="language-c">DRV_FLASH_AREA(area)-&gt;ReadData(area-&gt;fa_off + off, ...)   /* bl2/src/flash_map.c:166 */
+DRV_FLASH_AREA(area)-&gt;ProgramData(...)                    /* :320 */</code></pre>
+<p>So TF-M&#x27;s model is: *a flash area names its CMSIS <code>ARM_DRIVER_FLASH</code>, and all access is
+dispatched through that driver.* FSP&#x27;s model is: <em>a flash area is an absolute address</em>, read
+with <code>memcpy</code> and written through <code>R_FLASH_*</code> / <code>R_MRAM_*</code>.</p>
+<p>These are two coherent designs that cannot share a struct.</p>
+<hr>
+<h2 id="s3">3. Has TF-M broken MCUboot&#x27;s abstraction?</h2>
+<p><strong>In form, no.</strong> TF-M fills the port slot MCUboot defines, with the header and the functions the
+contract asks for. Nothing is subverted.</p>
+<p><strong>In effect, for a vendor who already has a flash map, yes</strong> — and the reason is that the slot
+is <em>singular</em>. A build contains exactly one <code>flash_map_backend.h</code>. TF-M has taken it, so a
+platform whose SDK also supplies one (FSP, and Zephyr for the same reason) cannot simply bring
+its own; one of the two must be suppressed.</p>
+<p>TF-M does provide an escape hatch, and its limits are the important part:</p>
+<div class="table-wrap"><table>
+<tr><th><code>DEFAULT_MCUBOOT_FLASH_MAP=OFF</code> gives you</th><th>it does <strong>not</strong> give you</th></tr>
+<tr><td>drop <code>bl2/src/default_flash_map.c</code>, so you supply the <code>flash_map[]</code> <strong>array</strong></td><td>TF-M&#x27;s <code>struct flash_area</code> — you still use it</td></tr>
+<tr><td>empty the <code>FLASH_AREA_IMAGE_PRIMARY/SECONDARY</code> macros in <code>sysflash.h</code>, so you define the <strong>area IDs</strong></td><td>TF-M&#x27;s <code>flash_area_*</code> <strong>functions</strong> — still <code>bl2/src/flash_map.c</code></td></tr>
+</table></div>
+<p><strong>The only two upstream users prove the limit.</strong> <code>corstone1000</code> and <code>rse</code> both set the flag,
+and both still populate TF-M&#x27;s struct:</p>
+<pre><code class="language-c">/* platform/ext/target/arm/corstone1000/bl2/flash_map_bl2.c:30 */
+.fa_driver = &amp;FLASH_DEV_NAME,</code></pre>
+<p>So upstream TF-M supports <strong>&quot;bring your own map data&quot;</strong>. It does <strong>not</strong> support **&quot;bring your
+own backend&quot;**. No platform in the tree supplies its own <code>flash_map_backend.h</code> or <code>sysflash.h</code> —
+I checked; there are none.</p>
+<p><strong>That is the honest answer to the question.</strong> MCUboot&#x27;s abstraction is clean and would let FSP
+plug straight in. TF-M sits in the socket and offers a narrower one, and this port is the first
+to want the full width.</p>
+<hr>
+<h2 id="s4">4. Where this port sits, and the seams</h2>
+<p>The port currently replaces <strong>type, functions and data</strong> with FSP&#x27;s — further than any upstream
+platform goes. That is what <code>DEFAULT_MCUBOOT_FLASH_BACKEND</code> exists for, and it is **our
+invention**, not an upstream concept ([UPSTREAM_CHANGES] item 13).</p>
+<p>The result is not one boundary but five, each a place the two projects&#x27; code meets:</p>
+<div class="table-wrap"><table>
+<tr><th>Seam</th><th>Taken from</th><th>Why</th></tr>
+<tr><td><code>struct flash_area</code> + <code>flash_area_*</code></td><td><strong>FSP</strong></td><td>so FSP&#x27;s fixes arrive with a pack update; on RA8M2 its <code>flash_area_open()</code> also programs the SAU</td></tr>
+<tr><td><code>flash_map[]</code> data</td><td><strong>FSP</strong> (<code>bsp_linker_info.h</code>)</td><td>the Solution owns the layout</td></tr>
+<tr><td>area-ID macros (<code>sysflash.h</code>)</td><td><strong>FSP</strong></td><td>follows the map</td></tr>
+<tr><td><code>mcuboot_config.h</code> (policy)</td><td><strong>TF-M</strong></td><td>deliberately — FSP&#x27;s lacks <code>MCUBOOT_HW_ROLLBACK_PROT</code> (<a href="DECISIONS.html#d079">D079</a>)</td></tr>
+<tr><td>rollback counters</td><td><strong>TF-M</strong> (<code>bl2/src/security_cnt.c</code>)</td><td><code>rm_mcuboot_port</code> does not provide them</td></tr>
+<tr><td><code>boot_hooks.h</code></td><td><strong>TF-M&#x27;s MCUboot</strong>, shimmed</td><td>FSP&#x27;s copy is 287 lines to TF-M&#x27;s 181</td></tr>
+</table></div>
+<p>**FSP&#x27;s <code>flash_map.c</code> is therefore compiled against a <code>mcuboot_config.h</code> FSP did not generate,
+with a hook shim standing in for the MCUboot version FSP expects.** It works, and it is the
+least comfortable thing in the design.</p>
+<hr>
+<h2 id="s5">5. The decoupling that is being missed</h2>
+<p><strong>Layout ownership and backend ownership are separable, and this port has conflated them.</strong></p>
+<p>The MCUboot areas already derive from the Solution regardless of which backend compiles:</p>
+<pre><code class="language-c">/* ra6m5/flash_layout.h */
+#define FLASH_AREA_0_OFFSET   (BSP_PARTITION___BL_0_P_H_START)
+#define FLASH_AREA_0_SIZE     TFM_SLOT_SPAN(BSP_PARTITION___BL_0_P_H, ...)
+#define FLASH_AREA_1_OFFSET   (BSP_PARTITION___BL_1_P_H_START)</code></pre>
+<p>Those are FSP&#x27;s generated partition macros. **The Solution already sets the image layout, and
+would continue to do so with TF-M&#x27;s backend.** Adopting FSP&#x27;s <code>flash_map.c</code> bought three
+things, only one of which is about layout:</p>
+<ol>
+<li>FSP&#x27;s bug fixes in the backend — real, and the point of objective B.</li>
+<li>RA8M2&#x27;s SAU programming in <code>flash_area_open()</code> — real, and load-bearing there.</li>
+<li>The layout coming from the Solution — <strong>this one we already had.</strong></li>
+</ol>
+<hr>
+<h2 id="s6">6. Inconsistencies against the objectives</h2>
+<h3 id="against-a--tf-m-updates-flowing-in">Against A — TF-M updates flowing in</h3>
+<div class="table-wrap"><table>
+<tr><th>#</th><th>Issue</th><th>Why it bites</th></tr>
+<tr><td>A1</td><td><strong>Item 13 is an architectural change to common BL2 code.</strong> Until upstream accepts it, every TF-M bump means re-applying it.</td><td>The patch queue is 13 items; 12 are small and local, this one is structural</td></tr>
+<tr><td>A2</td><td><strong>The fix depends on header search order, not on an interface.</strong> FSP&#x27;s directory must precede TF-M&#x27;s for <code>bl2</code> and <code>bootutil</code>.</td><td>Any CMake change that reorders includes silently reintroduces <a href="DECISIONS.html#d090">D090</a>. There is no build-time assertion — only the DWARF check in <code>BRIDGING_FILES.md</code> §3, which must be run by hand</td></tr>
+<tr><td>A3</td><td><strong><code>fsp_flash_map_shim.h</code> re-exports pieces of TF-M&#x27;s <code>flash_map.h</code>.</strong></td><td>If TF-M adds to that header, the shim silently lacks it; if TF-M changes a meaning, the shim is stale and still compiles</td></tr>
+<tr><td>A4</td><td><strong>We predefine <code>__FLASH_MAP_BACKEND_H__</code></strong> to suppress a TF-M header.</td><td>That is an internal include guard, not an interface. A rename upstream breaks it with no diagnostic</td></tr>
+<tr><td>A5</td><td><strong><code>mcuboot_hook_shim.h</code> compensates for a version difference</strong> between TF-M&#x27;s MCUboot and FSP&#x27;s.</td><td>If TF-M&#x27;s MCUboot gains those hooks, the shim collides instead of filling a gap</td></tr>
+</table></div>
+<h3 id="against-b--fsp-updates-flowing-in">Against B — FSP updates flowing in</h3>
+<div class="table-wrap"><table>
+<tr><th>#</th><th>Issue</th><th>Why it bites</th></tr>
+<tr><td>B1</td><td><em>Working as intended:</em> FSP&#x27;s <code>flash_map.c</code> is compiled from the pack, so its fixes arrive on a regenerate.</td><td>This is the strongest part of the current design and the main argument for keeping it</td></tr>
+<tr><td>B2</td><td><strong>FSP&#x27;s struct is now load-bearing for TF-M&#x27;s bootutil.</strong></td><td>If FSP adds a member — exactly what TF-M did — the silent-shift bug returns. Caught only by the DWARF check</td></tr>
+<tr><td>B3</td><td><strong>FSP&#x27;s <code>flash_map.c</code> runs against TF-M&#x27;s <code>mcuboot_config.h</code>.</strong></td><td>FSP tests its code against its own config. Any FSP change that assumes an FSP-only option is a latent mismatch</td></tr>
+<tr><td>B4</td><td><strong><code>fsp_module_glob</code> cannot be used for <code>rm_mcuboot_port</code></strong> — it is <code>GLOB_RECURSE</code> and would pull <code>custom_crypto_stacks/</code>, <code>os/</code>, <code>rm_mcuboot_port.c</code>. The file is named explicitly.</td><td>A new file FSP adds to that module will <strong>not</strong> be picked up, which is precisely the automatic-absorption property objective B asks for</td></tr>
+</table></div>
+<p><strong>B4 is the one I would flag hardest.</strong> It is a direct, current violation of objective B, and it
+is quiet: FSP adds a source, the port ignores it, nothing warns.</p>
+<hr>
+<h2 id="6a-checked-against-latest-upstream-2026-10-05">6a. Checked against latest upstream (2026-10-05)</h2>
+<p>Re-verified against <code>upstream/main</code>, well past TF-Mv2.3.1. <strong>Nothing in the analysis changes:</strong></p>
+<div class="table-wrap"><table>
+<tr><th></th><th>TF-Mv2.2.0 (our base)</th><th>upstream/main</th></tr>
+<tr><td><code>struct flash_area</code></td><td>16 B with <code>fa_driver</code></td><td>unchanged</td></tr>
+<tr><td>Guards <code>H_UTIL_FLASH_MAP_</code> / <code>__FLASH_MAP_BACKEND_H__</code></td><td>collide</td><td>unchanged</td></tr>
+<tr><td><code>flash_map_backend.h</code> / <code>sysflash.h</code> in the tree</td><td>one each, TF-M&#x27;s</td><td>still one each</td></tr>
+<tr><td>Platforms with <code>DEFAULT_MCUBOOT_FLASH_MAP=OFF</code></td><td>corstone1000, rse</td><td>still only those two</td></tr>
+<tr><td><code>DEFAULT_MCUBOOT_FLASH_BACKEND</code></td><td>—</td><td>still does not exist</td></tr>
+</table></div>
+<p><strong>New and decisive: ST is already doing Option 3.</strong> Four ST platforms
+(<code>b_u585i_iot02a</code>, <code>nucleo_u3c5zi_q</code>, <code>stm32h573i_dk</code>, <code>stm32wba65i_dk</code>) now appear in the
+tree, all setting <code>DEFAULT_MCUBOOT_FLASH_MAP</code> <strong>ON</strong>. ST has STM32Cube HAL - the direct
+analogue of FSP - and their answer is to wrap it behind a CMSIS driver rather than replace the
+backend:</p>
+<pre><code>stm/common/hal/CMSIS_Driver/low_level_flash.c
+    HAL_FLASH_Program(), HAL_FLASHEx_GetOperation()     &lt;- ST's own HAL
+        wrapped as ARM_DRIVER_FLASH
+            externed by bl2/src/default_flash_map.c as FLASH_DEV_NAME_0..3</code></pre>
+<p>So the vendor whose situation most resembles this one keeps TF-M&#x27;s map <strong>and</strong> backend, and
+supplies only the driver.</p>
+<h2 id="s7">7. Options</h2>
+<p>Stated with their costs, not ranked — the choice is a judgement about which divergence is
+cheaper to carry.</p>
+<h3 id="option-1--keep-fsps-backend-current-state">Option 1 — keep FSP&#x27;s backend (current state)</h3>
+<ul>
+<li><strong>A:</strong> needs item 13 upstreamed, or carried forever. Keeps A2–A5.</li>
+<li><strong>B:</strong> best case for FSP fixes, except B4.</li>
+<li>RA8M2&#x27;s SAU programming comes free.</li>
+<li><strong>Verdict:</strong> maximum FSP absorption, maximum TF-M divergence.</li>
+</ul>
+<h3 id="option-2--tf-ms-backend-fsp-generated-data-the-corstone1000-model">Option 2 — TF-M&#x27;s backend, FSP-generated data (the corstone1000 model)</h3>
+<p>Generate a <code>flash_map[]</code> from <code>bsp_linker_info.h</code> into TF-M&#x27;s struct, set
+<code>DEFAULT_MCUBOOT_FLASH_MAP=OFF</code>, keep <code>bl2/src/flash_map.c</code>.</p>
+<ul>
+<li><strong>A:</strong> <strong>zero architectural divergence</strong> — this is the upstream-sanctioned path, already used
+by two Arm platforms. Item 13 is withdrawn. A2–A5 all disappear.</li>
+<li><strong>B:</strong> we stop getting FSP&#x27;s backend fixes; <code>rm_mcuboot_port</code> returns to being shadowed.</li>
+<li>The Solution still owns the layout (§5), so <strong>the stated layout objective is still met</strong>.</li>
+<li><strong>Cost:</strong> RA8M2&#x27;s SAU programming must move into <code>boot_hal</code>, which re-opens <a href="DECISIONS.html#d076">D076</a> — the
+change that was tried and reverted. It is ~10 lines and the register values are in
+<code>R_PSCU-&gt;CFSAMONA_b.CFS2</code>, but it is port-owned code replicating FSP&#x27;s.</li>
+</ul>
+<h3 id="option-3--tf-ms-backend-fsp-data-fsps-flash-driver-behind-fa_driver">Option 3 — TF-M&#x27;s backend, FSP data, FSP&#x27;s flash driver behind <code>fa_driver</code></h3>
+<p>As Option 2, but the port&#x27;s <code>Driver_Flash.c</code> (which already exists and wraps <code>R_FLASH_HP</code> /
+<code>R_MRAM</code>) becomes the <code>ARM_DRIVER_FLASH</code> that <code>fa_driver</code> points at.</p>
+<ul>
+<li><strong>A:</strong> same as Option 2 — zero divergence.</li>
+<li><strong>B:</strong> FSP&#x27;s <em>driver</em> fixes still flow in, since <code>Driver_Flash.c</code> calls FSP&#x27;s HAL. Only
+<code>rm_mcuboot_port</code>&#x27;s own logic is lost, which is thin — an address computation and a
+controller open.</li>
+<li><strong>This is what corstone1000 does</strong>, with the port&#x27;s CMSIS driver in the slot.</li>
+<li><strong>Cost:</strong> the RA8M2 SAU only. <strong>Cheaper than first estimated</strong> - the code already exists in
+<code>299b03039</code>, which was reverted for wanting FSP&#x27;s flash_map, not because it was wrong.
+<code>ARM_DRIVER_FLASH Driver_FLASH0</code>/<code>Driver_FLASH1</code> already exist on both parts and
+<code>FLASH_DEV_NAME</code> already resolves to <code>Driver_FLASH0</code>, so nothing new is written there.</li>
+</ul>
+<hr>
+<h2 id="s8">8. What I would want decided</h2>
+<ol>
+<li><strong>Is <code>rm_mcuboot_port</code>&#x27;s logic worth the divergence?</strong> It is roughly: pick the alias, open
+the controller, program the SAU, <code>memcpy</code>. Option 3 keeps FSP&#x27;s HAL underneath while handing
+the MCUboot-facing contract back to TF-M.</li>
+<li><strong>Is item 13 something upstream would take?</strong> It is a reasonable request — &quot;let a platform
+replace the backend, not just the data&quot; — but it is the only structural item in the queue,
+and it is what makes a TF-M bump expensive.</li>
+<li><strong>B4 should be fixed regardless of the above.</strong> A module whose new files are silently ignored
+defeats objective B whichever backend wins.</li>
+</ol>
+<p>The layout objective — FSP&#x27;s Solution deciding the image layout — is **already satisfied and is
+not at risk under any option**. It should not be the reason to keep the FSP backend.</p>
+</main>
+</div>
+</body>
+</html>
