@@ -5460,3 +5460,368 @@ the most expensive shape of defect this port has had. Parity costs three lines.
 **Treat it as evidence that [D101] was wrong.** It is not. [D101] fixed three real gaps and its
 parity finding holds; what this entry corrects is the sufficiency of the *method*, which matters
 for the next port (`PORTING.md`) rather than for RA8M2.
+
+---
+
+## D113 — isolation 2 on silicon: `TFM_ISOLATION_LEVEL` never reached the isolation HAL, and was hiding four port defects
+
+**Date:** 2026-10-21 · **Status:** Accepted · RA6M5 measured, RA8M2 changed in step · **Refines** [D061], [D068], [D101]
+
+The TF-M regression suite had never been run above isolation 1. Every `tests_reg` build in
+`C:\b` is L1/SFN and every L3 build is PSA Arch, which has no MMIO partitions and no IRQ
+suite. Running it at isolation 2 took **five** rounds, each fault hidden behind the previous.
+
+**Result: RA6M5 at isolation 2, GNUARM — secure 9/9 suites PASSED, non-secure 7/7 PASSED,
+including `TFM_NS_IRQ_TEST_FLIH_1101` and `1102`.** First green regression run above
+isolation 1 on this port.
+
+### The MPU, measured rather than assumed
+
+```
+[MPU] regions in hardware: 8        <- read from MPU->TYPE; "8" had been an assumption
+[MPU] enabled after static boundaries: 5
+[MPU] CTRL: 7                        <- ENABLE | HFNMIENA | PRIVDEFENA
+[MPU] --- after partition init ---   6 enabled
+  idx 0  0x000A0400 - 0x000A5640     combined unprivileged/ARoT code
+  idx 1  0x000A5660 - 0x000D82E0     PSA RoT code
+  idx 2  0x000D8300 - 0x000E5BC0     RO data
+  idx 3  0x20000400 - 0x200018A0     App RoT data
+  idx 4  0x200018C0 - 0x20011480     PSA RoT data
+  idx 5  0x400E8000 - 0x400E80E0     AGT0, from the FLIH service's mmio_region
+```
+
+Five static on a Cortex-M33 (PXN needs armv8.1-m.main, so the combined-code branch is taken),
+six with the peripheral bound. **Two spare.** RA8M2's count is still unread - its
+`config.cmake` claims "the RA8M2 Cortex-M33 has the 8-region MPU it assumes" and CPU0 is a
+Cortex-M85, so that sentence is inherited from RA6M5 and unverified.
+
+### The root cause is upstream, and silent
+
+`platform_s` links `tfm_config`, **not** `psa_interface` - and `psa_interface` is the only
+target carrying `TFM_ISOLATION_LEVEL` (`interface/CMakeLists.txt:37`). So
+`platform/ext/common/tfm_hal_isolation_v8m.c`, which switches on that macro throughout,
+compiles with it **undefined** on every platform using the shared HAL. `#if` on an undefined
+macro is `0`, with no diagnostic.
+
+What that silently produced at isolation 2:
+
+| Test in the HAL | With the macro undefined | Effect |
+|---|---|---|
+| `#if TFM_ISOLATION_LEVEL == 1` | false | `privileged = IS_PSA_ROT()` - ARoT partitions ARE de-privileged |
+| `#if TFM_ISOLATION_LEVEL == 2` | **false** | **the named-MMIO region is never programmed** |
+| `#if TFM_ISOLATION_LEVEL != 3` | true | App RoT data region present (consistent with idx 3) |
+
+Isolation enforced, the peripheral grant that makes it usable dropped. Confirmed by reading
+the compile line (`-DCONFIG_TFM_ENABLE_MEMORY_PROTECT` present, no `-DTFM_ISOLATION_LEVEL`)
+and by the region count going 5 -> 6 the moment the define was added.
+
+Fixed port-locally with `target_compile_definitions(platform_s PRIVATE ...)` rather than in
+`platform/CMakeLists.txt`, to keep the shared-file delta small. Logged for upstream.
+
+### The four port defects it was masking
+
+Each was real, each only reachable once the partitions were genuinely unprivileged, and each
+was found by the fault moving to the next one:
+
+| # | Fault | Where | Fix |
+|---|---|---|---|
+| 1 | `MMFSR` 0x01 IACCVIOL, PC `0x000BA964` | `plat_test.c` in `platform_s` -> `PT_PSA_ROT_CODE`, privileged-execute only | move the file to `tfm_sprt` |
+| 2 | `MMFSR` 0x82, MMFAR `0x20011493` | `static bool plat_test_timer_opened` -> `PT_PSA_ROT_DATA`. **tfm_sprt's code is unprivileged but its .bss is not** | delete the static; SPRT must be stateless |
+| 3 | `MMFSR` 0x82, MMFAR `0x400E8008` | the AGT0 write itself - no MMIO region existed (the root cause above) | define `TFM_ISOLATION_LEVEL` |
+| 4 | `MMFSR` 0x82, MMFAR `0x40006300` | ICU `IELSR` cleared from the FLIH handler | move the ICU/NVIC clear into the vector entry |
+
+### Two things that were asserted and turned out to be false
+
+**FSP's driver API cannot be called from an unprivileged partition.** `R_AGT_Open()` calls
+`R_BSP_IrqCfgEnable()`, which writes the NVIC - PPB, privileged-only by architecture, so no
+MPU region can grant it. That is FSP-wide, not an AGT quirk: `r_spi` has 12 such call sites,
+`r_iic_master` 7, `r_sci_uart` 5, `r_canfd` 5. And `g_timer0_ctrl` lives in `ra_gen/` at
+`0x2000fd54`, inside `PT_PSA_ROT_DATA`. So the open moved to `tfm_timer0_irq_init()`
+(privileged, SPM-called) and start/stop became bare `AGTCR` writes. Note `R_AGT_Open()`
+re-enables the NVIC IRQ, undoing FF-M's "arrives disabled" guarantee - the disable is
+re-applied after it.
+
+**TF-M runs FLIH handlers in THREAD mode at the partition's privilege, not Handler mode.**
+This was asserted in a code comment and used to justify leaving the NVIC clear in
+`clear_intr()`. The dump says otherwise: "came from secure FW in thread mode", faulting on
+the ICU write. The port's own vector entry `TFM_TIMER0_IRQ_Handler()` *is* Handler mode, so
+the controller-level clears live there and the partition's handler clears only AGT0's TUNDF,
+which its mmio_region covers.
+
+### Isolation costs what the backend costs, not what the level costs
+
+Measured across four builds, both parts, GNUARM MinSizeRel, regression + FLIH:
+
+| Step | RA6M5 text | RA6M5 bss | RA8M2 text | RA8M2 bss |
+|---|---|---|---|---|
+| SFN -> **IPC backend** | **+4,606** | **+13,092** | **+6,337** | **+13,720** |
+| isolation 1 -> 2 | +1,524 | +8 | +1,526 | +8 |
+| isolation 2 -> 3 | +156 | 0 | +156 | 0 |
+
+**The entire isolation machinery, L1 to L3, is ~1,680 B of text and 8 B of bss.** Everything
+else is the IPC backend, which isolation 2 forces (`set_config.cmake:35` turns on
+`CONFIG_TFM_SPM_BACKEND_IPC` for any level above 1 whatever string is passed - L2+SFN is an
+incoherent pair that surfaces as the manifest tool rejecting `TFM_SP_IPC_{SERVICE,CLIENT}_TEST`).
+Isolation 3 is essentially free; the step that costs anything is the one from L1.
+
+### Method note
+
+Four rounds were spent moving a fault forward one layer at a time while reasoning from source
+that had not been confirmed reachable. The manifest, the allow-list, the `platform_data_t`
+bounds and the alignment checks were all verified correct **before** anyone asked whether the
+code that consumes them was compiled in. The instrument that settled it -
+`tfm_hal_post_partition_init_hook()` dumping every enabled region - was identified two rounds
+before it was used. **Read the compile line before trusting the source.**
+
+### Carried
+
+- RA8M2 at isolation 2 and 3, and all four IAR trees, rebuilt with these fixes but not yet run.
+- **L1 + IPC still HardFaults** on the PendSV write in `arch_attempt_schedule`
+  (`backend_ipc.c:517`), precise BusFault, BFAR `0xE000ED04`. Possibly the same root cause -
+  with the macro undefined, `privileged = IS_PSA_ROT()` applies at isolation 1 too, where
+  upstream intends `true` - but that does not yet explain why it failed *earlier* in boot than
+  L2 did. Needs its own rebuild and run. L1+IPC is not a configuration this port ships.
+- `ADDING_FSP_MODULES.md` §7 documents the general pattern for using an FSP driver from a
+  partition, including the PSA-RoT escape hatch, which is the answer for most users.
+
+---
+
+## D114 — isolation 3 green too; the missing macro was not one macro, it is that `platform_s` never links `psa_interface`
+
+**Date:** 2026-10-21 · **Status:** Accepted · **Refines** [D113] · RA6M5 measured
+
+[D113] was written after the isolation-2 run and attributed the whole chain to one absent
+compile definition, `TFM_ISOLATION_LEVEL`. The isolation-3 run found a second one
+immediately, which reframes the finding: the problem is not a macro, it is that
+**`platform_s` does not link `psa_interface` at all**, so the shared isolation HAL silently
+loses every definition that interface carries.
+
+**Result: RA6M5 at isolation 3, GNUARM — secure 9/9, non-secure 7/7, both FLIH tests
+PASSED.** With [D113]'s isolation-2 run, the regression suite is now green at L1, L2 and L3
+on this part.
+
+### The second macro, and why only level 3 exposed it
+
+The L3 static table is an if/elif with no else:
+
+```c
+#if   TFM_ISOLATION_LEVEL != 3               /* -> App RoT data region   */
+#elif defined(CONFIG_TFM_PARTITION_META)     /* -> TFM_SP_META_PTR region */
+#endif
+```
+
+`CONFIG_TFM_PARTITION_META` is another `psa_interface` INTERFACE definition. Undefined,
+**neither arm fires**: level 3 programmed FOUR static regions instead of five, and nothing
+covered the partition-metadata pointer the SPM dereferences.
+
+```
+[MPU] enabled after static boundaries: 4     <- the App RoT data region at 0x20000400 absent
+MMFSR 0x82, MMFAR 0x20000400                 <- TFM_SP_META_PTR itself
+```
+
+After adding the define, 5 static regions with `idx 3  base 0x20000400  limit 0x20000400` -
+a 32-byte region, which is what `TFM_SP_META_PTR` is (`0x20000400`-`0x20000420`); both
+registers read the same value because `RLAR[31:5]` masks the low bits.
+
+Level 2 could not have caught this: there the `!= 3` arm wins and the App RoT data region
+appears regardless.
+
+### Expected region counts, now measured at both levels
+
+| | L2 | L3 |
+|---|---|---|
+| static | 5 | 5 |
+| after partition init | **6** - MMIO appended permanently at bind time | **5** - MMIO is programmed per context switch, so the post-partition hook cannot see it |
+
+L3 showing 5 is correct, not a regression. Absence in that dump proves nothing at L3.
+
+### A third instance, not fixed because this port does not use it
+
+`TFM_PXN_ENABLE` is tested with `#ifdef` in the same file and is **never converted into a
+compile definition anywhere in TF-M** - it exists only as a CMake cache variable. The PXN
+arms of the static MPU table are therefore unreachable on every platform. Harmless at the
+default (PXN is OFF, and `check_config.cmake:91` permits it only on armv8.1-m.main), but an
+RA8 build setting `TFM_PXN_ENABLE=ON` would silently get no PXN attributes and no warning.
+
+### The corrected upstream position
+
+`UPSTREAM_CHANGES.md` item 15 should argue for **linking `psa_interface` into `platform_s`**
+rather than adding macros one at a time, because the macro-by-macro fix only finds the ones
+someone has already been bitten by. What the HAL depends on:
+
+| Macro | Reaches the HAL? |
+|---|---|
+| `CONFIG_TFM_ENABLE_MEMORY_PROTECT` | yes - `platform/CMakeLists.txt:125` |
+| `CONFIG_TFM_MMIO_REGION_ENABLE` | yes - generated `config_impl.h`, via `spm_load_api.h` -> `interrupt_defs.h` -> `psa/service.h` |
+| `TFM_ISOLATION_LEVEL` | **no** - `psa_interface` only ([D113]) |
+| `CONFIG_TFM_PARTITION_META` | **no** - `psa_interface` only (this entry) |
+| `TFM_PXN_ENABLE` | **no** - nowhere in TF-M |
+
+### Method note, continued from [D113]
+
+[D113]'s note said "read the compile line before trusting the source". The follow-up lesson
+is narrower and sharper: **when a missing definition is found, enumerate what else the same
+translation unit depends on rather than fixing the one that happened to bite.** One grep over
+the file's `#if`/`#ifdef` conditions would have found all three in the same pass and saved a
+build-and-run cycle.
+
+### Carried
+
+- RA8M2 at L2 and L3, and all four IAR trees, are rebuilt with both defines but not yet run.
+  RA8M2's hardware MPU region count is still unread - see [D113].
+- **L1 + IPC** still HardFaults in `arch_attempt_schedule`. The `privileged = IS_PSA_ROT()`
+  mis-evaluation at level 1 is now a stronger hypothesis, since the same undefined macro
+  caused it, but the control build predates every fix and has not been rerun.
+- `CONFIG_TFM_POST_PARTITION_INIT_HOOK` and the per-region dump are still enabled on both
+  ports. They are what made D113 and this entry possible and cost nothing below isolation 2,
+  but they are diagnostics and should be reviewed before the port is called done.
+
+---
+
+## D115 — RA8M2's MPU measured at 8 regions; corrects [D114] on PXN; the diagnostic hook itself broke L1+IPC
+
+**Date:** 2026-10-21 · **Status:** Accepted · **Corrects** [D114] · RA8M2 measured
+
+Three findings, in descending order of how wrong the prior entry was.
+
+### 1. RA8M2's region count, finally read off the silicon
+
+[D113] and [D114] both carried "RA8M2's hardware MPU region count is still unread". It is 8.
+
+```
+[MPU] regions in hardware: 8          <- MPU->TYPE, Cortex-M85, isolation 2
+[MPU] enabled after partition init: 6
+  idx 0  0x02068400 - 0x0206D680      combined unprivileged/ARoT code
+  idx 1  0x0206D6A0 - 0x020A4860      PSA RoT code
+  idx 2  0x020A4880 - 0x020ADB40      RO data
+  idx 3  0x22000400 - 0x220018A0      App RoT data
+  idx 4  0x220018C0 - 0x2200FEC0      PSA RoT data
+  idx 5  0x40221000 - 0x402210E0      AGT0 - this part's base, not RA6M5's 0x400E8000
+```
+
+**Result: RA8M2 at isolation 2, GNUARM — secure 9/9, non-secure 7/7, both FLIH tests PASSED.**
+At isolation 3 the static set is five with `idx 3  0x22000400 - 0x22000400`, the 32-byte
+`TFM_SP_META_PTR` region, so the `CONFIG_TFM_PARTITION_META` fix from [D114] is confirmed on
+the M85 as well. The secure suite passed as far as the captured log runs; the isolation-3
+non-secure half has not been read back yet.
+
+`ra8m2/config.cmake` claimed "the RA8M2 Cortex-M33 has the 8-region ARMv8-M MPU it assumes".
+**The number was right and the core name was wrong** - CPU0 is a Cortex-M85 - so the sentence
+was two-thirds inherited from RA6M5 and happened to land on the correct count. Corrected in
+place, and `tfm_hal_platform.c`'s "unverified until the first run prints it" block now records
+what the run printed.
+
+Five static entries on the M85, same as the M33. That is the combined-code branch, which
+matters for the next item.
+
+### 2. [D114] was wrong about PXN
+
+[D114]'s macro table ends with `TFM_PXN_ENABLE` → "**no** - nowhere in TF-M", and asserts the
+PXN arms of the static table are "unreachable on every platform". That is false.
+
+```cmake
+# platform/CMakeLists.txt, pristine upstream
+target_compile_definitions(platform_s
+    PUBLIC
+        ...
+125:    $<$<OR:$<VERSION_GREATER:${TFM_ISOLATION_LEVEL},1>,...>:CONFIG_TFM_ENABLE_MEMORY_PROTECT>
+126:    $<$<BOOL:${TFM_PXN_ENABLE}>:TFM_PXN_ENABLE>
+```
+
+It is emitted on the line *immediately after* the macro [D113] correctly identified as
+reaching the HAL, in the same PUBLIC block, on the same target. PXN reaches
+`tfm_hal_isolation_v8m.c` and works; it is how corstone300/310, mps4 and rse get PXN
+attributes from `set(TFM_PXN_ENABLE ON)` in their own `config.cmake`.
+
+**The error was reading an absence off a compile line without asking why it was absent.**
+`TFM_PXN_ENABLE` defaults OFF, so `$<$<BOOL:OFF>:...>` collapses to nothing and the define is
+genuinely missing from every compile line in `C:\b`. Missing because unset looks exactly like
+missing because unplumbed. `TFM_ISOLATION_LEVEL` was the second kind; this was the first, and
+the same observation was used to reach both conclusions.
+
+Consequence for this port: setting `TFM_PXN_ENABLE=ON` on RA8M2 would really split the
+combined-code region and really need a sixth static entry. With 8 in hardware that fits. It
+stays OFF - no measurement supports turning it on - but it is an available option rather than
+dead code, which is the opposite of what [D114] recorded.
+
+### 3. The diagnostic hook broke the one configuration it was never built in
+
+[D114]'s last line says the post-partition hook "cost[s] nothing below isolation 2". Rebuilding
+the L1+IPC controls - stale since before any of these fixes - produced:
+
+```
+secure_fw/spm/core/spm_ipc.c:440: undefined reference to `tfm_hal_post_partition_init_hook'
+```
+
+Two guards that have to agree and did not:
+
+| | guard |
+|---|---|
+| call site, `spm_ipc.c:435` | `#if CONFIG_TFM_POST_PARTITION_INIT_HOOK == 1` |
+| body, `tfm_hal_platform.c` | `#ifdef CONFIG_TFM_ENABLE_MEMORY_PROTECT` |
+| enable, `config_tfm_target.h` | **unconditional** |
+
+So the caller appears whenever the hook is enabled, but the body appears only above isolation
+1. Three of the four corners are safe and that is why it survived: **L1+SFN** has no call site
+at all (the hook is called only from `spm_ipc.c`, and the SFN backend is a different file);
+**L2** and **L3** define `CONFIG_TFM_ENABLE_MEMORY_PROTECT` and get both halves. Only
+**L1 + IPC** has the caller without the body - and L1+IPC is the one configuration this port
+does not ship and had not been rebuilt since the hook was added.
+
+**This one is ours, not upstream's.** Five Arm platforms (rse/kronos, rd1ae, rdv3, rdv3r1,
+tc) also `#define CONFIG_TFM_POST_PARTITION_INIT_HOOK 1` unconditionally, but their body in
+`tfm_hal_isolation_rse.c` has no `#ifdef` around it, so caller and body always agree. This
+port put the body inside the memory-protect guard - it had to, because it calls `SPMLOG_*`
+and the region-dump helpers that are themselves inside that guard - and then left the enable
+unconditional. Nothing to send upstream.
+
+Fixed by gating the enable on the same macro the body is gated on, so the two track each other:
+
+```c
+#ifdef CONFIG_TFM_ENABLE_MEMORY_PROTECT
+#define CONFIG_TFM_POST_PARTITION_INIT_HOOK     1
+#endif
+```
+
+Verified a no-op above isolation 1 by rebuilding `m5gl2` on the patched source and comparing
+`tfm_s.elf` against the binary that produced the green isolation-2 run: **byte-identical**. So
+the eight L2/L3 trees already built, the four IAR ones included, are still exactly what this
+source produces and do not need rebuilding.
+
+Safe because `config_base.h:351` already supplies `#ifndef → 0`, so leaving it undefined is
+the sanctioned way to turn it off, and because `CONFIG_TFM_ENABLE_MEMORY_PROTECT` is PUBLIC on
+`platform_s` while `tfm_spm` links `platform_s`, so `spm_ipc.c` and `tfm_hal_platform.c` see
+the same value. That was verified on the generated compile lines - present on `spm_ipc.o` in
+`m5gl2`, absent in `m5gl1i` - rather than inferred from the CMake, which is the method [D113]
+asked for and [D114] did not fully apply.
+
+### Method note
+
+[D113] said "read the compile line before trusting the source." [D114] said "enumerate what
+else the translation unit depends on." Both were applied here and both were still insufficient,
+because the remaining failure modes are about *interpreting* the compile line:
+
+- a macro absent from it may be unset rather than unplumbed (item 2);
+- two TUs may legitimately see different values, so a macro's effect is a property of the
+  pair of guards, not of either one (item 3);
+- a guard combination that no build in `C:\b` exercises has no evidence behind it at all,
+  however obviously correct it reads.
+
+The useful generalisation is narrower than either predecessor: **an unconditional `#define` of
+a config macro whose implementation is conditionally compiled is a latent link error**, and the
+configuration that exposes it is by definition one nobody builds.
+
+### Carried
+
+- **The four IAR trees are the only unrun work**: `m5il2`, `m5il3`, `m2il2`, `m2il3`. All four
+  were built in the same batch as the four green GNUARM trees and carry both defines at the
+  right level, verified in their `build.ninja`. IAR has produced defects GNUARM did not four
+  times on this port ([D083], [D089], [D107], [D108]), so these are not a formality.
+- **L1+IPC links and builds clean on both parts now, but has not been run.** The original HardFault in `arch_attempt_schedule`
+  (`backend_ipc.c:517`) predates every fix; with `TFM_ISOLATION_LEVEL` defined, level 1 takes
+  the `== 1` arm and `privileged` is `true` as upstream intends, which is the standing
+  hypothesis. Unproven until the rebuilt tree runs. L1+IPC is still not a shipping
+  configuration.
+- RA8M2 isolation 3's non-secure half has not been captured.
+- The hook and the region dump remain enabled at isolation 2 and above on both ports. They
+  produced [D113], [D114] and items 1 and 3 of this entry; they are still diagnostics.

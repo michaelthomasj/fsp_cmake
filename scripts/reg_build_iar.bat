@@ -2,9 +2,14 @@
 rem  Regression suites (tf-m-tests tests_reg), IAR. RA6M5 by default, RA8M2 with the third
 rem  argument.
 rem
-rem    reg_build_iar.bat <spe-build-dir> <ns-build-dir> [part] [irq]
+rem    reg_build_iar.bat <spe-build-dir> <ns-build-dir> [part] [irq] [level] [backend]
 rem    reg_build_iar.bat C:\b\m2iflih C:\b\m2iflihns ra8m2 flih
 rem    reg_build_iar.bat C:\b\m2islih C:\b\m2islihns ra8m2 slih
+rem    reg_build_iar.bat C:\b\m5il3   C:\b\m5il3ns   ra6m5 flih 3 IPC
+rem
+rem  ISOLATION LEVEL AND BACKEND are the last two arguments, defaulting to the shipping
+rem  configuration (1 / SFN). See reg_build_gcc.bat's header for why they exist, what region
+rem  count to expect, and why RA8M2 will not fit above isolation 1.
 rem
 rem  The GCC counterpart is the configuration recorded in C:\b\m2gflih - this script states it
 rem  explicitly so a rebuilt tree matches, which is the lesson of DECISIONS D084.
@@ -41,8 +46,23 @@ set SPE=%1
 set NS=%2
 set PART=%3
 set IRQ=%4
-if "%PART%"=="" set PART=ra6m5
-if "%IRQ%"==""  set IRQ=flih
+set LEVEL=%5
+set BACKEND=%6
+if "%PART%"==""    set PART=ra6m5
+if "%IRQ%"==""     set IRQ=flih
+if "%LEVEL%"==""   set LEVEL=1
+if "%BACKEND%"=="" set BACKEND=SFN
+
+rem  Above isolation 1 the backend is not a free choice: set_config.cmake:35 turns on
+rem  CONFIG_TFM_SPM_BACKEND_IPC for TFM_ISOLATION_LEVEL > 1 regardless of this string, and the
+rem  mismatch surfaces as the manifest tool rejecting TFM_SP_IPC_{SERVICE,CLIENT}_TEST. See
+rem  reg_build_gcc.bat's header for the full trace.
+if not "%LEVEL%"=="1" (
+  if /i not "%BACKEND%"=="IPC" (
+    echo [reg_build_iar] isolation %LEVEL% implies the IPC backend ^(set_config.cmake:35^); overriding %BACKEND% -^> IPC
+    set BACKEND=IPC
+  )
+)
 
 rem  Per-part project directory prefix. Mirrors psa_arch_spe_iar.bat - keep them in step.
 if /i "%PART%"=="ra8m2" (
@@ -59,8 +79,10 @@ set IRQ_ARGS=
 if /i "%IRQ%"=="flih" set IRQ_ARGS=-DTEST_NS_FLIH_IRQ=ON
 if /i "%IRQ%"=="slih" set IRQ_ARGS=-DTEST_NS_SLIH_IRQ=ON
 
-if "%SPE%"=="" echo usage: %~nx0 ^<spe-build-dir^> ^<ns-build-dir^> [part] [flih^|slih^|none] & exit /b 2
-if "%NS%"==""  echo usage: %~nx0 ^<spe-build-dir^> ^<ns-build-dir^> [part] [flih^|slih^|none] & exit /b 2
+if "%SPE%"=="" echo usage: %~nx0 ^<spe-build-dir^> ^<ns-build-dir^> [part] [flih^|slih^|none] [level] [SFN^|IPC] & exit /b 2
+if "%NS%"==""  echo usage: %~nx0 ^<spe-build-dir^> ^<ns-build-dir^> [part] [flih^|slih^|none] [level] [SFN^|IPC] & exit /b 2
+
+echo [reg_build_iar] part=%PART% irq=%IRQ% isolation=%LEVEL% backend=%BACKEND%
 
 if not exist "%SPE%\CMakeCache.txt" (
   cmake -S %TFM_TESTS%\tests_reg\spe -B %SPE% -GNinja ^
@@ -76,8 +98,8 @@ if not exist "%SPE%\CMakeCache.txt" (
     -DTEST_S=ON ^
     -DTEST_NS=ON ^
     %IRQ_ARGS% ^
-    -DTFM_ISOLATION_LEVEL=1 ^
-    -DCONFIG_TFM_SPM_BACKEND=SFN ^
+    -DTFM_ISOLATION_LEVEL=%LEVEL% ^
+    -DCONFIG_TFM_SPM_BACKEND=%BACKEND% ^
     -DMCUBOOT_LOG_LEVEL=INFO ^
     -DTFM_SPM_LOG_LEVEL=TFM_SPM_LOG_LEVEL_DEBUG
   if errorlevel 1 exit /b 1

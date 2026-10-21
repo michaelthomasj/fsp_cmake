@@ -256,6 +256,92 @@ the link. A platform `setvbuf(stdout, NULL, _IONBF, 0)` is needed alongside it, 
 logs a few hundred bytes and chainloads without ever flushing. DECISIONS D107, D108.
 
 
+### 15. `TFM_ISOLATION_LEVEL` never reaches `tfm_hal_isolation_v8m.c`
+
+**Affects every platform using the shared Armv8-M isolation HAL, at isolation 2 and 3.**
+Report plus a one-line fix; the port works around it inside
+`platform/ext/target/renesas/`, so it does not appear in the file diff above.
+
+`platform/ext/common/tfm_hal_isolation_v8m.c` switches on `TFM_ISOLATION_LEVEL`
+throughout. The only target that defines it is `psa_interface`:
+
+```cmake
+# interface/CMakeLists.txt:37
+target_compile_definitions(psa_interface INTERFACE
+    $<$<BOOL:${TFM_ISOLATION_LEVEL}>:TFM_ISOLATION_LEVEL=${TFM_ISOLATION_LEVEL}>
+```
+
+and `platform/CMakeLists.txt` links `platform_s` against `tfm_config`, not
+`psa_interface`. The macro is therefore **undefined** in that translation unit, and
+`#if` on an undefined macro is 0 with no diagnostic.
+
+The resulting behaviour at isolation 2 is the worst available combination:
+
+| Test | Undefined | Effect |
+|---|---|---|
+| `#if TFM_ISOLATION_LEVEL == 1` | false | `privileged = IS_PSA_ROT()` - ARoT partitions ARE de-privileged |
+| `#if TFM_ISOLATION_LEVEL == 2` | **false** | **the named-MMIO region is never programmed** |
+
+Isolation is enforced, but the `mmio_region` grant that makes a peripheral usable is
+silently dropped. An ARoT partition touching its own declared peripheral takes a DACCVIOL.
+At isolation 3 the per-switch MMIO path is lost the same way, and `privileged` is wrong at
+isolation 1 as well, where upstream intends `true` for every partition.
+
+**Measured on RA6M5, 2026-10-21.** A post-partition MPU dump showed 5 enabled regions where
+6 were expected, with nothing covering the peripheral; adding the define took it to 6 and
+the full regression suite then passed at isolation 2, FLIH IRQ tests included. DECISIONS
+D113.
+
+**Fix** - either link the target that already carries it:
+
+```cmake
+target_link_libraries(platform_s PRIVATE psa_interface)
+```
+
+or, narrower, add the definition directly in `platform/CMakeLists.txt`:
+
+```cmake
+target_compile_definitions(platform_s PRIVATE
+    $<$<BOOL:${TFM_ISOLATION_LEVEL}>:TFM_ISOLATION_LEVEL=${TFM_ISOLATION_LEVEL}>)
+```
+
+**Why it has gone unnoticed:** the FLIH/SLIH suites are the only tests that declare an
+`mmio_region`, and they appear never to be run above isolation 1 - upstream CI included.
+A `-Wundef` build of the SPE would have caught it.
+
+**It is not one macro.** The isolation-3 run found a second one immediately, which is why the
+first fix above - linking `psa_interface` - is the one to prefer over adding definitions
+individually. `CONFIG_TFM_PARTITION_META` is also carried only by `psa_interface`, and the
+level-3 static table is an `#if`/`#elif` with no `#else`:
+
+```c
+#if   TFM_ISOLATION_LEVEL != 3               /* -> App RoT data region    */
+#elif defined(CONFIG_TFM_PARTITION_META)     /* -> TFM_SP_META_PTR region */
+#endif
+```
+
+With both undefined **neither arm fires**: isolation 3 programmes four static regions instead
+of five and nothing covers the partition-metadata pointer the SPM dereferences. Measured on
+RA6M5: 4 enabled regions, then `MMFSR 0x82, MMFAR 0x20000400` - `TFM_SP_META_PTR` itself.
+Isolation 2 cannot expose it, because there the `!= 3` arm wins either way. DECISIONS D114.
+
+What the translation unit actually depends on:
+
+| Macro | Reaches the HAL? | Carried by |
+|---|---|---|
+| `CONFIG_TFM_ENABLE_MEMORY_PROTECT` | yes | `platform/CMakeLists.txt:125`, PUBLIC on `platform_s` |
+| `CONFIG_TFM_MMIO_REGION_ENABLE` | yes | generated `config_impl.h` |
+| `TFM_PXN_ENABLE` | yes | `platform/CMakeLists.txt:126`, PUBLIC on `platform_s` |
+| `TFM_ISOLATION_LEVEL` | **no** | `psa_interface` only |
+| `CONFIG_TFM_PARTITION_META` | **no** | `psa_interface` only |
+
+`TFM_PXN_ENABLE` is in that table deliberately. An earlier revision of this item listed it as
+a third instance; it is not one. It is emitted on the line immediately after
+`CONFIG_TFM_ENABLE_MEMORY_PROTECT`, in the same PUBLIC block, and it works - it was simply
+absent from every compile line inspected because it defaults OFF. Only the two
+`psa_interface`-only macros are defects. DECISIONS D115.
+
+
 ## Local — not for upstream
 
 ### `cmsis_override.h` additions

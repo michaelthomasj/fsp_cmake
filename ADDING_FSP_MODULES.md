@@ -145,7 +145,124 @@ nothing connecting it to RASC.
 
 ---
 
-## 7. Traps
+## 7. Using an FSP driver from a secure partition
+
+Everything above puts driver code in `platform_s`. That is correct for the SPM and for
+**PSA RoT** partitions, and if that is your case you can stop reading — FSP works unmodified
+at every isolation level.
+
+It is **not** correct for an **Application RoT** partition from isolation 2 onward, and the
+failure is invisible at isolation 1, which is what this port ships.
+
+### Why
+
+From isolation 2 the SPM runs ARoT partitions **unprivileged** (`tfm_hal_bind_boundary()`
+sets `privileged = IS_PSA_ROT(p_ldinf)`). Three things an FSP driver call normally touches are
+then out of reach:
+
+| What | Where it lands | Result |
+|---|---|---|
+| Driver code in `platform_s` | `PT_PSA_ROT_CODE`, marked `ARM_MPU_PRIVILEGED` | **IACCVIOL** on the branch (`MMFSR` 0x01) |
+| The control block, e.g. `g_timer0_ctrl` | `ra_gen/hal_data.c` → `PT_PSA_ROT_DATA`, `ARM_MPU_PRIVILEGED` | **DACCVIOL** on first use (`MMFSR` 0x82) |
+| The NVIC, written by `R_XXX_Open()` | PPB, `0xE000E000` | **BusFault**, and no MPU region can grant it |
+
+The third is the one with no workaround. **Every interrupt-driven FSP driver configures the
+NVIC inside `_Open()`** — `R_AGT_Open()` calls `R_BSP_IrqCfgEnable()`, and the pattern repeats
+across the driver set (`r_spi` 12 call sites, `r_iic_master` 7, `r_sci_uart` 5, `r_canfd` 5,
+`r_gpt`, `r_adc`, `r_dmac`). The PPB is privileged-only *by architecture*, not by MPU policy,
+so `_Open()` can never be called from an unprivileged partition.
+
+This is a genuine collision of models rather than an FSP defect. TF-M deliberately takes NVIC
+ownership away from partitions: a partition declares `irqs` in its manifest, the SPM programs
+the NVIC on its behalf, and the partition uses `psa_irq_enable()` / `psa_irq_disable()`, which
+are SVCs into the SPM. FSP assumes the driver owns the interrupt controller. The two disagree
+at `_Open()` and nowhere else — the operational calls are clean. `R_AGT_Start()` and
+`R_AGT_Stop()` touch only `p_ctrl->p_reg->…`.
+
+### The pattern that works
+
+Split the driver's lifetime by privilege:
+
+| Phase | Runs where | Why |
+|---|---|---|
+| `_Open()`, NVIC and ICU setup | privileged init — the SPM's partition-init hook | PPB is privileged-only |
+| `_Start()`, `_Stop()`, operational calls | the partition, unprivileged | registers only |
+| interrupt enable/disable | `psa_irq_enable()` / `psa_irq_disable()` | SVC into the SPM, which owns the NVIC |
+
+Concretely, for a peripheral an ARoT partition drives:
+
+1. Declare the register block as an `mmio_region` in the partition manifest, and add a matching
+   `platform_data_t` to `tfm_peripherals_def.c` — the MPU region comes from that. Use the
+   **secure** alias of the address on parts that alias peripherals.
+2. Declare the interrupt as `irqs` in the manifest. The SPM then owns it; the partition uses
+   `psa_irq_enable()`, never `NVIC_*`.
+3. Call `R_XXX_Open()` from privileged init — the `<irq>_init` hook the manifest tooling
+   generates is the natural home, since the SPM calls it during partition load.
+4. **Declare the control block inside the partition**, not in `ra_gen/`. A partition's own
+   globals land in its data region, which is unprivileged-RW for that partition; the generated
+   instance in `hal_data.c` does not.
+5. Compile the driver's operational sources into `tfm_sprt` so the code is fetchable from the
+   unprivileged code region. Scope the include path to those files — `tfm_sprt` is linked into
+   every partition, so putting the FSP tree on the whole target invites a header collision.
+
+With those five, `R_AGT_Start(&my_ctrl)` works normally from the partition. No register poking.
+
+### FLIH handlers are unprivileged too
+
+Worth stating because it is the opposite of what "interrupt handler" suggests: **TF-M runs
+FLIH handlers in Thread mode at the owning partition's privilege.** For an ARoT partition
+that means the handler is unprivileged and is bound by everything above — it may touch its
+`mmio_region` peripherals and nothing else.
+
+Measured, not assumed: an ARoT FLIH handler clearing the RA ICU latch faulted with
+`MMFSR 0x82`, `MMFAR 0x40006300`, and the dump reported *"came from secure FW in thread
+mode"*.
+
+That matters on RA specifically, because an interrupt latches in **two** places — the
+peripheral's own flag and the ICU's `IELSR.IR` — and the ICU sits outside the peripheral's
+MMIO region. The NVIC pending bit is worse: PPB, privileged-only by architecture, so no
+region can grant it.
+
+The split that works:
+
+| Clear | Where | Privilege |
+|---|---|---|
+| ICU `IELSR.IR`, NVIC pending | the platform's own vector entry, before it calls `spm_handle_interrupt()` | Handler mode — privileged |
+| the peripheral's own flag | the partition's FLIH handler | unprivileged, covered by its `mmio_region` |
+
+Keep the ICU-then-peripheral order that FSP's own ISRs use.
+
+### `tfm_sprt` must be stateless
+
+`tfm_sprt`'s **code** is placed in the unprivileged region but its **`.bss` is not** — it lands
+in `PT_PSA_ROT_DATA`. A `static` in a file compiled into `tfm_sprt` is therefore privileged
+data, and reading it from an ARoT partition faults. Arm's own sprt timer driver has zero
+statics for exactly this reason.
+
+That is why `plat_test.c` in this port is stateless and drives AGT0 through bare `AGTCR`
+writes: it is a test fixture called by upstream's ARoT partitions, so it cannot follow step 4
+above — it does not own the partition and has nowhere to put a control block. **A real
+partition you write is in a better position than that fixture**, because it owns its own data.
+
+### The escape hatch
+
+If none of this is appealing: **put the peripheral in a PSA RoT partition.** PSA RoT is
+privileged at every isolation level, so FSP drivers work there completely unmodified, `_Open()`
+included. The split above is only needed when an Application RoT partition must drive the
+hardware itself.
+
+### Provenance
+
+Measured on RA6M5 at isolation 2 on 2026-10-20, with the FLIH test service as the ARoT caller.
+The IACCVIOL came first at `PC 0x000BA964` (`tfm_plat_test_secure_timer_start`, inside
+`PT_PSA_ROT_CODE`); moving the file to `tfm_sprt` turned it into a DACCVIOL at
+`MMFAR 0x20011493` (a `static bool`, inside `PT_PSA_ROT_DATA`). Upstream platforms place
+`plat_test.c` in `platform_s` and only the low-level timer driver in `tfm_sprt`, which does not
+actually work above isolation 1 — the FLIH/SLIH suites appear never to have been run there.
+
+---
+
+## 8. Traps
 
 | Trap | Symptom |
 |---|---|
@@ -155,11 +272,13 @@ nothing connecting it to RASC.
 | `fsp_bsp` instead of `fsp_bsp_${FSP_MODULE_ROLE}` | CMake cannot find the target |
 | Added to the secure project, needed by BL2 | BL2's glob is empty — hence the `FATAL_ERROR` in §3 |
 | Added to one part only | builds on that part, breaks on the other, nothing warns |
+| FSP driver called from an Application RoT partition | works at isolation 1, `MMFSR` 0x01 or 0x82 from isolation 2 — see §7 |
+| `static` in a file compiled into `tfm_sprt` | the `.bss` lands in `PT_PSA_ROT_DATA`; unprivileged reads fault (§7) |
 | Generated file links for a symbol you do not use | intended, sometimes. `vector_data.o` is linked for its ICU event-link table, which drags in `agt_int_isr()` — see the comment in `fsp_agt.cmake` |
 
 ---
 
-## 8. See also
+## 9. See also
 
 - [GETTING_STARTED.md](GETTING_STARTED.md) — the build itself
 - [DESIGN.md](DESIGN.md) §1 — why the e2 projects are consumed rather than forked
