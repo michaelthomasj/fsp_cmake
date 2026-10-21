@@ -26,11 +26,19 @@ offset.
 
 **2. `__SAUREGION_PRESENT` is `1`** (it is `0` on RA6M4/RA6E1/RA6M5). With an SAU present but
 unprogrammed, Armv8-M attributes every address Secure — the combined SAU/IDAU takes the more
-secure of the two — so a secure transaction to the non-secure alias is **refused**. This is why
-BL2 here takes its MCUboot flash backend from FSP rather than TF-M: FSP's `flash_area_open()`
-programs the SAU from `R_PSCU->CFSAMONA_b.CFS2` and `flash_on_chip_cleanup()` tears it down.
-`DEFAULT_MCUBOOT_FLASH_MAP` and `DEFAULT_MCUBOOT_FLASH_BACKEND` are therefore both **OFF** in
-`config.cmake`. D073, D076, D079.
+secure of the two — so a secure transaction to the non-secure alias is **refused**, so something must programme the SAU
+before BL2 touches the non-secure alias.
+
+That used to be FSP's job: BL2 took its MCUboot flash backend from FSP, whose
+`flash_area_open()` programmed the SAU from `R_PSCU->CFSAMONA_b.CFS2` and whose
+`flash_on_chip_cleanup()` tore it down, with `DEFAULT_MCUBOOT_FLASH_MAP` and
+`DEFAULT_MCUBOOT_FLASH_BACKEND` both OFF in `config.cmake` (D073, D076, D079).
+
+**That is no longer the arrangement.** Under D091 both parts use TF-M's map and backend with
+FSP's HAL behind `fa_driver`; `DEFAULT_MCUBOOT_FLASH_MAP` is ON by default and
+`DEFAULT_MCUBOOT_FLASH_BACKEND` no longer exists - neither is set in `config.cmake`. The SAU
+programming now lives in `bl2_boot_hal.c`, guarded on `__SAUREGION_PRESENT == 1`, with the
+bounds imported from FSP's `flash_map.c`. `DESIGN.md` §4 carries the reasoning. D091, D117.
 
 ---
 

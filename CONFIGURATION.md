@@ -90,8 +90,14 @@ case: `fsp_module_glob` is `GLOB_RECURSE` and would pull in `custom_crypto_stack
 | `MCUBOOT_MEASURED_BOOT` | ON | ON | boot record per image |
 | `MCUBOOT_DATA_SHARING` | ON | ON | **this is the one that does the work** — without it BL2 writes no boot record and `MEASURED_BOOT` has nothing to carry |
 
-| `DEFAULT_MCUBOOT_FLASH_MAP` | **OFF** | **OFF** | |
-| `DEFAULT_MCUBOOT_FLASH_BACKEND` | **OFF** | **OFF** | both parts take the map and backend from FSP ([D079], [D082], [D090]). On RA8M2 it is load-bearing - FSP's `flash_area_open()` programs the SAU. **If you change this, see the `struct flash_area` guard-collision note in `BRIDGING_FILES.md`** |
+| `DEFAULT_MCUBOOT_FLASH_MAP` | **ON** | **ON** | upstream default; the port does not set it. Both parts take TF-M's map **and** backend, with FSP's HAL behind `fa_driver` ([D091], superseding [D079], [D082], [D090]) |
+| `DEFAULT_MCUBOOT_FLASH_BACKEND` | *gone* | *gone* | **this variable no longer exists.** It is not set in either `config.cmake`, and neither part supplies its own `flash_map_backend.h` or `sysflash.h` |
+
+**RA8M2's SAU programming moved with it.** It used to arrive as a side effect of FSP's
+`flash_area_open()`, which is why the backend override was load-bearing on that part. Under
+[D091] it lives in `bl2_boot_hal.c`, with the bounds imported from FSP's `flash_map.c`.
+`DESIGN.md` §4 is the current account; the `struct flash_area` guard-collision note in
+`BRIDGING_FILES.md` still applies if you ever reintroduce a platform backend.
 
 **Measured boot cannot be verified by the attestation suite.** With `component_cnt == 0` under
 the default `ATTEST_TOKEN_PROFILE_PSA_IOT_1`, `attest_add_all_sw_components()` emits

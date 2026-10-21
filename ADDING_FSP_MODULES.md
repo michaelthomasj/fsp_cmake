@@ -207,16 +207,28 @@ Concretely, for a peripheral an ARoT partition drives:
 
 With those five, `R_AGT_Start(&my_ctrl)` works normally from the partition. No register poking.
 
-### FLIH handlers are unprivileged too
+### FLIH handlers can be unprivileged — it depends on the partition and the level
 
-Worth stating because it is the opposite of what "interrupt handler" suggests: **TF-M runs
-FLIH handlers in Thread mode at the owning partition's privilege.** For an ARoT partition
-that means the handler is unprivileged and is bound by everything above — it may touch its
+Worth stating because it is the opposite of what "interrupt handler" suggests: **an ARoT
+partition's FLIH handler at isolation 2 or 3 runs in Thread mode at that partition's
+privilege**, so it is unprivileged and bound by everything above — it may touch its
 `mmio_region` peripherals and nothing else.
 
 Measured, not assumed: an ARoT FLIH handler clearing the RA ICU latch faulted with
 `MMFSR 0x82`, `MMFAR 0x40006300`, and the dump reported *"came from secure FW in thread
 mode"*.
+
+**It is not a general rule about FLIH, and this section used to state it as one.**
+`interrupt.c:195-209` picks one of three dispatches:
+
+| Condition | How `flih_func()` is called | Mode |
+|---|---|---|
+| `TFM_ISOLATION_LEVEL == 1` | directly | Handler — privileged |
+| above 1, `tfm_hal_boundary_need_switch()` false (PSA-RoT) | directly | Handler — privileged |
+| above 1, boundary switch needed (ARoT) | `tfm_flih_deprivileged_handling()` | Thread — partition's privilege |
+
+So Handler mode is the common case and the unprivileged one is specific. Write a handler to
+the narrowest of the three — its own `mmio_region` only — and it is correct in all of them.
 
 That matters on RA specifically, because an interrupt latches in **two** places — the
 peripheral's own flag and the ICU's `IELSR.IR` — and the ICU sits outside the peripheral's

@@ -258,6 +258,17 @@ logs a few hundred bytes and chainloads without ever flushing. DECISIONS D107, D
 
 ### 15. `TFM_ISOLATION_LEVEL` never reaches `tfm_hal_isolation_v8m.c`
 
+**Report only; no upstream file is modified for this item.** The port defines the two macros
+on `platform_s` inside `platform/ext/target/renesas/`, so this does not appear in the file
+diff above. The fix belongs upstream, which is why it is written up here.
+
+**The defect is an asymmetry, not an absence.** `TFM_ISOLATION_LEVEL` does reach the SPM -
+`backend_ipc.o` and `interrupt.o` both compile with it, verified on the generated compile
+lines - because `tfm_spm` picks up `psa_interface` transitively. It is only `platform_s`,
+and therefore only the isolation HAL, that misses it. Both halves then act on *different*
+values of the same macro, which is what makes the failures so hard to read: the SPM behaves
+as configured while the HAL behaves as though the level were 0.
+
 **Affects every platform using the shared Armv8-M isolation HAL, at isolation 2 and 3.**
 Report plus a one-line fix; the port works around it inside
 `platform/ext/target/renesas/`, so it does not appear in the file diff above.

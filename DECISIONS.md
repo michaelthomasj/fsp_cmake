@@ -5903,3 +5903,178 @@ RA6M5. [D115]'s "isolation 3's non-secure half has not been captured" is closed.
 - The hook and region dump remain enabled at isolation 2 and above on both ports. Every entry
   from [D113] to this one depended on them; they are still diagnostics and still want a
   decision before the port is called done.
+---
+
+## D117 — six corrections from an external review: [D113] overstated FLIH, [D116] closed a question that was answerable, and three ports deny the IDAU exists
+
+**Date:** 2026-10-21 · **Status:** Accepted · **Corrects** [D113], [D115], [D116] · source- and configure-verified
+
+An outside read of the port and of [D113]-[D116] produced seven claims. Six held. They are
+recorded together because the pattern behind them matters more than any one of them: every
+one is a case of **a true observation written down as a more general statement than the
+evidence supported.**
+
+### 1. [D113]'s FLIH claim was over-general
+
+[D113] states: *"TF-M runs FLIH handlers in THREAD mode at the partition's privilege, not
+Handler mode."* It was written to correct the opposite error and overshot.
+`interrupt.c:195-209` picks one of three dispatches:
+
+| Condition | Call | Mode |
+|---|---|---|
+| `TFM_ISOLATION_LEVEL == 1` | `flih_func()` directly | **Handler** - privileged |
+| above 1, `tfm_hal_boundary_need_switch()` false (PSA-RoT) | `flih_func()` directly | **Handler** - privileged |
+| above 1, switch needed (ARoT) | `tfm_flih_deprivileged_handling()` | **Thread** - partition's privilege |
+
+Handler mode is the usual case. Thread mode happens for an **ARoT partition at isolation 2 or
+3** - exactly the FLIH test fixture [D113] was measuring, hence the correct observation and
+the wrong generalisation.
+
+Nothing in the port is broken by this. The fixture writes only AGT0 from the handler and does
+the ICU/NVIC clears in the vector entry, which is the narrowest of the three cases and so
+correct in all of them. Four comments and `ADDING_FSP_MODULES.md` §7 now state the condition
+instead of the rule.
+
+### 2. [D116] closed a question that had an answer
+
+[D116] said the hypothesis *"never explained why L1+IPC failed earlier in boot than L2 did,
+and that is still not explained from first principles"*, and closed it **"by irrelevance, not
+by analysis."** That was premature. There is a mechanism, in the same two files:
+
+- **`backend_ipc.c:169-170`.** At `TFM_ISOLATION_LEVEL == 1` the SPM gives *every* partition
+  `psa_api_thread_fn_call` - the Thread-mode call ABI, where SPM code runs at the caller's
+  privilege instead of going through `SVC`.
+- **`platform_s` disagreed about the level.** With the macro undefined there, the HAL had
+  already taken `privileged = IS_PSA_ROT()` and de-privileged ARoT partitions.
+- **So SPM code ran unprivileged**, and `arch_attempt_schedule()` stores to `SCB_ICSR_ADDR`
+  (`tfm_arch.c`, store at line 90) - `0xE000ED04`, in the PPB, privileged-only by
+  architecture. Precise BusFault, `BFAR 0xE000ED04`. **Exactly the dump.**
+
+**The crux is an asymmetry [D113] missed, and it points the opposite way to what was assumed.**
+`TFM_ISOLATION_LEVEL` *does* reach the SPM: `backend_ipc.o` and `interrupt.o` both compile with
+`-DTFM_ISOLATION_LEVEL=1`, verified on `m2gl1i`'s generated compile lines - the tree that just
+ran green. `tfm_spm` picks up `psa_interface` transitively. Only `platform_s` missed it. The two
+halves acted on *different values of the same macro*: the SPM as configured, the HAL as though
+the level were 0.
+
+That answers the boot-order question directly. At isolation 1 the fault lands **inside the SPM
+on the first `psa_*` call from an ARoT partition**. At isolation 2 the SPM hands out
+`psa_api_svc` instead for any partition needing a boundary switch, so execution survives into a
+test body and faults later at a peripheral. Earlier failure, same root cause.
+
+Still a source-reading account rather than a measurement: the pre-fix binary was overwritten and
+nobody re-ran it under instrumentation. It is consistent with every recorded symptom and with
+the fix working, which is as far as the evidence goes.
+
+### 3. Three ports' `target_cfg.c` deny the existence of the IDAU
+
+```c
+/* RA6M5 doesn't have IDAU - security attribution is done entirely via SAU */
+```
+
+Backwards on both halves, and present in **ra6e1, ra6m4 and ra6m5** - `ra6e1`'s copy even names
+RA6M4, having been pasted from it. Read off the device headers:
+
+| Part | `__SAUREGION_PRESENT` | Attribution |
+|---|---|---|
+| ra6e1, ra6m4, ra6m5 | **0** - no SAU at all | IDAU, fixed by RDPM before the core runs |
+| ra8m2 | **1** | SAU, programmed in `bl2_boot_hal.c` |
+
+The port's own tree already contradicted it: `ra8m2/bl2_boot_hal.c` says *"RA6M5 needs none of
+this. `__SAUREGION_PRESENT` is 0 there - no SAU at all."* `ra8m2/target_cfg.c` is correct for
+its part and was left alone. The `mpc_init_cfg()` and `ppc_init_cfg()` comments repeated the
+error in passing and are corrected too.
+
+Harmless at run time - `sau_and_idau_cfg()` is a no-op on these parts either way, which is
+precisely how a wrong comment sat there through a working port. It is a documentation defect
+about a part's security architecture, which is the kind that gets believed.
+
+### 4. [D115] guessed at the PXN provenance
+
+[D115] corrected [D114]'s claim that `TFM_PXN_ENABLE` never becomes a compile definition, but
+dated nothing. The review supplied `d90aa0c44` (2023-03-14), which is also not right. Actual
+history of `platform/CMakeLists.txt:126`:
+
+| Commit | Date | What |
+|---|---|---|
+| `d839593bf` | 2021-02-25 | **introduced** it - "TZ: Add configuration switch for PXN" |
+| `ec27c23f5` | 2022-07-25 | moved it when the SPM HAL sources moved to `tfm_spm` |
+| `d90aa0c44` | 2023-03-14 | last touched - added the `armv8.1-m.main` check only |
+
+The mechanism has worked since 2021, not 2023. `d90aa0c44` is the most recent edit to the line,
+which is what `git log -L` shows first and is easy to mistake for the origin.
+
+**Now confirmed by configuring rather than by reading**, which [D115] explicitly had not done: a
+`TFM_PXN_ENABLE=ON` configure of `renesas/ra8m2` passes the `armv8.1-m.main` gate at
+`check_config.cmake:91` and puts `-DTFM_PXN_ENABLE` on `tfm_hal_isolation_v8m.o`'s compile line,
+alongside the `TFM_ISOLATION_LEVEL` and `CONFIG_TFM_PARTITION_META` added by [D113]/[D114]. PXN
+stays OFF here - no measurement argues for it - but it is a live option, not dead code. What is
+still unmeasured is the *effect*: nobody has run a PXN build to see six static regions.
+
+### 5. Two documents still describe the flash arrangement [D091] replaced
+
+`CONFIGURATION.md` §3 listed `DEFAULT_MCUBOOT_FLASH_MAP` and `DEFAULT_MCUBOOT_FLASH_BACKEND` as
+OFF/OFF with "both parts take the map and backend from FSP", citing **[D079], [D082], [D090]** -
+the exact three entries [D091] supersedes. `RA8M2_SOLUTION.md`'s header said the same, citing
+[D073], [D076], [D079].
+
+Both were stale on two counts, because neither variable is set in either `config.cmake` any more
+and neither part supplies a `flash_map_backend.h` or `sysflash.h`. Current state: the map is ON
+by upstream default, `DEFAULT_MCUBOOT_FLASH_BACKEND` no longer exists, and RA8M2's SAU
+programming moved out of FSP's `flash_area_open()` into `bl2_boot_hal.c`.
+
+`DESIGN.md` §4 was already correct and is now what both documents point at. Worth noting which
+document stayed right: the one that explains *why*, not the two that tabulate *what*.
+
+### 6. `UPSTREAM_CHANGES.md` is not 15 live defects
+
+It is 15 items, of which **10 are live upstream defect fixes** (1-6, 9-12):
+
+- **13** is `WITHDRAWN` - [D091] withdrew it.
+- **14** was already labelled report-only; **15** met the same condition but carried no label.
+  Now labelled, with the asymmetry from item 2 above added as the sharper statement of the
+  defect.
+- **7** (`TFM_SPM_DEBUG_TRACE` as a documented option) and **8** (`.srec` for every toolchain)
+  are additions, not defect fixes.
+
+One open question rather than a correction: the Submission notes group items **7, 8 and 9**
+together as "not labelled but belong in the same series". If 7 and 8 are additions, item 9
+("BL2 signing depends on the target, not the image file") deserves re-reading - it is written as
+a defect but grouped with features.
+
+### The claim that did not hold, and why it is worth recording
+
+The review warned that its line numbers came from a tree with uncommitted port changes and would
+need rechecking "after a TF-M or FSP version bump". Right in spirit, wrong in detail: those
+changes are committed (`c690534cc`), **an FSP bump cannot affect any of these citations** because
+every one is in a TF-M file, and the split that matters is a different one:
+
+- `platform/CMakeLists.txt:126`, `backend_ipc.c:169-170`, `interrupt.c:195-209`,
+  `tfm_arch.c:88-90` are **upstream** files this port does not touch - they drift only on a TF-M
+  uprev.
+- `ra6m5/target_cfg.c:41` and `ra6m5/CMakeLists.txt:515` are **port** files, and the latter was
+  already invalidated by [D115]'s own edit before the review was written.
+
+A blanket "recheck after a version bump" would have let the already-broken citation through.
+
+### Method note
+
+Six corrections, one pattern: a correct observation generalised past its evidence. [D113] saw an
+ARoT handler in Thread mode and wrote a rule about FLIH. [D114] saw PXN absent from a compile
+line and wrote a rule about the macro. [D116] failed to explain a boot ordering and wrote the
+question off. Three ports saw `sau_and_idau_cfg()` work and wrote down why, wrongly.
+
+[D113] asked for "read the compile line before trusting the source" and [D114] for "enumerate
+what else the TU depends on". This entry adds the rule that would have caught all six: **write
+down the case you measured, not the rule you infer from it** - and when a rule is genuinely
+wanted, state what would falsify it.
+
+### Carried
+
+- The four IAR trees (`m5il2`, `m5il3`, `m2il2`, `m2il3`) and RA6M5 L1+IPC (`m5gl1i`) remain
+  unrun, unchanged from [D116].
+- Item 9's classification in `UPSTREAM_CHANGES.md` is unresolved (item 6 above).
+- PXN's *effect* is unverified - the plumbing is confirmed, the six-region outcome is not.
+- Nothing here was re-measured on silicon, and nothing needed to be: every change in this entry
+  is to a comment or a document, except the PXN configure, which was done in a throwaway tree
+  (`C:\b\pxnchk`). The green runs in [D115] and [D116] are unaffected.
