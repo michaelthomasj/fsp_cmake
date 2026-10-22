@@ -168,3 +168,27 @@ there to a since-retired file is a historical fact, not a defect.
 
 Bypass with `git commit --no-verify` when a commit deliberately breaks a reference, such as the
 first half of a rename spanning both repositories.
+
+### Rendered documents for the course
+
+```sh
+python scripts/build_doc_html.py           # regenerate docs/learning/ref/ from the working tree
+python scripts/build_doc_html.py --check   # exit 1 if ref/ is stale, orphaned, or the course links raw .md
+```
+
+The course in `docs/learning/` links to HTML renderings of every root `*.md` and this file, in
+`docs/learning/ref/`. **The Markdown is the source; never edit `ref/*.html`.** The same
+pre-commit hook re-renders them from the *staged* Markdown and stages the result, so a commit
+that changes a document carries its HTML with it. It also refuses a commit whose course pages
+link a raw `.md`.
+
+- Stdlib only - a small renderer for the subset these documents use. Raw HTML in Markdown is
+  escaped, not passed through.
+- `[D113]` becomes a link to `DECISIONS.html#d113`; a numbered heading (`### 8.4 ...`) gets the
+  id `s8-4`, so the course can link `DESIGN.html#s8-4` for "DESIGN.md §8.4". Renumbering a
+  section therefore breaks inbound course links - `--check` does not catch that; a link checker
+  over `docs/learning/` does.
+- Output is deterministic, so `--check` is a byte comparison and diffs show only real changes.
+- Adding or removing a document rewrites every page, because each sidebar lists them all.
+- `--no-verify` skips the render too. Run the script by hand afterwards, or the next
+  documentation commit will pick it up.

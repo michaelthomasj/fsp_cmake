@@ -1,0 +1,321 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Porting TF-M to RA</title>
+<meta name="description" content="Part 4: what a TF-M platform must supply, what the RASC/FSP project contributes, flash layout and MCUboot, how FSP drivers are consumed, the hazards that cost hardware, verification gates, and where this port diverges from upstream.">
+<link rel="stylesheet" href="assets/style.css">
+<script src="assets/site.js"></script>
+</head>
+<body>
+<div class="layout">
+<aside class="sidebar">
+  <div class="brand"><a href="index.html">Cortex-M, TrustZone &amp; TF-M on Renesas RA</a><button class="menu-toggle" aria-expanded="false">Menu</button></div>
+  <nav>
+    <ol>
+      <li><a href="index.html">Start here</a></li>
+      <li><a href="part0-primer.html">0 · The Cortex-M machine</a></li>
+      <li><a href="part1-privilege-mpu-faults.html">1 · Privilege, MPU, faults</a></li>
+      <li><a href="part2-trustzone.html">2 · TrustZone for Armv8-M</a></li>
+      <li><a href="part3-tfm.html">3 · TF-M</a></li>
+      <li><a href="part4-porting.html" aria-current="page">4 · Porting</a>
+        <ol>
+          <li><a href="#contract">The platform contract</a></li>
+          <li><a href="#author">Files you must author</a></li>
+          <li><a href="#rasc">What RASC/FSP contributes</a></li>
+          <li><a href="#fsp">Consuming FSP</a></li>
+          <li><a href="#mcuboot">Flash layout and MCUboot</a></li>
+          <li><a href="#hazards">Hazards that cost hardware</a></li>
+          <li><a href="#gates">Verification gates</a></li>
+          <li><a href="#upstream">Divergence from upstream</a></li>
+          <li><a href="#check">Check yourself</a></li>
+        </ol>
+      </li>
+      <li><a href="glossary.html">Glossary &amp; sources</a></li>
+    </ol>
+    <div class="legend">
+      <p><span class="tag arch">Armv8-M</span> the architecture requires it</p>
+      <p><span class="tag tfm">TF-M</span> TF-M chooses it</p>
+      <p><span class="tag ra">RA</span> Renesas silicon or FSP does it</p>
+      <p><span class="tag port">This port</span> this repository does it</p>
+    </div>
+    <button class="theme-toggle" type="button">Dark theme</button>
+  </nav>
+</aside>
+<main>
+
+<h1>Part 4 — Porting</h1>
+<p class="lede">A port is the glue between TF-M's assumptions and one part's reality. This page is the map; the
+operational detail is in <a href="ref/PORTING.html">PORTING.md</a>, <a href="ref/ADDING_FSP_MODULES.html">ADDING_FSP_MODULES.md</a>,
+<a href="ref/GETTING_STARTED.html">GETTING_STARTED.md</a> and <a href="ref/CONFIGURATION.html">CONFIGURATION.md</a>, which
+this page cites rather than repeats.</p>
+
+<!-- ============================================================ -->
+<h2 id="contract">4.1 The platform contract</h2>
+<p><span class="tag tfm">TF-M</span> A platform is a directory, <code>platform/ext/target/&lt;vendor&gt;/&lt;part&gt;/</code>,
+selected by <code>-DTFM_PLATFORM=renesas/ra6m5</code>. It resolves by path; there is no registry to edit
+(<a href="ref/PORTING.html#s1">PORTING.md</a> §1). What the directory must provide, grouped by the parts of this course that
+explain why:</p>
+<div class="table-wrap"><table>
+<tr><th>Concern</th><th>RA files</th><th>Course part</th></tr>
+<tr><td>Core and FPU configuration</td><td><code>cpuarch.cmake</code></td><td>0</td></tr>
+<tr><td>Reset, vector table, stack limits</td><td><code>startup_&lt;part&gt;.c</code></td><td>0, 1</td></tr>
+<tr><td>Memory layout for every image</td><td><code>flash_layout.h</code>, <code>region_defs.h</code>, <code>&lt;part&gt;_layout_checks.c</code></td><td>2, 3</td></tr>
+<tr><td>SAU/IDAU, MPC, PPC hooks; fault enables</td><td><code>target_cfg.c/.h</code></td><td>1, 2</td></tr>
+<tr><td>Partition peripherals and IRQs</td><td><code>tfm_peripherals_def.c/.h</code>, <code>tfm_timer0_irq.c</code></td><td>3</td></tr>
+<tr><td>Platform init hook, diagnostics</td><td><code>tfm_hal_platform.c</code></td><td>1, 3</td></tr>
+<tr><td>CMSIS drivers TF-M and MCUboot call</td><td><code>cmsis_drivers/Driver_Flash.c</code>, <code>Driver_USART.c</code></td><td>4</td></tr>
+<tr><td>BL2 hooks, option memory</td><td><code>bl2_boot_hal.c</code>, <code>bl2_option_setting.c</code></td><td>2, 4</td></tr>
+<tr><td>Crypto engine, entropy, OTP, NV counters, attestation HAL</td><td><code>ra_sce_init.c</code>, <code>sce_trng.c</code>, <code>attest_hal.c</code>, …</td><td>—</td></tr>
+<tr><td>Build wiring, FSP modules</td><td><code>CMakeLists.txt</code>, <code>config.cmake</code>, <code>cmake/modules/fsp_*.cmake</code></td><td>4</td></tr>
+</table></div>
+<p class="src">File list from <code>ls platform/ext/target/renesas/ra6m5</code></p>
+<p>Measured across the two live ports (<a href="ref/PORTING.html#s1">PORTING.md</a> §1): 60 files in a platform directory,
+59 common to both parts, <strong>31 ≥95% identical</strong> (copy and rename), about 20 to adjust, and <strong>8 under
+60% similar</strong> that must be authored. Start by copying the nearest part: RA6M5 for Cortex-M33 with flash, RA8M2 for
+Cortex-M85 with MRAM.</p>
+
+<!-- ============================================================ -->
+<h2 id="author">4.2 The eight files you must author</h2>
+<div class="table-wrap"><table>
+<tr><th>File</th><th>Similarity</th><th>Why it is part-specific</th></tr>
+<tr><td><code>flash_layout.h</code></td><td>51%</td><td>translates the solution's <code>BSP_PARTITION_*</code> into MCUboot and TF-M areas. Converts; never decides.</td></tr>
+<tr><td><code>cmsis_drivers/Driver_Flash.c</code></td><td>40%</td><td>the memory technology: <code>R_FLASH_HP</code> on RA6M5, <code>R_MRAM</code> with two aliases on RA8M2</td></tr>
+<tr><td><code>bl2_option_setting.c</code></td><td>38%</td><td>the OFS words. <strong>The brick hazard</strong> (§4.6)</td></tr>
+<tr><td><code>bl2_boot_hal.c</code></td><td>43%</td><td>BL2 hooks; on RA8 the SAU programming (Part 2 §2.2)</td></tr>
+<tr><td><code>config_tfm_target.h</code></td><td>41%</td><td>PS/ITS budget: <code>PS_NUM_ASSETS</code> is capacity-bound per part</td></tr>
+<tr><td><code>cpuarch.cmake</code></td><td>39%</td><td>processor, architecture, FP ABI</td></tr>
+<tr><td><code>tfm_peripherals_def.c</code></td><td>59%</td><td>partition MMIO allow-list and the secure test timer (Part 3 §3.1)</td></tr>
+<tr><td><code>cmake/modules/fsp_flash.cmake</code></td><td>47%</td><td>which FSP flash driver</td></tr>
+</table></div>
+<p class="src"><a href="ref/PORTING.html#s2">PORTING.md</a> §2</p>
+<p>The order PORTING.md §5 prescribes puts <code>flash_layout.h</code> and <code>&lt;part&gt;_layout_checks.c</code>
+together — the <code>_Static_assert</code> file catches layout mistakes at compile time, which on this port has repeatedly
+been the difference between a build error and a boot failure with no console output — and puts the OFS file last.</p>
+
+<!-- ============================================================ -->
+<h2 id="rasc">4.3 What the RASC/FSP project contributes</h2>
+<p><span class="tag port">This port</span> The founding rule: <strong>RASC is the source of configuration truth; consume,
+don't fork</strong> (<a href="ref/DESIGN.html#s1">DESIGN.md</a> §1). The TF-M build reads three generated e2 projects
+through <code>FSP_BL2_APP_DIR</code>, <code>FSP_S_APP_DIR</code> and <code>FSP_NS_APP_DIR</code>.</p>
+<div class="table-wrap"><table>
+<tr><th>Comes from the e2 project</th><th>Consumed by</th><th>Part</th></tr>
+<tr><td><code>Debug/bsp_linker_info.h</code>: <code>BSP_PARTITION_*</code> start/size for every partition</td><td><code>flash_layout.h</code>, <code>region_defs.h</code> (e.g. <code>S_CODE_START (BSP_PARTITION_FLASH_CPU0_S_START)</code>, <code>ra6m5/region_defs.h:57</code>)</td><td>3</td></tr>
+<tr><td><code>BSP_CFG_OPTION_SETTING_*</code> (bootloader project only)</td><td><code>bl2_option_setting.c</code></td><td>4</td></tr>
+<tr><td>Clock tree, <code>SystemInit()</code></td><td>both TF-M-started images</td><td>0</td></tr>
+<tr><td><code>ra_gen/vector_data.c</code>: event-link table</td><td>FSP's <code>bsp_irq_cfg()</code> → IELSR, ITNS, ICUSARG</td><td>2</td></tr>
+<tr><td>TrustZone peripheral assignment (<code>.secure_azone</code>) → <code>BSP_TZ_CFG_PSARx</code></td><td><code>R_BSP_SecurityInit()</code></td><td>2</td></tr>
+<tr><td>Driver instances (<code>g_timer0_ctrl</code>…)</td><td>the port's privileged init</td><td>3</td></tr>
+</table></div>
+<ul>
+  <li><strong>The project must be built, not just generated.</strong> <code>bsp_linker_info.h</code> is produced by an e2
+    build (<a href="ref/CONFIGURATION.html#s1">CONFIGURATION.md</a> §1).</li>
+  <li>Deviations from the principle are listed, with reasons, in <a href="ref/DESIGN.html#s1-1">DESIGN.md</a> §1.1: TF-M owns the
+    image version (two images versioned independently), and RA8M2 overrides <code>BSP_TZ_CFG_MSAR</code> pending an e2 fix
+    (Part 2 §2.7). Anything else that diverges from RASC is a defect, not a choice.</li>
+</ul>
+
+<!-- ============================================================ -->
+<h2 id="fsp">4.4 Consuming FSP in the TF-M build</h2>
+<p>FSP drivers are <strong>opt-in, per role</strong>: nothing from <code>ra/fsp/src/</code> reaches an image unless a
+<code>cmake/modules/fsp_&lt;name&gt;.cmake</code> declares it and the platform lists it in <code>FSP_MODULES_S</code> or
+<code>FSP_MODULES_BL2</code> (<a href="ref/ADDING_FSP_MODULES.html#s1">ADDING_FSP_MODULES.md</a> §1–3). Each module builds once per
+role (<code>fsp_bsp_s</code>, <code>fsp_bsp_bl2</code>) because the secure image and BL2 come from different e2 projects.</p>
+<p>Three problems specific to running FSP under TF-M, each with a decision behind it:</p>
+<ol>
+  <li><strong>Start-up order.</strong> TF-M's <code>Reset_Handler</code> calls <code>SystemInit()</code> <em>before</em> the
+    C runtime zeroes <code>.bss</code> (Part 0 §0.5). FSP state computed there, such as <code>SystemCoreClock</code>, is then
+    wiped; <code>R_FLASH_HP_Open()</code> derived FCLK = 0 and returned <code>FSP_ERR_FCLK</code>. FSP's own remedy is
+    <code>BSP_CFG_EARLY_INIT = 1</code>, which places such state in <code>.ram_noinit</code>; the port asserts it at build time
+    and also re-runs <code>SystemCoreClockUpdate()</code> in <code>tfm_hal_platform_init()</code>
+    (<a href="ref/DESIGN.html#s8-1">DESIGN.md</a> §8.1, <a href="ref/DECISIONS.html#d034">D034</a>). The non-secure image is unaffected: it uses FSP's own start-up.</li>
+  <li><strong>Static libraries and weak symbols.</strong> FSP compiled into an archive can silently lose a strong definition
+    to a weak one (<a href="ref/DECISIONS.html#d069">D069</a>, Part 2 §2.6). The port anchors <code>g_vector_table</code> to force the right member in.</li>
+  <li><strong>Privilege.</strong> FSP drivers assume they own the NVIC. From isolation 2, Application-RoT partitions cannot
+    call <code>_Open()</code> (Part 3 §3.9). The module mechanism puts driver code in <code>platform_s</code>, i.e. PSA RoT
+    code; code an ARoT partition calls must go in <code>tfm_sprt</code> and be stateless
+    (<a href="ref/ADDING_FSP_MODULES.html#s7">ADDING_FSP_MODULES.md</a> §7).</li>
+</ol>
+<p>The build warns about drivers enabled in e2 but claimed by no module. <a href="ref/DECISIONS.html#d069">D069</a> records that the warning correctly named the
+missing <code>r_agt</code> module through two failed hardware runs before anyone read it.</p>
+
+<!-- ============================================================ -->
+<h2 id="mcuboot">4.5 Flash layout and MCUboot</h2>
+<p>Three images, three linker scripts, one part. BL2 (MCUboot) lives at the base of flash, verifies the two signed images,
+and jumps to the secure one, which later jumps to the non-secure one.</p>
+<div class="table-wrap"><table>
+<tr><th>RA6M5 area</th><th>Offset</th><th>Size</th><th>Security</th></tr>
+<tr><td>BL2</td><td><code>0x000000</code></td><td>96 KB</td><td>S</td></tr>
+<tr><td>scratch (reserved, unused)</td><td><code>0x018000</code></td><td>32 KB</td><td>S</td></tr>
+<tr><td>image 0 (secure) <strong>secondary</strong></td><td><code>0x020000</code></td><td>512 KB</td><td>S</td></tr>
+<tr><td>image 0 (secure) <strong>primary</strong>, incl. NSC veneers at <code>0x11F800</code></td><td><code>0x0A0000</code></td><td>512 KB</td><td>S / NSC</td></tr>
+<tr><td>image 1 (non-secure) primary</td><td><code>0x120000</code></td><td>448 KB</td><td>NS</td></tr>
+<tr><td>image 1 (non-secure) secondary</td><td><code>0x190000</code></td><td>448 KB</td><td>NS</td></tr>
+<tr><td>data flash: ITS, PS, NV counters</td><td><code>0x08000000</code></td><td>8 KB</td><td>S</td></tr>
+</table></div>
+<p class="src"><a href="ref/RA6M5_SOLUTION.html">RA6M5_SOLUTION.md</a> §Layout. Every boundary is a multiple of the 32 KB erase block.</p>
+<ul>
+  <li><strong>Slot order is not what you would assume.</strong> The secure secondary slot is <em>below</em> the primary on
+    RA6M5, and on RA8M2 (<a href="ref/PORTING.html#s2">PORTING.md</a> §2, <a href="ref/DECISIONS.html#d100">D100</a>). Read the generated symbols.</li>
+  <li><strong>Overwrite-only upgrade.</strong> The scratch block is reserved so a later move to swap mode needs no
+    re-provisioning, and is Secure because during a swap it would hold secure-image fragments.</li>
+  <li><strong><code>MCUBOOT_ALIGN_VAL</code> is a flag day</strong>: 128 on RA6M5, 32 on RA8M2. imgtool encodes it in the
+    trailer, so images are not interchangeable between parts (<a href="ref/CONFIGURATION.html#s3">CONFIGURATION.md</a> §3).
+    TF-M's choice list stopped at 32; extending it is upstream item 6.</li>
+  <li><strong><code>FLASH_AREA_IMAGE_SECTOR_SIZE</code> restates an FSP value</strong> and nothing checks it: at
+    <code>0x1000</code> against FSP's <code>0x8000</code>, slots were 9.875 sectors long, every build step accepted it, and
+    it failed on hardware as <code>BOOT_EFLASH</code> (<a href="ref/DECISIONS.html#d054">D054</a>).</li>
+  <li><strong>Who owns the MCUboot flash backend</strong> took three attempts to settle (<a href="ref/DECISIONS.html#d075">D075</a>–<a href="ref/DECISIONS.html#d091">D091</a>). Settled: TF-M's map
+    and backend, with FSP's driver wrapped as a CMSIS <code>ARM_DRIVER_FLASH</code> behind <code>fa_driver</code> — the
+    arrangement ST uses for STM32Cube (<a href="ref/DESIGN.html#s4">DESIGN.md</a> §4, <a href="ref/DECISIONS.html#d091">D091</a>).</li>
+</ul>
+<div class="note">
+<p><strong>Tabulating documents go stale first.</strong> Until <a href="ref/DECISIONS.html#d117">D117</a>, <a href="ref/CONFIGURATION.html#s3">CONFIGURATION.md</a>
+§3 and the header of <a href="ref/RA8M2_SOLUTION.html">RA8M2_SOLUTION.md</a> still listed
+<code>DEFAULT_MCUBOOT_FLASH_MAP</code> and <code>DEFAULT_MCUBOOT_FLASH_BACKEND</code> as OFF, citing exactly the entries
+<a href="ref/DECISIONS.html#d091">D091</a> superseded — although neither variable was set in either <code>config.cmake</code> any more. Both now point at
+<a href="ref/DESIGN.html#s4">DESIGN.md</a> §4, which had stayed correct throughout. <a href="ref/DECISIONS.html#d117">D117</a>'s observation: the document that
+explains <em>why</em> stayed right; the two that tabulate <em>what</em> did not.</p>
+</div>
+<h3>Measured boot is verified from RAM, not from a test suite</h3>
+<p>BL2 writes a boot record into the first <code>0x400</code> bytes of secure RAM (<code>BOOT_TFM_SHARED_DATA_BASE =
+S_DATA_START</code>, <code>ra6m5/region_defs.h:227-228</code>). The attestation suite passes even when that record is
+empty — the token then carries <code>IAT_NO_SW_COMPONENTS</code> — so every attestation pass recorded before 2026-10-02 was
+on a token with no measurements (<a href="ref/DECISIONS.html#d080">D080</a>). Verify by reading the record and matching both measurements to the images' SHA-256
+TLVs (<a href="ref/DECISIONS.html#d081">D081</a>, <a href="ref/DECISIONS.html#d096">D096</a>).</p>
+
+<!-- ============================================================ -->
+<h2 id="hazards">4.6 Hazards that cost hardware</h2>
+<div class="warn">
+<p><strong>Option-setting memory.</strong> The OFS words are sparse. On the RA6M4 — the part that was bricked — they
+are 92 bytes of real data spread over <code>0x0100A100–0x0100A2CC</code>. On RA6M5 they are 13 groups, 112 bytes, over
+<code>0x0100A100–0x0100A2CF</code> (<code>ra6m5/region_defs.h:287-312</code>). On RA8M2 they sit elsewhere entirely, from
+<code>0x02C9F040</code>. If the linker sees the groups as one region it emits one <code>PT_LOAD</code> segment and
+zero-fills the gaps, and a debugger loading the ELF writes those zeros across option and configuration memory. Two
+EK-RA6M4 boards were destroyed this way (<a href="ref/DECISIONS.html#d002">D002</a>). <strong>Which zeroed field killed
+them is unknown</strong>: the original "permanence word" diagnosis was withdrawn, because RA6M4 has no FSPR
+(<a href="ref/DECISIONS.html#d094">D094</a>). Beware that the log disagrees with itself here:
+<a href="ref/DECISIONS.html#d065">D065</a> names PBPS at <code>0x0100A1E0</code> as "the exact word" that destroyed the
+boards, while D094, written a week later, leaves the field open and does not name PBPS as the surviving candidate. The
+later entry governs, and the rules below do not depend on the answer. (<a href="ref/DESIGN.html#s8-4">DESIGN.md</a> §8.4
+still describes the withdrawn FSPR mechanism.) Rules:</p>
+<ul>
+  <li>One linker <code>MEMORY</code> region per OFS group. <code>check_ofs.py</code> enforces it after every link.</li>
+  <li>The zero fill is invisible in a <code>.srec</code>. <code>readelf -l</code> is the only place it shows.</li>
+  <li><strong>Flash <code>bl2.elf</code> or <code>bl2.hex</code>, never <code>bl2.bin</code>.</strong> A flat binary of an
+    image that spans the option memory is mostly zeros up to it — ~16.8 MB on RA6M5, ~13.2 MB on RA8M2 (<a href="ref/DECISIONS.html#d058">D058</a>, <a href="ref/DECISIONS.html#d065">D065</a>).</li>
+</ul>
+</div>
+<ul>
+  <li><strong>RDPM erases the part.</strong> Reflash all three images after setting boundaries (Part 2 §2.8).</li>
+  <li><strong><code>setTZBoundaries</code> must be <code>false</code></strong> in every launch configuration; on RA8M2 the key
+    appears twice (<a href="ref/GETTING_STARTED.html#s6">GETTING_STARTED.md</a> §6, <a href="ref/DECISIONS.html#d102">D102</a>).</li>
+</ul>
+
+<!-- ============================================================ -->
+<h2 id="gates">4.7 Verification gates</h2>
+<p>Each gate catches a different class of mistake (<a href="ref/PORTING.html#s6">PORTING.md</a> §6). Abridged, with the
+isolation gates added from <a href="ref/DECISIONS.html#d113">D113</a>–<a href="ref/DECISIONS.html#d116">D116</a> at the end:</p>
+<div class="table-wrap"><table>
+<tr><th>Gate</th><th>Proves</th></tr>
+<tr><td>Configure succeeds</td><td><code>cpuarch.cmake</code>, <code>config.cmake</code>, module wiring</td></tr>
+<tr><td>All three images link</td><td>FP/ABI flags, module set, section placement</td></tr>
+<tr><td>No unclaimed-module warnings</td><td>every enabled driver is in an image</td></tr>
+<tr><td>OFS guard passes</td><td>the discrete-region rule — before flashing</td></tr>
+<tr><td>BL2 banner, secure image initialises</td><td>SAU, MSAR, clocks, flash driver</td></tr>
+<tr><td>Full regression suite</td><td>the port</td></tr>
+<tr><td>PSA Arch crypto</td><td>the engine: 63/0/1 on RA6M5, 62/1/1 on RA8M2</td></tr>
+<tr><td>Measured boot read from the record</td><td>not the attestation suite</td></tr>
+<tr><td>Both toolchains</td><td>IAR has produced defects GNU did not, four times</td></tr>
+<tr><td>Azone parity</td><td>peripheral-to-zone security matches across projects (<a href="ref/DECISIONS.html#d112">D112</a>)</td></tr>
+<tr><td><strong>Regression at isolation 2 and 3</strong>, FLIH/SLIH included</td><td>MMIO grants, code/data placement for ARoT, FLIH privilege. Invisible at level 1, where the MPU is off (<a href="ref/DECISIONS.html#d113">D113</a>)</td></tr>
+<tr><td><strong>MPU dump read once per part</strong></td><td>actual <code>DREGION</code> and the enabled set — 8 on both RA6M5 and RA8M2 (<a href="ref/DECISIONS.html#d113">D113</a>, <a href="ref/DECISIONS.html#d115">D115</a>). Read it on any new part</td></tr>
+<tr><td><strong>Compile line of the isolation HAL</strong></td><td>that <code>TFM_ISOLATION_LEVEL</code> and <code>CONFIG_TFM_PARTITION_META</code> reach it; consider <code>-Wundef</code>. A macro absent from the line may be unset rather than unplumbed — check the cache value too (<a href="ref/DECISIONS.html#d115">D115</a>)</td></tr>
+<tr><td><strong>Build every configuration you might run</strong>, including L1+IPC</td><td>guard combinations no tree exercises; the post-partition hook was a link error only at L1+IPC (<a href="ref/DECISIONS.html#d115">D115</a>)</td></tr>
+</table></div>
+
+<!-- ============================================================ -->
+<h2 id="upstream">4.8 Where this port diverges from upstream TF-M, and why</h2>
+<h3>Changes to common TF-M files</h3>
+<p><a href="ref/UPSTREAM_CHANGES.html">UPSTREAM_CHANGES.md</a> lists 15 numbered items against TF-M v2.2.0 (fork point
+<code>dd2b7de19</code>). They are not all defects and not all live: <strong>10 are live upstream defect fixes</strong>
+(1–6, 9–12), per <a href="ref/DECISIONS.html#d117">D117</a> §6.</p>
+<p>The list is also <strong>incomplete</strong> (review, 2026-10-22). Its regenerate command's pathspec misses
+<code>cmake/</code>, <code>lib/ext/mcuboot/</code> and the toolchain files, where <code>cmake/install.cmake</code> and
+<code>lib/ext/mcuboot/CMakeLists.txt</code> do differ from the fork point. And it omits commit <code>4025eedff</code>
+(<a href="ref/DECISIONS.html#d063">D063</a>), which adds <code>TFM_LINKER_VENEERS_OWN_REGION</code> to
+<code>platform/ext/common/gcc/tfm_isolation_s.ld.template</code> — a common-file change every RA port enables. A TF-M uprev
+guided by that document alone would drop it.</p>
+<div class="table-wrap"><table>
+<tr><th>Items</th><th>Kind</th><th>Each teaches</th></tr>
+<tr><td>1–3</td><td>IAR linker-template defects</td><td>A silent failure — boot loop, <code>INVEP</code> on every NS→S call — rather than a build error (1: stack seal on live data, Part 1 §1.6; 2: veneers outside NSC, Part 2 §2.3)</td></tr>
+<tr><td>4, 5</td><td>GNU linker-template gaps</td><td>Orphaned sections get load addresses you did not choose — once inside the NSC window</td></tr>
+<tr><td>6</td><td>MCUboot config range</td><td>RA code flash writes in 128-byte units; TF-M assumed ≤ 32</td></tr>
+<tr><td>7, 8</td><td>additions (SPM trace option, <code>.srec</code> output)</td><td>Bring-up tooling worth having centrally</td></tr>
+<tr><td>9</td><td>build defect</td><td>A CMake <code>DEPENDS</code> on a target is order-only; every incremental build shipped a stale signed image</td></tr>
+<tr><td>10–12</td><td>build fixes</td><td>Small, platform-agnostic</td></tr>
+<tr><td>13</td><td><strong>withdrawn</strong></td><td>Kept to record why the MCUboot backend did not need replacing (<a href="ref/DECISIONS.html#d091">D091</a>)</td></tr>
+<tr><td>14</td><td>IAR toolchain-file defect, report only</td><td><code>--redirect __write=__write_buffered</code> makes a platform's <code>__write()</code> unreachable</td></tr>
+<tr><td>15</td><td>isolation HAL defect, report only (labelled since <a href="ref/DECISIONS.html#d117">D117</a>)</td><td>Part 3 §3.8 — the SPM and <code>platform_s</code> see different values of one macro; <a href="ref/DECISIONS.html#d114">D114</a> argues the fix is to link <code>psa_interface</code> rather than add macros one at a time</td></tr>
+</table></div>
+<p>Items 14 and 15 are worked around inside the RA platform directories, so they do not appear in the file diff. One
+open question (<a href="ref/DECISIONS.html#d117">D117</a>): the submission notes group 7, 8 and 9 together, yet 7 and 8 are additions while 9 reads as a
+defect.</p>
+
+<h3>Choices inside the RA platform that differ from other platforms</h3>
+<div class="table-wrap"><table>
+<tr><th>Upstream habit</th><th>This port</th><th>Why</th></tr>
+<tr><td>Make an IRQ secure with <code>NVIC_ClearTargetState()</code> at run time</td><td>Never called</td><td>RA needs ITNS and ICUSARG to agree; attribution is the secure e2 project's (<a href="ref/DECISIONS.html#d061">D061</a>)</td></tr>
+<tr><td>Vendor ISR or vendor vector table</td><td>TF-M's single 112-entry table, slots overridden from generated numbers</td><td>FSP's ISRs bypass the SPM (<a href="ref/DECISIONS.html#d061">D061</a>)</td></tr>
+<tr><td><code>ppc_*()</code> program a PPC</td><td>No-ops, never reached</td><td>RA has PSAR, set by FSP from e2 (Part 2 §2.7)</td></tr>
+<tr><td><code>plat_test.c</code> in <code>platform_s</code></td><td>In <code>tfm_sprt</code>, stateless</td><td>Called by unprivileged ARoT partitions (<a href="ref/DECISIONS.html#d113">D113</a> #1–2). Upstream's placement does not work above isolation 1</td></tr>
+<tr><td>Peripheral open in the test fixture</td><td><code>R_AGT_Open()</code> in the privileged IRQ init hook</td><td><code>_Open()</code> writes the NVIC (Part 3 §3.9)</td></tr>
+<tr><td><code>TFM_ISOLATION_LEVEL</code> left to <code>psa_interface</code></td><td>Defined on <code>platform_s</code> by the port</td><td>Upstream gap, item 15</td></tr>
+<tr><td>No SAU work in BL2</td><td>RA8M2 BL2 programs one SAU region</td><td>Two MRAM aliases (Part 2 §2.2)</td></tr>
+<tr><td>Veneers placed in the general flash region by the generated linker script</td><td>Veneers in their own
+  <code>MEMORY</code> region (<code>TFM_LINKER_VENEERS_OWN_REGION</code>, <code>ra6m5/region_defs.h:202-203</code>)</td>
+  <td>The NSC window is pinned at provisioning; without it, load images placed after the veneers overflow the slot
+  (<a href="ref/DECISIONS.html#d063">D063</a>, commit <code>4025eedff</code> — not yet in UPSTREAM_CHANGES)</td></tr>
+<tr><td>Generated secure linker script with no vendor sections</td><td>Hooks for <code>.ram_noinit</code>, <code>.ram_from_flash</code></td><td>FSP state set before the C runtime; RAM-resident flash code (items 3, 4)</td></tr>
+</table></div>
+
+<!-- ============================================================ -->
+<section class="check" id="check">
+<h2>Check yourself</h2>
+<ol>
+  <li>You change a partition size in the e2 solution. Which files in the TF-M platform directory do you edit?
+    <details><summary>Answer</summary>Ideally none: <code>flash_layout.h</code> and <code>region_defs.h</code> derive from
+    <code>BSP_PARTITION_*</code>. You rebuild the e2 project, rebuild TF-M, let <code>&lt;part&gt;_layout_checks.c</code>
+    assert, and — if a TrustZone boundary moved — re-run RDPM and reflash everything. PS capacity and the NSC budget do not
+    follow automatically.</details></li>
+  <li>Why must BL2 on a TF-M-started image either set <code>BSP_CFG_EARLY_INIT</code> or recompute
+    <code>SystemCoreClock</code>, while the non-secure image need not?
+    <details><summary>Answer</summary>TF-M's <code>Reset_Handler</code> runs <code>SystemInit()</code> before
+    <code>.bss</code> is zeroed, wiping state FSP computed. The non-secure image uses FSP's own start-up, which runs in the
+    order FSP expects.</details></li>
+  <li>A colleague flashes <code>bl2.bin</code> from an old build directory. What is the risk and how do you tell from the
+    file listing?
+    <details><summary>Answer</summary>A flat binary spanning the option memory writes zeros across it and can permanently
+    lock the part. Size is the tell: over about 1 MB means it spans option memory (<code>0x0100Axxx</code> on RA6 parts,
+    <code>0x02C9Fxxx</code> on RA8M2).</details></li>
+  <li>The attestation suite passes. Has measured boot been demonstrated?
+    <details><summary>Answer</summary>No. It passes with <code>IAT_NO_SW_COMPONENTS</code>. Read the boot record at the
+    start of secure RAM and match the measurements to the image TLVs.</details></li>
+  <li>Your new RA8 port passes every gate at isolation 1. Name two defects classes that could still be present.
+    <details><summary>Answer</summary>Anything the MPU would catch — ARoT code or data in privileged regions, missing MMIO
+    grants, FLIH handlers touching unmapped registers — because the MPU is off at level 1; and HAL macros that never reach
+    <code>platform_s</code>. And any build-only defect in a configuration you did not build, like the L1+IPC hook link
+    error (<a href="ref/DECISIONS.html#d115">D115</a>).</details></li>
+  <li>Why is item 13 in <code>UPSTREAM_CHANGES.md</code> kept although withdrawn?
+    <details><summary>Answer</summary>To record the observation behind it: <code>DEFAULT_MCUBOOT_FLASH_MAP=OFF</code>
+    replaces only the map data, not the backend, and the port no longer needs to replace the backend because FSP's HAL sits
+    behind TF-M's <code>fa_driver</code> (<a href="ref/DECISIONS.html#d091">D091</a>).</details></li>
+</ol>
+</section>
+
+<div class="pager"><a href="part3-tfm.html">← Part 3 · TF-M</a><a href="glossary.html">Glossary &amp; sources →</a></div>
+</main>
+</div>
+</body>
+</html>

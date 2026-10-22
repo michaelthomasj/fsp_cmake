@@ -50,6 +50,11 @@ DECISIONS = "DECISIONS.md"
 SKIP_DIRS = {"archive", ".git", "node_modules", "__pycache__"}
 # Append-only: see the module docstring.
 LINK_EXEMPT = {DECISIONS}
+# Review artifacts are point-in-time snapshots by outside reviewers. They legitimately cite
+# entries that do not exist yet ("needs a superseding entry (D120)") and files as they were on the
+# review date, so they are not held to resolution. Checking them blocked every .md commit until
+# someone wrote the entry a review merely proposed.
+PATH_EXEMPT = ("docs/artifacts/",)
 
 RE_ENTRY = re.compile(r"^## (D\d+) — ", re.M)
 RE_CITE = re.compile(r"\bD(\d{3})\b")
@@ -93,6 +98,8 @@ def main():
 
     for path in docs:
         rel = os.path.relpath(path, ROOT).replace("\\", "/")
+        if rel.startswith(PATH_EXEMPT):
+            continue
         text = read(path)
 
         for num in sorted(set(RE_CITE.findall(text)), key=int):

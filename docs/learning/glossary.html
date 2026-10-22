@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Glossary and Sources</title>
+<meta name="description" content="Every acronym used in the course, and every source file it cites.">
+<link rel="stylesheet" href="assets/style.css">
+<script src="assets/site.js"></script>
+</head>
+<body>
+<div class="layout">
+<aside class="sidebar">
+  <div class="brand"><a href="index.html">Cortex-M, TrustZone &amp; TF-M on Renesas RA</a><button class="menu-toggle" aria-expanded="false">Menu</button></div>
+  <nav>
+    <ol>
+      <li><a href="index.html">Start here</a></li>
+      <li><a href="part0-primer.html">0 · The Cortex-M machine</a></li>
+      <li><a href="part1-privilege-mpu-faults.html">1 · Privilege, MPU, faults</a></li>
+      <li><a href="part2-trustzone.html">2 · TrustZone for Armv8-M</a></li>
+      <li><a href="part3-tfm.html">3 · TF-M</a></li>
+      <li><a href="part4-porting.html">4 · Porting</a></li>
+      <li><a href="glossary.html" aria-current="page">Glossary &amp; sources</a>
+        <ol>
+          <li><a href="#terms">Terms</a></li>
+          <li><a href="#decisions">Decisions cited</a></li>
+          <li><a href="#files">Files cited</a></li>
+        </ol>
+      </li>
+    </ol>
+    <div class="legend">
+      <p><span class="tag arch">Armv8-M</span> the architecture requires it</p>
+      <p><span class="tag tfm">TF-M</span> TF-M chooses it</p>
+      <p><span class="tag ra">RA</span> Renesas silicon or FSP does it</p>
+      <p><span class="tag port">This port</span> this repository does it</p>
+    </div>
+    <button class="theme-toggle" type="button">Dark theme</button>
+  </nav>
+</aside>
+<main>
+
+<h1>Glossary and sources</h1>
+
+<h2 id="terms">Terms</h2>
+<dl class="gloss">
+  <dt>AAPCS</dt><dd>Procedure Call Standard for the Arm Architecture: argument registers, callee-saved registers, stack alignment. <a href="part0-primer.html#stack">0.3</a></dd>
+  <dt>AIRCR</dt><dd>Application Interrupt and Reset Control Register, <code>0xE000ED0C</code>. Holds <code>PRIS</code> and <code>BFHFNMINS</code>. <a href="part2-trustzone.html#nvic">2.5</a></dd>
+  <dt>ARoT</dt><dd>Application Root of Trust. Partitions with <code>"type": "APPLICATION-ROT"</code>; unprivileged from isolation 2. <a href="part3-tfm.html#ffm">3.1</a></dd>
+  <dt>Azone</dt><dd>The e2 <code>.secure_azone</code> file holding peripheral-to-security-zone assignments. <a href="part2-trustzone.html#ra-periph">2.7</a></dd>
+  <dt>BFAR, BFSR</dt><dd>BusFault Address Register (<code>0xE000ED38</code>) and status byte <code>CFSR[15:8]</code>. <a href="part1-privilege-mpu-faults.html#faults">1.8</a></dd>
+  <dt>BL2</dt><dd>TF-M's second-stage bootloader; MCUboot here.</dd>
+  <dt>CFSAMONA/B, SSAMONA/B, DFSAMON</dt><dd>RA6-family PSCU boundary registers that drive the IDAU; set by RDPM. RA8M2 has
+  only a read-only <code>CFSAMONA</code>. <a href="part2-trustzone.html#sau-idau">2.2</a></dd>
+  <dt>BXNS / BLXNS</dt><dd>Branch (with link) to Non-secure state; how Secure code returns to or calls Non-secure code. <a href="part2-trustzone.html#nsc">2.3</a></dd>
+  <dt>CFSR</dt><dd>Configurable Fault Status Register, <code>0xE000ED28</code> = MMFSR | BFSR | UFSR. <a href="part1-privilege-mpu-faults.html#faults">1.8</a></dd>
+  <dt>CMSIS</dt><dd>Arm's Common Microcontroller Software Interface Standard: the core headers (<code>core_cm33.h</code>), register structs and intrinsics such as <code>NVIC_SetPriority</code>. <a href="part0-primer.html#nvic">0.8</a></dd>
+  <dt>CMSE</dt><dd>Cortex-M Security Extensions: the compiler support (<code>-mcmse</code>, <code>cmse_nonsecure_entry</code>, <code>cmse_check_address_range</code>). <a href="part2-trustzone.html#nsc">2.3</a></dd>
+  <dt>CONTROL</dt><dd>Special register: <code>nPRIV</code>, <code>SPSEL</code>, <code>FPCA</code>, <code>SFPA</code>. <a href="part1-privilege-mpu-faults.html#control">1.2</a></dd>
+  <dt>CPSCU / PSCU</dt><dd>RA's (CPU) Peripheral Security Control Units: <code>ICUSARG</code>, <code>SRAMSAR</code>; <code>PSARx</code>, <code>PPARx</code>, boundary registers. <a href="part2-trustzone.html#ra-periph">2.7</a></dd>
+  <dt>DCRS</dt><dd>EXC_RETURN bit 5: default callee-register stacking. 0 means R4–R11 were stacked by hardware. <a href="part1-privilege-mpu-faults.html#exc-return">1.6</a></dd>
+  <dt>e2 studio / RASC</dt><dd>Renesas IDE and its configurator (Smart Configurator), which generate the FSP projects this port consumes.</dd>
+  <dt>EXC_RETURN</dt><dd>The value in LR on exception entry; encodes how to return. <a href="part1-privilege-mpu-faults.html#exc-return">1.6</a></dd>
+  <dt>FF-M, PSA-FF-M</dt><dd>PSA Firmware Framework for M-profile: the specification TF-M implements. <a href="part3-tfm.html#ffm">3.1</a></dd>
+  <dt>FLIH / SLIH</dt><dd>First- / Second-Level Interrupt Handling. <a href="part3-tfm.html#flih">3.6</a></dd>
+  <dt>FSP</dt><dd>Renesas Flexible Software Package: BSP and drivers for RA.</dd>
+  <dt>HFSR</dt><dd>HardFault Status Register, <code>0xE000ED2C</code>; <code>FORCED</code> = escalation. <a href="part1-privilege-mpu-faults.html#faults">1.8</a></dd>
+  <dt>ICU, IELSR</dt><dd>RA Interrupt Controller Unit and its Event Link Setting Registers, which route peripheral events to NVIC lines. <a href="part0-primer.html#nvic">0.8</a></dd>
+  <dt>ICUSARG</dt><dd>RA ICU security attribution register; must agree with <code>NVIC_ITNS</code>. <a href="part2-trustzone.html#ra-irq">2.6</a></dd>
+  <dt>IDAU</dt><dd>Implementation-Defined Attribution Unit. <a href="part2-trustzone.html#sau-idau">2.2</a></dd>
+  <dt>IPC / SFN backend</dt><dd>TF-M's threaded vs function-call SPM implementations. <a href="part3-tfm.html#spm">3.5</a></dd>
+  <dt>ITNS</dt><dd>NVIC Interrupt Target Non-secure registers, <code>0xE000E380</code>. <a href="part2-trustzone.html#nvic">2.5</a></dd>
+  <dt>ITS / PS</dt><dd>Internal Trusted Storage / Protected Storage partitions.</dd>
+  <dt>INVEP</dt><dd><code>SFSR</code> bit 0: Non-secure code branched into Secure memory somewhere other than an SG in NSC memory. <a href="part2-trustzone.html#nsc">2.3</a></dd>
+  <dt>LPMSAR</dt><dd>RA low-power-mode controller security attribution register, written by FSP at boot. <a href="part2-trustzone.html#ra-periph">2.7</a></dd>
+  <dt>MAIR</dt><dd>MPU Memory Attribute Indirection Registers. <a href="part1-privilege-mpu-faults.html#mpu">1.4</a></dd>
+  <dt>MMFAR, MMFSR</dt><dd>MemManage Fault Address Register (<code>0xE000ED34</code>) and status byte <code>CFSR[7:0]</code>. <a href="part1-privilege-mpu-faults.html#faults">1.8</a></dd>
+  <dt>MM-IOVEC</dt><dd>FF-M option letting a service map client memory directly; isolation 1 only, OFF on this port. <a href="part3-tfm.html#psa-call">3.2</a></dd>
+  <dt>MMIO</dt><dd>Memory-mapped I/O: a peripheral's register block. A partition's <code>mmio_region</code> grants it one. <a href="part3-tfm.html#ffm">3.1</a></dd>
+  <dt>MPC / PPC</dt><dd>Memory / Peripheral Protection Controller, found on Arm reference subsystems; RA has neither. <a href="part2-trustzone.html#ra-periph">2.7</a></dd>
+  <dt>MPU</dt><dd>Memory Protection Unit (PMSAv8). Banked per security state. <a href="part1-privilege-mpu-faults.html#mpu">1.4</a></dd>
+  <dt>MSAR</dt><dd>RA8 MRAM security attribution register. <a href="part2-trustzone.html#ra-periph">2.7</a></dd>
+  <dt>MRCPFB</dt><dd>RA8M2 MRAM controller register at <code>0x4013C000</code> whose Non-secure attribution caused <a href="ref/DECISIONS.html#d092">D092</a>'s BusFault. <a href="part2-trustzone.html#ra-periph">2.7</a></dd>
+  <dt>MSP / PSP, MSPLIM / PSPLIM</dt><dd>Main / Process stack pointers and their limits. <a href="part1-privilege-mpu-faults.html#msp-psp">1.3</a></dd>
+  <dt>NSC</dt><dd>Non-secure Callable: memory where an <code>SG</code> may be the target of a Non-secure branch. <a href="part2-trustzone.html#nsc">2.3</a></dd>
+  <dt>NSACR</dt><dd>Non-secure Access Control Register: which coprocessors (e.g. the FPU) Non-secure code may use. Secure-only. <a href="part2-trustzone.html#banked">2.4</a></dd>
+  <dt>NSPE / SPE</dt><dd>Non-secure / Secure Processing Environment. <a href="part3-tfm.html#ffm">3.1</a></dd>
+  <dt>NVIC</dt><dd>Nested Vectored Interrupt Controller. <a href="part0-primer.html#nvic">0.8</a></dd>
+  <dt>OFS</dt><dd>RA option-setting memory: at <code>0x0100A100</code> on RA6M5, from <code>0x02C9F040</code> on RA8M2 (with a
+  different set of words). <a href="part4-porting.html#hazards">4.6</a></dd>
+  <dt>PendSV</dt><dd>Pendable service exception, 14; TF-M's context switch. <a href="part1-privilege-mpu-faults.html#svc-pendsv">1.7</a></dd>
+  <dt>PPB</dt><dd>Private Peripheral Bus, <code>0xE0000000–0xE00FFFFF</code>; privileged-only. <a href="part0-primer.html#ppb">0.10</a></dd>
+  <dt>PRIMASK / BASEPRI / FAULTMASK</dt><dd>Exception masks: all configurable exceptions; those at or below a priority; everything but NMI. Banked per security state. <a href="part0-primer.html#exceptions">0.6</a></dd>
+  <dt>PRIVDEFENA</dt><dd>MPU_CTRL bit 2: privileged background map. <a href="part1-privilege-mpu-faults.html#mpu">1.4</a></dd>
+  <dt>PRIS</dt><dd>AIRCR bit: Secure exceptions prioritised over Non-secure. <a href="part2-trustzone.html#nvic">2.5</a></dd>
+  <dt>PSA RoT</dt><dd>PSA Root of Trust: SPM plus core security services; privileged at every isolation level. <a href="part3-tfm.html#ffm">3.1</a></dd>
+  <dt>PSAR / PPAR</dt><dd>RA Peripheral Security / Privilege Attribution Registers. <a href="part2-trustzone.html#ra-periph">2.7</a></dd>
+  <dt>PXN</dt><dd>Privileged Execute Never; MPU attribute in Armv8.1-M only. <a href="part3-tfm.html#pxn">3.8</a></dd>
+  <dt>RBAR / RLAR / RNR</dt><dd>MPU region base, limit and number registers. <a href="part1-privilege-mpu-faults.html#mpu">1.4</a></dd>
+  <dt>RDPM</dt><dd>Renesas Device Partition Manager: programs the TrustZone boundaries; erases the part. <a href="part2-trustzone.html#provision">2.8</a></dd>
+  <dt>SAU</dt><dd>Security Attribution Unit. <a href="part2-trustzone.html#sau-idau">2.2</a></dd>
+  <dt>SCB / SCS</dt><dd>System Control Block / System Control Space. <a href="part0-primer.html#ppb">0.10</a></dd>
+  <dt>SFSR / SFAR</dt><dd>SecureFault status and address registers, <code>0xE000EDE4/E8</code>. <a href="part1-privilege-mpu-faults.html#faults">1.8</a></dd>
+  <dt>SG</dt><dd>Secure Gateway instruction. <a href="part2-trustzone.html#nsc">2.3</a></dd>
+  <dt>SID</dt><dd>Service ID. <a href="part3-tfm.html#ffm">3.1</a></dd>
+  <dt>SPM</dt><dd>Secure Partition Manager. <a href="part3-tfm.html#spm">3.5</a></dd>
+  <dt>SRAMSABARn</dt><dd>RA8M2 CPSCU registers splitting SRAM into Secure and Non-secure; written by FSP at boot, not by RDPM. <a href="part2-trustzone.html#sau-idau">2.2</a></dd>
+  <dt>SVC</dt><dd>Supervisor Call instruction and exception 11. <a href="part1-privilege-mpu-faults.html#svc-pendsv">1.7</a></dd>
+  <dt><code>tfm_sprt</code></dt><dd>Secure Partition Runtime library, linked into the unprivileged code region; its <code>.bss</code> is not. <a href="part3-tfm.html#d113">3.8</a></dd>
+  <dt>TT</dt><dd>Test Target instruction: reports MPU and SAU/IDAU attributes of an address. <a href="part2-trustzone.html#states">2.1</a></dd>
+  <dt>VTOR</dt><dd>Vector Table Offset Register, <code>0xE000ED08</code>. <a href="part0-primer.html#vectors">0.5</a></dd>
+</dl>
+
+<h2 id="decisions">Decisions cited</h2>
+<p>All in <a href="ref/DECISIONS.html">DECISIONS.md</a>. Entries are append-only; check for a later entry before relying on one.</p>
+<div class="table-wrap"><table>
+<tr><th>Entry</th><th>Subject</th><th>Used in</th></tr>
+<tr><td><a href="ref/DECISIONS.html#d002">D002</a></td><td>OFS: one linker region per option group</td><td>0, 4</td></tr>
+<tr><td><a href="ref/DECISIONS.html#d034">D034</a></td><td><code>BSP_CFG_EARLY_INIT</code> asserted at build time</td><td>4</td></tr>
+<tr><td><a href="ref/DECISIONS.html#d054">D054</a></td><td>sector-size mismatch failing as <code>BOOT_EFLASH</code></td><td>4</td></tr>
+<tr><td><a href="ref/DECISIONS.html#d058">D058</a></td><td>the flat <code>.bin</code> as a second route to the brick</td><td>4</td></tr>
+<tr><td><a href="ref/DECISIONS.html#d061">D061</a></td><td>secure interrupts on RA; ITNS + ICUSARG; vector table</td><td>Start, 2, 4</td></tr>
+<tr><td><a href="ref/DECISIONS.html#d063">D063</a></td><td>pinned CMSE veneers get their own MEMORY region</td><td>4</td></tr>
+<tr><td><a href="ref/DECISIONS.html#d064">D064</a></td><td>BL2 masking interrupts; masked SVC → <code>HFSR.FORCED</code></td><td>0, 1</td></tr>
+<tr><td><a href="ref/DECISIONS.html#d065">D065</a></td><td>flat-binary brick guard on every port</td><td>4</td></tr>
+<tr><td><a href="ref/DECISIONS.html#d069">D069</a></td><td>weak symbol silently unrouting every secure interrupt</td><td>Start, 0, 2, 4</td></tr>
+<tr><td><a href="ref/DECISIONS.html#d073">D073</a></td><td>RA8M2 MRAM alias chosen per offset</td><td>2</td></tr>
+<tr><td><a href="ref/DECISIONS.html#d075">D075</a></td><td>BL2 must enable the SAU on RA8M2</td><td>Start, 4</td></tr>
+<tr><td><a href="ref/DECISIONS.html#d076">D076</a></td><td><a href="ref/DECISIONS.html#d075">D075</a>'s code had been reverted</td><td>2</td></tr>
+<tr><td><a href="ref/DECISIONS.html#d079">D079</a></td><td>BL2 took FSP's MCUboot flash backend (superseded by <a href="ref/DECISIONS.html#d091">D091</a>)</td><td>2</td></tr>
+<tr><td><a href="ref/DECISIONS.html#d080">D080</a></td><td>attestation passing with no measurements</td><td>4</td></tr>
+<tr><td><a href="ref/DECISIONS.html#d081">D081</a></td><td>measured boot confirmed on RA6M5 from the boot record</td><td>4</td></tr>
+<tr><td><a href="ref/DECISIONS.html#d087">D087</a></td><td>secure-slot headroom 1,693 B / 670 B</td><td>3</td></tr>
+<tr><td><a href="ref/DECISIONS.html#d091">D091</a></td><td>TF-M's MCUboot backend, FSP's HAL behind <code>fa_driver</code></td><td>2, 4</td></tr>
+<tr><td><a href="ref/DECISIONS.html#d092">D092</a></td><td>RA8M2 first boot: the <code>MSAR</code> BusFault</td><td>Start, 1, 2</td></tr>
+<tr><td><a href="ref/DECISIONS.html#d093">D093</a></td><td><code>BSP_TZ_CFG_MSAR=0</code> workaround</td><td>2</td></tr>
+<tr><td><a href="ref/DECISIONS.html#d094">D094</a></td><td>the RA6M4 brick: the killed field is unknown</td><td>0, 4</td></tr>
+<tr><td><a href="ref/DECISIONS.html#d096">D096</a></td><td>measured boot confirmed on RA8M2</td><td>4</td></tr>
+<tr><td><a href="ref/DECISIONS.html#d100">D100</a></td><td>secondary slot below primary; BL2 and secure image share RAM</td><td>4</td></tr>
+<tr><td><a href="ref/DECISIONS.html#d102">D102</a></td><td>RA8M2 IAR launches; <code>setTZBoundaries</code> appears twice</td><td>4</td></tr>
+<tr><td><a href="ref/DECISIONS.html#d112">D112</a></td><td>azone parity</td><td>2, 4</td></tr>
+<tr><td><strong><a href="ref/DECISIONS.html#d113">D113</a></strong></td><td>isolation 2 on silicon; measured MPU; four port defects; costs</td><td>Start, 0, 1, 2, 3, 4</td></tr>
+<tr><td><strong><a href="ref/DECISIONS.html#d114">D114</a></strong></td><td>isolation 3; the second missing macro</td><td>Start, 1, 3, 4</td></tr>
+<tr><td><strong><a href="ref/DECISIONS.html#d115">D115</a></strong></td><td>RA8M2 MPU measured at 8; corrects <a href="ref/DECISIONS.html#d114">D114</a> on PXN; the hook that broke L1+IPC</td><td>Start, 1, 2, 3, 4</td></tr>
+<tr><td><strong><a href="ref/DECISIONS.html#d116">D116</a></strong></td><td>L1+IPC green on RA8M2</td><td>Start, 1, 3, 4</td></tr>
+<tr><td><strong><a href="ref/DECISIONS.html#d117">D117</a></strong></td><td>six corrections: FLIH dispatch, L1+IPC mechanism, IDAU comments, PXN provenance, stale docs, upstream count</td><td>Start, 1, 2, 3, 4</td></tr>
+<tr><td><strong><a href="ref/DECISIONS.html#d118">D118</a></strong></td><td>RA8M2 isolation 2 green under IAR</td><td>Start, 3</td></tr>
+<tr><td><strong><a href="ref/DECISIONS.html#d119">D119</a></strong></td><td>RA8M2 isolation 3 green under IAR; coverage table</td><td>Start, 3</td></tr>
+</table></div>
+<p class="src">Generated from the D-numbers each page cites. "Start" is the landing page; 0–4 are the parts.</p>
+
+<h2 id="files">Files cited</h2>
+<h3>This repository (<code>fsp_cmake</code>)</h3>
+<ul>
+  <li><a href="ref/DECISIONS.html">DECISIONS.md</a>, <a href="ref/DESIGN.html">DESIGN.md</a>, <a href="ref/PORTING.html">PORTING.md</a>,
+    <a href="ref/ADDING_FSP_MODULES.html">ADDING_FSP_MODULES.md</a>, <a href="ref/GETTING_STARTED.html">GETTING_STARTED.md</a>,
+    <a href="ref/CONFIGURATION.html">CONFIGURATION.md</a>, <a href="ref/TROUBLESHOOTING.html">TROUBLESHOOTING.md</a>,
+    <a href="ref/UPSTREAM_CHANGES.html">UPSTREAM_CHANGES.md</a>, <a href="ref/RA6M5_SOLUTION.html">RA6M5_SOLUTION.md</a>,
+    <a href="ref/RA8M2_SOLUTION.html">RA8M2_SOLUTION.md</a></li>
+  <li>Generated code in the e2 projects: <code>ra_gen/vector_data.c</code> (event-link table),
+    <code>Debug/bsp_linker_info.h</code>, <code>Debug/memory_regions.ld</code></li>
+  <li>Generated FSP, RA6M5: <code>ra6m5_gcc_secure/ra/fsp/src/bsp/cmsis/Device/RENESAS/Include/R7FA6M5BH.h</code>,
+    <code>…/bsp/mcu/all/bsp_security.c</code>, <code>…/bsp/mcu/all/bsp_irq.c</code>, <code>…/bsp/mcu/ra6m5/bsp_feature.h</code>,
+    <code>ra6m5_gcc_secure/ra/arm/CMSIS_6/CMSIS/Core/Include/core_cm33.h</code>, <code>…/m-profile/armv8m_mpu.h</code></li>
+  <li>Generated FSP, RA8M2: <code>ra8m2_gcc_CPU0_secure/ra/fsp/src/bsp/cmsis/Device/RENESAS/Include/R7KA8M2JF_core0.h</code>,
+    <code>R7KA8M2JF_core1.h</code>, <code>…/bsp/mcu/all/bsp_security.c</code>, <code>…/bsp/mcu/ra8m2/bsp_feature.h</code>,
+    <code>ra8m2_gcc_CPU0_secure/ra_cfg/fsp_cfg/bsp/bsp_mcu_device_pn_cfg.h</code></li>
+  <li>FSP <code>system.c</code> (cited via <a href="ref/DECISIONS.html#d064">D064</a> for <code>VTOR</code>)</li>
+</ul>
+<h3>TF-M (<code>C:\Users\Michael\Documents\GitHub\trusted-firmware-m</code>)</h3>
+<ul>
+  <li><code>platform/ext/common/tfm_hal_isolation_v8m.c</code> — the isolation HAL</li>
+  <li><code>secure_fw/spm/core/</code>: <code>main.c</code>, <code>spm_ipc.c</code>, <code>backend_ipc.c</code>,
+    <code>interrupt.c</code>, <code>tfm_svcalls.c</code>, <code>psa_interface_svc.c</code>, <code>arch/tfm_arch.c</code>,
+    <code>arch/tfm_arch_v8m_main.c</code></li>
+  <li><code>platform/include/tfm_hal_isolation.h</code>; <code>platform/ext/common/gcc/tfm_isolation_s.ld.template</code></li>
+  <li><code>secure_fw/spm/include/</code>: <code>tfm_arch.h</code>, <code>tfm_arch_v8m.h</code>, <code>load/partition_defs.h</code></li>
+  <li><code>secure_fw/partitions/ns_agent_tz/</code>: <code>psa_api_veneers_v80m.c</code>, <code>psa_api_veneers.c</code>,
+    <code>CMakeLists.txt</code></li>
+  <li><code>secure_fw/partitions/lib/runtime/CMakeLists.txt</code> (<code>tfm_sprt</code>)</li>
+  <li>Manifests: <code>secure_fw/partitions/crypto/tfm_crypto.yaml</code>,
+    <code>secure_fw/partitions/protected_storage/tfm_protected_storage.yaml</code></li>
+  <li><code>platform/CMakeLists.txt</code>, <code>interface/CMakeLists.txt</code>, <code>config/set_config.cmake</code>, <code>config/check_config.cmake</code>,
+    <code>config/config_base.cmake</code>, <code>config/tfm_ipc_config_default.cmake</code></li>
+  <li>RA6M5 port, <code>platform/ext/target/renesas/ra6m5/</code>: <code>startup_ra6m5.c</code>, <code>target_cfg.c</code>,
+    <code>tfm_hal_platform.c</code>, <code>tfm_peripherals_def.c/.h</code>, <code>tfm_timer0_irq.c</code>, <code>plat_test.c</code>,
+    <code>region_defs.h</code>, <code>flash_layout.h</code>, <code>config.cmake</code>, <code>config_tfm_target.h</code>,
+    <code>cpuarch.cmake</code>, <code>CMakeLists.txt</code>, <code>cmsis_drivers/Driver_Flash.c</code>,
+    <code>bl2_option_setting.c</code></li>
+  <li>RA8M2 port: <code>platform/ext/target/renesas/ra8m2/bl2_boot_hal.c</code>, <code>config.cmake</code>,
+    <code>CMakeLists.txt</code></li>
+  <li>Shared RA: <code>platform/ext/target/renesas/common/check_ofs.py</code></li>
+</ul>
+<h3>tf-m-tests</h3>
+<ul>
+  <li><code>tests_reg/test/secure_fw/suites/spm/irq/service/tfm_flih_test_service/tfm_flih_test_service.yaml</code></li>
+</ul>
+<p>TF-M line numbers are from commit <code>b1b9078ff</code>; fsp_cmake citations from <code>14de2e5</code> (both
+2026-10-21). Citations into upstream TF-M files move only on a TF-M uprev; citations into
+<code>platform/ext/target/renesas/</code> move with port commits and are the ones to recheck. FSP updates move only the
+FSP citations.</p>
+
+<div class="pager"><a href="part4-porting.html">← Part 4 · Porting</a><a href="index.html">Start here</a></div>
+</main>
+</div>
+</body>
+</html>

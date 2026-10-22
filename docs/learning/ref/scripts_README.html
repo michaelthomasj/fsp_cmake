@@ -184,6 +184,26 @@ resolves. <code>DECISIONS.md</code> is exempt from the link checks because it is
 there to a since-retired file is a historical fact, not a defect.</p>
 <p>Bypass with <code>git commit --no-verify</code> when a commit deliberately breaks a reference, such as the
 first half of a rename spanning both repositories.</p>
+<h3 id="rendered-documents-for-the-course">Rendered documents for the course</h3>
+<pre><code class="language-sh">python scripts/build_doc_html.py           # regenerate docs/learning/ref/ from the working tree
+python scripts/build_doc_html.py --check   # exit 1 if ref/ is stale, orphaned, or the course links raw .md</code></pre>
+<p>The course in <code>docs/learning/</code> links to HTML renderings of every root <code>*.md</code> and this file, in
+<code>docs/learning/ref/</code>. <strong>The Markdown is the source; never edit <code>ref/*.html</code>.</strong> The same
+pre-commit hook re-renders them from the <em>staged</em> Markdown and stages the result, so a commit
+that changes a document carries its HTML with it. It also refuses a commit whose course pages
+link a raw <code>.md</code>.</p>
+<ul>
+<li>Stdlib only - a small renderer for the subset these documents use. Raw HTML in Markdown is
+escaped, not passed through.</li>
+<li><code>[D113]</code> becomes a link to <code>DECISIONS.html#d113</code>; a numbered heading (<code>### 8.4 ...</code>) gets the
+id <code>s8-4</code>, so the course can link <code>DESIGN.html#s8-4</code> for &quot;DESIGN.md §8.4&quot;. Renumbering a
+section therefore breaks inbound course links - <code>--check</code> does not catch that; a link checker
+over <code>docs/learning/</code> does.</li>
+<li>Output is deterministic, so <code>--check</code> is a byte comparison and diffs show only real changes.</li>
+<li>Adding or removing a document rewrites every page, because each sidebar lists them all.</li>
+<li><code>--no-verify</code> skips the render too. Run the script by hand afterwards, or the next
+documentation commit will pick it up.</li>
+</ul>
 </main>
 </div>
 </body>

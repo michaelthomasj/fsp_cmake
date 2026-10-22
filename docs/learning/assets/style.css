@@ -1,0 +1,279 @@
+/* Cortex-M / TrustZone / TF-M on RA — shared stylesheet.
+   Plain CSS, no build step. Colours are tokens so light and dark themes share every rule. */
+
+:root {
+  --bg: #fbfbf9;
+  --bg-side: #f2f1ec;
+  --bg-code: #f0efe9;
+  --bg-note: #f4f2ea;
+  --fg: #1d1d1b;
+  --fg-muted: #5c5b56;
+  --rule: #d9d7cf;
+  --link: #1f5fa8;
+  --link-visited: #5a3f9a;
+
+  /* claim tags */
+  --tag-arch-bg: #dbe8f7; --tag-arch-fg: #154a85;
+  --tag-tfm-bg:  #e9e0f5; --tag-tfm-fg:  #53308a;
+  --tag-ra-bg:   #f8e4cf; --tag-ra-fg:   #8a4510;
+  --tag-port-bg: #d9eedc; --tag-port-fg: #1f6130;
+
+  /* callouts */
+  --warn-bg: #fbeee0; --warn-rule: #c46a1a;
+  --flag-bg: #fde7e7; --flag-rule: #b3261e;
+
+  /* diagrams */
+  --svg-stroke: #3b3a36;
+  --svg-fill: #ffffff;
+  --svg-fill-2: #ecebe5;
+  --svg-sec: #f6d9d4;     /* secure */
+  --svg-sec-2: #ecb8af;
+  --svg-ns: #d6e6f5;      /* non-secure */
+  --svg-ns-2: #a9c8e8;
+  --svg-nsc: #f4ebc4;     /* non-secure callable */
+  --svg-priv: #e3d8f1;
+  --svg-unpriv: #d8eedb;
+  --svg-hl: #c0392b;
+  --svg-muted: #8a887f;
+
+  --sidebar-w: 17rem;
+  --measure: 46rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #17181a;
+    --bg-side: #1e1f22;
+    --bg-code: #24262a;
+    --bg-note: #212327;
+    --fg: #e6e4de;
+    --fg-muted: #a3a19a;
+    --rule: #3a3c40;
+    --link: #7fb2ee;
+    --link-visited: #b9a2ea;
+    --tag-arch-bg: #1d3550; --tag-arch-fg: #a9cdf5;
+    --tag-tfm-bg:  #33264a; --tag-tfm-fg:  #d4bdf2;
+    --tag-ra-bg:   #4a3018; --tag-ra-fg:   #f3c89b;
+    --tag-port-bg: #1f3d26; --tag-port-fg: #a9dfb3;
+    --warn-bg: #3a2a18; --warn-rule: #e08a3c;
+    --flag-bg: #3d1d1d; --flag-rule: #ef6b62;
+    --svg-stroke: #cfcdc6;
+    --svg-fill: #23252a;
+    --svg-fill-2: #2d3035;
+    --svg-sec: #4d2a27;
+    --svg-sec-2: #6e3832;
+    --svg-ns: #1f3650;
+    --svg-ns-2: #2c4c70;
+    --svg-nsc: #4a4220;
+    --svg-priv: #3a2f4f;
+    --svg-unpriv: #24402b;
+    --svg-hl: #ff7a6b;
+    --svg-muted: #8f8d86;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #17181a;
+  --bg-side: #1e1f22;
+  --bg-code: #24262a;
+  --bg-note: #212327;
+  --fg: #e6e4de;
+  --fg-muted: #a3a19a;
+  --rule: #3a3c40;
+  --link: #7fb2ee;
+  --link-visited: #b9a2ea;
+  --tag-arch-bg: #1d3550; --tag-arch-fg: #a9cdf5;
+  --tag-tfm-bg:  #33264a; --tag-tfm-fg:  #d4bdf2;
+  --tag-ra-bg:   #4a3018; --tag-ra-fg:   #f3c89b;
+  --tag-port-bg: #1f3d26; --tag-port-fg: #a9dfb3;
+  --warn-bg: #3a2a18; --warn-rule: #e08a3c;
+  --flag-bg: #3d1d1d; --flag-rule: #ef6b62;
+  --svg-stroke: #cfcdc6;
+  --svg-fill: #23252a;
+  --svg-fill-2: #2d3035;
+  --svg-sec: #4d2a27;
+  --svg-sec-2: #6e3832;
+  --svg-ns: #1f3650;
+  --svg-ns-2: #2c4c70;
+  --svg-nsc: #4a4220;
+  --svg-priv: #3a2f4f;
+  --svg-unpriv: #24402b;
+  --svg-hl: #ff7a6b;
+  --svg-muted: #8f8d86;
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font: 16px/1.6 "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+}
+
+/* ---------- layout ---------- */
+.layout { display: flex; min-height: 100vh; }
+.sidebar {
+  width: var(--sidebar-w);
+  flex: 0 0 var(--sidebar-w);
+  background: var(--bg-side);
+  border-right: 1px solid var(--rule);
+  padding: 1.25rem 1rem 2rem;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  font-size: 0.92rem;
+}
+.sidebar .brand { font-weight: 700; font-size: 1rem; margin: 0 0 1rem; line-height: 1.3; }
+.sidebar .brand a { color: var(--fg); text-decoration: none; }
+.sidebar ol { list-style: none; padding: 0; margin: 0; }
+.sidebar li { margin: 0.15rem 0; }
+.sidebar a { color: var(--link); text-decoration: none; display: block; padding: 0.15rem 0.4rem; border-radius: 4px; }
+.sidebar a:hover { background: var(--bg-code); }
+.sidebar a[aria-current="page"] { background: var(--bg-code); color: var(--fg); font-weight: 600; }
+.sidebar ol ol { margin-left: 0.8rem; font-size: 0.86rem; }
+.sidebar ol ol a { color: var(--fg-muted); }
+.sidebar .legend { margin-top: 1.5rem; font-size: 0.82rem; color: var(--fg-muted); }
+.sidebar .legend p { margin: 0.3rem 0; }
+.theme-toggle {
+  margin-top: 1rem;
+  font: inherit; font-size: 0.82rem;
+  background: var(--bg); color: var(--fg);
+  border: 1px solid var(--rule); border-radius: 4px;
+  padding: 0.25rem 0.6rem; cursor: pointer;
+}
+
+main {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 2rem 2.5rem 4rem;
+}
+main > * { max-width: var(--measure); }
+main > figure, main > .wide, main > table, main > .table-wrap, main > pre { max-width: 60rem; }
+
+.menu-toggle { display: none; }
+
+@media (max-width: 860px) {
+  .layout { display: block; }
+  .sidebar {
+    position: static; width: auto; height: auto;
+    border-right: none; border-bottom: 1px solid var(--rule);
+    padding: 0.75rem 16px;
+  }
+  .sidebar nav { display: none; }
+  .sidebar.open nav { display: block; }
+  .menu-toggle {
+    display: inline-block; font: inherit; font-size: 0.9rem;
+    background: var(--bg); color: var(--fg);
+    border: 1px solid var(--rule); border-radius: 4px; padding: 0.2rem 0.6rem;
+  }
+  .sidebar .brand { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; margin: 0; }
+  main { padding: 1.25rem 16px 3rem; }
+}
+
+/* ---------- type ---------- */
+h1 { font-size: 1.9rem; line-height: 1.2; margin: 0 0 0.5rem; }
+h2 { font-size: 1.4rem; margin: 2.6rem 0 0.6rem; padding-top: 0.6rem; border-top: 1px solid var(--rule); }
+h3 { font-size: 1.12rem; margin: 1.8rem 0 0.4rem; }
+h4 { font-size: 1rem; margin: 1.4rem 0 0.3rem; }
+p, li { overflow-wrap: anywhere; }
+.lede { color: var(--fg-muted); font-size: 1.05rem; margin-bottom: 1.5rem; }
+a { color: var(--link); }
+a:visited { color: var(--link-visited); }
+code, pre, kbd { font-family: "Cascadia Code", Consolas, "SF Mono", Menlo, monospace; font-size: 0.88em; }
+code { background: var(--bg-code); padding: 0.05em 0.3em; border-radius: 3px; }
+pre {
+  background: var(--bg-code);
+  padding: 0.8rem 1rem;
+  border-radius: 6px;
+  overflow-x: auto;
+  line-height: 1.45;
+}
+pre code { background: none; padding: 0; font-size: 0.86rem; }
+.src { font-size: 0.8rem; color: var(--fg-muted); margin: -0.6rem 0 1rem; }
+.src code { font-size: 0.95em; }
+
+/* ---------- tables ---------- */
+.table-wrap { overflow-x: auto; margin: 1rem 0; }
+table { border-collapse: collapse; font-size: 0.92rem; width: 100%; }
+th, td { border: 1px solid var(--rule); padding: 0.35rem 0.55rem; text-align: left; vertical-align: top; }
+th { background: var(--bg-code); font-weight: 600; }
+td code, th code { font-size: 0.85em; }
+
+/* ---------- claim tags ---------- */
+.tag {
+  display: inline-block;
+  font-size: 0.72rem; font-weight: 700; letter-spacing: 0.02em;
+  padding: 0.05rem 0.4rem; border-radius: 3px;
+  vertical-align: 0.1em; white-space: nowrap;
+}
+.tag.arch { background: var(--tag-arch-bg); color: var(--tag-arch-fg); }
+.tag.tfm  { background: var(--tag-tfm-bg);  color: var(--tag-tfm-fg); }
+.tag.ra   { background: var(--tag-ra-bg);   color: var(--tag-ra-fg); }
+.tag.port { background: var(--tag-port-bg); color: var(--tag-port-fg); }
+
+/* ---------- callouts ---------- */
+.note, .warn, .flag, .fwd {
+  padding: 0.6rem 0.9rem; margin: 1rem 0; border-radius: 4px;
+  border-left: 4px solid var(--rule); background: var(--bg-note);
+}
+.note > :first-child, .warn > :first-child, .flag > :first-child, .fwd > :first-child { margin-top: 0; }
+.note > :last-child, .warn > :last-child, .flag > :last-child, .fwd > :last-child { margin-bottom: 0; }
+.warn { background: var(--warn-bg); border-left-color: var(--warn-rule); }
+.flag { background: var(--flag-bg); border-left-color: var(--flag-rule); }
+.fwd { font-size: 0.92rem; border-left-color: var(--link); }
+.fwd::before { content: "Later: "; font-weight: 700; }
+
+/* ---------- figures ---------- */
+figure { margin: 1.5rem 0; }
+figure svg { width: 100%; height: auto; display: block; }
+figcaption { font-size: 0.86rem; color: var(--fg-muted); margin-top: 0.4rem; }
+
+svg text { fill: var(--fg); font-family: "Segoe UI", system-ui, sans-serif; }
+svg .t-sm { font-size: 11px; }
+svg .t-md { font-size: 13px; }
+svg .t-lg { font-size: 15px; font-weight: 600; }
+svg .t-mono { font-family: Consolas, Menlo, monospace; font-size: 11px; }
+svg .t-muted { fill: var(--fg-muted); }
+svg .t-hl { fill: var(--svg-hl); font-weight: 600; }
+svg .box   { fill: var(--svg-fill);   stroke: var(--svg-stroke); stroke-width: 1; }
+svg .box2  { fill: var(--svg-fill-2); stroke: var(--svg-stroke); stroke-width: 1; }
+svg .sec   { fill: var(--svg-sec);    stroke: var(--svg-stroke); stroke-width: 1; }
+svg .sec2  { fill: var(--svg-sec-2);  stroke: var(--svg-stroke); stroke-width: 1; }
+svg .ns    { fill: var(--svg-ns);     stroke: var(--svg-stroke); stroke-width: 1; }
+svg .ns2   { fill: var(--svg-ns-2);   stroke: var(--svg-stroke); stroke-width: 1; }
+svg .nsc   { fill: var(--svg-nsc);    stroke: var(--svg-stroke); stroke-width: 1; }
+svg .priv  { fill: var(--svg-priv);   stroke: var(--svg-stroke); stroke-width: 1; }
+svg .unpriv{ fill: var(--svg-unpriv); stroke: var(--svg-stroke); stroke-width: 1; }
+svg .line  { stroke: var(--svg-stroke); stroke-width: 1.2; fill: none; }
+svg .dash  { stroke: var(--svg-muted); stroke-width: 1; stroke-dasharray: 4 3; fill: none; }
+svg .hl    { stroke: var(--svg-hl); stroke-width: 1.8; fill: none; }
+svg .hlbox { fill: none; stroke: var(--svg-hl); stroke-width: 1.8; stroke-dasharray: 5 3; }
+svg .head  { fill: var(--svg-stroke); }
+svg .head-hl { fill: var(--svg-hl); }
+
+/* ---------- check yourself ---------- */
+.check { margin-top: 3rem; border-top: 2px solid var(--rule); padding-top: 0.5rem; }
+.check ol { padding-left: 1.3rem; }
+.check li { margin: 0.7rem 0; }
+.check details { margin-top: 0.25rem; font-size: 0.92rem; color: var(--fg-muted); }
+.check summary { cursor: pointer; color: var(--link); }
+
+.pager { display: flex; justify-content: space-between; gap: 1rem; margin-top: 3rem; font-size: 0.92rem; flex-wrap: wrap; }
+
+/* ---------- rendered reference documents (ref/, generated by scripts/build_doc_html.py) ---------- */
+.sidebar .doc-toc { margin-top: 1rem; padding-top: 0.6rem; border-top: 1px solid var(--rule); }
+main.ref-doc blockquote {
+  margin: 1rem 0; padding: 0.4rem 0.9rem;
+  border-left: 4px solid var(--rule); background: var(--bg-note); color: var(--fg);
+}
+main.ref-doc blockquote > :first-child { margin-top: 0; }
+main.ref-doc blockquote > :last-child { margin-bottom: 0; }
+main.ref-doc hr { border: none; border-top: 1px solid var(--rule); margin: 2rem 0; }
+main.ref-doc h2 { border-top: none; }
+main.ref-doc li > ul, main.ref-doc li > ol { margin: 0.2rem 0; }
+main.ref-doc input[type="checkbox"] { margin: 0 0.35rem 0 0; vertical-align: -0.1em; }
+main.ref-doc :target { scroll-margin-top: 1rem; background: var(--bg-note); }
+
+dl.gloss dt { font-weight: 700; margin-top: 0.9rem; }
+dl.gloss dd { margin: 0.15rem 0 0 1.2rem; }

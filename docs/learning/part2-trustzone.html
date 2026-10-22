@@ -1,0 +1,532 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TrustZone for Armv8-M</title>
+<meta name="description" content="Part 2: security states, SAU and IDAU, non-secure-callable regions and SG veneers, banked registers, NVIC target state, and how Renesas RA attributes interrupts and peripherals.">
+<link rel="stylesheet" href="assets/style.css">
+<script src="assets/site.js"></script>
+</head>
+<body>
+<div class="layout">
+<aside class="sidebar">
+  <div class="brand"><a href="index.html">Cortex-M, TrustZone &amp; TF-M on Renesas RA</a><button class="menu-toggle" aria-expanded="false">Menu</button></div>
+  <nav>
+    <ol>
+      <li><a href="index.html">Start here</a></li>
+      <li><a href="part0-primer.html">0 · The Cortex-M machine</a></li>
+      <li><a href="part1-privilege-mpu-faults.html">1 · Privilege, MPU, faults</a></li>
+      <li><a href="part2-trustzone.html" aria-current="page">2 · TrustZone for Armv8-M</a>
+        <ol>
+          <li><a href="#states">Two states, four quadrants</a></li>
+          <li><a href="#sau-idau">SAU and IDAU</a></li>
+          <li><a href="#nsc">NSC and SG veneers</a></li>
+          <li><a href="#banked">Banked registers</a></li>
+          <li><a href="#nvic">NVIC target state</a></li>
+          <li><a href="#ra-irq">Interrupts on RA</a></li>
+          <li><a href="#ra-periph">Peripherals on RA</a></li>
+          <li><a href="#provision">Provisioning</a></li>
+          <li><a href="#check">Check yourself</a></li>
+        </ol>
+      </li>
+      <li><a href="part3-tfm.html">3 · TF-M</a></li>
+      <li><a href="part4-porting.html">4 · Porting</a></li>
+      <li><a href="glossary.html">Glossary &amp; sources</a></li>
+    </ol>
+    <div class="legend">
+      <p><span class="tag arch">Armv8-M</span> the architecture requires it</p>
+      <p><span class="tag tfm">TF-M</span> TF-M chooses it</p>
+      <p><span class="tag ra">RA</span> Renesas silicon or FSP does it</p>
+      <p><span class="tag port">This port</span> this repository does it</p>
+    </div>
+    <button class="theme-toggle" type="button">Dark theme</button>
+  </nav>
+</aside>
+<main>
+
+<h1>Part 2 — TrustZone for Armv8-M</h1>
+<p class="lede">Privilege (Part 1) separates an operating system from its tasks. The Security Extension adds a second,
+independent axis that separates two whole software worlds, each with its own operating system. This part is where the
+architecture stops being enough: how an RA part attributes memory, interrupts and peripherals is Renesas's design,
+not Arm's.</p>
+
+<!-- ============================================================ -->
+<h2 id="states">2.1 Two security states, four quadrants</h2>
+<p><span class="tag arch">Armv8-M</span> With the Security Extension the core is always in either <strong>Secure</strong>
+or <strong>Non-secure</strong> state. Every address is <strong>Secure</strong>, <strong>Non-secure</strong>, or
+<strong>Non-secure Callable</strong> (NSC). The core's state follows the attribution of the code it executes:</p>
+<ul>
+  <li>Secure state may access Secure and Non-secure memory.</li>
+  <li>Non-secure state may access only Non-secure memory. A Non-secure access to a Secure address raises a SecureFault
+    (or, depending on where it is caught, a BusFault in Secure state); it never returns Secure data.</li>
+  <li>Security state and privilege are <strong>orthogonal</strong>: each state has its own privileged and unprivileged
+    Thread mode and its own Handler mode.</li>
+</ul>
+
+<figure class="wide">
+<svg viewBox="0 0 760 440" role="img" aria-labelledby="q-t q-d">
+  <title id="q-t">Secure and non-secure crossed with privileged and unprivileged, populated for this port</title>
+  <desc id="q-d">Four quadrants. Secure privileged holds the SPM and PSA Root of Trust partitions. Secure unprivileged holds Application Root of Trust partitions at isolation levels 2 and 3, including their FLIH handlers. Non-secure privileged holds the FreeRTOS kernel and non-secure handlers. Non-secure unprivileged holds application tasks. Arrows show SVC for privilege transitions and SG veneers in NSC memory for the non-secure to secure transition.</desc>
+  <defs><marker id="q-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="head"/></marker></defs>
+  <text x="235" y="22" class="t-lg">Secure</text>
+  <text x="575" y="22" class="t-lg">Non-secure</text>
+  <text x="14" y="120" class="t-lg">Privileged</text>
+  <text x="14" y="320" class="t-lg">Unprivileged</text>
+  <rect x="120" y="34" width="300" height="180" class="sec2"/>
+  <rect x="450" y="34" width="300" height="180" class="ns2"/>
+  <rect x="120" y="234" width="300" height="180" class="sec"/>
+  <rect x="450" y="234" width="300" height="180" class="ns"/>
+  <text x="132" y="58" class="t-md">SPM (TF-M core)</text>
+  <text x="132" y="78" class="t-md">PSA RoT partitions: Crypto, ITS,</text>
+  <text x="132" y="96" class="t-md">Initial Attestation, Platform</text>
+  <text x="132" y="116" class="t-md">All secure exception handlers</text>
+  <text x="132" y="136" class="t-md">ARoT partitions at isolation 1</text>
+  <text x="132" y="164" class="t-sm t-muted">CONTROL_S.nPRIV = 0, or Handler mode</text>
+  <text x="132" y="182" class="t-sm t-muted">may write NVIC, SAU, MPU, PSCU</text>
+  <text x="462" y="58" class="t-md">FreeRTOS kernel</text>
+  <text x="462" y="78" class="t-md">Non-secure handlers (SysTick_NS…)</text>
+  <text x="462" y="164" class="t-sm t-muted">CONTROL_NS.nPRIV = 0</text>
+  <text x="462" y="182" class="t-sm t-muted">sees only NS memory, NS-targeted IRQs</text>
+  <text x="132" y="258" class="t-md">Application-RoT partitions at</text>
+  <text x="132" y="276" class="t-md">isolation 2 and 3: Protected Storage,</text>
+  <text x="132" y="296" class="t-md">TFM_SP_FLIH_TEST and its FLIH handler,</text>
+  <text x="132" y="316" class="t-md">tfm_sprt code they call</text>
+  <text x="132" y="356" class="t-sm t-muted">CONTROL_S.nPRIV = 1; bounded by Secure MPU;</text>
+  <text x="132" y="374" class="t-sm t-muted">peripherals (ICU…) only if a region is granted;</text>
+  <text x="132" y="392" class="t-sm t-muted">PPB, incl. NVIC, never</text>
+  <text x="462" y="258" class="t-md">Application tasks, if the NS</text>
+  <text x="462" y="276" class="t-md">RTOS runs them unprivileged</text>
+  <text x="462" y="356" class="t-sm t-muted">CONTROL_NS.nPRIV = 1; bounded by NS MPU</text>
+  <!-- arrows -->
+  <line x1="300" y1="234" x2="300" y2="216" class="line" marker-end="url(#q-a)"/>
+  <text x="306" y="228" class="t-sm">SVC</text>
+  <line x1="630" y1="234" x2="630" y2="216" class="line" marker-end="url(#q-a)"/>
+  <text x="636" y="228" class="t-sm">SVC</text>
+  <path d="M 450 110 L 422 110" class="hl" marker-end="url(#q-a)"/>
+  <text x="424" y="104" class="t-sm t-hl" text-anchor="end">SG in NSC</text>
+  <path d="M 420 150 L 448 150" class="line" marker-end="url(#q-a)"/>
+  <text x="452" y="146" class="t-sm">BXNS</text>
+</svg>
+<figcaption>The four quadrants as populated by this port. The red arrow is the only way into Secure state from
+Non-secure code (§2.3). Which partitions are unprivileged depends on the TF-M isolation level (Part 3 §3.3).</figcaption>
+</figure>
+
+<p>The port's <code>tfm_hal_memory_check()</code> asks exactly this two-axis question when a partition hands the SPM a
+buffer: is it accessible to <em>this</em> caller, privileged or not, Secure or not? It uses the CMSE intrinsic
+<code>cmse_check_address_range()</code>, which compiles to the <code>TT</code> (Test Target) instruction that reports
+both the MPU permission and the SAU/IDAU attribution of an address:</p>
+<pre><code>    if (!((uint32_t)boundary &amp; HANDLE_ATTR_PRIV_MASK)) {
+        flags |= CMSE_MPU_UNPRIV;
+    }
+    ...
+    if (cmse_check_address_range((void *)base, size, flags) != NULL) {</code></pre>
+<p class="src"><code>tfm_hal_isolation_v8m.c:712-728</code></p>
+
+<!-- ============================================================ -->
+<h2 id="sau-idau">2.2 SAU and IDAU — who decides what is secure</h2>
+<p><span class="tag arch">Armv8-M</span> Two units attribute each address, and the result is the <strong>more
+secure</strong> of the two answers (Secure &gt; NSC &gt; Non-secure):</p>
+<div class="table-wrap"><table>
+<tr><th></th><th>SAU — Security Attribution Unit</th><th>IDAU — Implementation-Defined Attribution Unit</th></tr>
+<tr><td>Defined by</td><td>Arm; registers at <code>0xE000EDD0</code></td><td>the silicon vendor; outside the core</td></tr>
+<tr><td>Programmed by</td><td>Secure privileged software, at run time</td><td>whatever the vendor decides — on RA, boundary registers burned at provisioning</td></tr>
+<tr><td>Regions</td><td><code>SAU_TYPE.SREGION</code>; may be zero</td><td>vendor-defined</td></tr>
+<tr><td>Default</td><td><code>SAU_CTRL.ENABLE = 0</code>, <code>ALLNS = 0</code> ⇒ <strong>everything Secure</strong></td><td>—</td></tr>
+</table></div>
+<p>Because the more secure answer wins, the SAU can only make memory <em>more</em> secure than the IDAU says, never less.
+<code>SAU_CTRL.ALLNS = 1</code> with the SAU disabled means "the SAU says Non-secure everywhere", which hands the decision
+entirely to the IDAU.</p>
+
+<h3>Why <code>__SAUREGION_PRESENT</code> is 0 on RA6M5 and 1 on RA8M2</h3>
+<p><span class="tag ra">RA</span> The CMSIS device header declares whether the SAU has any regions:
+<code>__SAUREGION_PRESENT 0</code> at <code>R7FA6M5BH.h:47</code>, <code>1</code> at
+<code>R7KA8M2JF_core0.h:49</code>. FSP's <code>R_BSP_SAUInit()</code> branches on it:</p>
+<pre><code>void R_BSP_SAUInit (void)
+{
+  #if __SAUREGION_PRESENT
+    ...
+    /* Configure SAU region used for Code Flash Non-secure callable. */
+    SAU-&gt;RNR  = BSP_SAU_REGION_CODE_FLASH_NSC;
+    ...
+    /* Enable the SAU. */
+    SAU-&gt;CTRL = SAU_CTRL_ENABLE_Msk;
+    ...
+  #else
+
+    /* Setting SAU_CTRL.ALLNS to 1 allows the security attribution of all addresses to be set by the IDAU in the
+     * system. */
+    SAU-&gt;CTRL = SAU_CTRL_ALLNS_Msk;
+  #endif
+}</code></pre>
+<p class="src"><code>ra6m5_gcc_secure/ra/fsp/src/bsp/mcu/all/bsp_security.c:200-279</code></p>
+<ul>
+  <li><strong>RA6M5:</strong> an SAU with zero regions. Armv8-M with the Security Extension always implements
+    <code>SAU_CTRL</code>; <code>__SAUREGION_PRESENT 0</code> means it has no regions to program. In the <em>secure
+    image</em> FSP sets <code>ALLNS</code>, so the IDAU decides everything. There is one address alias for code flash
+    (<code>BSP_FEATURE_TZ_NS_OFFSET 0x00</code>), so an address is Secure or Non-secure purely by which side of a
+    boundary it falls.</li>
+  <li><strong>RA8M2:</strong> SAU regions exist, and the part has <em>two aliases</em> of MRAM, 0x1000_0000 apart. The
+    IDAU makes the high alias Non-secure, but with the SAU at its reset default every address is Secure, and the more
+    secure answer wins. A Secure access to the Non-secure alias is then refused.</li>
+</ul>
+<p><span class="tag port">This port</span> BL2 is a flat build on both parts, so FSP's <code>R_BSP_SAUInit()</code>
+never runs there and <code>SAU_CTRL</code> stays at reset: <code>ENABLE = 0</code>, <code>ALLNS = 0</code>, every
+address Secure — on RA6M5 too. RA6M5's BL2 is unaffected because there is only one alias: a Secure access to the
+IDAU-Non-secure flash is permitted, and it reaches the bytes at their only address. RA8M2's BL2 must read the
+Non-secure <em>alias</em>, so it has to enable the SAU itself:</p>
+<pre><code> * Reaching them also needs the access itself to be non-secure. With the SAU disabled and
+ * SAU_CTRL.ALLNS clear, Armv8-M attributes every address Secure, and the combined SAU/IDAU
+ * attribute takes the more secure of the two - so BL2's load from 0x120B0000 goes out as a
+ * SECURE transaction to the non-secure alias and is refused. Both aliases then fault: the
+ * secure one on the address, the non-secure one on the attribute.</code></pre>
+<p class="src"><code>ra8m2/bl2_boot_hal.c:34-38</code>; the single SAU region it programs, and the enable, are at <code>:79-94</code></p>
+<p>FSP's <code>R_BSP_SAUInit()</code> would normally do this, but it is reached only under
+<code>BSP_TZ_SECURE_BUILD</code>, and BL2 is deliberately built as a flat, TrustZone-unaware FSP project
+(<code>bl2_boot_hal.c:40-43</code>). History: <a href="ref/DECISIONS.html#d073">D073</a>–<a href="ref/DECISIONS.html#d076">D076</a>, <a href="ref/DECISIONS.html#d079">D079</a>, <a href="ref/DECISIONS.html#d091">D091</a>.</p>
+
+<div class="note" id="target-cfg-comment">
+<p><strong>A comment that denied the IDAU existed.</strong> Until TF-M commit <code>b1b9078ff</code>,
+<code>sau_and_idau_cfg()</code> in <code>ra6m5/target_cfg.c</code> — and its copies in ra6m4 and ra6e1 — read:</p>
+<pre><code>void sau_and_idau_cfg(void)
+{
+    /* SAU configuration is handled by TF-M's common ARMv8-M isolation framework */
+    /* The framework will configure SAU based on region_defs.h and memory_regions */
+
+    /* RA6M5 doesn't have IDAU - security attribution is done entirely via SAU */
+}</code></pre>
+<p>All three statements were wrong. TF-M's shared isolation HAL does not program the SAU — it calls this function
+(<code>tfm_hal_isolation_v8m.c:275</code>). On RA6M5 it is the <em>SAU</em> that has no regions; attribution is done
+entirely by the IDAU. The <code>mpc_init_cfg()</code>/<code>ppc_init_cfg()</code> comments repeated the error, and
+<code>ra8m2/bl2_boot_hal.c:45-46</code> in the same tree already said the opposite. The function stays empty; its
+comment now explains why (<code>ra6m5/target_cfg.c:36-52</code>; <a href="ref/DECISIONS.html#d117">D117</a> §3).</p>
+<p>The replacement still overstates by one word. It, <a href="ref/DECISIONS.html#d117">D117</a> §3 and <code>ra8m2/bl2_boot_hal.c:45</code> say RA6M5 has
+"no SAU at all". It has an SAU with <em>no regions</em>: FSP writes <code>SAU-&gt;CTRL = SAU_CTRL_ALLNS_Msk</code> on
+this part (<code>bsp_security.c:277</code>), which would be impossible without one.</p>
+<p>Why it survived through a working port: the function is a no-op on these parts whichever way the comment reads. A
+wrong statement about a part's security architecture has no runtime symptom — and is exactly the kind that gets
+believed.</p>
+</div>
+
+<h3>The IDAU on RA: boundary registers</h3>
+<p><span class="tag ra">RA</span> <strong>RA6M5 (RA6 family).</strong> The IDAU is driven by boundary registers in
+the PSCU, set once per device by the Renesas Device Partition Manager (RDPM). FSP could write them, but the code that
+would is compiled out (<code>#if 0 == BSP_FEATURE_TZ_HAS_DLM</code>; <code>BSP_FEATURE_TZ_HAS_DLM (1UL)</code> at
+<code>ra6m5_gcc_secure/ra/fsp/src/bsp/mcu/ra6m5/bsp_feature.h:599</code>).</p>
+<div class="table-wrap"><table>
+<tr><th>Boundary</th><th>Register</th><th>Granularity</th></tr>
+<tr><td>Code flash Secure → NSC</td><td><code>CFSAMONB.CFS1</code></td><td>1 KB</td></tr>
+<tr><td>Code flash NSC → Non-secure</td><td><code>CFSAMONA.CFS2</code></td><td><strong>32 KB</strong></td></tr>
+<tr><td>SRAM Secure → NSC</td><td><code>SSAMONB.SS1</code></td><td>1 KB</td></tr>
+<tr><td>SRAM NSC → Non-secure</td><td><code>SSAMONA.SS2</code></td><td><strong>8 KB</strong></td></tr>
+<tr><td>Data flash Secure → Non-secure</td><td><code>DFSAMON.DFS</code></td><td>1 KB</td></tr>
+</table></div>
+<p class="src"><a href="ref/DESIGN.html#s7-1">DESIGN.md</a> §7.1; registers at <code>R7FA6M5BH.h:3850-3900</code>
+(PSCU offsets <code>0x18</code>–<code>0x28</code>)</p>
+<p><span class="tag ra">RA</span> <strong>RA8M2 is different.</strong> Its PSCU has only <code>CFSAMONA</code>, and that
+one is read-only (<code>__IM</code>, offset <code>0x30</code>, <code>R7KA8M2JF_core0.h:3560</code>); RDPM sets the code-MRAM
+boundary <code>CFS2</code>. The SRAM Secure/Non-secure split is <em>not</em> burned at provisioning: FSP's
+<code>R_BSP_SAUInit()</code> writes it at boot into <code>R_CPSCU-&gt;SRAMSABAR0..3</code>, under a comment that says
+"Configure IDAU to divide SRAM region into NSC/NS" (<code>ra8m2_gcc_CPU0_secure/ra/fsp/src/bsp/mcu/all/bsp_security.c:202-211</code>).
+NSC on RA8M2 comes from SAU regions. <code>BSP_FEATURE_TZ_HAS_DLM</code> is also 1 there
+(<code>…/mcu/ra8m2/bsp_feature.h:597</code>), so the RA6-style block stays compiled out.</p>
+<p>The coarse granularities constrain the layout: Secure + NSC code must be a multiple of 32 KB, Secure + NSC SRAM a
+multiple of 8 KB. RA6M5's values satisfy both: 1150 + 2 = 1152 KB = 36 × 32, and 255 + 1 = 256 KB = 32 × 8
+(<a href="ref/RA6M5_SOLUTION.html">RA6M5_SOLUTION.md</a>).</p>
+
+<!-- ============================================================ -->
+<h2 id="nsc">2.3 Non-secure-callable memory and SG veneers</h2>
+<p><span class="tag arch">Armv8-M</span> Non-secure code may not branch to an arbitrary Secure address — otherwise it
+could jump into the middle of a secure function after its checks. The rule:</p>
+<ul>
+  <li>The <strong>only</strong> legal target of a Non-secure → Secure branch is an <code>SG</code> (Secure Gateway)
+    instruction located in memory attributed <strong>NSC</strong>.</li>
+  <li>Any other target raises SecureFault with <code>SFSR.INVEP</code> (bit 0), before the target instruction runs.</li>
+  <li>Secure code returns with <code>BXNS LR</code> and calls Non-secure functions with <code>BLXNS</code>. The compiler
+    clears registers that might leak Secure values before either.</li>
+</ul>
+<p>With CMSE (<code>-mcmse</code>), a function declared <code>cmse_nonsecure_entry</code> gets a small
+<strong>veneer</strong> — <code>SG</code> followed by a branch to the real function — emitted into the
+<code>.gnu.sgstubs</code> section. The linker must place that section inside the NSC window.</p>
+<p><span class="tag port">This port</span> The NSC window comes from the e2 solution and the veneers are pinned to
+it rather than allowed to float to the end of the code:</p>
+<pre><code>#define CMSE_VENEER_REGION_START        (BSP_PARTITION_FLASH_CPU0_C_START)
+#define CMSE_VENEER_REGION_SIZE         (BSP_PARTITION_FLASH_CPU0_C_SIZE)
+...
+#define TFM_LINKER_VENEERS_START        CMSE_VENEER_REGION_START
+...
+#define TFM_LINKER_VENEERS_LOCATION_END</code></pre>
+<p class="src"><code>ra6m5/region_defs.h:173-183</code>. On RA6M5 the window is <code>FLASH_CM33_C</code>,
+<code>0x11F800</code>, 2 KB (<a href="ref/RA6M5_SOLUTION.html">RA6M5_SOLUTION.md</a>).</p>
+<p>Pinned because the RA boundaries are set once at provisioning: if the veneers moved with each build, a firmware update
+could move them out of the window the part was provisioned with (<a href="ref/DESIGN.html#s7">DESIGN.md</a> §7).</p>
+<p><span class="tag tfm">TF-M</span> A veneer as TF-M writes one, for the Armv8.0-M case (Cortex-M33):</p>
+<pre><code>__tz_naked_veneer
+psa_status_t tfm_psa_call_veneer(psa_handle_t handle,
+                                 uint32_t ctrl_param,
+                                 const psa_invec *in_vec,
+                                 psa_outvec *out_vec)
+{
+    __ASM volatile(
+        SYNTAX_UNIFIED
+        "   push   {r2, r3}                                   \n"
+        ...
+        "   ldr    r2, [sp, #8]                               \n"
+        "   ldr    r3, ="M2S(STACK_SEAL_PATTERN)"             \n"
+        "   cmp    r2, r3                                     \n"
+        "   bne    reent_panic4                               \n"
+        ...
+        "   bl     "M2S(tfm_psa_call_pack)"                   \n"
+        "   bl     clear_caller_context                       \n"
+        ...
+        "   bxns   lr                                         \n"</code></pre>
+<p class="src"><code>secure_fw/partitions/ns_agent_tz/psa_api_veneers_v80m.c:144-175</code></p>
+<p>The stack-seal comparison is a re-entrancy check: on Armv8.0-M the hardware does not detect a Non-secure caller
+re-entering Secure state while a Secure call is in progress, so TF-M checks for its seal pattern itself (comment at
+<code>psa_api_veneers_v80m.c:20-33</code>). Armv8.1-M parts such as the RA8M2's Cortex-M85 use
+<code>psa_api_veneers.c</code> instead (<code>secure_fw/partitions/ns_agent_tz/CMakeLists.txt:35-36</code>).</p>
+
+<h3>Three ways this port has hit INVEP</h3>
+<ul>
+  <li><strong>Veneers outside the window.</strong> TF-M's IAR linker template ignored
+    <code>TFM_LINKER_VENEERS_LOCATION_END</code> and placed veneers at <code>0x58400</code> while the NSC window was at
+    <code>0x97800</code>. The fault PC <code>0x58418</code> was <code>tfm_psa_framework_version_veneer</code>.
+    (<a href="ref/UPSTREAM_CHANGES.html">UPSTREAM_CHANGES.md</a> item 2, RA6E1.)</li>
+  <li><strong>Boundaries never programmed.</strong> On an unprovisioned part everything is Secure, and the first
+    S → NS <code>BLXNS</code> into the non-secure image faults (<a href="ref/DESIGN.html#s7-1">DESIGN.md</a> §7.1).</li>
+  <li><strong>Boundaries reprogrammed by the debugger.</strong> e2 studio's <code>setTZBoundaries</code> option derives
+    boundaries from the launched project's symbols; launched against BL2, which has no TrustZone knowledge, it marks
+    everything Secure. It must be <code>false</code> in every launch configuration (<a href="ref/DESIGN.html#s7-2">DESIGN.md</a> §7.2).</li>
+</ul>
+
+<!-- ============================================================ -->
+<h2 id="banked">2.4 Banked registers</h2>
+<p><span class="tag arch">Armv8-M</span> Many core registers exist twice, once per security state. Code always sees
+the copy for its current state at the normal address. Secure code reaches the Non-secure copy through the non-secure
+alias of the System Control Space at <code>0xE002E000</code> or, for special registers, through <code>MRS/MSR</code>
+with an <code>_NS</code> suffix. Non-secure code cannot reach the Secure copy at all.</p>
+<div class="table-wrap"><table>
+<tr><th>Banked (one copy per state)</th><th>Secure-only</th><th>Shared</th></tr>
+<tr><td>
+  MSP, PSP, MSPLIM, PSPLIM ·
+  CONTROL (<code>nPRIV</code>, <code>SPSEL</code>) ·
+  PRIMASK, BASEPRI, FAULTMASK ·
+  <code>VTOR</code> ·
+  the MPU (a Secure and a Non-secure MPU) ·
+  SysTick, where both are implemented ·
+  parts of the SCB, e.g. <code>SHCSR</code>, <code>CCR</code>, <code>CPACR</code>, the MemManage status
+</td><td>
+  the SAU ·
+  <code>NVIC_ITNS</code> ·
+  <code>SFSR</code>, <code>SFAR</code> ·
+  <code>NSACR</code> ·
+  <code>AIRCR.PRIS</code>, <code>AIRCR.BFHFNMINS</code>
+</td><td>
+  R0–R12, LR, PC, xPSR ·
+  FP registers (with <code>FPCCR</code> rules to clear them on return) ·
+  NVIC enable/pending/priority — not banked. Secure sees every interrupt; Non-secure sees only those with
+  <code>ITNS</code> = 1
+</td></tr>
+</table></div>
+<p>Examples of TF-M reaching across:</p>
+<ul>
+  <li><code>__TZ_get_CONTROL_NS()</code> to learn whether the Non-secure caller was privileged
+    (<code>tfm_hal_isolation_v8m.c:719</code>).</li>
+  <li><code>__TZ_set_PRIMASK_NS(1)</code> as <code>TFM_NS_EXC_DISABLE()</code> (<code>tfm_arch_v8m.h:46-49</code>).</li>
+  <li><code>SCB_NS-&gt;CPACR</code> to disable the FPU for the Non-secure side (<code>tfm_arch_v8m_main.c:316</code>).</li>
+</ul>
+<div class="note">
+<p><strong>The MPU is banked.</strong> When this course says "the MPU" in Part 1 and Part 3 it means the Secure MPU,
+<code>MPU_S</code>, which TF-M owns. The non-secure RTOS has its own, independent MPU. <a href="ref/DECISIONS.html#d113">D113</a> and <a href="ref/DECISIONS.html#d115">D115</a> counted 8 regions on the
+Secure MPUs of RA6M5 and RA8M2; the count need not be the same for the Non-secure one, and this port has not read it.</p>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="nvic">2.5 The NVIC target-state mechanism, and priority partitioning</h2>
+<p><span class="tag arch">Armv8-M</span> Each external interrupt has a bit in <code>NVIC_ITNS</code>
+(<code>0xE000E380</code>): 0 targets Secure state, 1 Non-secure. Only Secure code can write it. A Secure-targeted
+interrupt is invisible to Non-secure software — reads as zero, writes ignored.</p>
+<p>Two <code>AIRCR</code> bits complete the picture:</p>
+<ul>
+  <li><code>BFHFNMINS</code> — if 0 (reset), BusFault, HardFault and NMI target Secure state. TF-M leaves it at 0.</li>
+  <li><code>PRIS</code> — "prioritise Secure". When set, every Non-secure priority is mapped into the lower-urgency half:
+    a Non-secure priority <em>p</em> behaves as <code>0x80 + p/2</code>. Non-secure code can therefore never preempt a
+    Secure exception at priority below <code>0x80</code>, even by raising its own BASEPRI.</li>
+</ul>
+<p><span class="tag tfm">TF-M</span> sets <code>PRIS</code> before any partition runs:</p>
+<pre><code>    /* Set PRIS flag in AIRCR */
+    AIRCR = scb-&gt;AIRCR;
+    VECTKEY = (~AIRCR &amp; SCB_AIRCR_VECTKEYSTAT_Msk);
+    scb-&gt;AIRCR = SCB_AIRCR_PRIS_Msk |
+                 VECTKEY |
+                 (AIRCR &amp; ~SCB_AIRCR_VECTKEY_Msk);</code></pre>
+<p class="src"><code>tfm_arch_v8m_main.c:231-236</code>, called from <code>main()</code> at <code>secure_fw/spm/core/main.c:122</code></p>
+<p>Now the PendSV value from Part 0 makes sense. TF-M wants its scheduler at the lowest Secure priority, but still above
+everything Non-secure code can reach:</p>
+<pre><code> * When AIRCR.PRIS is set, the Non-Secure execution can act on
+ * FAULTMASK_NS, PRIMASK_NS or BASEPRI_NS register to boost its priority
+ * number up to the value 0x80.
+ * For this reason, set the priority of the PendSV interrupt to the next
+ * priority level configurable on the platform, just below 0x80.
+ */
+#define PENDSV_PRIO_FOR_SCHED ((1 &lt;&lt; (__NVIC_PRIO_BITS - 1)) - 1)</code></pre>
+<p class="src"><code>secure_fw/spm/include/tfm_arch.h:63-69</code>. With 4 priority bits: 7, i.e. <code>0x70</code>.</p>
+
+<!-- ============================================================ -->
+<h2 id="ra-irq">2.6 Interrupts on RA: two registers that must agree</h2>
+<p><span class="tag ra">RA</span> On RA an interrupt's security state is held in <strong>two</strong> places:
+<code>NVIC-&gt;ITNS</code> (Arm) and <code>R_CPSCU-&gt;ICUSARG</code> (Renesas, for the ICU's event-link registers).
+FSP's <code>bsp_irq_cfg()</code> writes them together, from the same value, with the security-attribution registers
+unlocked:</p>
+<pre><code>    /* The Secure Attribute managed within the ARM CPU NVIC must match the security attribution of IELSEn
+     * (Refer "ICUSARI : Interrupt Controller Unit Security Attribution Register I" description in the ICU section of the relevant hardware manual). */
+    ...
+    for (uint32_t i = 0U; i &lt; BSP_ICU_VECTOR_MAX_ENTRIES / BSP_PRV_BITS_PER_WORD; i++)
+    {
+        p_icusarg[i]  = interrupt_security_state[i];
+        NVIC-&gt;ITNS[i] = interrupt_security_state[i];
+    }</code></pre>
+<p class="src"><code>ra6m5_gcc_secure/ra/fsp/src/bsp/mcu/all/bsp_irq.c:271-284</code></p>
+<p><code>interrupt_security_state</code> starts all-Non-secure and has a bit cleared for every slot with a non-zero
+entry in the generated event-link table. So:</p>
+<div class="note"><p><strong>On RA, an interrupt is Secure if and only if the <em>secure</em> e2 project configures it</strong>
+with a real interrupt priority (<a href="ref/DECISIONS.html#d061">D061</a>). It is a build-time property, set by the configurator.</p></div>
+<p><span class="tag tfm">TF-M</span> Every Arm reference platform instead makes an interrupt Secure at run time by
+calling CMSIS <code>NVIC_ClearTargetState()</code> in the partition's IRQ init. <span class="tag port">This port</span>
+does not, deliberately:</p>
+<pre><code> * and on RA that single call leaves the interrupt in an INCONSISTENT state. Target state
+ * is held in two places that must agree: NVIC-&gt;ITNS and R_CPSCU-&gt;ICUSARG. FSP writes them
+ * as a pair in bsp_irq_cfg() (bsp_irq.c). NVIC_ClearTargetState() is plain CMSIS and knows
+ * only about ITNS, so it would mark the interrupt non-secure to the NVIC while ICUSARG
+ * still says secure.</code></pre>
+<p class="src"><code>ra6m5/tfm_timer0_irq.c:18-22</code>, and <code>:118</code> "No NVIC_ClearTargetState() - see the file header."</p>
+
+<h3><a href="ref/DECISIONS.html#d069">D069</a>: the table was linked with zeros</h3>
+<p>The FLIH test once hung because the interrupt was never routed at all. Both <code>ra_gen/vector_data.c</code>
+(the real <code>g_interrupt_event_link_select[]</code>) and FSP's <code>bsp_irq.c</code> (a weak all-zero fallback of
+the same array) are members of the same static library. The linker pulled in <code>bsp_irq.o</code> because something
+called <code>bsp_irq_cfg()</code>; its weak definition satisfied the reference; nothing else referred to
+<code>vector_data.o</code>, because TF-M uses its own vector table — so the real table was never extracted.</p>
+<p>With zeros, <code>bsp_irq_cfg()</code> skipped both its writes: <code>IELSR[0]</code> was never programmed (the
+event went nowhere) and <code>ITNS[0]</code>/<code>ICUSARG</code> stayed Non-secure. The fix is a reference that only
+<code>vector_data.c</code> can satisfy:</p>
+<pre><code>extern const fsp_vector_t g_vector_table[];
+const fsp_vector_t * const ra6m5_icu_vector_data_anchor = g_vector_table;</code></pre>
+<p class="src"><code>ra6m5/target_cfg.c:234-235</code>; <a href="ref/DECISIONS.html#d069">D069</a></p>
+<p>The general lesson <a href="ref/DECISIONS.html#d069">D069</a> records: <em>a weak definition in an already-extracted object silences the strong one in an
+un-extracted archive member, with no diagnostic from any tool.</em> The only evidence was the symbol binding
+(<code>V</code> weak vs <code>T</code> strong) and the array contents read out of the linked image.</p>
+<p><span class="tag port">This port</span> TF-M's vector table, not FSP's, is the one installed, so each serviced slot
+is overridden by hand (Part 0 §0.5). Adopting FSP's two-table layout was considered and rejected: it would hand each slot
+to FSP's driver ISR, which calls the driver callback directly and bypasses the SPM (<a href="ref/DECISIONS.html#d061">D061</a>).</p>
+
+<!-- ============================================================ -->
+<h2 id="ra-periph">2.7 Peripherals on RA: PSAR, not a PPC</h2>
+<p>A peripheral is just a range of addresses, so it could be attributed by the SAU/IDAU like memory. In practice SoCs
+need finer control. Two different designs exist:</p>
+<div class="table-wrap"><table>
+<tr><th></th><th>Arm reference subsystems (e.g. the platforms TF-M was written against)</th><th>Renesas RA</th></tr>
+<tr><td>Memory attribution beyond SAU/IDAU</td><td><strong>MPC</strong> — Memory Protection Controller, per memory block</td><td>RA6M5: IDAU boundary registers only. RA8M2: also <code>SRAMSABARn</code> and the Cortex-M85 TCM gate units
+  (<code>MEMSYSCTL-&gt;ITGU_LUT</code>/<code>DTGU_LUT</code>, block-granular, MPC-like), programmed by FSP at boot
+  (<code>bsp_security.c:303-335</code> in the RA8M2 project)</td></tr>
+<tr><td>Peripheral <em>security</em></td><td><strong>PPC</strong> — Peripheral Protection Controller, per peripheral bit</td><td><strong>PSAR</strong>B–E in the <strong>PSCU</strong></td></tr>
+<tr><td>Peripheral <em>privilege</em></td><td>PPC "secure unprivileged" bits</td><td><strong>PPAR</strong>B–E — present on RA8M2, absent on RA6M5</td></tr>
+<tr><td>Configured by</td><td>TF-M at run time, via <code>ppc_*()</code> hooks</td><td>FSP's <code>R_BSP_SecurityInit()</code> at reset, from the e2 configuration</td></tr>
+</table></div>
+<ul>
+  <li><span class="tag ra">RA</span> FSP writes the PSARs from generated constants:
+    <code>BSP_PRV_SAR_WRITE(R_PSCU-&gt;PSARB, BSP_TZ_CFG_PSARB);</code> … <code>PSARE</code>
+    (<code>bsp_security.c:399-403</code>). The constants come from the secure project's TrustZone peripheral assignment.</li>
+  <li><span class="tag ra">RA</span> RA8M2's PSCU has <code>PPARB</code>–<code>PPARE</code>, "Peripheral Privilege
+    Attribution Register", at offsets <code>0x1C</code>–<code>0x28</code> (<code>R7KA8M2JF_core0.h:3355-3478</code>).
+    The RA6M5 header has no such registers. FSP's BSP does not write PPAR on either part, and this port does not use it:
+    peripheral privilege is enforced by the Secure MPU, as on any Armv8-M part without a PPC.</li>
+  <li><span class="tag port">This port</span> The shared isolation HAL calls <code>ppc_configure_to_secure()</code> and
+    friends for each partition MMIO region. The RA ports supply them as no-ops and mark every peripheral with a sentinel
+    so they are never reached:</li>
+</ul>
+<pre><code>/*
+ * RA6 has no MPC/PPC, so every platform_data_t here carries the PPC_SP_DO_NOT_CONFIGURE
+ * sentinel and tfm_hal_bind_boundary() skips the peripheral-programming branch entirely.
+ */
+...
+struct platform_data_t tfm_peripheral_timer0 = {
+    .periph_start     = 0x400E8000,
+    .periph_limit     = 0x400E80FF,
+    .periph_ppc_bank  = PPC_SP_DO_NOT_CONFIGURE,
+    .periph_ppc_mask  = 0,
+};</code></pre>
+<p class="src"><code>ra6m5/tfm_peripherals_def.c:12-40</code>; the no-ops at <code>ra6m5/target_cfg.c:69-97</code>;
+the guarded call at <code>tfm_hal_isolation_v8m.c:445-455</code></p>
+
+<h3>The azone is where peripheral security actually lives</h3>
+<p><a href="ref/DECISIONS.html#d112">D112</a>: a property-by-property diff of the RA8M2 IAR and GCC e2 projects showed them identical, yet the IAR project was
+missing an <code>ICU.IRQ0</code> security assignment. Peripheral-to-zone assignments are stored in the
+<code>.secure_azone</code> file, which the diff never read. When checking that two projects attribute peripherals the same
+way, diff the azone too (<a href="ref/PORTING.html#s6">PORTING.md</a> §6).</p>
+
+<h3>Other RA security-attribution registers</h3>
+<p><code>R_BSP_SecurityInit()</code> also writes attribution for the low-power-mode controller (<code>LPMSAR</code>),
+SRAM (<code>SRAMSAR</code>) and, on parts with MRAM, the MRAM controller (<code>MSAR</code>,
+<code>bsp_security.c:423</code> and <code>:471-475</code>). On RA8M2 the e2 generator derived <code>MSAR</code> from
+<code>BSP_CFG_CLOCKS_SECURE (0)</code>, marking the MRAM controller's <code>MRCPFB</code> register Non-secure. The secure
+image's first MRAM write then took a precise BusFault, <code>BFSR 0x82</code>, <code>BFAR 0x4013C000</code> — a
+<em>security</em> attribution fault on a peripheral register, not a privilege fault. The port works around it with
+<code>BSP_TZ_CFG_MSAR=0</code> pending an e2 fix (<a href="ref/DECISIONS.html#d092">D092</a>, <a href="ref/DECISIONS.html#d093">D093</a>; <a href="ref/DESIGN.html#s1-1">DESIGN.md</a> §1.1 item 2).</p>
+
+<!-- ============================================================ -->
+<h2 id="provision">2.8 Provisioning: the part of TrustZone no firmware sets</h2>
+<ul>
+  <li><span class="tag port">This port</span> The boundary values are per-part. Their owning documents are
+    <a href="ref/RA6M5_SOLUTION.html">RA6M5_SOLUTION.md</a> and <a href="ref/RA8M2_SOLUTION.html">RA8M2_SOLUTION.md</a>;
+    take them from there, not from a copy. (<a href="ref/PORTING.html#s4">PORTING.md</a> §4 already repeats the RA8M2
+    values, which is one copy too many: a stale duplicate is how a board gets provisioned wrong.)</li>
+  <li><span class="tag ra">RA</span> RDPM erases the part. Reflash all three images afterwards.</li>
+  <li>Verify by reading <code>CFSAMONA</code> back (and <code>CFSAMONB</code> on RA6 parts); a wrong value is not a
+    build error.</li>
+</ul>
+
+<!-- ============================================================ -->
+<section class="check" id="check">
+<h2>Check yourself</h2>
+<ol>
+  <li>The SAU says an address is Non-secure and the IDAU says it is NSC. What is it?
+    <details><summary>Answer</summary>NSC. The combined attribution is the more secure of the two, and NSC is more secure
+    than Non-secure.</details></li>
+  <li>Why does BL2 on RA8M2 need to enable the SAU, while BL2 on RA6M5 does not?
+    <details><summary>Answer</summary>RA8M2 has SAU regions and two MRAM aliases. With the SAU at reset defaults every
+    address is Secure, so BL2's read of the Non-secure alias goes out as a Secure transaction and is refused. BL2 is a flat build on
+    both parts, so the SAU is at reset defaults on RA6M5 too. RA6M5 still works because it has a single alias: a Secure
+    access to IDAU-Non-secure flash is permitted and reaches the bytes at their only address. (<code>ALLNS</code> is set
+    only in the secure image.)</details></li>
+  <li>Non-secure code calls a function pointer that holds the address of a Secure function's first instruction (not its
+    veneer). What happens, and which register records it?
+    <details><summary>Answer</summary>SecureFault with <code>SFSR.INVEP</code>: the target is not an SG instruction in NSC
+    memory. SFSR is at <code>0xE000EDE4</code>.</details></li>
+  <li>Why is TF-M's PendSV priority <code>0x70</code> rather than <code>0xF0</code>?
+    <details><summary>Answer</summary>With <code>AIRCR.PRIS</code> set, Non-secure code can boost itself to an effective
+    priority of <code>0x80</code>. PendSV must remain above that so Non-secure code can never mask or preempt the secure
+    scheduler; <code>0x70</code> is the least urgent level below <code>0x80</code> with 4 priority bits.</details></li>
+  <li>An Arm porting guide says to call <code>NVIC_ClearTargetState(irq)</code> in your IRQ init. Why is that wrong on RA?
+    <details><summary>Answer</summary>RA keeps target state in both <code>NVIC-&gt;ITNS</code> and <code>ICUSARG</code>, and
+    they must agree. The CMSIS call writes only ITNS. FSP has already set both from the secure project's configuration.</details></li>
+  <li>An interrupt you configured in the secure e2 project never fires, and <code>IELSR[n]</code> reads 0. Name the
+    first thing to check in the linked image.
+    <details><summary>Answer</summary>Whether <code>g_interrupt_event_link_select</code> is the strong definition from
+    <code>vector_data.c</code> (<code>T</code>) or FSP's weak zero fallback (<code>V</code>), and its contents (<a href="ref/DECISIONS.html#d069">D069</a>).</details></li>
+  <li>RA6M5 has no PPC. What does TF-M's call to <code>ppc_configure_to_secure()</code> do on this port, and where is
+    the peripheral's security actually set?
+    <details><summary>Answer</summary>Nothing — it is a no-op, and is never reached because every
+    <code>platform_data_t</code> carries <code>PPC_SP_DO_NOT_CONFIGURE</code>. Security is set in the PSCU's PSAR registers
+    by FSP's <code>R_BSP_SecurityInit()</code>, from the e2 project's configuration.</details></li>
+  <li><code>BFSR 0x82, BFAR 0x4013C000</code> on RA8M2, from Secure privileged code. Is this a privilege problem?
+    <details><summary>Answer</summary>No. Privileged Secure code was refused because the target register was attributed
+    Non-secure (<code>MSAR</code>). It is a security-attribution fault (<a href="ref/DECISIONS.html#d092">D092</a>).</details></li>
+</ol>
+</section>
+
+<div class="pager"><a href="part1-privilege-mpu-faults.html">← Part 1 · Privilege, MPU, faults</a><a href="part3-tfm.html">Part 3 · TF-M →</a></div>
+</main>
+</div>
+</body>
+</html>

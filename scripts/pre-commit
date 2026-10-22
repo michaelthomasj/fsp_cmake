@@ -1,24 +1,42 @@
 #!/bin/sh
-# Documentation cross-reference check.
+# Documentation hooks: cross-reference check, then re-render the course's reference pages.
 #
 # Install:   scripts/install_hooks.sh      (or copy this file to .git/hooks/pre-commit)
 # Bypass:    git commit --no-verify        (for a commit that deliberately breaks a reference,
 #                                           e.g. the first half of a two-repo rename)
 #
-# Only runs when the commit touches something that can carry a reference: .md, .cmake or
-# CMakeLists.txt. A code-only commit is not delayed.
+# Only runs when the commit touches something that can carry a reference or feeds the rendered
+# pages: .md, .cmake, CMakeLists.txt, the course under docs/learning/, or the renderer itself.
+# A code-only commit is not delayed.
 
-changed=$(git diff --cached --name-only --diff-filter=ACMR)
-echo "$changed" | grep -qE '\.md$|\.cmake$|CMakeLists\.txt$' || exit 0
+changed=$(git diff --cached --name-only --diff-filter=ACMRD)
+echo "$changed" | grep -qE '\.md$|\.cmake$|CMakeLists\.txt$|^docs/learning/|^scripts/build_doc_html\.py$' || exit 0
 
 root=$(git rev-parse --show-toplevel)
-[ -f "$root/scripts/check_docs.py" ] || exit 0
 
-python "$root/scripts/check_docs.py" --quiet
+# 1. Cross-references.
+if [ -f "$root/scripts/check_docs.py" ] && echo "$changed" | grep -qE '\.md$|\.cmake$|CMakeLists\.txt$'; then
+    python "$root/scripts/check_docs.py" --quiet
+    status=$?
+    if [ $status -ne 0 ]; then
+        echo
+        echo "pre-commit: documentation references are broken (above)."
+        echo "            Fix them, or commit with --no-verify if that is deliberate."
+        exit $status
+    fi
+fi
+
+# 2. Rendered reference pages, docs/learning/ref/. The Markdown is the source: render from the
+#    INDEX (--staged), not the working tree, so a partially staged document produces HTML that
+#    matches what is actually being committed. Then stage the result, including removals.
+[ -f "$root/scripts/build_doc_html.py" ] || exit 0
+python "$root/scripts/build_doc_html.py" --staged
 status=$?
 if [ $status -ne 0 ]; then
     echo
-    echo "pre-commit: documentation references are broken (above)."
-    echo "            Fix them, or commit with --no-verify if that is deliberate."
+    echo "pre-commit: rendering docs/learning/ref/ failed, or a course page links raw .md (above)."
+    echo "            Link the course to ref/<NAME>.html instead."
+    exit $status
 fi
-exit $status
+git -C "$root" add -A docs/learning/ref
+exit 0
