@@ -196,6 +196,19 @@ review proposes before anyone has written them.
 Bypass with `git commit --no-verify` when a commit deliberately breaks a reference, such as the
 first half of a rename spanning both repositories.
 
+```sh
+python scripts/check_arch_lines.py          # BUILD_ARCHITECTURE.md's line citations
+python scripts/check_arch_lines.py --list   # show what each cited line actually holds
+```
+
+55 citations into `ra6m5/CMakeLists.txt`, `ra8m2/CMakeLists.txt` and the upstream TF-M files,
+each paired with a regex the cited line must match. **`check_docs.py` cannot catch this class:**
+the file exists and the D-numbers resolve, so a reference stays "valid" while pointing at the
+wrong line. Every one of these went stale twice in one day, both times from a **comment** edit
+above the block — no CMake changed. Fail-on-stale, not regenerate: the numbers sit in prose that
+explains each block, so a human has to look. Skipped when `trusted-firmware-m` is not beside
+this repo. Adding a citation to the document means adding a row to the table in the script.
+
 ### Rendered documents for the course
 
 ```sh

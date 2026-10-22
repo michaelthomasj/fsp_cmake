@@ -176,6 +176,7 @@
           <li><a href="#d126">D126 — eighteen corrections to [D110]–[D125] from the second review; two carried items closed, and [D115]&#x27;s &quot;three of four corners&quot; was wrong</a></li>
           <li><a href="#d127">D127 — the CMake target graph gets its own document, drawn in ASCII rather than mermaid</a></li>
           <li><a href="#d128">D128 — the metadata line is an index and may be repaired in place (new rule 7); ten relation fields corrected, and [D120]/[D125]/[D126] each got one attribution wrong</a></li>
+          <li><a href="#d129">D129 — the v4 review of BUILD_ARCHITECTURE.md: eight findings, the FSPR attribution withdrawn in eleven more places, and line citations are now checked</a></li>
         </ol>
       </li>
     </ol>
@@ -5579,6 +5580,78 @@ citing a sibling entry without opening it.** <a href="DECISIONS.html#d126">D126<
 missing line to <a href="DECISIONS.html#d041">D041</a>; <a href="DECISIONS.html#d120">D120</a> attributed a precondition to <a href="DECISIONS.html#d114">D114</a>; <a href="DECISIONS.html#d125">D125</a> cleared <a href="DECISIONS.html#d123">D123</a> of a
 gap <a href="DECISIONS.html#d123">D123</a> describes in its own §2. Every one took a single search of the file this log is
 written in. The citation is the claim.</p>
+<hr>
+<h2 id="d129">D129 — the v4 review of <code>BUILD_ARCHITECTURE.md</code>: eight findings, the FSPR attribution withdrawn in eleven more places, and line citations are now checked</h2>
+<p><strong>Date:</strong> 2026-10-22 · <strong>Status:</strong> Accepted · <strong>Corrects:</strong> <a href="DECISIONS.html#d128">D128</a> · <strong>Builds on:</strong> <a href="DECISIONS.html#d094">D094</a>, <a href="DECISIONS.html#d127">D127</a> · <strong>Evidence:</strong> v4 addendum F301–F308; all eight re-verified in source; <code>check_arch_lines.py</code> 55/55</p>
+<p>The fourth review pass added an addendum reviewing <code>BUILD_ARCHITECTURE.md</code>, written one commit
+earlier in <a href="DECISIONS.html#d127">D127</a>. It confirmed the link graph, all 21 port citations and the nine upstream
+<code>tfm_spm</code> users, and raised <strong>eight findings — two medium.</strong> All eight hold.</p>
+<h3 id="s1_11">1. The two medium findings were both inherited, not invented</h3>
+<ul>
+<li><strong>F301. &quot;<code>r_sce</code> is never built; TF-M uses its own mbedcrypto; only the TRNG is taken.&quot;</strong>
+All three clauses are wrong on the live parts. The <code>sce</code> module <strong>builds</strong> <code>r_sce</code>
+(<code>FSP_MODULE_DIRS_sce</code>), the TRNG is always reachable, and the SCE9/RSIP-E50D cipher <code>*_ALT</code>
+path is live whenever <code>CRYPTO_HW_ACCELERATOR</code> is ON — the <strong>default</strong>. The crypto library is
+FSP&#x27;s, through the <code>fsp_mbedtls.cmake</code> overlay. What is actually excluded is FSP&#x27;s **PSA/ITS
+configuration**, which wires PSA ITS to littlefs.</li>
+<li><strong>F302. The <code>tfm_ns</code> row described a path that is off by default.</strong> The block sits inside
+<code>if(FSP_NS_APP_DIR AND RA6M5_NS_IN_SPE_BUILD)</code>, OFF since 2026-08-30 and kept only for
+single-configure boot bisection. In the normal split build the SPE project has **no <code>tfm_ns</code>
+target at all** — which contradicted §1 and §2 of the same document.</li>
+</ul>
+<p>**<a href="DECISIONS.html#d127">D127</a>&#x27;s method note said the citation is the claim. Both of these were copied from port
+comments without opening the module file that contradicts them.** <code>fsp_sce.cmake</code>&#x27;s header has
+been correct the whole time: *&quot;This module builds r_sce only… Secure image: the TRNG always;
+the cipher ALT path when CRYPTO_HW_ACCELERATOR is on.&quot;* One file away.</p>
+<h3 id="s2_11">2. Six low findings, all confirmed</h3>
+<p><code>:402</code>/<code>:411</code> omitted <code>tfm_timer0_irq.c</code> and the FLIH/SLIH gate (F305); <code>bl2_boot_hal.c</code> was
+listed under <code>platform_bl2</code> when it is added to <strong><code>bl2</code></strong>, and only under
+<code>if(CRYPTO_HW_ACCELERATOR)</code> (F306 — the review had the condition right and the target wrong);
+the HAL tests <strong>six</strong> macros, not four, two delivered by header and therefore target-independent
+(F304); the <code>-S</code> sources shown are the regression flow only, the application build uses the
+TF-M root and <code>&lt;part&gt;/ns_app</code> (F303); and &quot;ra8m2 is the same shape&quot; understated it — same
+targets, different layout and different numbers throughout (F307).</p>
+<h3 id="s3_8">3. The FSPR attribution survived in eleven places</h3>
+<p>F308 flagged one port comment still blaming FSPR for the brick. A sweep found <strong>eleven</strong>, across
+all four ports: <code>CMakeLists.txt</code> × 4, <code>region_defs.h</code> × 3, <code>*_bl2.ld</code> × 3, <code>*_bl2.icf</code> × 3 — and
+<code>ra6m4/CMakeLists.txt</code> additionally told the reader to <em>&quot;read FAWMON/FSPR over J-Link&quot;</em>, which
+<a href="DECISIONS.html#d094">D094</a> establishes is meaningless on a part reporting
+<code>BSP_FEATURE_FLASH_SUPPORTS_ACCESS_WINDOW = 0</code>. All corrected to &quot;which field dies is unknown&quot;.</p>
+<p><a href="DECISIONS.html#d094">D094</a> was written 16 days before this. **Withdrawing a claim in the log does not withdraw it
+from the tree**, and a withdrawn diagnosis repeated in eleven load-bearing comments is the
+version a maintainer will actually read.</p>
+<h3 id="s4_5">4. <code>ra6e1</code> is the opposite case, and nearly got the wrong fix</h3>
+<p><code>ra6e1</code> carries the same two stale comments, and on <strong>that</strong> part they are <strong>correct</strong>:
+<code>CRYPTO_HW_ACCELERATOR</code> is OFF (<code>config.cmake:102</code>) and there is no <code>fsp_mbedtls.cmake</code>, so
+TF-M&#x27;s own mbedcrypto really is the library and the TRNG really is all that is taken. Only the
+&quot;never built&quot; framing is wrong there. Propagating the ra6m5 wording would have introduced an
+error into the one file that did not have it — the mirror image of <a href="DECISIONS.html#d128">D128</a> §5&#x27;s &quot;citing a
+sibling without opening it&quot;, and the reason its comment now says *do not copy that sentence to
+ra6m5/ra8m2*.</p>
+<h3 id="s5_5">5. Line citations are now machine-checked — <code>scripts/check_arch_lines.py</code></h3>
+<p><strong>Every one of the document&#x27;s ~25 port citations went stale twice in one day</strong>, and neither time
+did any CMake change: once from the PXN correction in <code>2c6d4feb2</code> (<a href="DECISIONS.html#d128">D128</a>), once from the
+comment pass in this entry. <code>check_docs.py</code> cannot see this — the file exists and the D-numbers
+resolve, so each reference stays &quot;valid&quot; while pointing at the wrong line. **A line number that
+drifts silently is worse than no line number**, because a reader who follows it finds a
+plausible neighbouring construct and believes it.</p>
+<p>So the checker pairs each citation with a regex the cited line must match: 40 port lines and 15
+upstream, 55 total, fail-on-stale with the correct line reported. It is not a generator — the
+numbers sit in prose that explains each block, so a human has to look. Hook step 2b runs it
+when <code>BUILD_ARCHITECTURE.md</code> or the table is staged.</p>
+<p><strong>It earned itself on the first run</strong>, catching an off-by-one in a correction <em>this entry</em> was
+making: <code>:736</code> is the <code>target_sources</code> inside the accelerator block, <code>:735</code> is the <code>if()</code>.</p>
+<h3 id="correction-to-d128">Correction to <a href="DECISIONS.html#d128">D128</a></h3>
+<p><a href="DECISIONS.html#d128">D128</a> pinned the document&#x27;s header to TF-M <code>2c6d4feb2</code>. That pin was stale the moment this
+entry&#x27;s comment pass landed. Pinning a commit in prose has the same defect as the line numbers
+it was meant to qualify; the checker replaces it.</p>
+<h3 id="method-note_13">Method note</h3>
+<p>Three passes have now each found the same shape, one level further out. <a href="DECISIONS.html#d126">D126</a>: check the
+explanation against the build files. <a href="DECISIONS.html#d128">D128</a>: check the sibling entry you are citing. Here:
+<strong>check the comment you are quoting.</strong> The port comments were treated as a source throughout
+<code>BUILD_ARCHITECTURE.md</code> because they are detailed and confident, and four of them were years
+out of date. A comment is evidence of what someone believed when they wrote it — the same thing
+this log says about its own superseded entries, and it deserves the same scepticism.</p>
 </main>
 </div>
 </body>

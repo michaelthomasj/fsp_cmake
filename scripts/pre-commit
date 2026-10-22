@@ -49,6 +49,24 @@ if [ -f "$root/scripts/build_settled.py" ] && echo "$changed" | grep -q '^DECISI
     fi
 fi
 
+# 2b. BUILD_ARCHITECTURE.md's line citations into the TF-M port files.
+#
+#     Fail-on-stale, not regenerate: the numbers sit inside prose that explains each block, so
+#     there is nothing to generate - a human has to look. Unlike the other checks this one
+#     fires on a TF-M *comment* edit, which is exactly how it drifted twice in one day while
+#     check_docs.py reported everything valid. Skipped when TF-M is not beside this repo.
+if [ -f "$root/scripts/check_arch_lines.py" ] && [ -d "$root/../trusted-firmware-m" ] \
+   && echo "$changed" | grep -qE '^BUILD_ARCHITECTURE\.md$|^scripts/check_arch_lines\.py$'; then
+    python "$root/scripts/check_arch_lines.py"
+    status=$?
+    if [ $status -ne 0 ]; then
+        echo
+        echo "pre-commit: BUILD_ARCHITECTURE.md cites line numbers that have moved (above)."
+        echo "            Update the document and the table in check_arch_lines.py together."
+        exit $status
+    fi
+fi
+
 # 3. Rendered reference pages, docs/learning/ref/. The Markdown is the source: render from the
 #    INDEX (--staged), not the working tree, so a partially staged document produces HTML that
 #    matches what is actually being committed. Then stage the result, including removals.

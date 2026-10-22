@@ -4,9 +4,15 @@ The CMake target graph of this port: two projects, one handoff, and an FSP modul
 bolted onto upstream TF-M's target graph.
 
 Every edge below was read out of a `target_link_libraries()` or `target_sources()` call and is
-cited by file and line. Line numbers for the port are
-`platform/ext/target/renesas/ra6m5/CMakeLists.txt`; `ra8m2` is the same shape with its own file
-names. Upstream paths are relative to the `trusted-firmware-m` root.
+cited by file and line. Unqualified port line numbers are
+`platform/ext/target/renesas/ra6m5/CMakeLists.txt` **at TF-M `HEAD` after the D129 comment pass** — a comment edit
+anywhere above a block moves them, so check the construct, not just the number.
+Upstream paths are relative to the `trusted-firmware-m` root.
+
+**`ra8m2` has the same targets, not the same layout.** It adds `bl2` sources in three blocks
+(`:843`, `:854`, `:858`) where ra6m5 uses two, and its line numbers differ throughout —
+`tfm_spm` is `:648` there against `:517` here. The §3 table carries both columns; follow the
+construct into `ra8m2/CMakeLists.txt` rather than the ra6m5 line.
 
 > `DESIGN.md` says *why* the port is built this way — §1 (consume RASC, don't fork) and §1.1
 > (the deliberate deviations). This file says *what the graph is*.
@@ -21,10 +27,18 @@ The secure and non-secure sides are separate CMake projects. The first **install
   `cmake/toolchain_ns_GNUARM.cmake`.
 - The NS project needs **both** `CONFIG_SPE_PATH` and `TFM_TOOLCHAIN_FILE` pointing into it.
 
+The `-S` source differs by what you are building. **Regression** (`reg_build_gcc.bat:144,168`)
+configures the SPE from `tf-m-tests/tests_reg/spe` and the NS project from
+`tf-m-tests/tests_reg`. **Application** (`app_build_ra8m2_gcc.bat:44,63`) configures the SPE
+from the **TF-M root** and the NS project from
+`platform/ext/target/renesas/<part>/ns_app`. Everything else below is identical; the diagram
+shows the regression flow.
+
 ```
 e2 studio solution            SPE project                     NS project
 (inputs; never built          cmake -S tests_reg/spe          cmake -S tests_reg
- by CMake)
+ by CMake)                    (regression; the app build      (regression; the app build
+                               uses the TF-M root)             uses <part>/ns_app)
                                                         .
 ra6m5_gcc_mcuboot --BL2_APP_DIR--> bl2.axf --> bl2.hex / bl2.srec
                                               (flashed raw, NEVER signed)
@@ -88,7 +102,7 @@ psa_interface (INTERFACE)               interface/CMakeLists.txt:29
 platform_s                              platform/CMakeLists.txt:95
   +-- PUBLIC   platform_common_interface, platform_region_defs,
   |            tfm_fih_headers, cmsis, cmsis_stack_override
-  +-- PUBLIC   fsp_bsp_s, fsp_flash_s, fsp_sce_s, fsp_agt_s   <-- port, :371
+  +-- PUBLIC   fsp_bsp_s, fsp_flash_s, fsp_sce_s, fsp_agt_s   <-- port, :385
   +-- PRIVATE  tfm_config, tfm_spm_defs, psa_crypto_library_config
   +-- PRIVATE  tfm_sprt    ONLY if PLATFORM_DEFAULT_ATTEST_HAL  (:109)
 
@@ -98,7 +112,7 @@ bl2 (exe)                               bl2/CMakeLists.txt:147
   +-- PUBLIC   bl2_crypto
 
 platform_bl2
-  +-- PUBLIC   fsp_bsp_bl2, fsp_flash_bl2 (+ fsp_sce_bl2)      <-- port, :665
+  +-- PUBLIC   fsp_bsp_bl2, fsp_flash_bl2 (+ fsp_sce_bl2)      <-- port, :696
 ```
 
 - **`bl2` does not link `platform_bl2`.** The only route is `bl2 -> bootutil -> platform_bl2`,
@@ -114,15 +128,22 @@ platform_bl2
 
 ## 3. What the port adds to each upstream target
 
-| Target | Line | Sources added |
-|---|---|---|
-| `platform_s` | 373 | `target_cfg.c`, `tfm_hal_platform.c`, `tfm_peripherals_def.c`, `attest_hal.c`, `cmsis_drivers/Driver_Flash.c`, `sce_trng.c` (PSA external RNG over the SCE9 TRNG), `ra_sce_init.c`, `ra6m5_layout_checks.c` (static assertions only, no code), the common IRQ HAL, and `Driver_USART.c` when RTT is off |
-| `tfm_sprt` | 439 | `plat_test.c`, behind `CONFIG_TFM_FLIH_API` OR `CONFIG_TFM_SLIH_API`. Scoped to the one file, and given `platform_s`'s *resolved* include list rather than a hand-written subset — `tfm_sprt` links into every partition, so the FSP tree must not reach the whole target |
-| `tfm_spm` | 503 | `ext/common/tfm_hal_isolation_v8m.c` — the upstream file. **Do not move it back to `platform_s`**; see §6 |
-| `tfm_s` | 576 | `startup_ra6m5.c` |
-| `platform_bl2` | 673 | `target_cfg.c`, `tfm_hal_platform.c` (there for one symbol: `__STACK_SEAL`, which anchors `.msp_stack_seal_res`), `Driver_Flash.c`, `bl2_boot_hal.c`, plus RTT or USART stdout. Compiled with `RA6M5_BUILDING_BL2` and no `_RA_TZ_` macro — BL2 is a flat build |
-| `bl2` | 693 | `startup_ra6m5.c`, `bl2_option_setting.c` — the OFS emitter, and the reason BL2 needs discrete per-word `MEMORY` regions in its linker script ([[D002]]) |
-| `tfm_ns` | 1030 | `rtt/SEGGER_RTT.c`, `rtt/rtt_ns_init.c` under `RA6M5_STDOUT_RTT`. Added from the **SPE** project. `rtt_stdout.c` is deliberately *not* here — it would collide with `syscalls_ns.c`'s own `_write()` |
+| Target | ra6m5 | ra8m2 | Sources added |
+|---|---|---|---|
+| `platform_s` | 387 | 537 | **Unconditional:** `target_cfg.c`, `tfm_hal_platform.c`, `tfm_peripherals_def.c`, `attest_hal.c`, `cmsis_drivers/Driver_Flash.c`, `sce_trng.c` (PSA external RNG over the SCE9 TRNG), `ra_sce_init.c`, `<part>_layout_checks.c` (static assertions only, no code). **Under `CONFIG_TFM_FLIH_API` OR `CONFIG_TFM_SLIH_API`:** `ext/common/tfm_hal_nvic.c` (the IRQ HAL, `:416`) and `tfm_timer0_irq.c` (the AGT0 fixture handler, `:425`) — the privileged half of the TIMER0 fixture; `plat_test.c` is the other half and must stay in `tfm_sprt`. **Separate block:** `Driver_USART.c` when RTT is off (`:682` / ra8m2 `:799`) |
+| `tfm_sprt` | 453 | 595 | `plat_test.c`, behind `CONFIG_TFM_FLIH_API` OR `CONFIG_TFM_SLIH_API`. Scoped to the one file, and given `platform_s`'s *resolved* include list rather than a hand-written subset — `tfm_sprt` links into every partition, so the FSP tree must not reach the whole target |
+| `tfm_spm` | 517 | 648 | `ext/common/tfm_hal_isolation_v8m.c` — the upstream file. **Do not move it back to `platform_s`**; see §6 |
+| `tfm_s` | 607 | 724 | `startup_<part>.c` |
+| `platform_bl2` | 704 | 821 | `target_cfg.c`, `tfm_hal_platform.c` (there for one symbol: `__STACK_SEAL`, which anchors `.msp_stack_seal_res`), `cmsis_drivers/Driver_Flash.c` — three files, unconditional. Plus RTT or USART stdout in a later block (`:747` / ra8m2 `:868`). Compiled with `RA6M5_BUILDING_BL2` and no `_RA_TZ_` macro — BL2 is a flat build. **`bl2_boot_hal.c` is not here** — see the `bl2` row |
+| `bl2` | 728 | 843 | `startup_<part>.c`, `bl2_option_setting.c` — the OFS emitter, and the reason BL2 needs discrete per-word `MEMORY` regions in its linker script ([[D002]]). **Under `if(CRYPTO_HW_ACCELERATOR)` (`:735`):** `ra_sce_init.c` and **`bl2_boot_hal.c`**, because BL2's SHA-256 runs on the SCE9 and BL2 brings the engine up itself in `boot_platform_post_init()` before MCUboot hashes the first slot |
+| `tfm_ns` | 1065 | 1205 | **Optional path only.** `rtt/SEGGER_RTT.c`, `rtt/rtt_ns_init.c` under `RA6M5_STDOUT_RTT` — but the whole block sits inside `if(FSP_NS_APP_DIR AND RA6M5_NS_IN_SPE_BUILD)` (`:1021`), and that option is **OFF by default** (`:1016`). See the note below |
+
+**The default build has no `tfm_ns` target in the SPE project.** `RA6M5_NS_IN_SPE_BUILD`
+(ra8m2: `RA8M2_NS_IN_SPE_BUILD`) exists for single-configure boot bisection and has been off
+by default since 2026-08-30. In the normal split build the NS image is built by the **NS
+project** — §1 and §2 — and gets its RTT from `syscalls_ns.c`'s own `_write()` plus the
+`ns_app`/`tests_reg` sources, not from this block. `rtt_stdout.c` is deliberately absent
+either way: it would collide with that `_write()`.
 
 ## 4. The FSP module registry
 
@@ -131,14 +152,14 @@ through a registry, so modules are opted into **by name** rather than globbed of
 anything in the project that no module claims is reported rather than silently dropped.
 
 ```
-FSP_MODULES_S   = bsp flash sce agt              :224
-FSP_MODULES_BL2 = bsp flash (+ sce if CRYPTO_HW_ACCELERATOR)   :228, :232
-FSP_MODULE_DIRS_bsp   = bsp r_ioport             :237
+FSP_MODULES_S   = bsp flash sce agt              :234
+FSP_MODULES_BL2 = bsp flash (+ sce if CRYPTO_HW_ACCELERATOR)   :238, :242
+FSP_MODULE_DIRS_bsp   = bsp r_ioport             :247
                 _flash = r_flash_hp  _sce = r_sce  _agt = r_agt
           |
           v
-fsp_add_modules(role, dir, includes, out_targets)         :255
-          |                     called at :370 (s) and :664 (bl2)
+fsp_add_modules(role, dir, includes, out_targets)         :269
+          |                     called at :384 (s) and :695 (bl2)
           +-- include() cmake/modules/fsp_module_common.cmake   once
           |      add_library(fsp_<name>_<role> STATIC)      common:33
           +-- include() cmake/modules/fsp_<name>.cmake       per name
@@ -146,7 +167,7 @@ fsp_add_modules(role, dir, includes, out_targets)         :255
           |
           +-- glob ra/fsp/src/* ; for each directory:
                  unclaimed AND not in FSP_MODULES_NEVER_BUILT
-                   -> message(WARNING) "it is NOT in the image"      :279
+                   -> message(WARNING) "it is NOT in the image"      :293
 
 the module libraries are not a flat set:
 
@@ -166,11 +187,23 @@ the module libraries are not a flat set:
 - Every non-`bsp` module PUBLIC-links `fsp_bsp_<role>` — `fsp_flash.cmake:21`,
   `fsp_sce.cmake:51`, `fsp_agt.cmake:40`. A new module almost certainly needs the same line;
   `ADDING_FSP_MODULES.md` carries it in the template.
-- `FSP_MODULES_NEVER_BUILT` (`:252`) is **not an exclusion from the build** — it is the
-  allowlist for that audit. Its three entries are deliberate omissions:
-  - `r_sce`, `rm_psa_crypto` — TF-M uses its own mbedcrypto, and FSP's config wires PSA ITS to
-    littlefs and fights `TFM_PARTITION_INTERNAL_TRUSTED_STORAGE` (`DESIGN.md` §6). Only the
-    TRNG is taken, via the `sce` module.
+- `FSP_MODULES_NEVER_BUILT` (`:266`) is **not an exclusion from the build** — it is the
+  allowlist for the audit, naming directories that are in the e2 project and are *expected* to
+  be unclaimed.
+  - **`r_sce` IS built**, by the `sce` module: `FSP_MODULE_DIRS_sce = r_sce` (`:249`), and
+    `fsp_sce.cmake` globs the tree. In the secure image the **TRNG is always** reachable; the
+    **SCE9 cipher `*_ALT` path is live whenever `CRYPTO_HW_ACCELERATOR` is ON**, which is the
+    default (`config.cmake:127`). BL2 declares the module **only** with the accelerator, for
+    the SHA-256 image hash. Its entry in `NEVER_BUILT` is therefore not redundant — it is what
+    keeps the audit quiet in the BL2-without-accelerator case, where no listed module claims
+    the directory.
+  - `rm_psa_crypto` and FSP's `ra/arm/mbedtls` are the real omissions, **as FSP modules**. The
+    `*_ALT` sources that drive the engine are compiled by
+    `platform/ext/accelerator/renesas/sce9` instead, and the crypto library comes from the
+    `fsp_mbedtls.cmake` overlay below. So FSP's crypto *code* is very much in the image; what
+    is excluded is FSP's **PSA/ITS configuration**, which wires PSA ITS to littlefs and fights
+    `TFM_PARTITION_INTERNAL_TRUSTED_STORAGE` (`DESIGN.md` §6). The header of
+    `cmake/modules/fsp_sce.cmake` is the authority on this split.
   - `rm_mcuboot_port` — its own `FLASH_AREA_*_ID` values and single-image assumptions conflict
     with TF-M's dual-image flash map (`DESIGN.md` §4, §5). Grafting it on is what failed on
     RA6M4.
@@ -185,22 +218,25 @@ latter only attaches to a target created in the same directory, and `bl2_bin` is
 
 | Step | Line | Does what |
 |---|---|---|
-| orphan-section check | 802 | Fails on any section the linker script did not place, against a short allowlist |
-| `check_ofs.py` | 880 | Reads the **program headers** of the linked ELF and fails if a `PT_LOAD` coalesces the option-setting words. Toolchain-agnostic. This is the only place the mistake is visible — not the srec, not the map, and a plausible-looking linker script is no evidence ([[D002]], [[D094]]) |
-| `--emit-safe-bin` | 923 | Re-emits the flat binary address-driven. `objcopy -O binary` flattens from the lowest address and zero-fills the gaps, which yields a lethal image |
+| orphan-section check | 837 | Fails on any section the linker script did not place, against a short allowlist |
+| `check_ofs.py` | 915 | Reads the **program headers** of the linked ELF and fails if a `PT_LOAD` coalesces the option-setting words. Toolchain-agnostic. This is the only place the mistake is visible — not the srec, not the map, and a plausible-looking linker script is no evidence ([[D002]], [[D094]]) |
+| `--emit-safe-bin` | 958 | Re-emits the flat binary address-driven. `objcopy -O binary` flattens from the lowest address and zero-fills the gaps, which yields a lethal image |
 | `imgtool` | — | Signs `tfm_s` and `tfm_ns` into their slots, using the layouts installed under `api_ns/image_signing/`. Slot overflow fails here, after a clean link |
 
 ## 6. Why the isolation HAL's target is load-bearing
 
-`ext/common/tfm_hal_isolation_v8m.c` switches on four macros, and they do **not** all arrive by
-the same route.
+`ext/common/tfm_hal_isolation_v8m.c` switches on **six** macros. Four arrive as compile
+definitions, and those are the ones the target choice decides. The other two arrive by header,
+so they are target-independent — which is exactly why they were never part of the defect.
 
-| Macro | Defined by | Reaches `platform_s`? | Reaches `tfm_spm`? |
+| Macro | Delivered by | Reaches `platform_s`? | Reaches `tfm_spm`? |
 |---|---|---|---|
-| `CONFIG_TFM_ENABLE_MEMORY_PROTECT` | `platform_s`, PUBLIC — `platform/CMakeLists.txt:125` | yes | yes |
-| `TFM_PXN_ENABLE` | `platform_s`, PUBLIC — `platform/CMakeLists.txt:126` | yes | yes |
-| `TFM_ISOLATION_LEVEL` | `psa_interface`, INTERFACE — `interface/CMakeLists.txt:37` | **no** | yes |
-| `CONFIG_TFM_PARTITION_META` | `psa_interface`, INTERFACE — `interface/CMakeLists.txt:40` | **no** | yes |
+| `CONFIG_TFM_ENABLE_MEMORY_PROTECT` | CMake — `platform_s` PUBLIC, `platform/CMakeLists.txt:125` | yes | yes |
+| `TFM_PXN_ENABLE` | CMake — `platform_s` PUBLIC, `platform/CMakeLists.txt:126` | yes | yes |
+| `TFM_ISOLATION_LEVEL` | CMake — `psa_interface` INTERFACE, `interface/CMakeLists.txt:37` | **no** | yes |
+| `CONFIG_TFM_PARTITION_META` | CMake — `psa_interface` INTERFACE, `interface/CMakeLists.txt:40` | **no** | yes |
+| `CONFIG_TFM_MMIO_REGION_ENABLE` | header — generated `config_impl.h` | yes | yes |
+| `PLATFORM_STATIC_MPU_REGIONS` | header — the platform's `tfm_peripherals_def.h` (`:268`) | yes | yes |
 
 ```
 psa_interface  --PUBLIC--  tfm_sprt  --PRIVATE-->  tfm_spm     always

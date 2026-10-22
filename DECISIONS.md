@@ -7015,3 +7015,95 @@ citing a sibling entry without opening it.** [D126] attributed two corrections t
 missing line to [D041]; [D120] attributed a precondition to [D114]; [D125] cleared [D123] of a
 gap [D123] describes in its own §2. Every one took a single search of the file this log is
 written in. The citation is the claim.
+
+---
+
+## D129 — the v4 review of `BUILD_ARCHITECTURE.md`: eight findings, the FSPR attribution withdrawn in eleven more places, and line citations are now checked
+
+**Date:** 2026-10-22 · **Status:** Accepted · **Corrects:** [D128] · **Builds on:** [D094], [D127] · **Evidence:** v4 addendum F301–F308; all eight re-verified in source; `check_arch_lines.py` 55/55
+
+The fourth review pass added an addendum reviewing `BUILD_ARCHITECTURE.md`, written one commit
+earlier in [D127]. It confirmed the link graph, all 21 port citations and the nine upstream
+`tfm_spm` users, and raised **eight findings — two medium.** All eight hold.
+
+### 1. The two medium findings were both inherited, not invented
+
+- **F301. "`r_sce` is never built; TF-M uses its own mbedcrypto; only the TRNG is taken."**
+  All three clauses are wrong on the live parts. The `sce` module **builds** `r_sce`
+  (`FSP_MODULE_DIRS_sce`), the TRNG is always reachable, and the SCE9/RSIP-E50D cipher `*_ALT`
+  path is live whenever `CRYPTO_HW_ACCELERATOR` is ON — the **default**. The crypto library is
+  FSP's, through the `fsp_mbedtls.cmake` overlay. What is actually excluded is FSP's **PSA/ITS
+  configuration**, which wires PSA ITS to littlefs.
+- **F302. The `tfm_ns` row described a path that is off by default.** The block sits inside
+  `if(FSP_NS_APP_DIR AND RA6M5_NS_IN_SPE_BUILD)`, OFF since 2026-08-30 and kept only for
+  single-configure boot bisection. In the normal split build the SPE project has **no `tfm_ns`
+  target at all** — which contradicted §1 and §2 of the same document.
+
+**[D127]'s method note said the citation is the claim. Both of these were copied from port
+comments without opening the module file that contradicts them.** `fsp_sce.cmake`'s header has
+been correct the whole time: *"This module builds r_sce only… Secure image: the TRNG always;
+the cipher ALT path when CRYPTO_HW_ACCELERATOR is on."* One file away.
+
+### 2. Six low findings, all confirmed
+
+`:402`/`:411` omitted `tfm_timer0_irq.c` and the FLIH/SLIH gate (F305); `bl2_boot_hal.c` was
+listed under `platform_bl2` when it is added to **`bl2`**, and only under
+`if(CRYPTO_HW_ACCELERATOR)` (F306 — the review had the condition right and the target wrong);
+the HAL tests **six** macros, not four, two delivered by header and therefore target-independent
+(F304); the `-S` sources shown are the regression flow only, the application build uses the
+TF-M root and `<part>/ns_app` (F303); and "ra8m2 is the same shape" understated it — same
+targets, different layout and different numbers throughout (F307).
+
+### 3. The FSPR attribution survived in eleven places
+
+F308 flagged one port comment still blaming FSPR for the brick. A sweep found **eleven**, across
+all four ports: `CMakeLists.txt` × 4, `region_defs.h` × 3, `*_bl2.ld` × 3, `*_bl2.icf` × 3 — and
+`ra6m4/CMakeLists.txt` additionally told the reader to *"read FAWMON/FSPR over J-Link"*, which
+[D094] establishes is meaningless on a part reporting
+`BSP_FEATURE_FLASH_SUPPORTS_ACCESS_WINDOW = 0`. All corrected to "which field dies is unknown".
+
+[D094] was written 16 days before this. **Withdrawing a claim in the log does not withdraw it
+from the tree**, and a withdrawn diagnosis repeated in eleven load-bearing comments is the
+version a maintainer will actually read.
+
+### 4. `ra6e1` is the opposite case, and nearly got the wrong fix
+
+`ra6e1` carries the same two stale comments, and on **that** part they are **correct**:
+`CRYPTO_HW_ACCELERATOR` is OFF (`config.cmake:102`) and there is no `fsp_mbedtls.cmake`, so
+TF-M's own mbedcrypto really is the library and the TRNG really is all that is taken. Only the
+"never built" framing is wrong there. Propagating the ra6m5 wording would have introduced an
+error into the one file that did not have it — the mirror image of [D128] §5's "citing a
+sibling without opening it", and the reason its comment now says *do not copy that sentence to
+ra6m5/ra8m2*.
+
+### 5. Line citations are now machine-checked — `scripts/check_arch_lines.py`
+
+**Every one of the document's ~25 port citations went stale twice in one day**, and neither time
+did any CMake change: once from the PXN correction in `2c6d4feb2` ([D128]), once from the
+comment pass in this entry. `check_docs.py` cannot see this — the file exists and the D-numbers
+resolve, so each reference stays "valid" while pointing at the wrong line. **A line number that
+drifts silently is worse than no line number**, because a reader who follows it finds a
+plausible neighbouring construct and believes it.
+
+So the checker pairs each citation with a regex the cited line must match: 40 port lines and 15
+upstream, 55 total, fail-on-stale with the correct line reported. It is not a generator — the
+numbers sit in prose that explains each block, so a human has to look. Hook step 2b runs it
+when `BUILD_ARCHITECTURE.md` or the table is staged.
+
+**It earned itself on the first run**, catching an off-by-one in a correction *this entry* was
+making: `:736` is the `target_sources` inside the accelerator block, `:735` is the `if()`.
+
+### Correction to [D128]
+
+[D128] pinned the document's header to TF-M `2c6d4feb2`. That pin was stale the moment this
+entry's comment pass landed. Pinning a commit in prose has the same defect as the line numbers
+it was meant to qualify; the checker replaces it.
+
+### Method note
+
+Three passes have now each found the same shape, one level further out. [D126]: check the
+explanation against the build files. [D128]: check the sibling entry you are citing. Here:
+**check the comment you are quoting.** The port comments were treated as a source throughout
+`BUILD_ARCHITECTURE.md` because they are detailed and confident, and four of them were years
+out of date. A comment is evidence of what someone believed when they wrote it — the same thing
+this log says about its own superseded entries, and it deserves the same scepticism.

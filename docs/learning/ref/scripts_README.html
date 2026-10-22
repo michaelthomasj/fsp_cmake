@@ -207,6 +207,15 @@ Review snapshots under <code>docs/artifacts*/</code> are exempt from all three c
 review proposes before anyone has written them.</p>
 <p>Bypass with <code>git commit --no-verify</code> when a commit deliberately breaks a reference, such as the
 first half of a rename spanning both repositories.</p>
+<pre><code class="language-sh">python scripts/check_arch_lines.py          # BUILD_ARCHITECTURE.md's line citations
+python scripts/check_arch_lines.py --list   # show what each cited line actually holds</code></pre>
+<p>55 citations into <code>ra6m5/CMakeLists.txt</code>, <code>ra8m2/CMakeLists.txt</code> and the upstream TF-M files,
+each paired with a regex the cited line must match. <strong><code>check_docs.py</code> cannot catch this class:</strong>
+the file exists and the D-numbers resolve, so a reference stays &quot;valid&quot; while pointing at the
+wrong line. Every one of these went stale twice in one day, both times from a <strong>comment</strong> edit
+above the block — no CMake changed. Fail-on-stale, not regenerate: the numbers sit in prose that
+explains each block, so a human has to look. Skipped when <code>trusted-firmware-m</code> is not beside
+this repo. Adding a citation to the document means adding a row to the table in the script.</p>
 <h3 id="rendered-documents-for-the-course">Rendered documents for the course</h3>
 <pre><code class="language-sh">python scripts/build_doc_html.py           # regenerate docs/learning/ref/ from the working tree
 python scripts/build_doc_html.py --check   # exit 1 if ref/ is stale, orphaned, or the course links raw .md</code></pre>
