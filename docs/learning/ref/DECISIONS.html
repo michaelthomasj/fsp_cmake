@@ -168,6 +168,7 @@
           <li><a href="#d120">D120 — the isolation-macro gap is this port&#x27;s, not upstream&#x27;s; [D113]&#x27;s root cause was wrong and upstream item 15 is withdrawn</a></li>
           <li><a href="#d121">D121 — the shared isolation HAL moves to tfm_spm; [D113]&#x27;s workaround is deleted, not documented</a></li>
           <li><a href="#d122">D122 — the tfm_spm move is MPU-neutral on silicon, and RA6M5 L1+IPC is green for the first time — cause unexplained</a></li>
+          <li><a href="#d123">D123 — RA6M5 isolation 3 confirms [D121]&#x27;s predicted boundary shift to the byte; RA6M5 IAR runs above isolation 1 for the first time</a></li>
         </ol>
       </li>
     </ol>
@@ -5152,6 +5153,56 @@ informative remaining.</li>
 <li>The five RA8M2 trees are green pre-move and their region symbols are provably unchanged; a
 re-run is confirmation, not discovery.</li>
 <li><code>ra6e1</code> is built with the move and will not be run (<a href="DECISIONS.html#d121">D121</a>).</li>
+</ul>
+<hr>
+<h2 id="d123">D123 — RA6M5 isolation 3 confirms <a href="DECISIONS.html#d121">D121</a>&#x27;s predicted boundary shift to the byte; RA6M5 IAR runs above isolation 1 for the first time</h2>
+<p><strong>Date:</strong> 2026-10-22 · <strong>Status:</strong> Accepted · completes <a href="DECISIONS.html#d121">D121</a>&#x27;s verification on RA6M5 · measured</p>
+<h3 id="s1_7">1. Isolation 3, GNUARM — the one tree whose MPU table was predicted to change</h3>
+<p><strong>Secure 9/9, non-secure 7/7 PASSED, both FLIH tests included.</strong> The dump:</p>
+<pre><code>  idx 0  0x000A0400 - 0x000A5640      idx 3  0x20000400 - 0x20000400   TFM_SP_META_PTR
+  idx 1  0x000A5660 - 0x000D8400      idx 4  0x200018C0 - 0x20011480
+  idx 2  0x000D8420 - 0x000E5D80</code></pre>
+<p><a href="DECISIONS.html#d121">D121</a> predicted, from <code>PT_*</code> symbols alone and before any hardware run, that exactly three
+fields would move one 32-byte granule. All three did:</p>
+<div class="table-wrap"><table>
+<tr><th>Field</th><th><a href="DECISIONS.html#d114">D114</a></th><th><a href="DECISIONS.html#d121">D121</a> predicted</th><th>measured</th></tr>
+<tr><td>idx 1 limit</td><td><code>0x000D83E0</code></td><td><code>0x000D8400</code></td><td><strong><code>0x000D8400</code></strong></td></tr>
+<tr><td>idx 2 base</td><td><code>0x000D8400</code></td><td><code>0x000D8420</code></td><td><strong><code>0x000D8420</code></strong></td></tr>
+<tr><td>idx 2 limit</td><td><code>0x000E5D60</code></td><td><code>0x000E5D80</code></td><td><strong><code>0x000E5D80</code></strong></td></tr>
+</table></div>
+<p>3/3, each <code>+32</code> exactly. Nothing else in the table moved: idx 0 and idx 4 are unchanged from
+<a href="DECISIONS.html#d114">D114</a>, and idx 3 is still the 32-byte <code>TFM_SP_META_PTR</code> region at <code>0x20000400</code> with base and
+limit reading alike. Five static regions, as isolation 3 requires.</p>
+<p>This is the only observable difference the <code>tfm_spm</code> move produces anywhere on either part,
+and it is an alignment artifact of +8 bytes of code crossing a granule boundary - not a change
+in what any region covers.</p>
+<h3 id="s2_7">2. Isolation 2, IAR — RA6M5&#x27;s first run above isolation 1 under IAR</h3>
+<p><strong>Non-secure 7/7 PASSED.</strong> The secure suite also passed; its RTT output was not captured, so
+the secure half is reported rather than recorded here.</p>
+<p>RA6M5 under IAR above isolation 1 had never run on any build, pre- or post-move. It is now
+green at level 2 with no new defect, which is the fourth consecutive IAR configuration to
+produce none after IAR produced four defects below isolation 1 (<a href="DECISIONS.html#d083">D083</a>, <a href="DECISIONS.html#d089">D089</a>, <a href="DECISIONS.html#d107">D107</a>, <a href="DECISIONS.html#d108">D108</a>).</p>
+<h3 id="coverage_2">Coverage</h3>
+<div class="table-wrap"><table>
+<tr><th></th><th>L1 SFN</th><th>L1 IPC</th><th>L2</th><th>L3</th></tr>
+<tr><td>RA6M5 GNUARM</td><td>green</td><td>green (<a href="DECISIONS.html#d122">D122</a>)</td><td>green, post-move</td><td><strong>green, post-move</strong></td></tr>
+<tr><td>RA6M5 IAR</td><td>green</td><td>-</td><td><strong>green (new)</strong></td><td><strong>unrun</strong></td></tr>
+<tr><td>RA8M2 GNUARM</td><td>green</td><td>green</td><td>green</td><td>green — all pre-move</td></tr>
+<tr><td>RA8M2 IAR</td><td>green</td><td>-</td><td>green</td><td>green — both pre-move</td></tr>
+</table></div>
+<p><strong>RA6M5 is now fully verified against the post-move build at every level it supports on GNUARM</strong>,
+and at level 2 on IAR. <a href="DECISIONS.html#d121">D121</a>&#x27;s &quot;not yet re-run on hardware&quot; is discharged for this part except
+<code>m5il3</code>.</p>
+<h3 id="carried_9">Carried</h3>
+<ul>
+<li><strong><code>m5il3</code></strong> - RA6M5, IAR, isolation 3. The last tree in the matrix never run on any build. It
+is also the only remaining chance for IAR to disagree with GNUARM about the
+<code>CONFIG_TFM_PARTITION_META</code> arm on this part.</li>
+<li>The five RA8M2 trees are green pre-move; their <code>PT_*</code> symbols are provably unchanged
+(<a href="DECISIONS.html#d121">D121</a>), so a re-run is confirmation only and nothing in <a href="DECISIONS.html#d118">D118</a>/<a href="DECISIONS.html#d119">D119</a> is in doubt.</li>
+<li><code>ra6e1</code> is built with the move and will not be run (<a href="DECISIONS.html#d121">D121</a>).</li>
+<li>Whether <a href="DECISIONS.html#d122">D122</a>&#x27;s L1+IPC pass is the move or a transient earlier failure remains unresolved
+and unresolvable without rebuilding at the previous commit.</li>
 </ul>
 </main>
 </div>

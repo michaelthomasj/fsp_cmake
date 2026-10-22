@@ -6493,3 +6493,68 @@ diagnostic, and as a diagnostic it has now produced everything it is going to.
 - The five RA8M2 trees are green pre-move and their region symbols are provably unchanged; a
   re-run is confirmation, not discovery.
 - `ra6e1` is built with the move and will not be run ([D121]).
+---
+
+## D123 — RA6M5 isolation 3 confirms [D121]'s predicted boundary shift to the byte; RA6M5 IAR runs above isolation 1 for the first time
+
+**Date:** 2026-10-22 · **Status:** Accepted · completes [D121]'s verification on RA6M5 · measured
+
+### 1. Isolation 3, GNUARM — the one tree whose MPU table was predicted to change
+
+**Secure 9/9, non-secure 7/7 PASSED, both FLIH tests included.** The dump:
+
+```
+  idx 0  0x000A0400 - 0x000A5640      idx 3  0x20000400 - 0x20000400   TFM_SP_META_PTR
+  idx 1  0x000A5660 - 0x000D8400      idx 4  0x200018C0 - 0x20011480
+  idx 2  0x000D8420 - 0x000E5D80
+```
+
+[D121] predicted, from `PT_*` symbols alone and before any hardware run, that exactly three
+fields would move one 32-byte granule. All three did:
+
+| Field | [D114] | [D121] predicted | measured |
+|---|---|---|---|
+| idx 1 limit | `0x000D83E0` | `0x000D8400` | **`0x000D8400`** |
+| idx 2 base | `0x000D8400` | `0x000D8420` | **`0x000D8420`** |
+| idx 2 limit | `0x000E5D60` | `0x000E5D80` | **`0x000E5D80`** |
+
+3/3, each `+32` exactly. Nothing else in the table moved: idx 0 and idx 4 are unchanged from
+[D114], and idx 3 is still the 32-byte `TFM_SP_META_PTR` region at `0x20000400` with base and
+limit reading alike. Five static regions, as isolation 3 requires.
+
+This is the only observable difference the `tfm_spm` move produces anywhere on either part,
+and it is an alignment artifact of +8 bytes of code crossing a granule boundary - not a change
+in what any region covers.
+
+### 2. Isolation 2, IAR — RA6M5's first run above isolation 1 under IAR
+
+**Non-secure 7/7 PASSED.** The secure suite also passed; its RTT output was not captured, so
+the secure half is reported rather than recorded here.
+
+RA6M5 under IAR above isolation 1 had never run on any build, pre- or post-move. It is now
+green at level 2 with no new defect, which is the fourth consecutive IAR configuration to
+produce none after IAR produced four defects below isolation 1 ([D083], [D089], [D107], [D108]).
+
+### Coverage
+
+| | L1 SFN | L1 IPC | L2 | L3 |
+|---|---|---|---|---|
+| RA6M5 GNUARM | green | green ([D122]) | green, post-move | **green, post-move** |
+| RA6M5 IAR | green | - | **green (new)** | **unrun** |
+| RA8M2 GNUARM | green | green | green | green — all pre-move |
+| RA8M2 IAR | green | - | green | green — both pre-move |
+
+**RA6M5 is now fully verified against the post-move build at every level it supports on GNUARM**,
+and at level 2 on IAR. [D121]'s "not yet re-run on hardware" is discharged for this part except
+`m5il3`.
+
+### Carried
+
+- **`m5il3`** - RA6M5, IAR, isolation 3. The last tree in the matrix never run on any build. It
+  is also the only remaining chance for IAR to disagree with GNUARM about the
+  `CONFIG_TFM_PARTITION_META` arm on this part.
+- The five RA8M2 trees are green pre-move; their `PT_*` symbols are provably unchanged
+  ([D121]), so a re-run is confirmation only and nothing in [D118]/[D119] is in doubt.
+- `ra6e1` is built with the move and will not be run ([D121]).
+- Whether [D122]'s L1+IPC pass is the move or a transient earlier failure remains unresolved
+  and unresolvable without rebuilding at the previous commit.
