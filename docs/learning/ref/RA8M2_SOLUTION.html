@@ -120,7 +120,7 @@ bounds imported from FSP&#x27;s <code>flash_map.c</code>. <code>DESIGN.md</code>
 <tr><td><code>__BL_1_S_T</code></td><td>MRAM</td><td>n</td><td>0x100000</td><td>0x0</td><td></td></tr>
 </table></div>
 <p>In 32 KB units: BL2 2, DF_EMULATION 2, secure slots 9 each, NS slots 5 each — 32 units, no
-remainder. <code>flash_layout.h:190</code> states the same sum as
+remainder. <code>flash_layout.h:196-197</code> states the same sum as
 <code>64 K BL2 + 64 K DF_EMULATION + 2 x 288 K secure + 2 x 160 K non-secure = 1024 K</code>.</p>
 <p><strong>The secure/non-secure split falls at offset <code>0xB0000</code></strong>, the one number the flash driver has
 to get right. <code>cmsis_drivers/Driver_Flash.c</code> picks the alias from it:</p>
@@ -159,6 +159,17 @@ SRAM S + NSC = 936 KB = 117 x 8 ✓.</p>
 <p>Resulting NS regions: 320 KB of MRAM in the non-secure alias from <code>0x120B0000</code>, 936 KB of SRAM.</p>
 <p><strong>RDPM erases the part — reflash all three images afterwards.</strong> Every launch configuration must
 keep <code>com.renesas.hardwaredebug.arm.jlink.setTZBoundaries</code> = <strong>false</strong> (<code>DESIGN.md</code> §7.2).</p>
+<blockquote><p><strong>Nine of the 47 shipped launches break this rule today</strong> (audited 2026-10-22):</p>
+<ul>
+<li><code>jlink</code> key <code>true</code> in the four stock e2 <code>*_nonsecure Debug_SSD.launch</code> files
+(<code>ra6m5_gcc_nonsecure</code>, <code>ra6m5_iar_nonsecure</code>, <code>ra8m2_gcc_CPU0_nonsecure</code>,
+<code>ra8m2_iar_CPU0_nonsecure</code>). These are e2 output, not the <code>*_TFM_*</code> launches used here.</li>
+<li><code>e2lite</code> key <code>true</code> in the five RA8M2 GCC TFM launches (<code>flih</code>, <code>test_attestation</code>,
+<code>test_crypto</code>, <code>test_storage</code>, <code>update</code>). Their <code>jlink</code> key is <code>false</code>, so this is inert
+while J-Link is the selected probe - <strong>switching probe arms it</strong> (<a href="DECISIONS.html#d102">D102</a>).</li>
+</ul>
+<p>Check before flashing anything unfamiliar:
+<code>grep -rn "setTZBoundaries" &lt;launch&gt;</code></p></blockquote>
 <hr>
 <h2 id="what-the-e2-projects-must-provide">What the e2 projects must provide</h2>
 <p>Three projects — <code>ra8m2_gcc_mcuboot</code>, <code>ra8m2_gcc_CPU0_secure</code>, <code>ra8m2_gcc_CPU0_nonsecure</code>, and

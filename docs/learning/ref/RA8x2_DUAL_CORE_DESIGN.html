@@ -135,7 +135,8 @@ Note the message-FIFO send/receive is <strong>not</strong> here — that is <cod
 vector table), clears <code>CPU1WAITCR</code> (in case a debugger parked CPU1), then writes the
 key code + <code>ACTREQ</code> to <code>CPU1ACTCSR</code> to activate CPU1. <strong>No start-address parameter</strong> —
 CPU1&#x27;s entry is fixed by <code>CPU1INITVTOR</code>, which is driven by <code>BSP_PARTITION_FLASH_CPU1_S_START</code>
-(a partition-config macro — the DESIGN §13.4 <code>BSP_PARTITION_*</code> dependency, back again).</p>
+(a partition-config macro — the <code>BSP_PARTITION_*</code> dependency described in <code>BRIDGING_FILES.md</code>,
+back again).</p>
 <hr>
 <h2 id="layer-3--tf-m-multi-core-mailbox-hal-what-we-implement">Layer 3 — TF-M multi-core mailbox HAL (what we implement)</h2>
 <p>SPE-side contract (<code>trusted-firmware-m/platform/include/</code>):</p>
@@ -218,7 +219,8 @@ or leave unused for MVP.</li>
 <tr><td>14</td><td>IAR <code>.icf</code> for both cores (P6)</td><td>toolchain</td><td>☐</td></tr>
 </table></div>
 <hr>
-<p>*Related: PROJECT_PLAN.md (P4–P6), DESIGN.md (§13 TZ/startup ownership, §13.4 DDSC),
+<p>*Related: DESIGN.md (§7 TrustZone, §8 startup ownership), <code>ra8m2_ddsc.c</code> and BRIDGING_FILES.md
+for DDSC,
 and <code>trusted-firmware-m/docs/design_docs/dual-cpu/</code>.*</p>
 </main>
 </div>

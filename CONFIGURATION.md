@@ -43,7 +43,7 @@ tree, not the config file. This has cost real debugging time twice ([D083], [D08
 | `FSP_BL2_APP_DIR` | the generated **bootloader** project. Supplies the OFS values and the FSP driver modules BL2 needs ([D091] removed the FSP MCUboot backend from both parts) |
 | `FSP_NS_APP_DIR` | the generated **non-secure** project |
 | `TFM_TOOLCHAIN_FILE` | `toolchain_GNUARM.cmake` or `toolchain_IARARM.cmake` |
-| `CMAKE_BUILD_TYPE` | **`MinSizeRel` is not optional on GNUARM.** `Debug` does not fit — `tfm_s` comes out around 414 KB against RA8M2's 293 KB secure region. IAR `Debug` does fit ([D056]) |
+| `CMAKE_BUILD_TYPE` | **`MinSizeRel` is not optional on GNUARM.** `Debug` does not fit — `tfm_s` comes out around 414 KB against RA8M2's 294,400-byte (`0x47E00`) secure region. IAR `Debug` does fit ([D055]; [D057] for why GNUARM `Debug` does not) |
 
 **The e2 project must have been BUILT, not just generated.** The TF-M build reads
 `Debug/bsp_linker_info.h` and `Debug/memory_regions.*`, which only an e2 build produces.
@@ -170,8 +170,8 @@ hashes) and the trailer, which overstated RA8M2's headroom by 30%.
 | `<PART>_BL2_HALT_AT_MAIN` | OFF | BL2 spins at `main()` for debugger attach |
 | `<PART>_ORPHAN_CHECK_STRICT` | OFF | makes an orphan section fatal; intended for CI |
 | `<PART>_NS_IN_SPE_BUILD` | OFF | builds the NS image inside the secure build |
-| `MCUBOOT_LOG_LEVEL` | `OFF` | `INFO` costs **BL2** text +5,960 B and bss +4,284 B. BL2 has its own region, so this does not touch the secure slot |
-| `TFM_SPM_LOG_LEVEL`, `TFM_PARTITION_LOG_LEVEL`, `CONFIG_TFM_HALT_ON_CORE_PANIC` | silent / OFF | **secure** text +3,785 B for the three together — more than RA6M5's 1,984 B of headroom, so they cannot be enabled globally |
+| `MCUBOOT_LOG_LEVEL` | `INFO` upstream; `OFF` only under `MinSizeRel`/`Release` | `INFO` costs **BL2** text +5,960 B and bss +4,284 B. BL2 has its own region, so this does not touch the secure slot |
+| `TFM_SPM_LOG_LEVEL`, `TFM_PARTITION_LOG_LEVEL`, `CONFIG_TFM_HALT_ON_CORE_PANIC` | silent / OFF | **secure** text +3,785 B for the three together — more than RA6M5's real 1,693 B of headroom ([D087]), so they cannot be enabled globally |
 
 The PSA Arch scripts pass the last two groups explicitly, because `profile_large` at isolation 3
 has the room and the ordinary builds do not. That is why they are per-script rather than in

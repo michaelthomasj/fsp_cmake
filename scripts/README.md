@@ -13,14 +13,14 @@ defaulted, D101 for the RA8M2 IAR project parity); layouts and board settings ar
 | Profile | profile_large | default | default |
 | Isolation | 3 | 1 | 1 |
 | SPM backend | IPC | SFN | SFN |
-| SPM trace | off (required at L3 + IPC) | on | on |
-| Build type | MinSizeRel | MinSizeRel | Debug |
+| SPM trace | **on** (`-DTFM_SPM_LOG_LEVEL=..._DEBUG`) | on | on |
+| Build type | MinSizeRel | MinSizeRel (GCC) / Debug (IAR) | Debug |
 | Secure-side logging | on | **off** | on |
 
-Secure-side logging is the one that cannot be shared. It costs ~3,785 B, and the regression
-secure image has 960 B spare on RA8M2 — so it is set per script, not in the platform
-`config.cmake`. **MinSizeRel is mandatory on RA8M2**: `Debug` is ~414 KB against a 293 KB
-slot (D059).
+Secure-side logging is the one that cannot be shared. It costs ~3,785 B against **670 B** spare
+on RA8M2 ([D087]; the 960 B this line used to quote was the retracted figure) — so it is set per script, not in the platform
+`config.cmake`. **MinSizeRel is mandatory on RA8M2 under GNUARM** (IAR `Debug` fits, [D055]): `Debug` is ~414 KB against a 293 KB
+slot ([D057]).
 
 ## Build trees
 
@@ -110,14 +110,16 @@ The **host project** in `PROJECT_ATTR` differs between the two parts, on purpose
 
 so hosting both toolchains in one project makes them share a directory for those sidecars.
 Giving each toolchain its own host keeps them apart. Nothing is built either way —
-`ATTR_BUILD_BEFORE_LAUNCH_ATTR` is `2` (disabled) — so the host project supplies only that name
+`ATTR_BUILD_BEFORE_LAUNCH_ATTR` is `2`, which in Eclipse CDT is `USE_WORKSPACE_SETTING`, not `DISABLED` (`0`) - so whether the host project is built depends on the workspace preference — so the host project supplies only that name
 and the debug context. Keep `MAPPED_RESOURCE_PATHS` in step with `PROJECT_ATTR`.
 
 `PROJECT_BUILD_CONFIG_AUTO_ATTR` is **`false`** in every IAR launch, which is what all six
-working RA6M5 IAR launches use. The GCC launches have `true`, so it cannot be inherited.
+working RA6M5 IAR launches use. Only the **RA8M2** GCC launches have `true`; every RA6M5 GCC
+launch has `false`, so it cannot simply be inherited either way.
 
 `mk_iar_launches.py` derives each IAR launch from its GCC twin by swapping build-tree names and
-the three project attributes above; nothing else differs, verified against the RA6M5 pair. It
+the three project attributes above, **and rewriting `e2lite.setTZBoundaries` from `true` to
+`false`** - so that key differs too. It
 refuses to write a launch that still names a GCC tree or the GCC project, or that has
 `setTZBoundaries` true anywhere. Run `--check` first: it reports `same` when the generator
 reproduces what is on disk, which is how a hand edit gets folded back in rather than lost.
@@ -145,9 +147,11 @@ arm-none-eabi-nm <build>/bin/tfm_ns.axf | grep ' _SEGGER_RTT$'
 
 **BL2's block cannot be recovered after the chainload.** `region_defs.h` gives BL2 and the SPE
 the same RAM, so the SPE's `.bss` zeroing wipes BL2's control block microseconds after the
-jump, and a viewer that auto-detects after reset always finds the SPE's. To capture BL2, halt
-in it first (`RA8M2_BL2_HALT_AT_MAIN=ON`, or a breakpoint), point the viewer at BL2's address
-while halted, then run. D100.
+jump, and a viewer that auto-detects after reset always finds the SPE's. To capture BL2, halt in it first with a **breakpoint**, point the viewer at BL2's address
+while halted, then run. `RA8M2_BL2_HALT_AT_MAIN=ON` does **not** work for this: it is an
+unconditional `while(1)` at the top of `main()` (`bl2_main.c:112-125`), before any init or
+print, so "then run" just spins and the image is not bootable. D100's wording is the source of
+that error.
 
 The test builds set `RA6M5_RTT_BLOCKING` / `RA8M2_RTT_BLOCKING` = ON, which makes RTT wait for
 the host instead of dropping writes when its buffer fills. Without it a suite out-runs the

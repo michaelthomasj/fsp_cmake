@@ -101,7 +101,7 @@ the standalone build but produces a configure-time **warning** naming the module
       `TFM_PARTITION_INTERNAL_TRUSTED_STORAGE` partition owns the secure data flash, backed by
       `Driver_FLASH1` — so the two implementations both claim that role and the FSP one drags in
       a filesystem the secure image has no use for. Dropping LFS from the stack in the template
-      avoids having to unpick it per project. See DESIGN.md §6.
+      avoids having to unpick it per project.
 
       Note this does not change what TF-M links today: `rm_psa_crypto` and `ra/arm/mbedtls` are
       already in `FSP_MODULES_NEVER_BUILT`, so nothing from them reaches a signed image. The

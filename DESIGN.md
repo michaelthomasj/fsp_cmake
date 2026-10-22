@@ -63,7 +63,7 @@ cache variables, passed to imgtool by `cmake/spe-CMakeLists.cmake`:
 | secure | `MCUBOOT_IMAGE_VERSION_S` | `${TFM_VERSION}` — 2.2.0 today |
 | non-secure | `MCUBOOT_IMAGE_VERSION_NS` | `0.0.0` |
 
-Both are defined in `bl2/ext/mcuboot/mcuboot_default_config.cmake:73-74` and are overridable per
+Both are defined in `bl2/ext/mcuboot/mcuboot_default_config.cmake:72-73` and are overridable per
 platform in `config.cmake`, or on the command line.
 
 **Why the deviation is accepted.** FSP's mechanism is one version for one image, because a
@@ -463,7 +463,10 @@ the only tell — over ~1 MB means it spans the option memory.
   linker/OFS/veneer decisions expressible for a third toolchain (§7/§8).
 
 ## 12. Bring-up
-- `fsp_cmake/bringup/` — J-Link flash + RTT scripts. Images are Debug builds (full symbols for
+- `fsp_cmake/bringup/` — **RA6M4/RA6E1-era** J-Link flash and RTT scripts, plus the preserved
+  bricking evidence. The live parts are flashed through the e2 launch configurations instead,
+  and GCC images must be `MinSizeRel` (`CONFIGURATION.md` §1), not Debug. TrustZone boundaries
+  are programmed with **RDPM** (§7.1), not RFP. Historic note follows: images were Debug builds (full symbols for
   GDB/Ozone). Flash from an erased chip; program the TZ boundaries (§7) via RFP; OFS (§8) is in `bl2.hex`.
 
 ---

@@ -152,7 +152,7 @@ PSA ITS down to LittleFS for key storage. TF-M provides ITS itself — the
 <code>TFM_PARTITION_INTERNAL_TRUSTED_STORAGE</code> partition owns the secure data flash, backed by
 <code>Driver_FLASH1</code> — so the two implementations both claim that role and the FSP one drags in
 a filesystem the secure image has no use for. Dropping LFS from the stack in the template
-avoids having to unpick it per project. See DESIGN.md §6.</p>
+avoids having to unpick it per project.</p>
 <p>Note this does not change what TF-M links today: <code>rm_psa_crypto</code> and <code>ra/arm/mbedtls</code> are
 already in <code>FSP_MODULES_NEVER_BUILT</code>, so nothing from them reaches a signed image. The
 reason to fix it in the template is that the module has to stay **generatable and buildable

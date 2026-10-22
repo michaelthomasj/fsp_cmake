@@ -71,14 +71,14 @@ defaulted, D101 for the RA8M2 IAR project parity); layouts and board settings ar
 <tr><td>Profile</td><td>profile_large</td><td>default</td><td>default</td></tr>
 <tr><td>Isolation</td><td>3</td><td>1</td><td>1</td></tr>
 <tr><td>SPM backend</td><td>IPC</td><td>SFN</td><td>SFN</td></tr>
-<tr><td>SPM trace</td><td>off (required at L3 + IPC)</td><td>on</td><td>on</td></tr>
-<tr><td>Build type</td><td>MinSizeRel</td><td>MinSizeRel</td><td>Debug</td></tr>
+<tr><td>SPM trace</td><td><strong>on</strong> (<code>-DTFM_SPM_LOG_LEVEL=..._DEBUG</code>)</td><td>on</td><td>on</td></tr>
+<tr><td>Build type</td><td>MinSizeRel</td><td>MinSizeRel (GCC) / Debug (IAR)</td><td>Debug</td></tr>
 <tr><td>Secure-side logging</td><td>on</td><td><strong>off</strong></td><td>on</td></tr>
 </table></div>
-<p>Secure-side logging is the one that cannot be shared. It costs ~3,785 B, and the regression
-secure image has 960 B spare on RA8M2 — so it is set per script, not in the platform
-<code>config.cmake</code>. <strong>MinSizeRel is mandatory on RA8M2</strong>: <code>Debug</code> is ~414 KB against a 293 KB
-slot (D059).</p>
+<p>Secure-side logging is the one that cannot be shared. It costs ~3,785 B against <strong>670 B</strong> spare
+on RA8M2 (<a href="DECISIONS.html#d087">D087</a>; the 960 B this line used to quote was the retracted figure) — so it is set per script, not in the platform
+<code>config.cmake</code>. <strong>MinSizeRel is mandatory on RA8M2 under GNUARM</strong> (IAR <code>Debug</code> fits, <a href="DECISIONS.html#d055">D055</a>): <code>Debug</code> is ~414 KB against a 293 KB
+slot (<a href="DECISIONS.html#d057">D057</a>).</p>
 <h2 id="build-trees">Build trees</h2>
 <p>One SPE serves all three PSA Arch suites — profile_large enables crypto, ITS, PS, attestation
 and platform — and each suite gets its own NS app. The regression SPE is separate because its
@@ -142,12 +142,14 @@ Names carry the toolchain: <code>_gcc</code> or <code>_iar</code>.</p>
 <pre><code>-uJLinkSetting= "${workspace_loc:/${ProjName}}/${LaunchConfigName}.jlink"</code></pre>
 <p>so hosting both toolchains in one project makes them share a directory for those sidecars.
 Giving each toolchain its own host keeps them apart. Nothing is built either way —
-<code>ATTR_BUILD_BEFORE_LAUNCH_ATTR</code> is <code>2</code> (disabled) — so the host project supplies only that name
+<code>ATTR_BUILD_BEFORE_LAUNCH_ATTR</code> is <code>2</code>, which in Eclipse CDT is <code>USE_WORKSPACE_SETTING</code>, not <code>DISABLED</code> (<code>0</code>) - so whether the host project is built depends on the workspace preference — so the host project supplies only that name
 and the debug context. Keep <code>MAPPED_RESOURCE_PATHS</code> in step with <code>PROJECT_ATTR</code>.</p>
 <p><code>PROJECT_BUILD_CONFIG_AUTO_ATTR</code> is <strong><code>false</code></strong> in every IAR launch, which is what all six
-working RA6M5 IAR launches use. The GCC launches have <code>true</code>, so it cannot be inherited.</p>
+working RA6M5 IAR launches use. Only the <strong>RA8M2</strong> GCC launches have <code>true</code>; every RA6M5 GCC
+launch has <code>false</code>, so it cannot simply be inherited either way.</p>
 <p><code>mk_iar_launches.py</code> derives each IAR launch from its GCC twin by swapping build-tree names and
-the three project attributes above; nothing else differs, verified against the RA6M5 pair. It
+the three project attributes above, **and rewriting <code>e2lite.setTZBoundaries</code> from <code>true</code> to
+<code>false</code>** - so that key differs too. It
 refuses to write a launch that still names a GCC tree or the GCC project, or that has
 <code>setTZBoundaries</code> true anywhere. Run <code>--check</code> first: it reports <code>same</code> when the generator
 reproduces what is on disk, which is how a hand edit gets folded back in rather than lost.</p>
@@ -168,9 +170,11 @@ than reusing a remembered value:</p>
 <pre><code class="language-sh">arm-none-eabi-nm &lt;build&gt;/bin/tfm_ns.axf | grep ' _SEGGER_RTT$'</code></pre>
 <p><strong>BL2&#x27;s block cannot be recovered after the chainload.</strong> <code>region_defs.h</code> gives BL2 and the SPE
 the same RAM, so the SPE&#x27;s <code>.bss</code> zeroing wipes BL2&#x27;s control block microseconds after the
-jump, and a viewer that auto-detects after reset always finds the SPE&#x27;s. To capture BL2, halt
-in it first (<code>RA8M2_BL2_HALT_AT_MAIN=ON</code>, or a breakpoint), point the viewer at BL2&#x27;s address
-while halted, then run. D100.</p>
+jump, and a viewer that auto-detects after reset always finds the SPE&#x27;s. To capture BL2, halt in it first with a <strong>breakpoint</strong>, point the viewer at BL2&#x27;s address
+while halted, then run. <code>RA8M2_BL2_HALT_AT_MAIN=ON</code> does <strong>not</strong> work for this: it is an
+unconditional <code>while(1)</code> at the top of <code>main()</code> (<code>bl2_main.c:112-125</code>), before any init or
+print, so &quot;then run&quot; just spins and the image is not bootable. D100&#x27;s wording is the source of
+that error.</p>
 <p>The test builds set <code>RA6M5_RTT_BLOCKING</code> / <code>RA8M2_RTT_BLOCKING</code> = ON, which makes RTT wait for
 the host instead of dropping writes when its buffer fills. Without it a suite out-runs the
 host&#x27;s polling and whole tests vanish from the transcript while the run itself is fine. Off by

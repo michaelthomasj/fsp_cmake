@@ -139,7 +139,8 @@ Turning this list into template defaults: **`RA6E1_TEMPLATE_CHECKLIST.md`**.
 tooling derives boundaries from the launched project's symbols and cannot handle a bootloader *and*
 a secure image sharing the secure region; launched against the bootloader (which has no TrustZone
 knowledge) it marks everything secure and silently undoes a correct partition. Currently `false` in
-`ra6e1_solution_nonsecure/ra6e1_nonsecure Debug_SSD.launch`. Keep it off in **every** launch config —
+`ra6e1_nonsecure/ra6e1_solution_nonsecure Debug_SSD.launch` (the directory is `ra6e1_nonsecure`;
+an earlier revision swapped the two names). Keep it off in **every** launch config —
 TF-M's BL2 is exactly the same shape. Full note: DESIGN.md §7.2.
 
 ### ✅ RESOLVED — NSC placement is correct

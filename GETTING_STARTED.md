@@ -66,6 +66,10 @@ git clone https://github.com/michaelthomasj/fsp_cmake.git
 rem  Only needed for the test-suite builds in §7
 git clone https://git.trustedfirmware.org/TF-M/tf-m-tests.git
 git clone https://github.com/ARM-software/psa-arch-tests.git
+# NOTE: the PSA Arch scripts select PSA_API_TEST_TARGET=renesas_ra, whose target directory
+# (tgt_dev_apis_tfm_renesas_ra) is local to this setup and is NOT in the upstream tree. A
+# plain upstream clone lacks it. Setting PSA_ARCH_TESTS_PATH to a local tree also skips
+# tf-m-tests' ten fetch_repo patches.
 ```
 
 Both repositories track the same branch:
@@ -76,7 +80,10 @@ cd fsp_cmake        && git checkout ra8m2_gen_6_7_TFM && cd ..
 ```
 
 **You do not clone MCUboot or Mbed TLS.** TF-M fetches both during the first configure
-(`MCUBOOT_PATH` and `MBEDCRYPTO_PATH` default to `DOWNLOAD`). The first build is therefore
+(`MCUBOOT_PATH` defaults to `DOWNLOAD`; `MBEDCRYPTO_PATH` does **not** - with
+`<PART>_FSP_MBEDTLS` ON, which is the default, `fsp_mbedtls.cmake` FORCE-sets it to an overlay
+built from the secure e2 project's `ra/arm/mbedtls`, and that overlay clone is what hits the
+Windows path-length limit). The first build is therefore
 slower and needs network access.
 
 ---
@@ -181,8 +188,9 @@ Each has an `_iar` twin. In e2: `Run → Debug Configurations…`, pick one, `De
 > **`setTZBoundaries` must be `false`** in every launch configuration. The debugger otherwise
 > derives TrustZone boundaries from the launched project's symbols, and launched against BL2 it
 > gets them wrong. On RA8M2 the key appears **twice** — `...arm.jlink.` and `...arm.e2lite.` —
-> and e2 defaults the second to `true`. Set both. [DESIGN.md](DESIGN.md) §7.2,
-> [D102](DECISIONS.md).
+> and e2 defaults the second to `true`. Set both. **The five RA8M2 GCC launches in the §6
+> table still carry `e2lite` = `true`** - inert while J-Link is selected, live the moment
+> the probe is switched. [DESIGN.md](DESIGN.md) §7.2, [D102](DECISIONS.md).
 
 Also leave **erase code flash** and **erase data flash** enabled on connect. A stale ITS/PS area
 survives a reflash and makes the storage suites fail in ways that look like code faults.
@@ -201,7 +209,11 @@ arm-none-eabi-objdump -s -j .option_setting_ofs0 -j .option_setting_ofs1_sec ^
                          -j .option_setting_ofs1_sel C:\b\m2app\bin\bl2.axf
 ```
 
-Expect `ffffffff` / `fffdffff` / `f8f8ffff`. One coalesced segment spanning the option memory is
+**Those three values are RA6M5's, not RA8M2's.** A correct RA8M2 bootloader generates
+OFS0 `ffffffff`, OFS1_SEC `fffffffd` (HOCO 48 MHz) and OFS1_SEL `00000000` (BL2 is the flat
+build, so the `#else` branch applies) - checking an RA8M2 image against the RA6M5 values fails
+a good image. **Under IAR this check does not work at all:** ILINK renames the sections
+(`P1`, `P7`, ...), so `-j .option_setting_*` dumps nothing and prints no error. One coalesced segment spanning the option memory is
 the failure that cost two EK-RA6M4 boards — the linker gap-fills between the words and writes
 values nobody chose ([D002], [D094]). `check_ofs.py` runs this during the build; these commands
 are how you confirm it by hand on an image you are about to flash.
@@ -245,7 +257,7 @@ at BL2's address *while halted*, then run. [D100](DECISIONS.md), [D110](DECISION
 [INF] Image version: v2.2.0
 Booting TF-M v2.2.0+...
 [Sec Thread] Secure image initializing!
-TF-M isolation level is: 0x00000003
+TF-M isolation level is: 0x00000001
 [INF][Crypto] Init HW accelerator... complete.
 Non-Secure system starting...
 ```
@@ -260,7 +272,9 @@ level 3, the IPC backend — so they are separate scripts and separate build tre
 ```bat
 rem  PSA Arch. One secure image serves all three suites; each suite gets its own NS app.
 rem  The third argument selects the part; omit it for RA6M5.
-scripts\vs_build.bat
+rem  vs_build.bat takes a build directory; with no argument it only self-checks and exits,
+rem  and it runs under setlocal so no environment would reach the next line anyway.
+rem  psa_arch_ns.bat calls vcvars64 itself, so the two lines below are sufficient.
 scripts\psa_arch_spe.bat  C:\b\m2cry   CRYPTO ra8m2
 scripts\psa_arch_ns.bat   C:\b\m2cryns C:\b\m2cry\api_ns CRYPTO
 

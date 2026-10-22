@@ -117,6 +117,17 @@ the firmware sets them. See <code>DESIGN.md</code> §7.1 for the granularity rul
 <p>Resulting NS regions: 896 KB of code flash from 0x120000, 256 KB of SRAM from 0x20040000.</p>
 <p>RDPM erases the part — reflash all three images afterwards. Every launch configuration must
 keep <code>com.renesas.hardwaredebug.arm.jlink.setTZBoundaries</code> = <strong>false</strong> (<code>DESIGN.md</code> §7.2).</p>
+<blockquote><p><strong>Nine of the 47 shipped launches break this rule today</strong> (audited 2026-10-22):</p>
+<ul>
+<li><code>jlink</code> key <code>true</code> in the four stock e2 <code>*_nonsecure Debug_SSD.launch</code> files
+(<code>ra6m5_gcc_nonsecure</code>, <code>ra6m5_iar_nonsecure</code>, <code>ra8m2_gcc_CPU0_nonsecure</code>,
+<code>ra8m2_iar_CPU0_nonsecure</code>). These are e2 output, not the <code>*_TFM_*</code> launches used here.</li>
+<li><code>e2lite</code> key <code>true</code> in the five RA8M2 GCC TFM launches (<code>flih</code>, <code>test_attestation</code>,
+<code>test_crypto</code>, <code>test_storage</code>, <code>update</code>). Their <code>jlink</code> key is <code>false</code>, so this is inert
+while J-Link is the selected probe - <strong>switching probe arms it</strong> (<a href="DECISIONS.html#d102">D102</a>).</li>
+</ul>
+<p>Check before flashing anything unfamiliar:
+<code>grep -rn "setTZBoundaries" &lt;launch&gt;</code></p></blockquote>
 <p><strong>Dual-bank mode must be off.</strong> The OFS <code>DUALSEL</code> word must select linear mode. In dual-bank
 mode each bank is 1 MB and the upper half is not at 0x100000, which breaks this layout.
 <code>BSP_FEATURE_FLASH_HP_CF_DUAL_BANK_START</code> is 0x00200000 on this part.</p>

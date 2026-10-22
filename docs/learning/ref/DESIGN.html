@@ -119,7 +119,7 @@ cache variables, passed to imgtool by <code>cmake/spe-CMakeLists.cmake</code>:</
 <tr><td>secure</td><td><code>MCUBOOT_IMAGE_VERSION_S</code></td><td><code>${TFM_VERSION}</code> — 2.2.0 today</td></tr>
 <tr><td>non-secure</td><td><code>MCUBOOT_IMAGE_VERSION_NS</code></td><td><code>0.0.0</code></td></tr>
 </table></div>
-<p>Both are defined in <code>bl2/ext/mcuboot/mcuboot_default_config.cmake:73-74</code> and are overridable per
+<p>Both are defined in <code>bl2/ext/mcuboot/mcuboot_default_config.cmake:72-73</code> and are overridable per
 platform in <code>config.cmake</code>, or on the command line.</p>
 <p><strong>Why the deviation is accepted.</strong> FSP&#x27;s mechanism is one version for one image, because a
 standalone FSP bootloader signs a single application. TF-M signs <strong>two</strong> images that must be
@@ -483,7 +483,10 @@ linker/OFS/veneer decisions expressible for a third toolchain (§7/§8).</li>
 </ul>
 <h2 id="s12">12. Bring-up</h2>
 <ul>
-<li><code>fsp_cmake/bringup/</code> — J-Link flash + RTT scripts. Images are Debug builds (full symbols for
+<li><code>fsp_cmake/bringup/</code> — <strong>RA6M4/RA6E1-era</strong> J-Link flash and RTT scripts, plus the preserved
+bricking evidence. The live parts are flashed through the e2 launch configurations instead,
+and GCC images must be <code>MinSizeRel</code> (<code>CONFIGURATION.md</code> §1), not Debug. TrustZone boundaries
+are programmed with <strong>RDPM</strong> (§7.1), not RFP. Historic note follows: images were Debug builds (full symbols for
 GDB/Ozone). Flash from an erased chip; program the TZ boundaries (§7) via RFP; OFS (§8) is in <code>bl2.hex</code>.</li>
 </ul>
 <hr>

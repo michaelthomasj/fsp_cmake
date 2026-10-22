@@ -86,9 +86,12 @@ board running the test suite, with commands, versions and the first-build failur
 This is a prerequisite, not an optional step: the TF-M build reads <code>Debug/bsp_linker_info.h</code>
 and <code>Debug/memory_regions.*</code>, which only an e2 build produces. Regenerating alone is not
 enough.</li>
-<li>Run the matching script from <code>scripts/</code> — <code>app_build_ra8m2_gcc.bat</code>, <code>app_build_iar.bat</code>, and
+<li>Run the matching script from <code>scripts/</code> — <code>app_build_ra8m2_gcc.bat</code> (RA8M2 GCC),
+<code>app_build_iar.bat</code> (RA6M5 <strong>IAR</strong>; there is no RA6M5 GCC application script), and
 so on. Each builds BL2 + secure, installs the SPE, then builds the non-secure image.</li>
-<li>Flash with the e2 debug launch configurations in <code>&lt;part&gt;_gcc_nonsecure/</code>.</li>
+<li>Flash with the e2 debug launch configurations - RA6M5&#x27;s are in <code>ra6m5_gcc_nonsecure/</code>,
+<strong>RA8M2&#x27;s are in <code>ra8m2_gcc_mcuboot/</code></strong> (<code>ra8m2_gcc_CPU0_nonsecure/</code> holds only the stock e2
+<code>Debug_SSD</code> launch). Note none of them loads what step 2 builds; see <code>GETTING_STARTED.md</code> §6.</li>
 </ol>
 <p><strong>PSA Arch builds additionally need <code>scripts\vs_build.bat</code></strong> — they compile a host tool with
 <code>cl.exe</code>, which needs a Visual Studio developer environment. See DECISIONS D083.</p>
@@ -119,12 +122,12 @@ GCC 13.2:</p>
 <tr><td><code>MCUBOOT_LOG_LEVEL=INFO</code></td><td><strong>BL2</strong> text +5,960 B, bss +4,284 B</td><td><code>psa_arch_spe*.bat</code></td></tr>
 <tr><td><code>TFM_SPM_LOG_LEVEL=..._DEBUG</code>&lt;br&gt;<code>TFM_PARTITION_LOG_LEVEL=..._INFO</code>&lt;br&gt;<code>CONFIG_TFM_HALT_ON_CORE_PANIC=ON</code></td><td><strong>secure</strong> text +3,785 B (the three together)</td><td><code>psa_arch_spe*.bat</code></td></tr>
 <tr><td><code>TFM_EXCEPTION_INFO_DUMP=ON</code></td><td>secure text ~3.4 KB</td><td><code>&lt;part&gt;/config.cmake</code> — on everywhere</td></tr>
-<tr><td><code>TFM_SPM_DEBUG_TRACE</code></td><td>a handful of bytes</td><td>off; must stay off at isolation 3 + IPC</td></tr>
+<tr><td><code>TFM_SPM_DEBUG_TRACE</code></td><td>a handful of bytes</td><td><strong>ON</strong> in both platform <code>config.cmake</code>s. The constraint is not isolation or IPC: <code>check_config.cmake:119</code> rejects TRACE with a <code>_SILENCE</code> log level, which is what <code>MinSizeRel</code>/<code>Release</code> set (<a href="DECISIONS.html#d007">D007</a>)</td></tr>
 </table></div>
 <p>Turning the first two groups off recovers roughly **3.7 KB of secure flash and 6 KB of BL2
 flash**. They are passed on the command line by the PSA Arch scripts rather than set in
 <code>&lt;part&gt;/config.cmake</code>, precisely so they do not reach the builds that cannot afford them —
-3,785 B against 1,984 B of headroom would not link.</p>
+3,785 B against the real headroom - 1,693 B on RA6M5, 670 B on RA8M2 (<a href="DECISIONS.html#d087">D087</a>) - would not link.</p>
 <p><code>TFM_EXCEPTION_INFO_DUMP</code> is the one worth considering for a production image: it is on for
 every build today and is pure diagnostics.</p>
 <h2 id="the-documents">The documents</h2>
@@ -158,7 +161,7 @@ every build today and is pure diagnostics.</p>
 <tr><td><code>archive/ra6m4/</code></td><td>the RA6M4 era, 2025-10 to 2026-09. Nothing in it describes the active ports — see its README for what is still worth reading</td></tr>
 <tr><td><code>bringup/bricking_evidence/</code></td><td>the evidence behind D002, the OFS coalescing brick</td></tr>
 </table></div>
-<p><strong>Still to write</strong>, per <code>DOCUMENTATION_PLAN.md</code>: <code>RECONFIGURING_THE_LAYOUT.md</code>, the repartition
+<p><strong>Still to write</strong>, per <code>DOCUMENTATION_PLAN.md</code>: the repartition
 procedure.</p>
 </main>
 </div>

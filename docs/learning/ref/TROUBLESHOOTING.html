@@ -235,7 +235,8 @@ relink, and — the part that actually bites — it differs <strong>per toolchai
 on the same part. Nothing in the launch configuration carries it, so a wrong address is a
 silent &quot;prints nothing&quot;, not an error.</p>
 <pre><code>arm-none-eabi-nm &lt;image&gt;.axf | grep -w _SEGGER_RTT</code></pre>
-<p>Also: BL2 has no RTT at all unless <code>MCUBOOT_LOG_LEVEL</code> is <code>INFO</code> — at the default <code>OFF</code> the
+<p>Also: BL2 logs at any <code>MCUBOOT_LOG_LEVEL</code> above <code>OFF</code> (<code>ERROR</code>/<code>WARNING</code>/<code>INFO</code>/<code>DEBUG</code>).
+TF-M&#x27;s default is <code>INFO</code>; only <code>MinSizeRel</code> and <code>Release</code> set <code>OFF</code>, and at <code>OFF</code> the
 symbol is absent, which is expected rather than broken.</p>
 <h3 id="the-attestation-suite-passes-so-measured-boot-works">The attestation suite passes, so measured boot works</h3>
 <p><strong>It does not follow.</strong> With <code>component_cnt == 0</code> under the default

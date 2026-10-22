@@ -245,7 +245,8 @@ silent "prints nothing", not an error.
 arm-none-eabi-nm <image>.axf | grep -w _SEGGER_RTT
 ```
 
-Also: BL2 has no RTT at all unless `MCUBOOT_LOG_LEVEL` is `INFO` — at the default `OFF` the
+Also: BL2 logs at any `MCUBOOT_LOG_LEVEL` above `OFF` (`ERROR`/`WARNING`/`INFO`/`DEBUG`).
+TF-M's default is `INFO`; only `MinSizeRel` and `Release` set `OFF`, and at `OFF` the
 symbol is absent, which is expected rather than broken.
 
 ### The attestation suite passes, so measured boot works

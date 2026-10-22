@@ -112,12 +112,19 @@ git clone https://github.com/michaelthomasj/fsp_cmake.git
 
 rem  Only needed for the test-suite builds in §7
 git clone https://git.trustedfirmware.org/TF-M/tf-m-tests.git
-git clone https://github.com/ARM-software/psa-arch-tests.git</code></pre>
+git clone https://github.com/ARM-software/psa-arch-tests.git
+# NOTE: the PSA Arch scripts select PSA_API_TEST_TARGET=renesas_ra, whose target directory
+# (tgt_dev_apis_tfm_renesas_ra) is local to this setup and is NOT in the upstream tree. A
+# plain upstream clone lacks it. Setting PSA_ARCH_TESTS_PATH to a local tree also skips
+# tf-m-tests' ten fetch_repo patches.</code></pre>
 <p>Both repositories track the same branch:</p>
 <pre><code class="language-bat">cd trusted-firmware-m &amp;&amp; git checkout ra8m2_gen_6_7_TFM &amp;&amp; cd ..
 cd fsp_cmake        &amp;&amp; git checkout ra8m2_gen_6_7_TFM &amp;&amp; cd ..</code></pre>
 <p><strong>You do not clone MCUboot or Mbed TLS.</strong> TF-M fetches both during the first configure
-(<code>MCUBOOT_PATH</code> and <code>MBEDCRYPTO_PATH</code> default to <code>DOWNLOAD</code>). The first build is therefore
+(<code>MCUBOOT_PATH</code> defaults to <code>DOWNLOAD</code>; <code>MBEDCRYPTO_PATH</code> does <strong>not</strong> - with
+<code>&lt;PART&gt;_FSP_MBEDTLS</code> ON, which is the default, <code>fsp_mbedtls.cmake</code> FORCE-sets it to an overlay
+built from the secure e2 project&#x27;s <code>ra/arm/mbedtls</code>, and that overlay clone is what hits the
+Windows path-length limit). The first build is therefore
 slower and needs network access.</p>
 <hr>
 <h2 id="s4">4. Build the e2 solution first — this is not optional</h2>
@@ -194,8 +201,9 @@ can permanently lock the part. <a href="DECISIONS.html#d002">D002</a>(DECISIONS.
 <blockquote><p><strong><code>setTZBoundaries</code> must be <code>false</code></strong> in every launch configuration. The debugger otherwise
 derives TrustZone boundaries from the launched project&#x27;s symbols, and launched against BL2 it
 gets them wrong. On RA8M2 the key appears <strong>twice</strong> — <code>...arm.jlink.</code> and <code>...arm.e2lite.</code> —
-and e2 defaults the second to <code>true</code>. Set both. <a href="DESIGN.html">DESIGN.md</a> §7.2,
-<a href="DECISIONS.html#d102">D102</a>(DECISIONS.md).</p></blockquote>
+and e2 defaults the second to <code>true</code>. Set both. **The five RA8M2 GCC launches in the §6
+table still carry <code>e2lite</code> = <code>true</code>** - inert while J-Link is selected, live the moment
+the probe is switched. <a href="DESIGN.html">DESIGN.md</a> §7.2, <a href="DECISIONS.html#d102">D102</a>(DECISIONS.md).</p></blockquote>
 <p>Also leave <strong>erase code flash</strong> and <strong>erase data flash</strong> enabled on connect. A stale ITS/PS area
 survives a reflash and makes the storage suites fail in ways that look like code faults.</p>
 <h3 id="pre-flash-verification--run-on-every-new-build">Pre-flash verification — run on every new build</h3>
@@ -207,7 +215,11 @@ arm-none-eabi-readelf -l C:\b\m2app\bin\bl2.axf
 rem  2. Their contents must be the known-good values.
 arm-none-eabi-objdump -s -j .option_setting_ofs0 -j .option_setting_ofs1_sec ^
                          -j .option_setting_ofs1_sel C:\b\m2app\bin\bl2.axf</code></pre>
-<p>Expect <code>ffffffff</code> / <code>fffdffff</code> / <code>f8f8ffff</code>. One coalesced segment spanning the option memory is
+<p><strong>Those three values are RA6M5&#x27;s, not RA8M2&#x27;s.</strong> A correct RA8M2 bootloader generates
+OFS0 <code>ffffffff</code>, OFS1_SEC <code>fffffffd</code> (HOCO 48 MHz) and OFS1_SEL <code>00000000</code> (BL2 is the flat
+build, so the <code>#else</code> branch applies) - checking an RA8M2 image against the RA6M5 values fails
+a good image. <strong>Under IAR this check does not work at all:</strong> ILINK renames the sections
+(<code>P1</code>, <code>P7</code>, ...), so <code>-j .option_setting_*</code> dumps nothing and prints no error. One coalesced segment spanning the option memory is
 the failure that cost two EK-RA6M4 boards — the linker gap-fills between the words and writes
 values nobody chose (<a href="DECISIONS.html#d002">D002</a>, <a href="DECISIONS.html#d094">D094</a>). <code>check_ofs.py</code> runs this during the build; these commands
 are how you confirm it by hand on an image you are about to flash.</p>
@@ -241,7 +253,7 @@ at BL2&#x27;s address <em>while halted</em>, then run. <a href="DECISIONS.html#d
 [INF] Image version: v2.2.0
 Booting TF-M v2.2.0+...
 [Sec Thread] Secure image initializing!
-TF-M isolation level is: 0x00000003
+TF-M isolation level is: 0x00000001
 [INF][Crypto] Init HW accelerator... complete.
 Non-Secure system starting...</code></pre>
 <hr>
@@ -250,7 +262,9 @@ Non-Secure system starting...</code></pre>
 level 3, the IPC backend — so they are separate scripts and separate build trees.</p>
 <pre><code class="language-bat">rem  PSA Arch. One secure image serves all three suites; each suite gets its own NS app.
 rem  The third argument selects the part; omit it for RA6M5.
-scripts\vs_build.bat
+rem  vs_build.bat takes a build directory; with no argument it only self-checks and exits,
+rem  and it runs under setlocal so no environment would reach the next line anyway.
+rem  psa_arch_ns.bat calls vcvars64 itself, so the two lines below are sufficient.
 scripts\psa_arch_spe.bat  C:\b\m2cry   CRYPTO ra8m2
 scripts\psa_arch_ns.bat   C:\b\m2cryns C:\b\m2cry\api_ns CRYPTO
 

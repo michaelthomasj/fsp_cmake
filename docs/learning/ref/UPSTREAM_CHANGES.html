@@ -146,7 +146,7 @@ the default veneer location the move changes nothing.</p>
 RA6E1/RA6M4 code flash is 128 (<code>BSP_FEATURE_FLASH_HP_CF_WRITE_SIZE</code>). Extends both lists to
 4096.</p>
 <p>The runtime already supports it for <code>OVERWRITE_ONLY</code>: the <code>&gt;=8 &amp;&amp; &lt;=32</code> <code>_Static_assert</code> in
-<code>bootutil_public.c</code> is guarded on the swap modes, and <code>boot_write_trailer()</code> pads magic writes
+<code>bootutil_public.h</code> is guarded on the swap modes, and <code>boot_write_trailer()</code> pads magic writes
 to <code>ALIGN_DOWN(off, BOOT_MAX_ALIGN)</code>. <code>wrapper.py</code>&#x27;s list is the real constraint on TF-M&#x27;s
 signing path, because <code>wrap()</code> constructs <code>imgtool.image.Image()</code> directly rather than
 shelling out to imgtool&#x27;s CLI.</p>

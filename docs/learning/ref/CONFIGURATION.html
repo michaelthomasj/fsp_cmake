@@ -94,7 +94,7 @@ tree, not the config file. This has cost real debugging time twice (<a href="DEC
 <tr><td><code>FSP_BL2_APP_DIR</code></td><td>the generated <strong>bootloader</strong> project. Supplies the OFS values and the FSP driver modules BL2 needs (<a href="DECISIONS.html#d091">D091</a> removed the FSP MCUboot backend from both parts)</td></tr>
 <tr><td><code>FSP_NS_APP_DIR</code></td><td>the generated <strong>non-secure</strong> project</td></tr>
 <tr><td><code>TFM_TOOLCHAIN_FILE</code></td><td><code>toolchain_GNUARM.cmake</code> or <code>toolchain_IARARM.cmake</code></td></tr>
-<tr><td><code>CMAKE_BUILD_TYPE</code></td><td><strong><code>MinSizeRel</code> is not optional on GNUARM.</strong> <code>Debug</code> does not fit — <code>tfm_s</code> comes out around 414 KB against RA8M2&#x27;s 293 KB secure region. IAR <code>Debug</code> does fit (<a href="DECISIONS.html#d056">D056</a>)</td></tr>
+<tr><td><code>CMAKE_BUILD_TYPE</code></td><td><strong><code>MinSizeRel</code> is not optional on GNUARM.</strong> <code>Debug</code> does not fit — <code>tfm_s</code> comes out around 414 KB against RA8M2&#x27;s 294,400-byte (<code>0x47E00</code>) secure region. IAR <code>Debug</code> does fit (<a href="DECISIONS.html#d055">D055</a>; <a href="DECISIONS.html#d057">D057</a> for why GNUARM <code>Debug</code> does not)</td></tr>
 </table></div>
 <p><strong>The e2 project must have been BUILT, not just generated.</strong> The TF-M build reads
 <code>Debug/bsp_linker_info.h</code> and <code>Debug/memory_regions.*</code>, which only an e2 build produces.</p>
@@ -195,8 +195,8 @@ hashes) and the trailer, which overstated RA8M2&#x27;s headroom by 30%.</p>
 <tr><td><code>&lt;PART&gt;_BL2_HALT_AT_MAIN</code></td><td>OFF</td><td>BL2 spins at <code>main()</code> for debugger attach</td></tr>
 <tr><td><code>&lt;PART&gt;_ORPHAN_CHECK_STRICT</code></td><td>OFF</td><td>makes an orphan section fatal; intended for CI</td></tr>
 <tr><td><code>&lt;PART&gt;_NS_IN_SPE_BUILD</code></td><td>OFF</td><td>builds the NS image inside the secure build</td></tr>
-<tr><td><code>MCUBOOT_LOG_LEVEL</code></td><td><code>OFF</code></td><td><code>INFO</code> costs <strong>BL2</strong> text +5,960 B and bss +4,284 B. BL2 has its own region, so this does not touch the secure slot</td></tr>
-<tr><td><code>TFM_SPM_LOG_LEVEL</code>, <code>TFM_PARTITION_LOG_LEVEL</code>, <code>CONFIG_TFM_HALT_ON_CORE_PANIC</code></td><td>silent / OFF</td><td><strong>secure</strong> text +3,785 B for the three together — more than RA6M5&#x27;s 1,984 B of headroom, so they cannot be enabled globally</td></tr>
+<tr><td><code>MCUBOOT_LOG_LEVEL</code></td><td><code>INFO</code> upstream; <code>OFF</code> only under <code>MinSizeRel</code>/<code>Release</code></td><td><code>INFO</code> costs <strong>BL2</strong> text +5,960 B and bss +4,284 B. BL2 has its own region, so this does not touch the secure slot</td></tr>
+<tr><td><code>TFM_SPM_LOG_LEVEL</code>, <code>TFM_PARTITION_LOG_LEVEL</code>, <code>CONFIG_TFM_HALT_ON_CORE_PANIC</code></td><td>silent / OFF</td><td><strong>secure</strong> text +3,785 B for the three together — more than RA6M5&#x27;s real 1,693 B of headroom (<a href="DECISIONS.html#d087">D087</a>), so they cannot be enabled globally</td></tr>
 </table></div>
 <p>The PSA Arch scripts pass the last two groups explicitly, because <code>profile_large</code> at isolation 3
 has the room and the ordinary builds do not. That is why they are per-script rather than in

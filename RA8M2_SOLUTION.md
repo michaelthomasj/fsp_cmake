@@ -73,7 +73,7 @@ bounds imported from FSP's `flash_map.c`. `DESIGN.md` §4 carries the reasoning.
 | `__BL_1_S_T` | MRAM | n | 0x100000 | 0x0 | |
 
 In 32 KB units: BL2 2, DF_EMULATION 2, secure slots 9 each, NS slots 5 each — 32 units, no
-remainder. `flash_layout.h:190` states the same sum as
+remainder. `flash_layout.h:196-197` states the same sum as
 `64 K BL2 + 64 K DF_EMULATION + 2 x 288 K secure + 2 x 160 K non-secure = 1024 K`.
 
 **The secure/non-secure split falls at offset `0xB0000`**, the one number the flash driver has
@@ -125,6 +125,17 @@ Resulting NS regions: 320 KB of MRAM in the non-secure alias from `0x120B0000`, 
 
 **RDPM erases the part — reflash all three images afterwards.** Every launch configuration must
 keep `com.renesas.hardwaredebug.arm.jlink.setTZBoundaries` = **false** (`DESIGN.md` §7.2).
+
+> **Nine of the 47 shipped launches break this rule today** (audited 2026-10-22):
+> - `jlink` key `true` in the four stock e2 `*_nonsecure Debug_SSD.launch` files
+>   (`ra6m5_gcc_nonsecure`, `ra6m5_iar_nonsecure`, `ra8m2_gcc_CPU0_nonsecure`,
+>   `ra8m2_iar_CPU0_nonsecure`). These are e2 output, not the `*_TFM_*` launches used here.
+> - `e2lite` key `true` in the five RA8M2 GCC TFM launches (`flih`, `test_attestation`,
+>   `test_crypto`, `test_storage`, `update`). Their `jlink` key is `false`, so this is inert
+>   while J-Link is the selected probe - **switching probe arms it** ([D102]).
+>
+> Check before flashing anything unfamiliar:
+> `grep -rn "setTZBoundaries" <launch>`
 
 ---
 

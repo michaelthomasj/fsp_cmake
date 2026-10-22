@@ -88,7 +88,8 @@ Note the message-FIFO send/receive is **not** here — that is `r_ipc` (`R_IPC_M
 vector table), clears `CPU1WAITCR` (in case a debugger parked CPU1), then writes the
 key code + `ACTREQ` to `CPU1ACTCSR` to activate CPU1. **No start-address parameter** —
 CPU1's entry is fixed by `CPU1INITVTOR`, which is driven by `BSP_PARTITION_FLASH_CPU1_S_START`
-(a partition-config macro — the DESIGN §13.4 `BSP_PARTITION_*` dependency, back again).
+(a partition-config macro — the `BSP_PARTITION_*` dependency described in `BRIDGING_FILES.md`,
+back again).
 
 ---
 
@@ -187,5 +188,6 @@ Plus: enable `TFM_MULTI_CORE_TOPOLOGY`, pull in `ns_agent_mailbox`, set
 
 ---
 
-*Related: PROJECT_PLAN.md (P4–P6), DESIGN.md (§13 TZ/startup ownership, §13.4 DDSC),
+*Related: DESIGN.md (§7 TrustZone, §8 startup ownership), `ra8m2_ddsc.c` and BRIDGING_FILES.md
+for DDSC,
 and `trusted-firmware-m/docs/design_docs/dual-cpu/`.*

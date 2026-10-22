@@ -185,7 +185,8 @@ between the two services — but a fresh board will behave differently from this
 tooling derives boundaries from the launched project&#x27;s symbols and cannot handle a bootloader <em>and</em>
 a secure image sharing the secure region; launched against the bootloader (which has no TrustZone
 knowledge) it marks everything secure and silently undoes a correct partition. Currently <code>false</code> in
-<code>ra6e1_solution_nonsecure/ra6e1_nonsecure Debug_SSD.launch</code>. Keep it off in <strong>every</strong> launch config —
+<code>ra6e1_nonsecure/ra6e1_solution_nonsecure Debug_SSD.launch</code> (the directory is <code>ra6e1_nonsecure</code>;
+an earlier revision swapped the two names). Keep it off in <strong>every</strong> launch config —
 TF-M&#x27;s BL2 is exactly the same shape. Full note: DESIGN.md §7.2.</p>
 <h3 id="-resolved--nsc-placement-is-correct">✅ RESOLVED — NSC placement is correct</h3>
 <p><strong>Verified 2026-08-26 on the first TF-M secure image.</strong> <code>Image$$ER_VENEER$$Base</code> = <code>0x97C00</code>,

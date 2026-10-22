@@ -125,7 +125,7 @@ RA6E1/RA6M4 code flash is 128 (`BSP_FEATURE_FLASH_HP_CF_WRITE_SIZE`). Extends bo
 4096.
 
 The runtime already supports it for `OVERWRITE_ONLY`: the `>=8 && <=32` `_Static_assert` in
-`bootutil_public.c` is guarded on the swap modes, and `boot_write_trailer()` pads magic writes
+`bootutil_public.h` is guarded on the swap modes, and `boot_write_trailer()` pads magic writes
 to `ALIGN_DOWN(off, BOOT_MAX_ALIGN)`. `wrapper.py`'s list is the real constraint on TF-M's
 signing path, because `wrap()` constructs `imgtool.image.Image()` directly rather than
 shelling out to imgtool's CLI.

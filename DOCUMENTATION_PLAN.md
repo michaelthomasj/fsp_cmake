@@ -280,7 +280,7 @@ setting in e2, rebuilds the TF-M port, and expects the new value to be programme
 | Stage | Where it comes from | What can go wrong silently |
 |---|---|---|
 | OFS **values** | `BSP_CFG_OPTION_SETTING_*` in the **bootloader** project's `ra_cfg/.../bsp_mcu_ofs_cfg.h` | Edited in the **secure** project instead — no effect, no warning. `bl2_option_setting.c` compiles into `platform_bl2`, so only `FSP_BL2_APP_DIR` is on the path. Both projects define the same groups, which makes this easy to do and impossible to notice. |
-| OFS **addresses** | the bootloader project's generated `Debug/memory_regions.icf`, filtered into `option_settings.h` at configure time | Were hand-transcribed until 2026-09-24, and were RA6M5's — OFS0 linked at `0x0100A100` instead of `0x02c9f040` ([[D054]] area). |
+| OFS **addresses** | the bootloader project's generated `Debug/memory_regions.icf`, filtered into `option_settings.h` at configure time | Were hand-transcribed until 2026-09-24, and were RA6M5's — OFS0 linked at `0x0100A100` instead of `0x02c9f040` ([[D056]]). |
 | Which **groups** exist | the device; FSP only emits a `BSP_CFG_OPTION_SETTING_*` for what the user sets | A group enabled in e2 that the port does not emit is **dropped with no diagnostic**. OFS2, OFS3_SEC and OFS3_SEL were configured and dropped exactly this way. |
 | **Placement** | `ra8m2_bl2.ld` MEMORY + sections, `ra8m2_bl2.icf` region + keep + place | One coalesced `PT_LOAD` zero-fills the gaps and programs block-protect to 0 → permanent brick ([[D002]]). Invisible in the srec. |
 
