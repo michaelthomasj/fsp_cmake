@@ -134,7 +134,7 @@ place:</p>
 <tr><td><code>ra6m5_gcc_secure</code></td><td><code>BSP_CFG_STACK_MAIN_BYTES</code> = 0x1000</td></tr>
 <tr><td><code>ra6m5_gcc_mcuboot</code></td><td>flash instance named <strong><code>g_flash0</code></strong>, not <code>g_flashRA_NOT_DEFINED</code></td></tr>
 <tr><td>all</td><td>the partitioning above, with <code>__BL_*_T</code> sizes <strong>0</strong></td></tr>
-<tr><td><code>ra6m5_gcc_secure</code>, <code>ra6m5_gcc_mcuboot</code></td><td><strong><code>BSP_CFG_EARLY_INIT</code> = 1</strong> — still 0; BSP tab → Early BSP Initialization</td></tr>
+<tr><td><code>ra6m5_gcc_secure</code>, <code>ra6m5_gcc_mcuboot</code></td><td><strong><code>BSP_CFG_EARLY_INIT</code> = 1</strong> — done; both projects emit <code>((1))</code>, and a <code>#error</code> has enforced it since <a href="DECISIONS.html#d034">D034</a>. BSP tab → Early BSP Initialization</td></tr>
 </table></div>
 <p>The flash instance name is not cosmetic: <code>cmsis_drivers/Driver_Flash.c</code> refers to
 <code>g_flash0_ctrl</code> / <code>g_flash0_cfg</code> by name, and those come from the generated
@@ -155,9 +155,15 @@ now carried in this repo: modules added, partitions set to the layout above, reg
 built in e2.</p>
 <p>First hardware run (2026-09-21, CK-RA6M5 V2): <code>FSP_ERR_FCLK</code> from <code>R_FLASH_HP_Open</code> —
 <code>BSP_CFG_EARLY_INIT</code> was 0 in both secure and bootloader projects. See below.</p>
+<p><strong>2026-10-22 — the full regression suite passes at isolation 1+IPC, 2 and 3, both toolchains</strong>,
+FLIH IRQ tests included (<a href="DECISIONS.html#d122">D122</a>, <a href="DECISIONS.html#d123">D123</a>, <a href="DECISIONS.html#d124">D124</a>).</p>
 <p><strong>2026-09-23 — all three PSA Arch suites pass from both toolchains</strong> (profile_large, isolation
 3, IPC), on FSP 6.7.0-beta0 — crypto 63/0/1, attestation 1/0/0, storage 11/0/6, identical on
-GCC and IAR, zero failures (<a href="DECISIONS.html#d046">D046</a>). Launches for all six are in <code>ra6m5_gcc_nonsecure/</code>.</p>
+GCC and IAR, zero failures (<a href="DECISIONS.html#d046">D046</a>). Launches for all six are in <code>ra6m5_gcc_nonsecure/</code>.
+<strong>Read the &quot;isolation 3&quot; there narrowly:</strong> it says the SPM was <em>configured</em> at level 3, not
+that level-3 isolation was enforced. The shared HAL compiled with <code>TFM_ISOLATION_LEVEL</code>
+undefined until <a href="DECISIONS.html#d113">D113</a>, so those runs did not exercise the level-3 MPU table at all. The
+first runs that do are <a href="DECISIONS.html#d114">D114</a> and <a href="DECISIONS.html#d123">D123</a>.</p>
 <p>**2026-09-22 — SCE9 acceleration validated on hardware: PSA Arch crypto 63 passed, 0 failed,
 1 skipped** (profile_large, isolation 3, IPC). The skip is deterministic ECDSA, which FSP does not
 support (<a href="DECISIONS.html#d040">D040</a>). TF-M&#x27;s crypto is built from FSP&#x27;s Mbed TLS (<a href="DECISIONS.html#d042">D042</a>) with FSP&#x27;s SCE9 ALT set

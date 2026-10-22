@@ -309,7 +309,9 @@ port now**, and FSP's `flash_area_open()` is not built. Today `Driver_FLASH0` ow
   parts select `vendor_plaintext_wrapped` in RASC, so the format config is not what selects the
   failing path and raising it cannot help. Hardware RSA keygen on E50D requires the *caller* to
   ask for a wrapped key, which a conformance test does not do. D097, D098, **D111**.
-- **Run the IAR trees.** The GCC side is done: full regression, PSA Arch attestation (1/1), and
+- **~~Run the IAR trees.~~ DONE 2026-10-22** ([[D118]], [[D119]]) — IAR is green at isolation
+  2 and 3 on this part, secure and non-secure, FLIH tests included. Original note follows.
+  The GCC side is done: full regression, PSA Arch attestation (1/1), and
   measured boot verified from the boot record at `0x22000000` - magic `0x2016`, NSPE 0.0.0 and
   SPE 2.2.0, both SHA-256 measurements equal to the signed images' TLVs (D095, D096).
   IAR side: all six trees build and **the regression, crypto, attestation and storage suites

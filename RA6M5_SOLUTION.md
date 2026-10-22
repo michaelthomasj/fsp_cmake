@@ -93,7 +93,7 @@ place:
 | `ra6m5_gcc_secure` | `BSP_CFG_STACK_MAIN_BYTES` = 0x1000 |
 | `ra6m5_gcc_mcuboot` | flash instance named **`g_flash0`**, not `g_flashRA_NOT_DEFINED` |
 | all | the partitioning above, with `__BL_*_T` sizes **0** |
-| `ra6m5_gcc_secure`, `ra6m5_gcc_mcuboot` | **`BSP_CFG_EARLY_INIT` = 1** — still 0; BSP tab → Early BSP Initialization |
+| `ra6m5_gcc_secure`, `ra6m5_gcc_mcuboot` | **`BSP_CFG_EARLY_INIT` = 1** — done; both projects emit `((1))`, and a `#error` has enforced it since [D034]. BSP tab → Early BSP Initialization |
 
 The flash instance name is not cosmetic: `cmsis_drivers/Driver_Flash.c` refers to
 `g_flash0_ctrl` / `g_flash0_cfg` by name, and those come from the generated
@@ -121,9 +121,16 @@ built in e2.
 First hardware run (2026-09-21, CK-RA6M5 V2): `FSP_ERR_FCLK` from `R_FLASH_HP_Open` —
 `BSP_CFG_EARLY_INIT` was 0 in both secure and bootloader projects. See below.
 
+**2026-10-22 — the full regression suite passes at isolation 1+IPC, 2 and 3, both toolchains**,
+FLIH IRQ tests included ([[D122]], [[D123]], [[D124]]).
+
 **2026-09-23 — all three PSA Arch suites pass from both toolchains** (profile_large, isolation
 3, IPC), on FSP 6.7.0-beta0 — crypto 63/0/1, attestation 1/0/0, storage 11/0/6, identical on
 GCC and IAR, zero failures ([[D046]]). Launches for all six are in `ra6m5_gcc_nonsecure/`.
+**Read the "isolation 3" there narrowly:** it says the SPM was *configured* at level 3, not
+that level-3 isolation was enforced. The shared HAL compiled with `TFM_ISOLATION_LEVEL`
+undefined until [[D113]], so those runs did not exercise the level-3 MPU table at all. The
+first runs that do are [[D114]] and [[D123]].
 
 **2026-09-22 — SCE9 acceleration validated on hardware: PSA Arch crypto 63 passed, 0 failed,
 1 skipped** (profile_large, isolation 3, IPC). The skip is deterministic ECDSA, which FSP does not

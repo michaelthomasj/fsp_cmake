@@ -77,7 +77,11 @@ configuration and BSP update for a single-core part. This removes an entire
 phase and <strong>both High risks</strong> from the register — see <em>Descoped</em> below.</p>
 <p><strong>All dates below are targets, not commitments.</strong> An overrun shifts subsequent
 dates rather than cutting scope.</p>
-<blockquote><p>A rendered version of this plan is in <a href="../../../PROJECT_PLAN.html"><code>PROJECT_PLAN.html</code></a>.</p></blockquote>
+<blockquote><p><a href="../../../PROJECT_PLAN.html"><code>PROJECT_PLAN.html</code></a> is a <strong>hand-made summary page</strong>, not a render of
+this file, and it drifts. For an HTML view that is generated from this document and checked
+for staleness on every commit, use
+<a href="PROJECT_PLAN.html"><code>docs/learning/ref/PROJECT_PLAN.html</code></a>
+(<code>scripts/build_doc_html.py --check</code> enforces it).</p></blockquote>
 <div class="table-wrap"><table>
 <tr><th></th><th></th></tr>
 <tr><td><strong>RA6E1 (GNUARM + IAR)</strong></td><td><strong>done 2026-09-14</strong> (target was ~09-25)</td></tr>
@@ -314,11 +318,13 @@ Everything is sequential under one engineer.</p>
 <hr>
 <h3 id="test-coverage-gaps--suites-never-run-on-any-part-surveyed-2026-10-06">Test coverage gaps — suites never run on ANY part (surveyed 2026-10-06)</h3>
 <p>Enumerated from <code>tf-m-tests</code> and <code>psa-arch-tests</code> and checked against every build tree in
-<code>C:\b</code>. <strong>Zero trees enable any of these.</strong></p>
+<code>C:\b</code>. <strong>Surveyed 2026-10-06; the IPC and isolation rows have since been closed.</strong></p>
 <div class="table-wrap"><table>
 <tr><th>Suite</th><th>Option</th><th>Why it has not run</th><th>Applicable?</th></tr>
 <tr><td><strong>Firmware Update</strong></td><td><code>TEST_S_FWU</code>, <code>TEST_NS_FWU</code></td><td><code>TFM_PARTITION_FIRMWARE_UPDATE</code> is OFF on both parts</td><td><strong>Yes - highest value.</strong> Exercises the PSA FWU API over the MCUboot slots this port already has. RA8M2 secure slot has ~670 B spare, so the partition may not fit without turning something off. <strong>The bootloader half is now proven</strong> - BL2 installs both images from their secondary slots and erases them (<a href="DECISIONS.html#d100">D100</a>) - so what FWU adds is the API that <em>places</em> an image there</td></tr>
-<tr><td><strong>IPC model</strong></td><td><code>TEST_S_IPC</code>, <code>TEST_NS_IPC</code></td><td>the app builds use <code>CONFIG_TFM_SPM_BACKEND=SFN</code>; only the PSA-arch builds use IPC, and those run psa-arch-tests rather than tf-m-tests</td><td><strong>Yes.</strong> A regression tree at isolation 3 + IPC would cover the backend the PSA-arch builds actually ship</td></tr>
+<tr><td><strong>IPC model</strong></td><td><code>TEST_S_IPC</code>, <code>TEST_NS_IPC</code></td><td><strong>CLOSED 2026-10-22.</strong> Ten regression trees now run the IPC backend at isolation 1, 2 and 3 on both parts and both toolchains, <code>TFM_S_IPC_TEST_1001</code>-<code>1012</code> included</td><td>Done - <a href="DECISIONS.html#d113">D113</a> to <a href="DECISIONS.html#d124">D124</a></td></tr>
+<tr><td><strong>Isolation 2 / 3</strong></td><td><code>TFM_ISOLATION_LEVEL</code></td><td><strong>CLOSED 2026-10-22.</strong> The suite had never run above isolation 1 before <a href="DECISIONS.html#d113">D113</a>; it is now green at L1+IPC, L2 and L3 on RA6M5 and RA8M2, GNUARM and IAR</td><td>Done - <a href="DECISIONS.html#d124">D124</a></td></tr>
+<tr><td><strong>SLIH above isolation 1</strong></td><td><code>CONFIG_TFM_SLIH_API</code></td><td>only the FLIH fixture has been run above L1. The SLIH service declares the same <code>mmio_region</code> and has never been exercised there</td><td><strong>Yes, cheap</strong> - the trees and launches already exist</td></tr>
 <tr><td><strong>PSA Arch IPC suite</strong></td><td><code>TEST_PSA_API=IPC</code></td><td>only CRYPTO, INITIAL_ATTESTATION and STORAGE have been built. TF-M accepts <code>IPC</code>, and <code>psa-arch-tests/api-tests/ff/{ipc,partition}</code> exists</td><td><strong>Yes.</strong> The Firmware Framework suite - different from the dev_apis ones already run</td></tr>
 <tr><td><strong>FPU</strong></td><td><code>TEST_S_FPU</code>, <code>TEST_NS_FPU</code></td><td><code>CONFIG_TFM_ENABLE_CP10CP11=OFF</code> - the port is soft-float throughout</td><td>Only if FP is ever enabled. RA8M2 is Cortex-M85 with FP hardware, so this is a real gap for that part</td></tr>
 <tr><td><strong>NSID management</strong></td><td><code>TEST_NS_MANAGE_NSID</code></td><td><code>TFM_NS_MANAGE_NSID</code> not set</td><td>Yes, cheap. Checks non-secure client ID handling</td></tr>

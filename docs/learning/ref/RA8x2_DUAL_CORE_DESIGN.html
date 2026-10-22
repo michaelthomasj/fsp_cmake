@@ -60,6 +60,11 @@
 <main id="top" class="ref-doc">
 <p class="src">Rendered from <a href="../../../RA8x2_DUAL_CORE_DESIGN.md"><code>RA8x2_DUAL_CORE_DESIGN.md</code></a>. Edit the Markdown, not this page.</p>
 <h1 id="ra8x2-dual-core-tf-m--inter-core-communication-design--implementation-tracker">RA8x2 Dual-Core TF-M — Inter-Core Communication Design &amp; Implementation Tracker</h1>
+<blockquote><p><strong>Status: forward design, not a live plan.</strong> Dual-core was descoped on 2026-09-14 and the
+phase numbers below (P4-P6) no longer correspond to anything in <code>PROJECT_PLAN.md</code>. Tracker
+item 2, &quot;RA8x2 base port: BL2 + SPE boot on primary core&quot;, is <strong>done</strong> by way of the RA8M2
+port - what remains genuinely open is CPU1 boot and the mailbox. Read this as the design to
+pick up if dual-core is rescoped, not as work in progress.</p></blockquote>
 <p><strong>Purpose.</strong> Track what it takes to run Trusted Firmware-M across the two cores of
 a dual-core RA8 (RA8D2 / RA8x2): SPE on one core, NSPE on the other, with PSA
 client calls marshaled over a mailbox. The mailbox transport is backed by the

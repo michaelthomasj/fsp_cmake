@@ -30,8 +30,8 @@ configuration differs in every row of the table above.
 
 | | PSA SPE | NS crypto | NS attest | NS storage | Reg SPE | Reg NS |
 |---|---|---|---|---|---|---|
-| RA6M5 GCC | `m5cry` | `m5cryns` | `m5att` | `m5sto` | — | — |
-| RA6M5 IAR | `m5icry` | `m5icryns` | `m5iatt` | `m5isto` | — | — |
+| RA6M5 GCC | `m5cry` | `m5cryns` | `m5att` | `m5sto` | `m5gflih` | `m5gflihns` |
+| RA6M5 IAR | `m5icry` | `m5icryns` | `m5iatt` | `m5isto` | `m5iflih` | `m5iflihns` |
 | RA8M2 GCC | `m2cry` | `m2cryns` | `m2att` | `m2sto` | `m2gflih` | `m2gflihns` |
 | RA8M2 IAR | `m2icry` | `m2icryns` | `m2iatt` | `m2isto` | `m2iflih` | `m2iflihns` |
 
@@ -165,6 +165,8 @@ Checks three things: every `D###` cited anywhere exists in `DECISIONS.md`; every
 `.md` link resolves; every `.md` filename named in a `.cmake` or `CMakeLists.txt` comment
 resolves. `DECISIONS.md` is exempt from the link checks because it is append-only - a reference
 there to a since-retired file is a historical fact, not a defect.
+Review snapshots under `docs/artifacts*/` are exempt from all three checks: they cite entries a
+review proposes before anyone has written them.
 
 Bypass with `git commit --no-verify` when a commit deliberately breaks a reference, such as the
 first half of a rename spanning both repositories.

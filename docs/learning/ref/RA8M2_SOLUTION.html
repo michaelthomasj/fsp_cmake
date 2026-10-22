@@ -301,7 +301,9 @@ is <strong>3</strong> (plaintext <em>and</em> wrapped) in the generated <code>ra
 parts select <code>vendor_plaintext_wrapped</code> in RASC, so the format config is not what selects the
 failing path and raising it cannot help. Hardware RSA keygen on E50D requires the <em>caller</em> to
 ask for a wrapped key, which a conformance test does not do. D097, D098, <strong>D111</strong>.</p></li>
-<li><p><strong>Run the IAR trees.</strong> The GCC side is done: full regression, PSA Arch attestation (1/1), and
+<li><p><strong><del>Run the IAR trees.</del> DONE 2026-10-22</strong> (<a href="DECISIONS.html#d118">D118</a>, <a href="DECISIONS.html#d119">D119</a>) — IAR is green at isolation
+2 and 3 on this part, secure and non-secure, FLIH tests included. Original note follows.
+The GCC side is done: full regression, PSA Arch attestation (1/1), and
 measured boot verified from the boot record at <code>0x22000000</code> - magic <code>0x2016</code>, NSPE 0.0.0 and
 SPE 2.2.0, both SHA-256 measurements equal to the signed images&#x27; TLVs (D095, D096).
 IAR side: all six trees build and **the regression, crypto, attestation and storage suites

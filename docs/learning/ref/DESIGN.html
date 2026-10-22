@@ -453,10 +453,13 @@ to the TF-M NS partition (RAM <code>0x20020000</code>, flash <code>0x50400</code
 </ul>
 <h2 id="s11">11. Toolchains</h2>
 <ul>
-<li><strong>GNU Arm</strong> (13.2) is the working toolchain today.</li>
-<li><strong>IAR (and armclang): TODO, required soon.</strong> All linker/OFS/veneer decisions must be expressible for
-IAR (<code>.icf</code>) too: an IAR BL2 linker with the OFS sections, and confirmation/porting of the veneer
-macros for TF-M&#x27;s IAR isolation linker. Design compiler-agnostically from the start (§7/§8).</li>
+<li><strong>GNU Arm</strong> (arm-none-eabi 13.2) and <strong>IAR</strong> (10.10.2) are both supported, on both live parts.
+IAR builds BL2, secure and non-secure, and passes the full regression suite at isolation 1, 2
+and 3 on RA6M5 and RA8M2, FLIH IRQ tests included (<a href="DECISIONS.html#d118">D118</a>, <a href="DECISIONS.html#d119">D119</a>, <a href="DECISIONS.html#d123">D123</a>, <a href="DECISIONS.html#d124">D124</a>). The IAR
+<code>.icf</code> BL2 linker with the OFS sections and the veneer macros for TF-M&#x27;s IAR isolation linker
+are all in place.</li>
+<li><strong>armclang: TODO.</strong> No <code>toolchain_ARMCLANG.cmake</code> support has been attempted. Keep
+linker/OFS/veneer decisions expressible for a third toolchain (§7/§8).</li>
 </ul>
 <h2 id="s12">12. Bring-up</h2>
 <ul>

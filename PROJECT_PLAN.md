@@ -23,7 +23,11 @@ phase and **both High risks** from the register — see *Descoped* below.
 **All dates below are targets, not commitments.** An overrun shifts subsequent
 dates rather than cutting scope.
 
-> A rendered version of this plan is in [`PROJECT_PLAN.html`](PROJECT_PLAN.html).
+> [`PROJECT_PLAN.html`](PROJECT_PLAN.html) is a **hand-made summary page**, not a render of
+> this file, and it drifts. For an HTML view that is generated from this document and checked
+> for staleness on every commit, use
+> [`docs/learning/ref/PROJECT_PLAN.html`](docs/learning/ref/PROJECT_PLAN.html)
+> (`scripts/build_doc_html.py --check` enforces it).
 
 | | |
 |---|---|
@@ -269,12 +273,14 @@ Everything is sequential under one engineer.
 ### Test coverage gaps — suites never run on ANY part (surveyed 2026-10-06)
 
 Enumerated from `tf-m-tests` and `psa-arch-tests` and checked against every build tree in
-`C:\b`. **Zero trees enable any of these.**
+`C:\b`. **Surveyed 2026-10-06; the IPC and isolation rows have since been closed.**
 
 | Suite | Option | Why it has not run | Applicable? |
 |---|---|---|---|
 | **Firmware Update** | `TEST_S_FWU`, `TEST_NS_FWU` | `TFM_PARTITION_FIRMWARE_UPDATE` is OFF on both parts | **Yes - highest value.** Exercises the PSA FWU API over the MCUboot slots this port already has. RA8M2 secure slot has ~670 B spare, so the partition may not fit without turning something off. **The bootloader half is now proven** - BL2 installs both images from their secondary slots and erases them ([[D100]]) - so what FWU adds is the API that *places* an image there |
-| **IPC model** | `TEST_S_IPC`, `TEST_NS_IPC` | the app builds use `CONFIG_TFM_SPM_BACKEND=SFN`; only the PSA-arch builds use IPC, and those run psa-arch-tests rather than tf-m-tests | **Yes.** A regression tree at isolation 3 + IPC would cover the backend the PSA-arch builds actually ship |
+| **IPC model** | `TEST_S_IPC`, `TEST_NS_IPC` | **CLOSED 2026-10-22.** Ten regression trees now run the IPC backend at isolation 1, 2 and 3 on both parts and both toolchains, `TFM_S_IPC_TEST_1001`-`1012` included | Done - [[D113]] to [[D124]] |
+| **Isolation 2 / 3** | `TFM_ISOLATION_LEVEL` | **CLOSED 2026-10-22.** The suite had never run above isolation 1 before [[D113]]; it is now green at L1+IPC, L2 and L3 on RA6M5 and RA8M2, GNUARM and IAR | Done - [[D124]] |
+| **SLIH above isolation 1** | `CONFIG_TFM_SLIH_API` | only the FLIH fixture has been run above L1. The SLIH service declares the same `mmio_region` and has never been exercised there | **Yes, cheap** - the trees and launches already exist |
 | **PSA Arch IPC suite** | `TEST_PSA_API=IPC` | only CRYPTO, INITIAL_ATTESTATION and STORAGE have been built. TF-M accepts `IPC`, and `psa-arch-tests/api-tests/ff/{ipc,partition}` exists | **Yes.** The Firmware Framework suite - different from the dev_apis ones already run |
 | **FPU** | `TEST_S_FPU`, `TEST_NS_FPU` | `CONFIG_TFM_ENABLE_CP10CP11=OFF` - the port is soft-float throughout | Only if FP is ever enabled. RA8M2 is Cortex-M85 with FP hardware, so this is a real gap for that part |
 | **NSID management** | `TEST_NS_MANAGE_NSID` | `TFM_NS_MANAGE_NSID` not set | Yes, cheap. Checks non-secure client ID handling |

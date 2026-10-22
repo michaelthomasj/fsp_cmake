@@ -330,7 +330,8 @@ when two EK-RA6M4 boards were lost. Keep local or drop before submitting.
   platform that has a console, not only those with unusual linker needs.
 - Items 4, 5 and 6 are already in the tree labelled "Upstream:" or "Upstream + RA6E1:".
   Items 7, 8, 9 are not labelled but belong in the same series.
-- Verification: all items exercised on EK-RA6E1. GNU (arm-none-eabi 13.2) and IAR (10.10.2)
+- Verification, by item: **items 1-12 on EK-RA6E1**; **items 14 and 15 on EK-RA6M5 and
+  EK-RA8M2**, which is where the IAR console and the isolation work were done. GNU (arm-none-eabi 13.2) and IAR (10.10.2)
   both build BL2 + secure + non-secure, and the non-secure PSA service smoke test passes all
   13 steps under IAR — `psa_framework_version`, `psa_version`, `psa_crypto_init`,
   `psa_generate_random` (SCE9 TRNG), `psa_hash_compute`, ITS set/get/remove, PS set/get/remove

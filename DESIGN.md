@@ -434,10 +434,13 @@ the only tell — over ~1 MB means it spans the option memory.
   (secure-RAM `0x20002000`) that would have SecureFaulted the S→NS jump.
 
 ## 11. Toolchains
-- **GNU Arm** (13.2) is the working toolchain today.
-- **IAR (and armclang): TODO, required soon.** All linker/OFS/veneer decisions must be expressible for
-  IAR (`.icf`) too: an IAR BL2 linker with the OFS sections, and confirmation/porting of the veneer
-  macros for TF-M's IAR isolation linker. Design compiler-agnostically from the start (§7/§8).
+- **GNU Arm** (arm-none-eabi 13.2) and **IAR** (10.10.2) are both supported, on both live parts.
+  IAR builds BL2, secure and non-secure, and passes the full regression suite at isolation 1, 2
+  and 3 on RA6M5 and RA8M2, FLIH IRQ tests included ([D118], [D119], [D123], [D124]). The IAR
+  `.icf` BL2 linker with the OFS sections and the veneer macros for TF-M's IAR isolation linker
+  are all in place.
+- **armclang: TODO.** No `toolchain_ARMCLANG.cmake` support has been attempted. Keep
+  linker/OFS/veneer decisions expressible for a third toolchain (§7/§8).
 
 ## 12. Bring-up
 - `fsp_cmake/bringup/` — J-Link flash + RTT scripts. Images are Debug builds (full symbols for

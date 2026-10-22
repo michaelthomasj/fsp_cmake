@@ -85,8 +85,8 @@ and platform — and each suite gets its own NS app. The regression SPE is separ
 configuration differs in every row of the table above.</p>
 <div class="table-wrap"><table>
 <tr><th></th><th>PSA SPE</th><th>NS crypto</th><th>NS attest</th><th>NS storage</th><th>Reg SPE</th><th>Reg NS</th></tr>
-<tr><td>RA6M5 GCC</td><td><code>m5cry</code></td><td><code>m5cryns</code></td><td><code>m5att</code></td><td><code>m5sto</code></td><td>—</td><td>—</td></tr>
-<tr><td>RA6M5 IAR</td><td><code>m5icry</code></td><td><code>m5icryns</code></td><td><code>m5iatt</code></td><td><code>m5isto</code></td><td>—</td><td>—</td></tr>
+<tr><td>RA6M5 GCC</td><td><code>m5cry</code></td><td><code>m5cryns</code></td><td><code>m5att</code></td><td><code>m5sto</code></td><td><code>m5gflih</code></td><td><code>m5gflihns</code></td></tr>
+<tr><td>RA6M5 IAR</td><td><code>m5icry</code></td><td><code>m5icryns</code></td><td><code>m5iatt</code></td><td><code>m5isto</code></td><td><code>m5iflih</code></td><td><code>m5iflihns</code></td></tr>
 <tr><td>RA8M2 GCC</td><td><code>m2cry</code></td><td><code>m2cryns</code></td><td><code>m2att</code></td><td><code>m2sto</code></td><td><code>m2gflih</code></td><td><code>m2gflihns</code></td></tr>
 <tr><td>RA8M2 IAR</td><td><code>m2icry</code></td><td><code>m2icryns</code></td><td><code>m2iatt</code></td><td><code>m2isto</code></td><td><code>m2iflih</code></td><td><code>m2iflihns</code></td></tr>
 </table></div>
@@ -181,7 +181,9 @@ sh scripts/install_hooks.sh      # install it as a pre-commit hook (once per clo
 <p>Checks three things: every <code>D###</code> cited anywhere exists in <code>DECISIONS.md</code>; every relative
 <code>.md</code> link resolves; every <code>.md</code> filename named in a <code>.cmake</code> or <code>CMakeLists.txt</code> comment
 resolves. <code>DECISIONS.md</code> is exempt from the link checks because it is append-only - a reference
-there to a since-retired file is a historical fact, not a defect.</p>
+there to a since-retired file is a historical fact, not a defect.
+Review snapshots under <code>docs/artifacts*/</code> are exempt from all three checks: they cite entries a
+review proposes before anyone has written them.</p>
 <p>Bypass with <code>git commit --no-verify</code> when a commit deliberately breaks a reference, such as the
 first half of a rename spanning both repositories.</p>
 <h3 id="rendered-documents-for-the-course">Rendered documents for the course</h3>
