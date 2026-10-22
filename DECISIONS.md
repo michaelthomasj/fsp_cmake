@@ -1237,6 +1237,7 @@ on RA6E1 at L3, which suggests it will.
 ## D041 — Two FSP `aes_alt.c` fixes carried in the RA6M5 secure project; PSA Arch crypto 61/64
 
 **Date:** 2026-09-22 · **Status:** Accepted for the TF-M port; the fixes belong in rm_psa_crypto
+*Second fix superseded by [D044].*
 
 **Result.** PSA Arch crypto on RA6M5 with SCE9 (profile_large, L3, IPC): **61 passed, 2 failed,
 1 skipped** of 64. The skip (252) is the deterministic-ECDSA gate from D040. The failures are
@@ -6730,3 +6731,129 @@ contradicted the entry's own numbers, and a count that contradicted the entry's 
 **Three entries in a row ([D121], [D122], [D123]) each carried a correct measurement wrapped
 in a wrong sentence.** The measurements were checked; the sentences were not. Checking a claim
 means checking the claim, not the number it sits next to.
+---
+
+## D126 — eighteen corrections to [D110]–[D125] from the second review; two carried items closed, and [D115]'s "three of four corners" was wrong
+
+**Date:** 2026-10-22 · **Status:** Accepted · **Corrects** [D110], [D112], [D113], [D114], [D115], [D116], [D117], [D119], [D125] · source-verified
+
+The second documentation review raised 18 findings against this log. All hold. They are
+collected here rather than as nine entries, because most are one-line factual slips and the
+pattern they form is worth more than any of them.
+
+### 1. [D115]'s "three of the four corners are safe" is wrong — SFN reaches the hook too
+
+[D115] explained the L1+IPC link failure by saying *"L1+SFN has no call site at all (the hook
+is called only from `spm_ipc.c`, and the SFN backend is a different file)."* **Both halves of
+that are false.**
+
+- `secure_fw/spm/CMakeLists.txt:54` compiles `core/spm_ipc.c` **unconditionally**. Only
+  `backend_ipc.c` and `backend_sfn.c` are behind backend generator expressions (`:65`, `:66`).
+- `spm_ipc.c:397` defines `tfm_spm_init()`, which holds the hook call, and
+  `include/ffm/backend_sfn.h:14` is `#define BACKEND_SPM_INIT() tfm_spm_init()`. **SFN calls
+  it.**
+
+So L1+SFN had the caller without the body as well, and would have failed to link identically.
+It did not fail only because no L1+SFN tree was rebuilt between the hook being added ([D113])
+and the gate being added ([D115]) — the existing L1+SFN trees predate the hook and carry no
+such symbol. The gate in [D115] is still correct; it is **more** necessary than that entry
+argued, not less.
+
+**[D124]'s condition was also incomplete.** `platform/CMakeLists.txt:125` defines
+`CONFIG_TFM_ENABLE_MEMORY_PROTECT` for `TFM_ISOLATION_LEVEL > 1` **or**
+`TEST_PSA_API STREQUAL "IPC"`, so the PSA Arch IPC suite gets the body — and now the hook — at
+isolation 1 too. "Above isolation 1" is the wrong way to say it.
+
+### 2. Line numbers
+
+| Entry | Said | Is |
+|---|---|---|
+| [D113], [D115], [D116] | `backend_ipc.c:517` | **`:513`** — `:517` is the closing brace of `backend_abi_leaving_spm()`, and the faulting store is not in this file at all |
+| [D117], [D125] | the ICSR store at `tfm_arch.c:90` | **`:91`** — `:88` is the `bne`, `:89` loads `SCB_ICSR_ADDR`, `:90` loads the bit |
+| [D114] | the region missing at `0x20000400` is the App RoT data region | the **`TFM_SP_META_PTR`** region. At level 3 the App RoT data region is never in the static set, which is the entry's own point |
+
+### 3. [D119] described a region growth the HAL does not perform
+
+[D119] wrote that isolation 3 "grows the PSA RoT data region to cover what it gave up". Its own
+table refutes it: PSA RoT data goes 59,264 → 59,392 B, **+128**, while App RoT data gives up
+5,248. The `#if`/`#elif` only swaps which of two regions occupies one slot; the +128 is layout
+and padding. Nothing absorbs anything.
+
+### 4. Two coverage claims that outran the evidence
+
+- **[D119]/[D116] "RA8M2 is complete: every level this port supports".** Every run behind that
+  is **regression + FLIH**. The **SLIH** suite has never run on RA8M2 on either toolchain —
+  [D072] lists it "built, not run" and [D102] records that the `m2gslih` trees never got a
+  launch. The honest claim is "complete for the regression+FLIH configuration at every
+  isolation level".
+- **[D116]'s title** says it closes [D113]-[D115]'s carried items. It closes two — RA8M2 L1+IPC
+  and RA8M2 L3 non-secure. The four IAR trees, RA6M5 L1+IPC and the diagnostics decision stayed
+  open, as [D116]'s own Carried list says.
+
+### 5. Two carried items dropped without closure
+
+Both were carried by [D114]/[D115]/[D116] and then simply absent from [D117] onward:
+
+- **The MPU diagnostics.** The post-partition hook and region dump are still enabled at
+  isolation 2 and above on both ports (`ra6m5/config_tfm_target.h`, `ra8m2` likewise). Thirteen
+  entries have called them temporary. **Decision, recorded here: they stay.** They produced
+  [D113] through [D125], they cost nothing below isolation 2 and nothing at all once
+  `CONFIG_TFM_ENABLE_MEMORY_PROTECT` is absent, and the alternative is re-deriving the MPU
+  table from symbols every time someone doubts it. Remove them only with a reason better than
+  tidiness.
+- **PXN's effect.** [D117] carried "the plumbing is confirmed, the six-region outcome is not",
+  then [D118]/[D119] dropped it. **It is deliberately parked:** PXN stays OFF, no measurement
+  argues for turning it on, and the plumbing was re-confirmed post-[D121]. Re-carried here so
+  it is parked rather than lost.
+
+### 6. Smaller corrections
+
+- **[D117] §3 and [D125], on the SAU.** "No SAU at all" is imprecise: an Armv8-M core with the
+  Security Extension always implements `SAU_CTRL`/`SAU_TYPE`, and `__SAUREGION_PRESENT 0` means
+  zero **regions**. The IDAU decides only because FSP writes `SAU_CTRL.ALLNS = 1`
+  (`bsp_security.c:277`). At reset, ALLNS 0 with the SAU disabled makes every address Secure.
+  Corrected in `target_cfg.c` on all three ports and in `DESIGN.md` §7.
+- **[D117] §4, `d90aa0c44`.** It did not only add the `check_config.cmake` test; it also
+  **removed** the `armv8.1-m.main` term from the generator expression at
+  `platform/CMakeLists.txt:126`, moving the gate from a silent filter to an explicit failure.
+- **[D112] "where it came from".** `2b5015c` touched **ten** `.secure_azone` files, not six.
+  And re-running the quoted command now returns `87f3fdd`, [D112]'s own fix, so the
+  reproducibility claim holds only "before 87f3fdd".
+- **[D110] "the evidence is three builds".** None of the three tested the combination that
+  answers the question (`__dwrite` present, `setvbuf` absent). Rows 1-2 show buffering holds
+  output when the backend is semihosting; they do not isolate how much each fix contributes.
+  The conclusion may well be right; it is an inference, not a proof.
+- **[D119] "IAR has produced no defect above isolation 1 on this part, after four below it".**
+  Two of those four are not IAR toolchain behaviour: [D083] and [D089] are a stale `ewarm`
+  install path frozen in CMake caches, and [D083]'s fix covered only RA6M5. Separate the
+  build-environment defects from [D107]/[D108], which are IAR's.
+- **[D113] "r_spi 12 call sites, r_iic_master 7, r_sci_uart 5, r_canfd 5".** Not reproducible
+  from these trees — no FSP 6.7 project here contains those drivers, and the entry does not say
+  which call set was counted. Treat the numbers as indicative; the architectural point (FSP's
+  `Open` writes the NVIC, which is privileged-only) stands on `R_AGT_Open` alone.
+- **[D041]** has no "superseded by [D044]" line, which rule 2 of this log requires and
+  `scripts/decision_threads.py --strict` would flag.
+
+### 7. The Settled-questions table
+
+Three rows added, because in each the thread reverses an earlier claim and a reader who stops
+at the first entry gets the wrong answer:
+
+| Question | Settled position |
+|---|---|
+| Does `TFM_PXN_ENABLE` reach the HAL? | **Yes** — `platform/CMakeLists.txt:126`, PUBLIC on `platform_s`. [D114] said "nowhere in TF-M"; corrected by [D115], confirmed by configure in [D117] and again post-move in [D125] |
+| What mode does a FLIH handler run in? | **Handler**, except an ARoT partition at isolation 2 or 3, which is Thread. [D113] stated the exception as the rule; [D117] corrected it |
+| Why did the isolation HAL miss its macros? | Because **this port** compiled it into `platform_s`; all nine upstream users compile it into `tfm_spm`. [D113] blamed upstream, [D120] corrected it, [D121] moved the file |
+
+### Method note
+
+Of the eighteen, nine are wrong line numbers or counts and six are claims that were true of the
+case measured and written down as general. Only [D115]'s corner analysis is a reasoning error,
+and it has the same shape as [D121]'s: **an explanation invented to fit a result that had
+already been obtained by other means.** The gate was right because the link failed and stopped
+failing; the story about which four corners were safe was constructed afterwards and never
+checked against `secure_fw/spm/CMakeLists.txt`, which would have taken one grep.
+
+[D125] said "checking a claim means checking the claim, not the number it sits next to". The
+narrower version: **when an entry explains why something failed, check the explanation against
+the build files, not against the symptom it was written to explain.**

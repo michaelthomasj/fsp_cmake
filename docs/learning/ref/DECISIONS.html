@@ -171,6 +171,7 @@
           <li><a href="#d123">D123 — RA6M5 isolation 3 confirms [D121]&#x27;s predicted boundary shift to the byte; RA6M5 IAR runs above isolation 1 for the first time</a></li>
           <li><a href="#d124">D124 — the matrix is complete: every part, toolchain and isolation level has now run</a></li>
           <li><a href="#d125">D125 — six corrections to [D120]–[D123] from the second documentation review; the HAL never left the PSA-RoT code region</a></li>
+          <li><a href="#d126">D126 — eighteen corrections to [D110]–[D125] from the second review; two carried items closed, and [D115]&#x27;s &quot;three of four corners&quot; was wrong</a></li>
         </ol>
       </li>
     </ol>
@@ -1118,7 +1119,8 @@ cases. Open: whether the crypto partition reaches the SCE registers at isolation
 on RA6E1 at L3, which suggests it will.</p>
 <hr>
 <h2 id="d041">D041 — Two FSP <code>aes_alt.c</code> fixes carried in the RA6M5 secure project; PSA Arch crypto 61/64</h2>
-<p><strong>Date:</strong> 2026-09-22 · <strong>Status:</strong> Accepted for the TF-M port; the fixes belong in rm_psa_crypto</p>
+<p><strong>Date:</strong> 2026-09-22 · <strong>Status:</strong> Accepted for the TF-M port; the fixes belong in rm_psa_crypto
+<em>Second fix superseded by <a href="DECISIONS.html#d044">D044</a>.</em></p>
 <p><strong>Result.</strong> PSA Arch crypto on RA6M5 with SCE9 (profile_large, L3, IPC): **61 passed, 2 failed,
 1 skipped** of 64. The skip (252) is the deterministic-ECDSA gate from D040. The failures are
 multi-part GCM (261 finish, 263 verify) - see below.</p>
@@ -5343,6 +5345,117 @@ contradicted the entry&#x27;s own numbers, and a count that contradicted the ent
 <p>**Three entries in a row (<a href="DECISIONS.html#d121">D121</a>, <a href="DECISIONS.html#d122">D122</a>, <a href="DECISIONS.html#d123">D123</a>) each carried a correct measurement wrapped
 in a wrong sentence.** The measurements were checked; the sentences were not. Checking a claim
 means checking the claim, not the number it sits next to.</p>
+<hr>
+<h2 id="d126">D126 — eighteen corrections to <a href="DECISIONS.html#d110">D110</a>–<a href="DECISIONS.html#d125">D125</a> from the second review; two carried items closed, and <a href="DECISIONS.html#d115">D115</a>&#x27;s &quot;three of four corners&quot; was wrong</h2>
+<p><strong>Date:</strong> 2026-10-22 · <strong>Status:</strong> Accepted · <strong>Corrects</strong> <a href="DECISIONS.html#d110">D110</a>, <a href="DECISIONS.html#d112">D112</a>, <a href="DECISIONS.html#d113">D113</a>, <a href="DECISIONS.html#d114">D114</a>, <a href="DECISIONS.html#d115">D115</a>, <a href="DECISIONS.html#d116">D116</a>, <a href="DECISIONS.html#d117">D117</a>, <a href="DECISIONS.html#d119">D119</a>, <a href="DECISIONS.html#d125">D125</a> · source-verified</p>
+<p>The second documentation review raised 18 findings against this log. All hold. They are
+collected here rather than as nine entries, because most are one-line factual slips and the
+pattern they form is worth more than any of them.</p>
+<h3 id="s1_9">1. <a href="DECISIONS.html#d115">D115</a>&#x27;s &quot;three of the four corners are safe&quot; is wrong — SFN reaches the hook too</h3>
+<p><a href="DECISIONS.html#d115">D115</a> explained the L1+IPC link failure by saying *&quot;L1+SFN has no call site at all (the hook
+is called only from <code>spm_ipc.c</code>, and the SFN backend is a different file).&quot;* **Both halves of
+that are false.**</p>
+<ul>
+<li><code>secure_fw/spm/CMakeLists.txt:54</code> compiles <code>core/spm_ipc.c</code> <strong>unconditionally</strong>. Only
+<code>backend_ipc.c</code> and <code>backend_sfn.c</code> are behind backend generator expressions (<code>:65</code>, <code>:66</code>).</li>
+<li><code>spm_ipc.c:397</code> defines <code>tfm_spm_init()</code>, which holds the hook call, and
+<code>include/ffm/backend_sfn.h:14</code> is <code>#define BACKEND_SPM_INIT() tfm_spm_init()</code>. **SFN calls
+it.**</li>
+</ul>
+<p>So L1+SFN had the caller without the body as well, and would have failed to link identically.
+It did not fail only because no L1+SFN tree was rebuilt between the hook being added (<a href="DECISIONS.html#d113">D113</a>)
+and the gate being added (<a href="DECISIONS.html#d115">D115</a>) — the existing L1+SFN trees predate the hook and carry no
+such symbol. The gate in <a href="DECISIONS.html#d115">D115</a> is still correct; it is <strong>more</strong> necessary than that entry
+argued, not less.</p>
+<p><strong><a href="DECISIONS.html#d124">D124</a>&#x27;s condition was also incomplete.</strong> <code>platform/CMakeLists.txt:125</code> defines
+<code>CONFIG_TFM_ENABLE_MEMORY_PROTECT</code> for <code>TFM_ISOLATION_LEVEL &gt; 1</code> <strong>or</strong>
+<code>TEST_PSA_API STREQUAL "IPC"</code>, so the PSA Arch IPC suite gets the body — and now the hook — at
+isolation 1 too. &quot;Above isolation 1&quot; is the wrong way to say it.</p>
+<h3 id="s2_9">2. Line numbers</h3>
+<div class="table-wrap"><table>
+<tr><th>Entry</th><th>Said</th><th>Is</th></tr>
+<tr><td><a href="DECISIONS.html#d113">D113</a>, <a href="DECISIONS.html#d115">D115</a>, <a href="DECISIONS.html#d116">D116</a></td><td><code>backend_ipc.c:517</code></td><td><strong><code>:513</code></strong> — <code>:517</code> is the closing brace of <code>backend_abi_leaving_spm()</code>, and the faulting store is not in this file at all</td></tr>
+<tr><td><a href="DECISIONS.html#d117">D117</a>, <a href="DECISIONS.html#d125">D125</a></td><td>the ICSR store at <code>tfm_arch.c:90</code></td><td><strong><code>:91</code></strong> — <code>:88</code> is the <code>bne</code>, <code>:89</code> loads <code>SCB_ICSR_ADDR</code>, <code>:90</code> loads the bit</td></tr>
+<tr><td><a href="DECISIONS.html#d114">D114</a></td><td>the region missing at <code>0x20000400</code> is the App RoT data region</td><td>the <strong><code>TFM_SP_META_PTR</code></strong> region. At level 3 the App RoT data region is never in the static set, which is the entry&#x27;s own point</td></tr>
+</table></div>
+<h3 id="s3_6">3. <a href="DECISIONS.html#d119">D119</a> described a region growth the HAL does not perform</h3>
+<p><a href="DECISIONS.html#d119">D119</a> wrote that isolation 3 &quot;grows the PSA RoT data region to cover what it gave up&quot;. Its own
+table refutes it: PSA RoT data goes 59,264 → 59,392 B, <strong>+128</strong>, while App RoT data gives up
+5,248. The <code>#if</code>/<code>#elif</code> only swaps which of two regions occupies one slot; the +128 is layout
+and padding. Nothing absorbs anything.</p>
+<h3 id="s4_3">4. Two coverage claims that outran the evidence</h3>
+<ul>
+<li><strong><a href="DECISIONS.html#d119">D119</a>/<a href="DECISIONS.html#d116">D116</a> &quot;RA8M2 is complete: every level this port supports&quot;.</strong> Every run behind that
+is <strong>regression + FLIH</strong>. The <strong>SLIH</strong> suite has never run on RA8M2 on either toolchain —
+<a href="DECISIONS.html#d072">D072</a> lists it &quot;built, not run&quot; and <a href="DECISIONS.html#d102">D102</a> records that the <code>m2gslih</code> trees never got a
+launch. The honest claim is &quot;complete for the regression+FLIH configuration at every
+isolation level&quot;.</li>
+<li><strong><a href="DECISIONS.html#d116">D116</a>&#x27;s title</strong> says it closes <a href="DECISIONS.html#d113">D113</a>-<a href="DECISIONS.html#d115">D115</a>&#x27;s carried items. It closes two — RA8M2 L1+IPC
+and RA8M2 L3 non-secure. The four IAR trees, RA6M5 L1+IPC and the diagnostics decision stayed
+open, as <a href="DECISIONS.html#d116">D116</a>&#x27;s own Carried list says.</li>
+</ul>
+<h3 id="s5_3">5. Two carried items dropped without closure</h3>
+<p>Both were carried by <a href="DECISIONS.html#d114">D114</a>/<a href="DECISIONS.html#d115">D115</a>/<a href="DECISIONS.html#d116">D116</a> and then simply absent from <a href="DECISIONS.html#d117">D117</a> onward:</p>
+<ul>
+<li><strong>The MPU diagnostics.</strong> The post-partition hook and region dump are still enabled at
+isolation 2 and above on both ports (<code>ra6m5/config_tfm_target.h</code>, <code>ra8m2</code> likewise). Thirteen
+entries have called them temporary. <strong>Decision, recorded here: they stay.</strong> They produced
+<a href="DECISIONS.html#d113">D113</a> through <a href="DECISIONS.html#d125">D125</a>, they cost nothing below isolation 2 and nothing at all once
+<code>CONFIG_TFM_ENABLE_MEMORY_PROTECT</code> is absent, and the alternative is re-deriving the MPU
+table from symbols every time someone doubts it. Remove them only with a reason better than
+tidiness.</li>
+<li><strong>PXN&#x27;s effect.</strong> <a href="DECISIONS.html#d117">D117</a> carried &quot;the plumbing is confirmed, the six-region outcome is not&quot;,
+then <a href="DECISIONS.html#d118">D118</a>/<a href="DECISIONS.html#d119">D119</a> dropped it. <strong>It is deliberately parked:</strong> PXN stays OFF, no measurement
+argues for turning it on, and the plumbing was re-confirmed post-<a href="DECISIONS.html#d121">D121</a>. Re-carried here so
+it is parked rather than lost.</li>
+</ul>
+<h3 id="s6_3">6. Smaller corrections</h3>
+<ul>
+<li><strong><a href="DECISIONS.html#d117">D117</a> §3 and <a href="DECISIONS.html#d125">D125</a>, on the SAU.</strong> &quot;No SAU at all&quot; is imprecise: an Armv8-M core with the
+Security Extension always implements <code>SAU_CTRL</code>/<code>SAU_TYPE</code>, and <code>__SAUREGION_PRESENT 0</code> means
+zero <strong>regions</strong>. The IDAU decides only because FSP writes <code>SAU_CTRL.ALLNS = 1</code>
+(<code>bsp_security.c:277</code>). At reset, ALLNS 0 with the SAU disabled makes every address Secure.
+Corrected in <code>target_cfg.c</code> on all three ports and in <code>DESIGN.md</code> §7.</li>
+<li><strong><a href="DECISIONS.html#d117">D117</a> §4, <code>d90aa0c44</code>.</strong> It did not only add the <code>check_config.cmake</code> test; it also
+<strong>removed</strong> the <code>armv8.1-m.main</code> term from the generator expression at
+<code>platform/CMakeLists.txt:126</code>, moving the gate from a silent filter to an explicit failure.</li>
+<li><strong><a href="DECISIONS.html#d112">D112</a> &quot;where it came from&quot;.</strong> <code>2b5015c</code> touched <strong>ten</strong> <code>.secure_azone</code> files, not six.
+And re-running the quoted command now returns <code>87f3fdd</code>, <a href="DECISIONS.html#d112">D112</a>&#x27;s own fix, so the
+reproducibility claim holds only &quot;before 87f3fdd&quot;.</li>
+<li><strong><a href="DECISIONS.html#d110">D110</a> &quot;the evidence is three builds&quot;.</strong> None of the three tested the combination that
+answers the question (<code>__dwrite</code> present, <code>setvbuf</code> absent). Rows 1-2 show buffering holds
+output when the backend is semihosting; they do not isolate how much each fix contributes.
+The conclusion may well be right; it is an inference, not a proof.</li>
+<li><strong><a href="DECISIONS.html#d119">D119</a> &quot;IAR has produced no defect above isolation 1 on this part, after four below it&quot;.</strong>
+Two of those four are not IAR toolchain behaviour: <a href="DECISIONS.html#d083">D083</a> and <a href="DECISIONS.html#d089">D089</a> are a stale <code>ewarm</code>
+install path frozen in CMake caches, and <a href="DECISIONS.html#d083">D083</a>&#x27;s fix covered only RA6M5. Separate the
+build-environment defects from <a href="DECISIONS.html#d107">D107</a>/<a href="DECISIONS.html#d108">D108</a>, which are IAR&#x27;s.</li>
+<li><strong><a href="DECISIONS.html#d113">D113</a> &quot;r_spi 12 call sites, r_iic_master 7, r_sci_uart 5, r_canfd 5&quot;.</strong> Not reproducible
+from these trees — no FSP 6.7 project here contains those drivers, and the entry does not say
+which call set was counted. Treat the numbers as indicative; the architectural point (FSP&#x27;s
+<code>Open</code> writes the NVIC, which is privileged-only) stands on <code>R_AGT_Open</code> alone.</li>
+<li><strong><a href="DECISIONS.html#d041">D041</a></strong> has no &quot;superseded by <a href="DECISIONS.html#d044">D044</a>&quot; line, which rule 2 of this log requires and
+<code>scripts/decision_threads.py --strict</code> would flag.</li>
+</ul>
+<h3 id="s7">7. The Settled-questions table</h3>
+<p>Three rows added, because in each the thread reverses an earlier claim and a reader who stops
+at the first entry gets the wrong answer:</p>
+<div class="table-wrap"><table>
+<tr><th>Question</th><th>Settled position</th></tr>
+<tr><td>Does <code>TFM_PXN_ENABLE</code> reach the HAL?</td><td><strong>Yes</strong> — <code>platform/CMakeLists.txt:126</code>, PUBLIC on <code>platform_s</code>. <a href="DECISIONS.html#d114">D114</a> said &quot;nowhere in TF-M&quot;; corrected by <a href="DECISIONS.html#d115">D115</a>, confirmed by configure in <a href="DECISIONS.html#d117">D117</a> and again post-move in <a href="DECISIONS.html#d125">D125</a></td></tr>
+<tr><td>What mode does a FLIH handler run in?</td><td><strong>Handler</strong>, except an ARoT partition at isolation 2 or 3, which is Thread. <a href="DECISIONS.html#d113">D113</a> stated the exception as the rule; <a href="DECISIONS.html#d117">D117</a> corrected it</td></tr>
+<tr><td>Why did the isolation HAL miss its macros?</td><td>Because <strong>this port</strong> compiled it into <code>platform_s</code>; all nine upstream users compile it into <code>tfm_spm</code>. <a href="DECISIONS.html#d113">D113</a> blamed upstream, <a href="DECISIONS.html#d120">D120</a> corrected it, <a href="DECISIONS.html#d121">D121</a> moved the file</td></tr>
+</table></div>
+<h3 id="method-note_11">Method note</h3>
+<p>Of the eighteen, nine are wrong line numbers or counts and six are claims that were true of the
+case measured and written down as general. Only <a href="DECISIONS.html#d115">D115</a>&#x27;s corner analysis is a reasoning error,
+and it has the same shape as <a href="DECISIONS.html#d121">D121</a>&#x27;s: **an explanation invented to fit a result that had
+already been obtained by other means.** The gate was right because the link failed and stopped
+failing; the story about which four corners were safe was constructed afterwards and never
+checked against <code>secure_fw/spm/CMakeLists.txt</code>, which would have taken one grep.</p>
+<p><a href="DECISIONS.html#d125">D125</a> said &quot;checking a claim means checking the claim, not the number it sits next to&quot;. The
+narrower version: **when an entry explains why something failed, check the explanation against
+the build files, not against the symptom it was written to explain.**</p>
 </main>
 </div>
 </body>
