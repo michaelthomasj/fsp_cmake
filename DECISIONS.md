@@ -6558,3 +6558,69 @@ and at level 2 on IAR. [D121]'s "not yet re-run on hardware" is discharged for t
 - `ra6e1` is built with the move and will not be run ([D121]).
 - Whether [D122]'s L1+IPC pass is the move or a transient earlier failure remains unresolved
   and unresolvable without rebuilding at the previous commit.
+---
+
+## D124 — the matrix is complete: every part, toolchain and isolation level has now run
+
+**Date:** 2026-10-22 · **Status:** Accepted · closes the last unrun tree · RA6M5 measured
+
+**RA6M5 at isolation 3, IAR — secure 9/9, non-secure 7/7 PASSED, both FLIH tests.** `m5il3`
+was the last tree in the matrix never run on any build.
+
+### `CONFIG_TFM_PARTITION_META` is now confirmed on both parts and both toolchains
+
+```
+[MPU] enabled after static boundaries: 0x00000005
+  idx 3   base  0x20000400
+          limit 0x20000400          <- TFM_SP_META_PTR, 32 bytes
+```
+
+[D114] found that arm by faulting on it; [D119] confirmed it under IAR on RA8M2. This is the
+fourth and final corner. The arm only exists at isolation 3 - level 2 takes the `!= 3` branch -
+so it needed all four runs, and it has them.
+
+### The metadata region is toolchain-invariant; everything around it is not
+
+RA6M5 at isolation 3, the two toolchains side by side (size = `limit - base + 0x20`):
+
+| Region | GNUARM | IAR | delta |
+|---|---|---|---|
+| combined unprivileged/ARoT code | 21,088 | 23,328 | +2,240 |
+| PSA RoT code | 208,320 | 217,184 | +8,864 |
+| RO data | 55,680 | 45,920 | -9,760 |
+| **`TFM_SP_META_PTR`** | **32** | **32** | **0 - identical base and limit** |
+| PSA RoT data | 64,480 | 64,992 | +512 (same base) |
+| total | 349,600 | 351,456 | +1,856 |
+
+Three regions differ by thousands of bytes because section placement is the linker's business.
+`TFM_SP_META_PTR` does not move at all, and `PSA RoT data` keeps its base - both are pinned by
+the data region start rather than by code layout. This is the same invariant [D118] recorded
+for AGT0's MMIO region on RA8M2, and it is the reason a toolchain swap cannot quietly break the
+metadata-pointer path. All five regions 32-byte aligned on both.
+
+### Coverage - complete
+
+| | L1 SFN | L1 IPC | L2 | L3 |
+|---|---|---|---|---|
+| RA6M5 GNUARM | green | green | green | green |
+| RA6M5 IAR | green | - | green | **green (new)** |
+| RA8M2 GNUARM | green | green | green | green |
+| RA8M2 IAR | green | - | green | green |
+
+Every cell has run. **RA6M5's four are all against the post-[D121] build**; RA8M2's five are
+pre-move, and their `PT_*` symbols are provably unchanged, so those remain valid evidence for
+what they were recorded to show.
+
+IAR produced **no defect at any isolation level above 1 on either part**, across six runs. That
+is worth stating against its record below isolation 1, where it produced four ([D083], [D089],
+[D107], [D108]) - the divergence is in linker and toolchain-file behaviour, not in the
+isolation machinery.
+
+### Carried
+
+- The five RA8M2 trees are built with the [D121] move but not re-run. Confirmation only.
+- `ra6e1` is built with the move and will not be run ([D121]); `ra6m4` was excluded.
+- Whether [D122]'s L1+IPC pass reflects the move or a transient earlier failure is still
+  unresolved, and still only resolvable by rebuilding at the previous commit.
+- The diagnostic hook and region dump remain enabled at isolation 2 and above. They produced
+  [D113] through this entry. Twelve entries later, they are still described as temporary.

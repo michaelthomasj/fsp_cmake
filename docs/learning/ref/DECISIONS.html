@@ -169,6 +169,7 @@
           <li><a href="#d121">D121 — the shared isolation HAL moves to tfm_spm; [D113]&#x27;s workaround is deleted, not documented</a></li>
           <li><a href="#d122">D122 — the tfm_spm move is MPU-neutral on silicon, and RA6M5 L1+IPC is green for the first time — cause unexplained</a></li>
           <li><a href="#d123">D123 — RA6M5 isolation 3 confirms [D121]&#x27;s predicted boundary shift to the byte; RA6M5 IAR runs above isolation 1 for the first time</a></li>
+          <li><a href="#d124">D124 — the matrix is complete: every part, toolchain and isolation level has now run</a></li>
         </ol>
       </li>
     </ol>
@@ -5203,6 +5204,58 @@ is also the only remaining chance for IAR to disagree with GNUARM about the
 <li><code>ra6e1</code> is built with the move and will not be run (<a href="DECISIONS.html#d121">D121</a>).</li>
 <li>Whether <a href="DECISIONS.html#d122">D122</a>&#x27;s L1+IPC pass is the move or a transient earlier failure remains unresolved
 and unresolvable without rebuilding at the previous commit.</li>
+</ul>
+<hr>
+<h2 id="d124">D124 — the matrix is complete: every part, toolchain and isolation level has now run</h2>
+<p><strong>Date:</strong> 2026-10-22 · <strong>Status:</strong> Accepted · closes the last unrun tree · RA6M5 measured</p>
+<p><strong>RA6M5 at isolation 3, IAR — secure 9/9, non-secure 7/7 PASSED, both FLIH tests.</strong> <code>m5il3</code>
+was the last tree in the matrix never run on any build.</p>
+<h3 id="config_tfm_partition_meta-is-now-confirmed-on-both-parts-and-both-toolchains"><code>CONFIG_TFM_PARTITION_META</code> is now confirmed on both parts and both toolchains</h3>
+<pre><code>[MPU] enabled after static boundaries: 0x00000005
+  idx 3   base  0x20000400
+          limit 0x20000400          &lt;- TFM_SP_META_PTR, 32 bytes</code></pre>
+<p><a href="DECISIONS.html#d114">D114</a> found that arm by faulting on it; <a href="DECISIONS.html#d119">D119</a> confirmed it under IAR on RA8M2. This is the
+fourth and final corner. The arm only exists at isolation 3 - level 2 takes the <code>!= 3</code> branch -
+so it needed all four runs, and it has them.</p>
+<h3 id="the-metadata-region-is-toolchain-invariant-everything-around-it-is-not">The metadata region is toolchain-invariant; everything around it is not</h3>
+<p>RA6M5 at isolation 3, the two toolchains side by side (size = <code>limit - base + 0x20</code>):</p>
+<div class="table-wrap"><table>
+<tr><th>Region</th><th>GNUARM</th><th>IAR</th><th>delta</th></tr>
+<tr><td>combined unprivileged/ARoT code</td><td>21,088</td><td>23,328</td><td>+2,240</td></tr>
+<tr><td>PSA RoT code</td><td>208,320</td><td>217,184</td><td>+8,864</td></tr>
+<tr><td>RO data</td><td>55,680</td><td>45,920</td><td>-9,760</td></tr>
+<tr><td><strong><code>TFM_SP_META_PTR</code></strong></td><td><strong>32</strong></td><td><strong>32</strong></td><td><strong>0 - identical base and limit</strong></td></tr>
+<tr><td>PSA RoT data</td><td>64,480</td><td>64,992</td><td>+512 (same base)</td></tr>
+<tr><td>total</td><td>349,600</td><td>351,456</td><td>+1,856</td></tr>
+</table></div>
+<p>Three regions differ by thousands of bytes because section placement is the linker&#x27;s business.
+<code>TFM_SP_META_PTR</code> does not move at all, and <code>PSA RoT data</code> keeps its base - both are pinned by
+the data region start rather than by code layout. This is the same invariant <a href="DECISIONS.html#d118">D118</a> recorded
+for AGT0&#x27;s MMIO region on RA8M2, and it is the reason a toolchain swap cannot quietly break the
+metadata-pointer path. All five regions 32-byte aligned on both.</p>
+<h3 id="coverage---complete">Coverage - complete</h3>
+<div class="table-wrap"><table>
+<tr><th></th><th>L1 SFN</th><th>L1 IPC</th><th>L2</th><th>L3</th></tr>
+<tr><td>RA6M5 GNUARM</td><td>green</td><td>green</td><td>green</td><td>green</td></tr>
+<tr><td>RA6M5 IAR</td><td>green</td><td>-</td><td>green</td><td><strong>green (new)</strong></td></tr>
+<tr><td>RA8M2 GNUARM</td><td>green</td><td>green</td><td>green</td><td>green</td></tr>
+<tr><td>RA8M2 IAR</td><td>green</td><td>-</td><td>green</td><td>green</td></tr>
+</table></div>
+<p>Every cell has run. <strong>RA6M5&#x27;s four are all against the post-<a href="DECISIONS.html#d121">D121</a> build</strong>; RA8M2&#x27;s five are
+pre-move, and their <code>PT_*</code> symbols are provably unchanged, so those remain valid evidence for
+what they were recorded to show.</p>
+<p>IAR produced <strong>no defect at any isolation level above 1 on either part</strong>, across six runs. That
+is worth stating against its record below isolation 1, where it produced four (<a href="DECISIONS.html#d083">D083</a>, <a href="DECISIONS.html#d089">D089</a>,
+<a href="DECISIONS.html#d107">D107</a>, <a href="DECISIONS.html#d108">D108</a>) - the divergence is in linker and toolchain-file behaviour, not in the
+isolation machinery.</p>
+<h3 id="carried_10">Carried</h3>
+<ul>
+<li>The five RA8M2 trees are built with the <a href="DECISIONS.html#d121">D121</a> move but not re-run. Confirmation only.</li>
+<li><code>ra6e1</code> is built with the move and will not be run (<a href="DECISIONS.html#d121">D121</a>); <code>ra6m4</code> was excluded.</li>
+<li>Whether <a href="DECISIONS.html#d122">D122</a>&#x27;s L1+IPC pass reflects the move or a transient earlier failure is still
+unresolved, and still only resolvable by rebuilding at the previous commit.</li>
+<li>The diagnostic hook and region dump remain enabled at isolation 2 and above. They produced
+<a href="DECISIONS.html#d113">D113</a> through this entry. Twelve entries later, they are still described as temporary.</li>
 </ul>
 </main>
 </div>
