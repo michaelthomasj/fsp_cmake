@@ -6881,3 +6881,5 @@ checked against `secure_fw/spm/CMakeLists.txt`, which would have taken one grep.
 [D125] said "checking a claim means checking the claim, not the number it sits next to". The
 narrower version: **when an entry explains why something failed, check the explanation against
 the build files, not against the symptom it was written to explain.**
+
+<!-- hook test marker -->
