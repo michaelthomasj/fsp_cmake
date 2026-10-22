@@ -124,7 +124,10 @@ the partitioning changed without a rebuild. [D054].
 
 ### HardFault with `BFAR = 0x4013C000` in `bsp_prv_clear_pfb` (RA8M2)
 
-**Clocks are not Secure in the e2 secure project.** `BSP_CFG_CLOCKS_SECURE (0)` in
+**The fix is `BSP_TZ_CFG_MSAR=0` in `ra8m2/CMakeLists.txt`, already in place ([D093]).** Seeing
+this symptom means that workaround was removed - **not** that you should change the RASC
+setting. [D093] found that the e2 generator emits `BSP_CFG_CLOCKS_SECURE (0)` whatever the
+project is set to, so setting "Clocks secure" in RASC does not fix it. Mechanism: `BSP_CFG_CLOCKS_SECURE (0)` in
 `ra_gen/bsp_clock_cfg.h` sets bit 4 of `BSP_TZ_CFG_MSAR`, and `R_BSP_SecurityInit()` writes
 that to `R_MRMS->MSAR`, assigning the MRAM `MRCPFB` register non-secure. The secure image then
 bus-faults the first time it programs MRAM - provisioning writing OTP into DF_EMULATION, via
@@ -156,7 +159,14 @@ such window — `r_mram.c` needs no RAM-resident code.
 
 ### `region FLASH overflowed` while the map shows tens of KB free
 
-Check whether the overflow is the *slot* rather than the region: the signed image carries a
+**This is a linker error, so it is not about imgtool.** ld knows nothing about the TLV block or
+the trailer - those are added after linking. Check that `TFM_LINKER_VENEERS_OWN_REGION` is in
+effect ([D063]); without it the pinned veneers drag FLASH's allocation pointer and everything
+after them is placed beyond the veneers.
+
+### `Image size + trailer exceeds requested size` from imgtool
+
+This is the *slot* overflowing, after a clean link: the signed image carries a
 ~275 B imgtool TLV block and a 16-byte trailer on top of the raw image, and the slot must hold
 all of it. True spare is 1,693 B on RA6M5 and 670 B on RA8M2 — see `README.md` §"Freeing space
 in the secure image" for what to turn off, and [D087] for why the older, larger figures were

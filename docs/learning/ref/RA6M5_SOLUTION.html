@@ -62,7 +62,10 @@
 <p>Device: <strong>R7FA6M5BH3CFC</strong> on the <strong>CK-RA6M5 V2</strong> (<code>board.ra6m5ckv2</code>) — 2 MB code flash, 512 KB SRAM,
 8 KB data flash, SCE9, Cortex-M33.</p>
 <p>Companion docs: <code>RA6E1_SOLUTION.md</code> (the port this is derived from), <code>DESIGN.md</code> (why),
-<code>RA6E1_TEMPLATE_CHECKLIST.md</code> (what a solution must emit — it applies here unchanged).</p>
+<code>RA6E1_TEMPLATE_CHECKLIST.md</code> (what a solution must emit — it applies here <strong>with exceptions</strong>:
+it is written for RA6E1, and says <code>r_sce</code> supplies only the TRNG with <code>CRYPTO_HW_ACCELERATOR</code>
+off, where RA6M5 runs SCE9 acceleration and links FSP&#x27;s Mbed TLS. Its data-flash split and
+trailer discussion are RA6E1&#x27;s too).</p>
 <hr>
 <h2 id="layout">Layout</h2>
 <p>2 MB, all of it allocated. Every boundary falls on a 32 KB erase block, which is the
@@ -233,7 +236,9 @@ cmake never ran, the script printed <code>/Arm was unexpected at this time</code
 affects the RA6M5 PSA Arch build too, but it was committed after PR #4 and so is not on
 <code>main</code>. If RA6 work is picked up before <code>ra8m2_gen_6_7_TFM</code> merges back,
 cherry-pick it: <code>git cherry-pick 39e0597</code>.</p></li>
-<li><p><strong>Toolchain.</strong> <code>ra6m5_iar</code> is named for IAR but its solution selects <code>gcc-arm-embedded</code>.
+<li><p><strong><del>Toolchain.</del> Closed (<a href="DECISIONS.html#d046">D046</a>).</strong> <code>ra6m5_iar</code>&#x27;s solution selects IAR and the IAR leg is
+finished — PSA Arch passes on both toolchains. Original note: it was named for IAR while its
+solution selected <code>gcc-arm-embedded</code>.
 RASC can generate an IAR CMake project (<code>ToolchainIarCMakeGenerator</code>,
 <code>template/cmake/iar.cmake</code> in the SC 2026-07 plugin set) — set the solution toolchain to
 IAR before doing the IAR leg, so the flags come from RASC rather than being carried over

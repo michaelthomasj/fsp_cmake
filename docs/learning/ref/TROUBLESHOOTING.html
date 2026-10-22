@@ -153,7 +153,10 @@ the partitioning changed without a rebuild. <a href="DECISIONS.html#d054">D054</
 <code>cmsis_drivers/Driver_Flash.c</code> adds the right one by comparing against the boundary. <a href="DECISIONS.html#d073">D073</a>,
 <a href="DECISIONS.html#d074">D074</a>.</p>
 <h3 id="hardfault-with-bfar--0x4013c000-in-bsp_prv_clear_pfb-ra8m2">HardFault with <code>BFAR = 0x4013C000</code> in <code>bsp_prv_clear_pfb</code> (RA8M2)</h3>
-<p><strong>Clocks are not Secure in the e2 secure project.</strong> <code>BSP_CFG_CLOCKS_SECURE (0)</code> in
+<p><strong>The fix is <code>BSP_TZ_CFG_MSAR=0</code> in <code>ra8m2/CMakeLists.txt</code>, already in place (<a href="DECISIONS.html#d093">D093</a>).</strong> Seeing
+this symptom means that workaround was removed - <strong>not</strong> that you should change the RASC
+setting. <a href="DECISIONS.html#d093">D093</a> found that the e2 generator emits <code>BSP_CFG_CLOCKS_SECURE (0)</code> whatever the
+project is set to, so setting &quot;Clocks secure&quot; in RASC does not fix it. Mechanism: <code>BSP_CFG_CLOCKS_SECURE (0)</code> in
 <code>ra_gen/bsp_clock_cfg.h</code> sets bit 4 of <code>BSP_TZ_CFG_MSAR</code>, and <code>R_BSP_SecurityInit()</code> writes
 that to <code>R_MRMS-&gt;MSAR</code>, assigning the MRAM <code>MRCPFB</code> register non-secure. The secure image then
 bus-faults the first time it programs MRAM - provisioning writing OTP into DF_EMULATION, via
@@ -174,7 +177,12 @@ P/E routines. It is <code>0xA00</code> for <code>0x7d0</code> of code **plus a l
 inside the section**; <code>0x800</code> fit with nothing to spare. Revisit on any FSP uprev. RA8M2 has no
 such window — <code>r_mram.c</code> needs no RAM-resident code.</p>
 <h3 id="region-flash-overflowed-while-the-map-shows-tens-of-kb-free"><code>region FLASH overflowed</code> while the map shows tens of KB free</h3>
-<p>Check whether the overflow is the <em>slot</em> rather than the region: the signed image carries a
+<p><strong>This is a linker error, so it is not about imgtool.</strong> ld knows nothing about the TLV block or
+the trailer - those are added after linking. Check that <code>TFM_LINKER_VENEERS_OWN_REGION</code> is in
+effect (<a href="DECISIONS.html#d063">D063</a>); without it the pinned veneers drag FLASH&#x27;s allocation pointer and everything
+after them is placed beyond the veneers.</p>
+<h3 id="image-size--trailer-exceeds-requested-size-from-imgtool"><code>Image size + trailer exceeds requested size</code> from imgtool</h3>
+<p>This is the <em>slot</em> overflowing, after a clean link: the signed image carries a
 ~275 B imgtool TLV block and a 16-byte trailer on top of the raw image, and the slot must hold
 all of it. True spare is 1,693 B on RA6M5 and 670 B on RA8M2 — see <code>README.md</code> §&quot;Freeing space
 in the secure image&quot; for what to turn off, and <a href="DECISIONS.html#d087">D087</a> for why the older, larger figures were

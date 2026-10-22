@@ -166,10 +166,10 @@ RA6M4 known-good value, byte-identical to this solution&#x27;s own bootloader.</
 </ol>
 <p>Still true, and worth knowing before you interpret a silent board:</p>
 <ul>
-<li>The NS image has <strong>no RTT output</strong>. <code>SEGGER_RTT.c</code> is linked but the FSP app never calls it, so
-<code>--gc-sections</code> drops the control block — the same defect that hid the secure image&#x27;s output
-until 2026-08-29, and it is still unfixed on the NS side. A successful S→NS jump therefore still
-looks identical to a hang from the console alone.</li>
+<li><strong><del>The NS image has no RTT output.</del> Fixed.</strong> <code>rtt_ns_init.c</code> wraps <code>hal_entry</code> with
+<code>-Wl,--wrap</code> so the control block is initialised and survives <code>--gc-sections</code>, and the NS
+build links it. (It was unfixed when this section was written: <code>SEGGER_RTT.c</code> was linked but
+never called, the same defect that hid the secure image&#x27;s output until 2026-08-29.)</li>
 <li><strong>The RTT control block address moves between builds.</strong> It lives in <code>.bss</code>, so any change to
 secure-side buffer sizing shifts it. Re-read it rather than reusing a noted value:
 <code>arm-none-eabi-nm --defined-only bin/tfm_s.axf | grep _SEGGER_RTT</code>. Giving RTT Viewer a search
@@ -205,9 +205,11 @@ payload (NS→S calls SecureFault at the SG), or MCUboot clobbers them writing t
 the current 96K layout, so it may only surface once sizes change.</p>
 <p>Check: <code>FLASH_CM33_C</code> ends exactly at image end; <code>FLASH_NSC_START</code> == <code>BSP_PARTITION_FLASH_CPU0_C_START</code>;
 veneers inside <code>FLASH_CM33_C</code> in the map; NS→S call works on hardware.</p>
-<p>Note the trailer <strong>cannot</strong> be marked secure — RA has one secure region and it precedes the NSC
-(DESIGN.md §7.1). So the secure image&#x27;s trailer is NS-writable; bounded to DoS by
-<code>MCUBOOT_VALIDATE_PRIMARY_SLOT</code>, so don&#x27;t disable it.</p>
+<p>Note on the trailer, <strong>corrected</strong>: with zero-size trailer partitions the NSC ends exactly on
+the NS boundary at <code>0x98000</code>, and MCUboot&#x27;s <code>0x180</code>-byte trailer therefore sits at
+<code>0x97E80</code>-<code>0x98000</code> — <strong>inside the NSC window</strong>, which is Secure memory that Non-secure code
+cannot write. The earlier claim that the trailer is NS-writable described a layout this
+solution does not have. Keep <code>MCUBOOT_VALIDATE_PRIMARY_SLOT</code> anyway, as a corruption check.</p>
 <h3 id="-resolved--mcuboot_align_val-is-128-matching-the-code-flash-write-unit">✅ RESOLVED — MCUBOOT_ALIGN_VAL is 128, matching the code flash write unit</h3>
 <p>Done 2026-08-29. RA6E1 code flash has a <strong>128-byte</strong> minimum write
 (<code>BSP_FEATURE_FLASH_HP_CF_WRITE_SIZE</code>), so <code>MCUBOOT_ALIGN_VAL</code> and the code-flash
@@ -317,7 +319,11 @@ has both a CMSE and a non-CMSE arm.</p>
 <pre><code>RA6E1 [tfm_s]: allocatable ORPHAN section(s) - present in the image, named
 nowhere in the linker script, so ld chose the address:
     .ram_from_flash (2000 bytes at 0x00080b80)</code></pre>
-<p>Two known-benign orphans are allowlisted per image, with reasons, so a <em>new</em> one is still reported:</p>
+<p>One known-benign orphan is allowlisted per image, with a reason, so a <em>new</em> one is still
+reported. <strong><code>tfm_s</code>&#x27;s <code>.ram_noinit</code> row below is historical</strong> - <a href="DECISIONS.html#d012">D012</a> routed <code>.ram_noinit*</code>
+and <code>.noinit*</code> through the generic <code>S_DATA_EXTRA_NOINIT_SECTION_NAME</code> hook into the NOLOAD
+<code>.TFM_NOINIT</code>, and the port removed it from the allowlist. Only <code>bl2</code>&#x27;s
+<code>.msp_stack_seal_res</code> is still allowlisted:</p>
 <div class="table-wrap"><table>
 <tr><th>Image</th><th>Section</th><th>Why it is harmless</th></tr>
 <tr><td><code>tfm_s</code></td><td><code>.ram_noinit</code> (110 B)</td><td>FSP BSP noinit data — <code>SystemCoreClock</code>, <code>g_bsp_group_irq_sources</code>, <code>g_protect_counters</code>, <code>g_protect_pfswe_counter</code>. FSP places it NOLOAD; orphaned it becomes a <em>loaded</em> section, so ~110 bytes of flash hold initialisers nothing copies — it is not in the copy table. The variables end up uninitialised either way, which is what <code>.ram_noinit</code> means. Wasteful, not wrong.</td></tr>
@@ -330,9 +336,9 @@ you whether the guess was wrong. It also only covers the two images built here. 
 rather than replaces the existing unclaimed-module warning in <code>fsp_add_modules()</code>, which catches the
 C-source half. Adding an FSP module to the secure or BL2 image remains a port change, not a
 configuration change — but it now fails loudly instead of silently.</p>
-<p>Follow-up worth doing: handle <code>.ram_noinit</code> properly in the secure script rather than allowlisting
-it. It would return 110 bytes of flash and relieve the LMA pressure inside the NSC window described
-above.</p>
+<p>~~Follow-up worth doing: handle <code>.ram_noinit</code> properly in the secure script rather than
+allowlisting it.~~ <strong>Done</strong> (<a href="DECISIONS.html#d012">D012</a>) - it goes through <code>S_DATA_EXTRA_NOINIT_SECTION_NAME</code> into
+<code>.TFM_NOINIT</code>, outside <code>.bss</code>, returning the 110 bytes and the LMA pressure with it.</p>
 <h3 id="-resolved--every-secure-service-verified-from-non-secure-2026-08-30">✅ RESOLVED — every secure service verified from non-secure (2026-08-30)</h3>
 <p>Until this run the port had only ever been shown to BOOT. No PSA service had been called
 across the boundary: the NS app was <code>hal_entry.c</code> plus <code>hal_warmstart.c</code> and linked no

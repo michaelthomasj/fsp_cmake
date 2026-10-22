@@ -222,7 +222,8 @@ to DLIB&#x27;s buffered writer, so a platform&#x27;s <code>__write()</code> is d
 map, and never called. The chain ends in semihosting:</p>
 <pre><code>printf -&gt; _Prout -&gt; fputc -&gt; fflushOne -&gt; __write_buffered -&gt; __dwrite -&gt; __iar_sh_stdout</code></pre>
 <p><strong>Why it is a defect and not a preference.</strong> <code>__write()</code> is the hook IAR documents for exactly
-this purpose, and TF-M&#x27;s own <code>platform/ext/common/uart_stdout.c</code> defines one for IAR. Under the
+this purpose. (TF-M&#x27;s own <code>platform/ext/common/uart_stdout.c</code> overrides <strong><code>putchar()</code></strong> under
+IAR, not <code>__write()</code>; <code>_write()</code> is its GNU branch.) Under the
 stock toolchain file that definition is dead code: console output goes to semihosting instead
 of the platform&#x27;s UART. The failure is silent with no debugger attached, and with one the core
 <strong>halts on the semihosting breakpoint</strong> - neither of which names the cause.</p>

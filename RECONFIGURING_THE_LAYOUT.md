@@ -76,7 +76,12 @@ reflash and the storage suites then fail in ways that look like code faults.
 
 The non-secure callable veneers sit at a fixed address at the top of the secure region, and the
 MCUboot trailer occupies the slot tail. Both constrain how much the secure image can grow.
-Symptom is `region FLASH overflowed` with apparently free space.
+Symptom **before [D063]** was `region FLASH overflowed` with apparently free space: pinned
+veneers dragged FLASH's allocation pointer to their end, so everything after them started
+beyond the veneers. `TFM_LINKER_VENEERS_OWN_REGION` (`4025eedff`) fixed that and is set on
+every RA port, so a plain overflow now means the code genuinely reached the NSC or trailer -
+and the more likely failure today is **imgtool** refusing with "Image size + trailer exceeds
+requested size", after a clean link.
 
 Related: `ih_img_size` is set by the **layout**, not by how much code you emitted — the image
 runs to the veneers at their fixed address. Both toolchains report the same value for this
@@ -112,7 +117,9 @@ assertions do not cover, add one — this file is where the time is earned back.
 ## 4. Procedure
 
 1. **Change the layout in the e2 solution.** The Memory tab of the solution, not a project.
-2. **Rebuild the secure project in e2.** Not regenerate — build. Confirm
+2. **Rebuild all three e2 projects** (secure, bootloader, non-secure). Not regenerate - build.
+   The bootloader one matters because the OFS addresses come from its `Debug/memory_regions.*`
+   on RA8M2, and `PORTING.md` §5 asks for all three. Confirm
    `<project>/Debug/bsp_linker_info.h` has the new values before going on.
 3. **Reconfigure TF-M from scratch.** Delete the build directory. A stale `CMakeCache.txt`
    carries the old generated values with no diagnostic — this has bitten the port repeatedly

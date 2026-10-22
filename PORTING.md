@@ -24,9 +24,14 @@ Measured by comparing the two live ports, normalising the part name away:
 | Files in a platform directory | **60** (`ra8m2`; `ra6m5` has 59) |
 | Common to both parts | **59** — the structure is fully regular |
 | Only in one | **1** (`<part>_ddsc.c`, RA8M2's DDSC bridge) |
-| **≥95% identical — copy and rename** | **31** |
+| **≥95% identical — copy and rename** | **about 30** |
 | **<60% similar — must be authored** | **8** |
 | In between — copy and adjust | ~20 |
+
+*Metric: line-level `difflib` similarity with part names normalised. Re-running it gives 34
+at or above 95% and 17 in between - the same eight below 60%, and per-file ratios a few points
+either way. Treat the percentages in §2 as approximate; the eight that must be authored are
+the stable part.*
 
 So a port is **eight files of real work**, **about twenty** of adjustment, and roughly thirty
 of copying - matching the table above and `part4`.

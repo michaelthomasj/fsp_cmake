@@ -78,10 +78,14 @@
 <tr><td>Files in a platform directory</td><td><strong>60</strong> (<code>ra8m2</code>; <code>ra6m5</code> has 59)</td></tr>
 <tr><td>Common to both parts</td><td><strong>59</strong> — the structure is fully regular</td></tr>
 <tr><td>Only in one</td><td><strong>1</strong> (<code>&lt;part&gt;_ddsc.c</code>, RA8M2&#x27;s DDSC bridge)</td></tr>
-<tr><td><strong>≥95% identical — copy and rename</strong></td><td><strong>31</strong></td></tr>
+<tr><td><strong>≥95% identical — copy and rename</strong></td><td><strong>about 30</strong></td></tr>
 <tr><td><strong>&lt;60% similar — must be authored</strong></td><td><strong>8</strong></td></tr>
 <tr><td>In between — copy and adjust</td><td>~20</td></tr>
 </table></div>
+<p>*Metric: line-level <code>difflib</code> similarity with part names normalised. Re-running it gives 34
+at or above 95% and 17 in between - the same eight below 60%, and per-file ratios a few points
+either way. Treat the percentages in §2 as approximate; the eight that must be authored are
+the stable part.*</p>
 <p>So a port is <strong>eight files of real work</strong>, <strong>about twenty</strong> of adjustment, and roughly thirty
 of copying - matching the table above and <code>part4</code>.
 <code>TFM_PLATFORM=renesas/&lt;part&gt;</code> resolves <strong>by path alone</strong> — there is no registry to add to, and

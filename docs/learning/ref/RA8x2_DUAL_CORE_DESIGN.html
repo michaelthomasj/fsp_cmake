@@ -69,6 +69,12 @@ pick up if dual-core is rescoped, not as work in progress.</p></blockquote>
 a dual-core RA8 (RA8D2 / RA8x2): SPE on one core, NSPE on the other, with PSA
 client calls marshaled over a mailbox. The mailbox transport is backed by the
 <strong>RA8D2 IPC peripheral</strong> through the <strong>FSP IPC driver</strong>.</p>
+<p><strong>Which part this targets is unsettled</strong>, and it matters: the IPC peripheral details below
+(FIFO depth, busfault behaviour, the <code>r_ipc</code> API) were written for RA8D2 and are **not
+verified against the RA8M2 manual** — no manual is in these trees and <code>r_ipc</code> is not
+instantiated in any generated RA8M2 project. What was confirmed against <code>R7KA8M2JF_core0.h</code>
+and <code>bsp_ipc.c</code> is the <code>R_IPC</code> base address and the register layout. Re-verify the rest
+before building on it.</p>
 <p>Three layers, top consumes bottom:</p>
 <pre><code>TF-M multi-core mailbox HAL   (what we implement — platform/ext/target/renesas/ra8x2)
         │
@@ -143,7 +149,11 @@ back again).</p>
 <ul>
 <li><code>tfm_hal_mailbox.h</code> — <code>tfm_mailbox_hal_init()</code>, <code>tfm_mailbox_hal_notify_peer()</code>,
 <code>tfm_mailbox_hal_enter_critical()</code> / <code>exit_critical()</code>.</li>
-<li><code>tfm_hal_multi_core.h</code> — <code>tfm_hal_boot_ns_cpu()</code>, <code>tfm_hal_wait_for_ns_cpu_ready()</code>,
+<li><code>tfm_hal_multi_core.h</code> — declares only <code>tfm_hal_boot_ns_cpu()</code> and
+<code>tfm_hal_wait_for_ns_cpu_ready()</code>. The access-attribute functions below are <strong>not</strong> there:
+they are in <code>mem_check_v6m_v7m_hal.h</code>, the Armv6-M/v7-M memory-check HAL, which does not
+apply to an M85 SPE — see <code>tfm_multi_core_access_check.rst</code> and the v8-M checks instead.
+Historic list follows:
 <code>tfm_hal_get_secure_access_attr()</code> / <code>tfm_hal_get_ns_access_attr()</code>.</li>
 <li>SPE agent partition: <code>secure_fw/partitions/ns_agent_mailbox/</code>.</li>
 <li>NS side: <code>interface/{include,src}/multi_core/</code> (generic) + platform <code>platform_ns_mailbox.c</code>.</li>

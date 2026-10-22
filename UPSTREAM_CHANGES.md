@@ -236,7 +236,8 @@ printf -> _Prout -> fputc -> fflushOne -> __write_buffered -> __dwrite -> __iar_
 ```
 
 **Why it is a defect and not a preference.** `__write()` is the hook IAR documents for exactly
-this purpose, and TF-M's own `platform/ext/common/uart_stdout.c` defines one for IAR. Under the
+this purpose. (TF-M's own `platform/ext/common/uart_stdout.c` overrides **`putchar()`** under
+IAR, not `__write()`; `_write()` is its GNU branch.) Under the
 stock toolchain file that definition is dead code: console output goes to semihosting instead
 of the platform's UART. The failure is silent with no debugger attached, and with one the core
 **halts on the semihosting breakpoint** - neither of which names the cause.

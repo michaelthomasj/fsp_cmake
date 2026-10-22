@@ -4,7 +4,10 @@ Device: **R7FA6M5BH3CFC** on the **CK-RA6M5 V2** (`board.ra6m5ckv2`) — 2 MB co
 8 KB data flash, SCE9, Cortex-M33.
 
 Companion docs: `RA6E1_SOLUTION.md` (the port this is derived from), `DESIGN.md` (why),
-`RA6E1_TEMPLATE_CHECKLIST.md` (what a solution must emit — it applies here unchanged).
+`RA6E1_TEMPLATE_CHECKLIST.md` (what a solution must emit — it applies here **with exceptions**:
+it is written for RA6E1, and says `r_sce` supplies only the TRNG with `CRYPTO_HW_ACCELERATOR`
+off, where RA6M5 runs SCE9 acceleration and links FSP's Mbed TLS. Its data-flash split and
+trailer discussion are RA6E1's too).
 
 ---
 
@@ -214,7 +217,9 @@ real build: see [[D031]].
   `main`. If RA6 work is picked up before `ra8m2_gen_6_7_TFM` merges back,
   cherry-pick it: `git cherry-pick 39e0597`.
 
-- **Toolchain.** `ra6m5_iar` is named for IAR but its solution selects `gcc-arm-embedded`.
+- **~~Toolchain.~~ Closed ([[D046]]).** `ra6m5_iar`'s solution selects IAR and the IAR leg is
+  finished — PSA Arch passes on both toolchains. Original note: it was named for IAR while its
+  solution selected `gcc-arm-embedded`.
   RASC can generate an IAR CMake project (`ToolchainIarCMakeGenerator`,
   `template/cmake/iar.cmake` in the SC 2026-07 plugin set) — set the solution toolchain to
   IAR before doing the IAR leg, so the flags come from RASC rather than being carried over

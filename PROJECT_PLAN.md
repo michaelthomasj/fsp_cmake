@@ -12,7 +12,13 @@ track is FWU on RA6M5.
 **TF-M 2.3 is future work (revised 2026-09-21).** TF-M 2.3 replaces Mbed TLS with
 TF-PSA-Crypto, which has no `*_ALT` mechanism. It moves to the end of the plan,
 after the rsip7 update — SCE9 acceleration is built on the 3.6 ALT route now and
-redone as a PSA driver then. See DECISIONS D035.
+redone as a PSA driver then.
+
+> **This does not match [[D035]], which should be read first.** [[D035]] is Accepted and says
+> the 2.3 rebase is **cancelled** and "P5 of PROJECT_PLAN.md is cancelled" — not deferred. No
+> later entry records the reopening this paragraph assumes. Either the position changed without
+> a decision entry, or this paragraph is wrong; it needs an entry that supersedes [[D035]]
+> before anyone plans against it.
 
 **Scope change — RA8x2 is single-core.** The previous revision built the whole
 RA8x2 leg around dual-core operation and binding FSP's inter-core comms to
@@ -94,7 +100,7 @@ dates rather than cutting scope.
 - Rebase from the v2.2.0 fork point; SCE9 redone as a PSA transparent driver.
 
 **Future — NS image in OSPI, executed in place (last, after TF-M 2.3)**
-- Relieves the RA8x2 MRAM budget: 1 MB cannot hold four slots plus the PSA Arch
+- Relieves the RA8M2 MRAM budget: 1 MB cannot hold four slots plus the PSA Arch
   crypto suite with usable headroom.
 
 **Out of scope**

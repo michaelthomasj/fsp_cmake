@@ -150,7 +150,7 @@ specifics:
 | `*_CPU0_secure` | `r_mram`, instance named **`g_mram0`** (not `g_flash0` — this is MRAM) |
 | `*_mcuboot` | `r_mram` as `g_mram0`, plus `rm_mcuboot_port` |
 | `*_mcuboot` | **Measured Boot enabled** — supplies the boot record BL2 writes |
-| all | `BSP_CFG_EARLY_INIT` = 1 |
+| `*_CPU0_secure`, `*_mcuboot` | `BSP_CFG_EARLY_INIT` = 1 (**not** the NS projects — both have 0 and pass every suite; the port asserts it only for secure and BL2) |
 | all | the partitioning above, with `__BL_*_T` sizes **0** |
 
 **Partition emission order matters.** The generator once produced a 512-byte secure primary slot
@@ -161,7 +161,10 @@ equals `__BL_0_S_T_START`.
 ### Project-side gaps - all closed 2026-10-08
 
 All three were fixed in RASC and verified against the GCC trees. **The IAR and GCC projects are
-now configuration-identical**: a full property diff of all three pairs (`CPU0_secure`,
+now configuration-identical**, with the caveat that the method does not read
+`.secure_azone`/`.secure_rzone` ([D112]) — the IAR NS azone was in fact missing the `ICU.IRQ0`
+secure assignment until it was fixed, so the claim held by luck. A full property diff of all
+three pairs (`CPU0_secure`,
 `mcuboot`, `CPU0_nonsecure`) shows no real differences, and `vector_data.h`, `bsp_cfg.h` and
 every `BSP_PARTITION_*` match.
 
@@ -336,6 +339,8 @@ port now**, and FSP's `flash_area_open()` is not built. Today `Driver_FLASH0` ow
 - **D077 back-ports go the other way.** This part has the generated OFS addresses and 22
   enabled-but-unplaced `#error` guards; RA6M5 and RA6E1 have neither. The open work is bringing
   them up to this part, not changing this one.
-- **`config.cmake:90-98` prose is stale** — its `MCUBOOT_ALIGN_VAL 32` justification rests on
+- **~~`config.cmake:90-98` prose is stale~~ — closed.** `config.cmake:80-105` now gives the
+  `0x60` trailer, `FLASH_CPU0_S 0x47A00` at `0x68200`, NSC `0x400` at `0xAFC00` and NS from
+  `0xB0000`, matching the generated layout. Original note: — its `MCUBOOT_ALIGN_VAL 32` justification rests on
   four numbers that have all since changed, and it points at `RA8M2_SOLUTION.md`, which did not
   exist until now (D077).

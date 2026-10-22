@@ -180,7 +180,7 @@ specifics:</p>
 <tr><td><code>*_CPU0_secure</code></td><td><code>r_mram</code>, instance named <strong><code>g_mram0</code></strong> (not <code>g_flash0</code> — this is MRAM)</td></tr>
 <tr><td><code>*_mcuboot</code></td><td><code>r_mram</code> as <code>g_mram0</code>, plus <code>rm_mcuboot_port</code></td></tr>
 <tr><td><code>*_mcuboot</code></td><td><strong>Measured Boot enabled</strong> — supplies the boot record BL2 writes</td></tr>
-<tr><td>all</td><td><code>BSP_CFG_EARLY_INIT</code> = 1</td></tr>
+<tr><td><code>*_CPU0_secure</code>, <code>*_mcuboot</code></td><td><code>BSP_CFG_EARLY_INIT</code> = 1 (<strong>not</strong> the NS projects — both have 0 and pass every suite; the port asserts it only for secure and BL2)</td></tr>
 <tr><td>all</td><td>the partitioning above, with <code>__BL_*_T</code> sizes <strong>0</strong></td></tr>
 </table></div>
 <p><strong>Partition emission order matters.</strong> The generator once produced a 512-byte secure primary slot
@@ -189,7 +189,10 @@ After any repartition, read <code>Debug/bsp_linker_info.h</code> back and check 
 equals <code>__BL_0_S_T_START</code>.</p>
 <h3 id="project-side-gaps---all-closed-2026-10-08">Project-side gaps - all closed 2026-10-08</h3>
 <p>All three were fixed in RASC and verified against the GCC trees. **The IAR and GCC projects are
-now configuration-identical**: a full property diff of all three pairs (<code>CPU0_secure</code>,
+now configuration-identical**, with the caveat that the method does not read
+<code>.secure_azone</code>/<code>.secure_rzone</code> (<a href="DECISIONS.html#d112">D112</a>) — the IAR NS azone was in fact missing the <code>ICU.IRQ0</code>
+secure assignment until it was fixed, so the claim held by luck. A full property diff of all
+three pairs (<code>CPU0_secure</code>,
 <code>mcuboot</code>, <code>CPU0_nonsecure</code>) shows no real differences, and <code>vector_data.h</code>, <code>bsp_cfg.h</code> and
 every <code>BSP_PARTITION_*</code> match.</p>
 <div class="table-wrap"><table>
@@ -328,7 +331,9 @@ BL2&#x27;s own RTT log needed two IAR-specific fixes to appear at all (D107, D10
 <li><p><strong>D077 back-ports go the other way.</strong> This part has the generated OFS addresses and 22
 enabled-but-unplaced <code>#error</code> guards; RA6M5 and RA6E1 have neither. The open work is bringing
 them up to this part, not changing this one.</p></li>
-<li><p><strong><code>config.cmake:90-98</code> prose is stale</strong> — its <code>MCUBOOT_ALIGN_VAL 32</code> justification rests on
+<li><p><strong><del><code>config.cmake:90-98</code> prose is stale</del> — closed.</strong> <code>config.cmake:80-105</code> now gives the
+<code>0x60</code> trailer, <code>FLASH_CPU0_S 0x47A00</code> at <code>0x68200</code>, NSC <code>0x400</code> at <code>0xAFC00</code> and NS from
+<code>0xB0000</code>, matching the generated layout. Original note: — its <code>MCUBOOT_ALIGN_VAL 32</code> justification rests on
 four numbers that have all since changed, and it points at <code>RA8M2_SOLUTION.md</code>, which did not
 exist until now (D077).</p></li>
 </ul>

@@ -11,6 +11,13 @@ a dual-core RA8 (RA8D2 / RA8x2): SPE on one core, NSPE on the other, with PSA
 client calls marshaled over a mailbox. The mailbox transport is backed by the
 **RA8D2 IPC peripheral** through the **FSP IPC driver**.
 
+**Which part this targets is unsettled**, and it matters: the IPC peripheral details below
+(FIFO depth, busfault behaviour, the `r_ipc` API) were written for RA8D2 and are **not
+verified against the RA8M2 manual** — no manual is in these trees and `r_ipc` is not
+instantiated in any generated RA8M2 project. What was confirmed against `R7KA8M2JF_core0.h`
+and `bsp_ipc.c` is the `R_IPC` base address and the register layout. Re-verify the rest
+before building on it.
+
 Three layers, top consumes bottom:
 
 ```
@@ -99,7 +106,11 @@ SPE-side contract (`trusted-firmware-m/platform/include/`):
 
 - `tfm_hal_mailbox.h` — `tfm_mailbox_hal_init()`, `tfm_mailbox_hal_notify_peer()`,
   `tfm_mailbox_hal_enter_critical()` / `exit_critical()`.
-- `tfm_hal_multi_core.h` — `tfm_hal_boot_ns_cpu()`, `tfm_hal_wait_for_ns_cpu_ready()`,
+- `tfm_hal_multi_core.h` — declares only `tfm_hal_boot_ns_cpu()` and
+  `tfm_hal_wait_for_ns_cpu_ready()`. The access-attribute functions below are **not** there:
+  they are in `mem_check_v6m_v7m_hal.h`, the Armv6-M/v7-M memory-check HAL, which does not
+  apply to an M85 SPE — see `tfm_multi_core_access_check.rst` and the v8-M checks instead.
+  Historic list follows:
   `tfm_hal_get_secure_access_attr()` / `tfm_hal_get_ns_access_attr()`.
 - SPE agent partition: `secure_fw/partitions/ns_agent_mailbox/`.
 - NS side: `interface/{include,src}/multi_core/` (generic) + platform `platform_ns_mailbox.c`.

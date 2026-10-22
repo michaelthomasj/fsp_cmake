@@ -118,10 +118,10 @@ Both blockers previously listed here are **resolved** (2026-08-26, commit `9e3a1
 
 Still true, and worth knowing before you interpret a silent board:
 
-- The NS image has **no RTT output**. `SEGGER_RTT.c` is linked but the FSP app never calls it, so
-  `--gc-sections` drops the control block — the same defect that hid the secure image's output
-  until 2026-08-29, and it is still unfixed on the NS side. A successful S→NS jump therefore still
-  looks identical to a hang from the console alone.
+- **~~The NS image has no RTT output.~~ Fixed.** `rtt_ns_init.c` wraps `hal_entry` with
+  `-Wl,--wrap` so the control block is initialised and survives `--gc-sections`, and the NS
+  build links it. (It was unfixed when this section was written: `SEGGER_RTT.c` was linked but
+  never called, the same defect that hid the secure image's output until 2026-08-29.)
 - **The RTT control block address moves between builds.** It lives in `.bss`, so any change to
   secure-side buffer sizing shifts it. Re-read it rather than reusing a noted value:
   `arm-none-eabi-nm --defined-only bin/tfm_s.axf | grep _SEGGER_RTT`. Giving RTT Viewer a search
@@ -167,9 +167,11 @@ the current 96K layout, so it may only surface once sizes change.
 Check: `FLASH_CM33_C` ends exactly at image end; `FLASH_NSC_START` == `BSP_PARTITION_FLASH_CPU0_C_START`;
 veneers inside `FLASH_CM33_C` in the map; NS→S call works on hardware.
 
-Note the trailer **cannot** be marked secure — RA has one secure region and it precedes the NSC
-(DESIGN.md §7.1). So the secure image's trailer is NS-writable; bounded to DoS by
-`MCUBOOT_VALIDATE_PRIMARY_SLOT`, so don't disable it.
+Note on the trailer, **corrected**: with zero-size trailer partitions the NSC ends exactly on
+the NS boundary at `0x98000`, and MCUboot's `0x180`-byte trailer therefore sits at
+`0x97E80`-`0x98000` — **inside the NSC window**, which is Secure memory that Non-secure code
+cannot write. The earlier claim that the trailer is NS-writable described a layout this
+solution does not have. Keep `MCUBOOT_VALIDATE_PRIMARY_SLOT` anyway, as a corruption check.
 
 ### ✅ RESOLVED — MCUBOOT_ALIGN_VAL is 128, matching the code flash write unit
 
@@ -311,7 +313,11 @@ nowhere in the linker script, so ld chose the address:
     .ram_from_flash (2000 bytes at 0x00080b80)
 ```
 
-Two known-benign orphans are allowlisted per image, with reasons, so a *new* one is still reported:
+One known-benign orphan is allowlisted per image, with a reason, so a *new* one is still
+reported. **`tfm_s`'s `.ram_noinit` row below is historical** - [D012] routed `.ram_noinit*`
+and `.noinit*` through the generic `S_DATA_EXTRA_NOINIT_SECTION_NAME` hook into the NOLOAD
+`.TFM_NOINIT`, and the port removed it from the allowlist. Only `bl2`'s
+`.msp_stack_seal_res` is still allowlisted:
 
 | Image | Section | Why it is harmless |
 |---|---|---|
@@ -327,9 +333,9 @@ rather than replaces the existing unclaimed-module warning in `fsp_add_modules()
 C-source half. Adding an FSP module to the secure or BL2 image remains a port change, not a
 configuration change — but it now fails loudly instead of silently.
 
-Follow-up worth doing: handle `.ram_noinit` properly in the secure script rather than allowlisting
-it. It would return 110 bytes of flash and relieve the LMA pressure inside the NSC window described
-above.
+~~Follow-up worth doing: handle `.ram_noinit` properly in the secure script rather than
+allowlisting it.~~ **Done** ([D012]) - it goes through `S_DATA_EXTRA_NOINIT_SECTION_NAME` into
+`.TFM_NOINIT`, outside `.bss`, returning the 110 bytes and the LMA pressure with it.
 
 ### ✅ RESOLVED — every secure service verified from non-secure (2026-08-30)
 

@@ -117,7 +117,12 @@ reflash and the storage suites then fail in ways that look like code faults.</p>
 <h3 id="s2-3">2.3 The NSC window LMA budget <em>fails at link, obscurely</em></h3>
 <p>The non-secure callable veneers sit at a fixed address at the top of the secure region, and the
 MCUboot trailer occupies the slot tail. Both constrain how much the secure image can grow.
-Symptom is <code>region FLASH overflowed</code> with apparently free space.</p>
+Symptom <strong>before <a href="DECISIONS.html#d063">D063</a></strong> was <code>region FLASH overflowed</code> with apparently free space: pinned
+veneers dragged FLASH&#x27;s allocation pointer to their end, so everything after them started
+beyond the veneers. <code>TFM_LINKER_VENEERS_OWN_REGION</code> (<code>4025eedff</code>) fixed that and is set on
+every RA port, so a plain overflow now means the code genuinely reached the NSC or trailer -
+and the more likely failure today is <strong>imgtool</strong> refusing with &quot;Image size + trailer exceeds
+requested size&quot;, after a clean link.</p>
 <p>Related: <code>ih_img_size</code> is set by the <strong>layout</strong>, not by how much code you emitted — the image
 runs to the veneers at their fixed address. Both toolchains report the same value for this
 reason (<a href="DECISIONS.html#d106">D106</a>).</p>
@@ -144,7 +149,9 @@ assertions do not cover, add one — this file is where the time is earned back.
 <h2 id="s4">4. Procedure</h2>
 <ol>
 <li><strong>Change the layout in the e2 solution.</strong> The Memory tab of the solution, not a project.</li>
-<li><strong>Rebuild the secure project in e2.</strong> Not regenerate — build. Confirm
+<li><strong>Rebuild all three e2 projects</strong> (secure, bootloader, non-secure). Not regenerate - build.
+The bootloader one matters because the OFS addresses come from its <code>Debug/memory_regions.*</code>
+on RA8M2, and <code>PORTING.md</code> §5 asks for all three. Confirm
 <code>&lt;project&gt;/Debug/bsp_linker_info.h</code> has the new values before going on.</li>
 <li><strong>Reconfigure TF-M from scratch.</strong> Delete the build directory. A stale <code>CMakeCache.txt</code>
 carries the old generated values with no diagnostic — this has bitten the port repeatedly
