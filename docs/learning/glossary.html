@@ -143,7 +143,7 @@ below is taken from it. A <em>superseded</em> entry has been replaced and is cit
 <tr><td><a href="ref/DECISIONS.html#d094">D094</a></td><td>the RA6M4 brick: the killed field is unknown</td><td>stands</td><td>0, 4</td></tr>
 <tr><td><a href="ref/DECISIONS.html#d096">D096</a></td><td>measured boot confirmed on RA8M2</td><td>stands</td><td>4</td></tr>
 <tr><td><a href="ref/DECISIONS.html#d100">D100</a></td><td>secondary slot below primary; BL2 and secure image share RAM</td><td>stands</td><td>4</td></tr>
-<tr><td><a href="ref/DECISIONS.html#d102">D102</a></td><td>RA8M2 IAR launches; <code>setTZBoundaries</code> appears twice</td><td><strong>superseded</strong> by <a href="ref/DECISIONS.html#d103">D103</a>, <a href="ref/DECISIONS.html#d103">D103</a></td><td>4</td></tr>
+<tr><td><a href="ref/DECISIONS.html#d102">D102</a></td><td>RA8M2 IAR launches; <code>setTZBoundaries</code> appears twice</td><td><strong>superseded</strong> by <a href="ref/DECISIONS.html#d103">D103</a></td><td>4</td></tr>
 <tr><td><a href="ref/DECISIONS.html#d107">D107</a></td><td>BL2 silent under IAR: DLIB buffers stdout</td><td><strong>superseded</strong> by <a href="ref/DECISIONS.html#d108">D108</a></td><td>4</td></tr>
 <tr><td><a href="ref/DECISIONS.html#d108">D108</a></td><td>the real IAR console hook is <code>__dwrite</code></td><td>stands</td><td>4</td></tr>
 <tr><td><a href="ref/DECISIONS.html#d112">D112</a></td><td>azone parity</td><td>stands; corrected by <a href="ref/DECISIONS.html#d126">D126</a></td><td>2, 4</td></tr>
@@ -152,13 +152,13 @@ below is taken from it. A <em>superseded</em> entry has been replaced and is cit
 <tr><td><strong><a href="ref/DECISIONS.html#d115">D115</a></strong></td><td>RA8M2 MPU measured at 8; corrects D114 on PXN; the hook that broke L1+IPC</td><td>stands; corrected by <a href="ref/DECISIONS.html#d117">D117</a>, <a href="ref/DECISIONS.html#d126">D126</a></td><td>Start, 1, 2, 3, 4</td></tr>
 <tr><td><strong><a href="ref/DECISIONS.html#d116">D116</a></strong></td><td>L1+IPC green on RA8M2</td><td>stands; corrected by <a href="ref/DECISIONS.html#d117">D117</a>, <a href="ref/DECISIONS.html#d126">D126</a></td><td>Start, 1, 3, 4</td></tr>
 <tr><td><strong><a href="ref/DECISIONS.html#d117">D117</a></strong></td><td>six corrections: FLIH dispatch, L1+IPC mechanism, IDAU comments, PXN provenance, stale docs, upstream count</td><td>stands; corrected by <a href="ref/DECISIONS.html#d120">D120</a>, <a href="ref/DECISIONS.html#d126">D126</a></td><td>Start, 1, 2, 3, 4</td></tr>
-<tr><td><strong><a href="ref/DECISIONS.html#d118">D118</a></strong></td><td>RA8M2 isolation 2 green under IAR</td><td>stands</td><td>Start, 3</td></tr>
-<tr><td><strong><a href="ref/DECISIONS.html#d119">D119</a></strong></td><td>RA8M2 isolation 3 green under IAR; coverage table</td><td>stands; corrected by <a href="ref/DECISIONS.html#d126">D126</a></td><td>Start, 3</td></tr>
+<tr><td><strong><a href="ref/DECISIONS.html#d118">D118</a></strong></td><td>RA8M2 isolation 2 green under IAR</td><td>stands</td><td>3</td></tr>
+<tr><td><strong><a href="ref/DECISIONS.html#d119">D119</a></strong></td><td>RA8M2 isolation 3 green under IAR; coverage table</td><td>stands; corrected by <a href="ref/DECISIONS.html#d126">D126</a></td><td>3</td></tr>
 <tr><td><strong><a href="ref/DECISIONS.html#d120">D120</a></strong></td><td>the isolation-macro gap is this port's, not upstream's; item 15 withdrawn; D065 vs D094 on the brick</td><td>stands; corrected by <a href="ref/DECISIONS.html#d125">D125</a></td><td>Start, 3, 4</td></tr>
 <tr><td><strong><a href="ref/DECISIONS.html#d121">D121</a></strong></td><td>the isolation HAL moves to <code>tfm_spm</code>; the hand-defines are deleted</td><td>stands; corrected by <a href="ref/DECISIONS.html#d125">D125</a></td><td>Start, 1, 3, 4</td></tr>
 <tr><td><strong><a href="ref/DECISIONS.html#d122">D122</a></strong></td><td>the move is MPU-neutral on RA6M5 L2; RA6M5 L1+IPC green, cause unexplained</td><td>stands; corrected by <a href="ref/DECISIONS.html#d125">D125</a></td><td>1, 3</td></tr>
 <tr><td><strong><a href="ref/DECISIONS.html#d123">D123</a></strong></td><td>RA6M5 L3 confirms D121's predicted +32 B shift; RA6M5 IAR L2 green</td><td>stands; corrected by <a href="ref/DECISIONS.html#d125">D125</a></td><td>3</td></tr>
-<tr><td><strong><a href="ref/DECISIONS.html#d124">D124</a></strong></td><td>the run matrix is complete; <code>TFM_SP_META_PTR</code> identical across toolchains</td><td>stands</td><td>3, 4</td></tr>
+<tr><td><strong><a href="ref/DECISIONS.html#d124">D124</a></strong></td><td>the run matrix is complete; <code>TFM_SP_META_PTR</code> identical across toolchains</td><td>stands</td><td>Start, 3, 4</td></tr>
 <tr><td><strong><a href="ref/DECISIONS.html#d125">D125</a></strong></td><td>six corrections to D120–D123; the HAL never left the PSA RoT code region</td><td>stands; corrected by <a href="ref/DECISIONS.html#d126">D126</a></td><td>Start, 3, 4</td></tr>
 <tr><td><strong><a href="ref/DECISIONS.html#d126">D126</a></strong></td><td>eighteen corrections to D110–D125; SFN reaches the hook too; diagnostics stay; PXN parked</td><td>stands</td><td>Start, 2, 3, 4</td></tr>
 </table></div>
@@ -210,8 +210,8 @@ below is taken from it. A <em>superseded</em> entry has been replaced and is cit
 <ul>
   <li><code>tests_reg/test/secure_fw/suites/spm/irq/service/tfm_flih_test_service/tfm_flih_test_service.yaml</code></li>
 </ul>
-<p>TF-M line numbers are from commit <code>b1b9078ff</code>; fsp_cmake citations from <code>14de2e5</code> (both
-2026-10-21). Citations into upstream TF-M files move only on a TF-M uprev; citations into
+<p>TF-M line numbers are from commit <code>f1d31a404</code>; fsp_cmake citations from <code>8b33ced</code> (both
+2026-10-22). Citations into upstream TF-M files move only on a TF-M uprev; citations into
 <code>platform/ext/target/renesas/</code> move with port commits and are the ones to recheck. FSP updates move only the
 FSP citations.</p>
 

@@ -180,7 +180,7 @@ Non-secure <em>alias</em>, so it has to enable the SAU itself:</p>
  * attribute takes the more secure of the two - so BL2's load from 0x120B0000 goes out as a
  * SECURE transaction to the non-secure alias and is refused. Both aliases then fault: the
  * secure one on the address, the non-secure one on the attribute.</code></pre>
-<p class="src"><code>ra8m2/bl2_boot_hal.c:34-38</code>; the single SAU region it programs, and the enable, are at <code>:79-94</code></p>
+<p class="src"><code>ra8m2/bl2_boot_hal.c:34-38</code>; the single SAU region it programs, and the enable, are at <code>:91-95</code></p>
 <p>FSP's <code>R_BSP_SAUInit()</code> would normally do this, but it is reached only under
 <code>BSP_TZ_SECURE_BUILD</code>, and BL2 is deliberately built as a flat, TrustZone-unaware FSP project
 (<code>bl2_boot_hal.c:40-43</code>). History: <a href="ref/DECISIONS.html#d073">D073</a>–<a href="ref/DECISIONS.html#d076">D076</a>, <a href="ref/DECISIONS.html#d079">D079</a>, <a href="ref/DECISIONS.html#d091">D091</a>.</p>
@@ -198,15 +198,16 @@ Non-secure <em>alias</em>, so it has to enable the SAU itself:</p>
 <p>All three statements were wrong. TF-M's shared isolation HAL does not program the SAU — it calls this function
 (<code>tfm_hal_isolation_v8m.c:275</code>). On RA6M5 it is the <em>SAU</em> that has no regions; attribution is done
 entirely by the IDAU. The <code>mpc_init_cfg()</code>/<code>ppc_init_cfg()</code> comments repeated the error, and
-<code>ra8m2/bl2_boot_hal.c:45-46</code> in the same tree already said the opposite. The function stays empty; its
+<code>ra8m2/bl2_boot_hal.c</code> in the same tree already said the opposite. The function stays empty; its
 comment now explains why (<code>ra6m5/target_cfg.c:36-63</code>; <a href="ref/DECISIONS.html#d117">D117</a> §3).</p>
 <p>The first replacement still overstated by one word. It, <a href="ref/DECISIONS.html#d117">D117</a> §3 and
 <code>ra8m2/bl2_boot_hal.c:45</code> said RA6M5 has "no SAU at all". It has an SAU with <em>no regions</em>: FSP writes
 <code>SAU-&gt;CTRL = SAU_CTRL_ALLNS_Msk</code> on this part (<code>bsp_security.c:277</code>), which would be impossible
 without one. And the IDAU decides only <em>because</em> of that write: at reset, ALLNS 0 with the SAU disabled makes
-every address Secure. TF-M <code>c75693277</code> (<a href="ref/DECISIONS.html#d126">D126</a> §6) corrected <code>sau_and_idau_cfg()</code> on all
-three RA6 ports; the one-word version survives in their <code>mpc_init_cfg()</code>/<code>ppc_init_cfg()</code> comments
-(<code>ra6m5/target_cfg.c:68</code>, <code>:74</code>) and in <code>ra8m2/bl2_boot_hal.c:45</code>.</p>
+every address Secure. TF-M <code>c75693277</code> and <code>f1d31a404</code> (<a href="ref/DECISIONS.html#d126">D126</a> §6) corrected
+<code>sau_and_idau_cfg()</code> and the <code>mpc_init_cfg()</code>/<code>ppc_init_cfg()</code> comments on all three RA6
+ports (<code>ra6m5/target_cfg.c:41-55</code>, <code>:67-68</code>, <code>:74-75</code>), and
+<code>ra8m2/bl2_boot_hal.c:45-47</code>.</p>
 <p>Why it survived through a working port: the function is a no-op on these parts whichever way the comment reads. A
 wrong statement about a part's security architecture has no runtime symptom — and is exactly the kind that gets
 believed.</p>

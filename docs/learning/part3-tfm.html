@@ -250,15 +250,15 @@ PSA Arch builds use 3 with IPC. As of 2026-10-22 the regression suite stands at:
 <div class="table-wrap"><table>
 <tr><th></th><th>L1 SFN</th><th>L1 IPC</th><th>L2</th><th>L3</th></tr>
 <tr><td>RA6M5 GNUARM</td><td>green</td><td>secure suites only; cause unexplained (<a href="ref/DECISIONS.html#d122">D122</a>)</td><td>green; post-move run secure only</td><td>green</td></tr>
-<tr><td>RA6M5 IAR</td><td>green</td><td>—</td><td>green</td><td>green</td></tr>
+<tr><td>RA6M5 IAR</td><td>green</td><td>—</td><td>green; secure half not captured (<a href="ref/DECISIONS.html#d123">D123</a> §2)</td><td>green</td></tr>
 <tr><td>RA8M2 GNUARM</td><td>green</td><td>green</td><td>green</td><td>green</td></tr>
 <tr><td>RA8M2 IAR</td><td>green</td><td>—</td><td>green</td><td>green</td></tr>
 </table></div>
 <p class="src"><a href="ref/DECISIONS.html#d124">D124</a> "Coverage — complete", qualified by <a href="ref/DECISIONS.html#d125">D125</a> §4 and <a href="ref/DECISIONS.html#d126">D126</a> §4.
 "Green" means secure 9/9 <em>and</em> non-secure 7/7, FLIH tests included. Two RA6M5 captures after the move
-(<a href="ref/DECISIONS.html#d121">D121</a>, §3.8) lost their non-secure half; the L2 cell rests on the full pre-move run
-(<a href="ref/DECISIONS.html#d113">D113</a>). RA6M5's cells are against the post-move build; RA8M2's are pre-move, with region symbols proven
-unchanged. The SLIH suite has never run on RA8M2, so "complete" means regression + FLIH at every level.</p>
+(<a href="ref/DECISIONS.html#d121">D121</a>, §3.8) lost their non-secure half, and the IAR L2 capture lost its secure
+half; the GNUARM L2 cell rests on the full pre-move run (<a href="ref/DECISIONS.html#d113">D113</a>). Post-move runs: RA6M5 L1 IPC, GNUARM L3 and
+IAR L2/L3. Pre-move: RA6M5 L1 SFN on both toolchains and every RA8M2 cell, with region symbols proven unchanged. The SLIH suite has never run on RA8M2, so "complete" means regression + FLIH at every level.</p>
 
 <h3>What each level costs — measured</h3>
 <div class="table-wrap"><table>
@@ -641,7 +641,7 @@ compile the HAL where the macro arrives.</p>
 <p>Result: under GNUARM, regression suites green at isolation 2 and 3 on RA6M5, then on RA8M2, and at L1+IPC on RA8M2
 (<a href="ref/DECISIONS.html#d113">D113</a>–<a href="ref/DECISIONS.html#d116">D116</a>); then under IAR on RA8M2 at
 isolation 2 and 3, confirming both fixes on a second toolchain (<a href="ref/DECISIONS.html#d118">D118</a>,
-<a href="ref/DECISIONS.html#d119">D119</a>). RA6M5 under IAR above isolation 1 is still unrun. <a href="ref/DECISIONS.html#d121">D121</a> then
+<a href="ref/DECISIONS.html#d119">D119</a>). RA6M5 under IAR then ran green at L2 and L3 on the post-move build (<a href="ref/DECISIONS.html#d123">D123</a>, <a href="ref/DECISIONS.html#d124">D124</a>). <a href="ref/DECISIONS.html#d121">D121</a> had
 replaced fixes 3 and L3 by moving the HAL to <code>tfm_spm</code>.</p>
 <p>The L1+IPC row of that history has a loose end. <a href="ref/DECISIONS.html#d122">D122</a> reports that RA6M5 L1+IPC failed on 2026-10-21 with
 the macros already on the HAL's compile line, parked in BL2's <code>HardFault_Handler</code> at <code>0xa84</code>, and
@@ -709,8 +709,10 @@ refers to; the course pages were not yet under version control, so the record ca
 <code>tfm_hal_isolation_v8m.o</code>'s compile line. Its effect — the combined code region splitting in two, six static
 regions — has not been measured, and is deliberately parked (<a href="ref/DECISIONS.html#d126">D126</a> §5). Re-confirmed after
 <a href="ref/DECISIONS.html#d121">D121</a> at isolation 3, on the now <code>tfm_spm</code>-owned object (<a href="ref/DECISIONS.html#d125">D125</a>). PXN stays OFF on this
-port. The port's CMake comment records all of this, including both halves of <code>d90aa0c44</code>
-(<code>ra6m5/CMakeLists.txt:508-538</code>).</p>
+port. The ra8m2 CMake comment records all of this, including both halves of <code>d90aa0c44</code>
+(<code>ra8m2/CMakeLists.txt:639-669</code>). The ra6m5 file carries a copy whose last paragraph says a configure
+"of this platform" passes the <code>armv8.1-m.main</code> gate (<code>ra6m5/CMakeLists.txt:535-538</code>). It cannot:
+RA6M5 is a Cortex-M33, so PXN=ON fails <code>check_config.cmake:91</code> there.</p>
 </div>
 
 <!-- ============================================================ -->

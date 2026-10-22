@@ -100,7 +100,7 @@ draw a wrong conclusion, so every substantive claim carries a tag:</p>
 <tr><td>Code memory</td><td>2 MB flash at <code>0x00000000</code></td><td>1 MB MRAM, secure alias <code>0x02000000</code>, non-secure <code>0x12000000</code></td><td>sizes: the solution docs and <code>BSP_ROM_SIZE_BYTES</code>; aliases: <a href="ref/DESIGN.html#s7">DESIGN.md</a> §7</td></tr>
 <tr><td>SRAM</td><td>512 KB at <code>0x20000000</code></td><td>1,872 KB; secure alias <code>0x22000000</code>, non-secure <code>0x32000000</code>
   (<code>BSP_RAM_SIZE_BYTES (1916928)</code>, <code>ra8m2_gcc_CPU0_secure/ra_cfg/fsp_cfg/bsp/bsp_mcu_device_pn_cfg.h:9</code>;
-  the "1 MB SRAM" in RA8M2_SOLUTION.md's header is wrong)</td><td><a href="ref/RA6M5_SOLUTION.html">RA6M5_SOLUTION.md</a>, <a href="ref/RA8M2_SOLUTION.html">RA8M2_SOLUTION.md</a></td></tr>
+  RA8M2_SOLUTION.md said 1 MB until corrected)</td><td><a href="ref/RA6M5_SOLUTION.html">RA6M5_SOLUTION.md</a>, <a href="ref/RA8M2_SOLUTION.html">RA8M2_SOLUTION.md</a></td></tr>
 <tr><td>NVIC priority bits</td><td>4 (16 levels)</td><td>4</td><td><code>__NVIC_PRIO_BITS</code>, device headers line 40</td></tr>
 <tr><td>MPU regions</td><td><strong>8, measured</strong> from <code>MPU-&gt;TYPE</code></td><td><strong>8, measured</strong></td><td><a href="ref/DECISIONS.html#d113">D113</a> (RA6M5), <a href="ref/DECISIONS.html#d115">D115</a> (RA8M2)</td></tr>
 <tr><td><code>__SAUREGION_PRESENT</code></td><td>0</td><td>1</td><td><code>R7FA6M5BH.h:47</code>, <code>R7KA8M2JF_core0.h:49</code></td></tr>
@@ -108,10 +108,9 @@ draw a wrong conclusion, so every substantive claim carries a tag:</p>
 </table></div>
 <p>Most worked examples use the RA6M5, because it was the first part measured at isolation 2 and 3
 (<a href="ref/DECISIONS.html#d113">D113</a>, <a href="ref/DECISIONS.html#d114">D114</a>, GNUARM) and the debugging
-story happened there. RA8M2 has since been measured at isolation 2 and 3 on both toolchains
-(<a href="ref/DECISIONS.html#d115">D115</a>, <a href="ref/DECISIONS.html#d118">D118</a>,
-<a href="ref/DECISIONS.html#d119">D119</a>) and is now the more completely measured part. It appears where it differs,
-chiefly in Part 2.</p>
+story happened there. Both parts have since run at every isolation level on both toolchains
+(<a href="ref/DECISIONS.html#d124">D124</a>); RA6M5's later runs are on the post-<a href="ref/DECISIONS.html#d121">D121</a> build, RA8M2's on the build before it. RA8M2
+appears where it differs, chiefly in Part 2.</p>
 
 <h2>Citation conventions</h2>
 <ul>
@@ -126,7 +125,7 @@ chiefly in Part 2.</p>
     §8.4" links to that section.</li>
   <li><code>tfm_hal_isolation_v8m.c:410</code> — a file in the TF-M checkout at
     <code>C:\Users\Michael\Documents\GitHub\trusted-firmware-m</code>, under <code>platform/ext/common/</code>
-    unless a fuller path is given. Line numbers are from TF-M commit <code>b1b9078ff</code> (2026-10-21).
+    unless a fuller path is given. Line numbers are from TF-M commit <code>f1d31a404</code> and fsp_cmake <code>8b33ced</code> (2026-10-22).
     Citations into upstream files the port does not modify drift only on a TF-M uprev; citations into
     <code>platform/ext/target/renesas/</code> can move with any port commit. An FSP update cannot move any TF-M
     citation.</li>

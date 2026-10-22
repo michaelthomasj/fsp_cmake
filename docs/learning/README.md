@@ -80,7 +80,8 @@ through HTML renderings in `ref/`, not the raw Markdown.
 
 ## Maintenance
 
-- Line numbers: TF-M `c75693277`, fsp_cmake `47be18a` (2026-10-22).
+- Line numbers: TF-M `f1d31a404`, fsp_cmake `8b33ced` (2026-10-22). The pin is stated in three
+  places (this file, `index.html` "Citation conventions", the glossary footer); move all three together.
 - Upstream TF-M citations drift only on a TF-M uprev. Port citations
   (`platform/ext/target/renesas/…`) move with port commits — recheck those first. An FSP bump moves
   only the FSP citations.

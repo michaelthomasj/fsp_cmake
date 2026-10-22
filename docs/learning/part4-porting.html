@@ -227,7 +227,7 @@ isolation gates added from <a href="ref/DECISIONS.html#d113">D113</a>–<a href=
 <tr><td>Full regression suite</td><td>the port</td></tr>
 <tr><td>PSA Arch crypto</td><td>the engine: 63/0/1 on RA6M5, 62/1/1 on RA8M2</td></tr>
 <tr><td>Measured boot read from the record</td><td>not the attestation suite</td></tr>
-<tr><td>Both toolchains</td><td>Four IAR-only failures, all below isolation 1: two IAR's own — DLIB stdout buffering and the <code>__write</code> redirect (<a href="ref/DECISIONS.html#d107">D107</a>, superseded by <a href="ref/DECISIONS.html#d108">D108</a>),
+<tr><td>Both toolchains</td><td>Four IAR-only failures, all at isolation 1, before any IAR run above it: two IAR's own — DLIB stdout buffering and the <code>__write</code> redirect (<a href="ref/DECISIONS.html#d107">D107</a>, superseded by <a href="ref/DECISIONS.html#d108">D108</a>),
   two a stale install path in CMake caches (<a href="ref/DECISIONS.html#d083">D083</a>, <a href="ref/DECISIONS.html#d089">D089</a>; <a href="ref/DECISIONS.html#d126">D126</a> §6). None at isolation 2 or 3 (<a href="ref/DECISIONS.html#d124">D124</a>)</td></tr>
 <tr><td>Azone parity</td><td>peripheral-to-zone security matches across projects (<a href="ref/DECISIONS.html#d112">D112</a>)</td></tr>
 <tr><td><strong>Regression at isolation 2 and 3</strong>, FLIH/SLIH included</td><td>MMIO grants, code/data placement for ARoT, FLIH privilege. Invisible at level 1, where the MPU is off (<a href="ref/DECISIONS.html#d113">D113</a>)</td></tr>

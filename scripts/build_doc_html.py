@@ -534,7 +534,14 @@ def main():
     # The glossary's decisions table takes its "Standing" column from SETTLED.md, which changes
     # with every new entry. Warn rather than fail: a new DECISIONS entry should not block on it.
     try:
-        import build_course_glossary as glossary
+        # Loaded by path, not by bare name: under PYTHONSAFEPATH (or python -P) the script's
+        # own directory is not on sys.path and a bare import fails.
+        import importlib.util
+        spec = importlib.util.spec_from_file_location(
+            "build_course_glossary", os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                                  "build_course_glossary.py"))
+        glossary = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(glossary)
         if glossary.render(glossary.read(glossary.GLOSSARY), []) != glossary.read(glossary.GLOSSARY):
             print("  warning: docs/learning/glossary.html decisions table is stale; "
                   "run: python scripts/build_course_glossary.py")

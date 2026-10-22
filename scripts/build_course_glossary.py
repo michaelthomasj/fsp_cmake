@@ -95,11 +95,17 @@ def standing():
         m = re.match(r"\| `(D\d{3})` \|", line)
         if not (mode and m):
             continue
-        refs = re.findall(r"`(D\d{3})`", line.strip().strip("|").split("|")[-1])
+        # Superseded rows read "`D103` (also corrected by `D103`)": split the two relations and
+        # de-duplicate, so an entry that both supersedes and corrects is named once.
+        cell = line.strip().strip("|").split("|")[-1]
+        main, _, also = cell.partition("(also corrected by")
+        refs = list(dict.fromkeys(re.findall(r"`(D\d{3})`", main)))
+        extra = [r for r in dict.fromkeys(re.findall(r"`(D\d{3})`", also)) if r not in refs]
         if mode == "s":
             out[m.group(1)] = "stands" + ("; corrected by " + ", ".join(map(link, refs)) if refs else "")
         else:
-            out[m.group(1)] = "<strong>superseded</strong> by " + ", ".join(map(link, refs))
+            out[m.group(1)] = ("<strong>superseded</strong> by " + ", ".join(map(link, refs))
+                               + ("; also corrected by " + ", ".join(map(link, extra)) if extra else ""))
     return out
 
 
