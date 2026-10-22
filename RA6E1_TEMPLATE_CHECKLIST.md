@@ -153,7 +153,12 @@ boot under the other. A mismatch is not a build error.
 - [ ] **Validate primary slot** enabled — the secure image's trailer is NS-writable by
       construction (RA has one secure region and it precedes the NSC), so this is what bounds
       that to a DoS. Do not turn it off.
-- [ ] Header **`0x200`** / trailer **`0x100`**. `config.cmake` reads these out of
+- [ ] Header **`0x200`** / **trailer partitions size `0`** (end markers, not real trailers).
+      A real `0x100` `__BL_0_P_T` after `FLASH_CPU0_C` would put 256 secure bytes between the
+      NSC and the non-secure boundary, which breaks §3's "NSC ends exactly on the NS boundary"
+      and **RDPM cannot express it**. MCUboot takes its trailer from the slot tail instead.
+      All four trailer partitions are zero-size in `ra6e1_secure`. `config.cmake` reads these
+      out of
       `bsp_linker_info.h` (`___BL_0_P_H_SIZE`, `___BL_0_P_T_SIZE`) because TF-M's own defaults
       are `0x400` — and those cache values are what **imgtool signs with**. Left at the default,
       the payload is placed `0x400` into the slot while the image is linked for slot+`0x200`:

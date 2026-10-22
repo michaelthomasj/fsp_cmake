@@ -190,7 +190,7 @@ MCUboot dual-image — the RA6E1 pattern.</li>
 <li><strong>Route: FSP <code>rm_psa_crypto</code> <code>*_ALT</code> sources</strong>, in
 <code>platform/ext/accelerator/renesas/sce9/</code> against TF-M&#x27;s <code>crypto_hw.h</code>, with <code>cc312</code>
 as the structural template. <strong>Per-engine directory on purpose</strong> — RA8&#x27;s RSIP is a
-different driver API and lands beside it as <code>renesas/rsip</code>. The Renesas wrapped-key
+different driver API and lands beside it as <code>platform/ext/accelerator/renesas/rsip_e50d</code> (<a href="DECISIONS.html#d050">D050</a>). The Renesas wrapped-key
 vendor driver stays out: it depends on FSP&#x27;s patched Mbed TLS.</li>
 <li><strong>Built against FSP&#x27;s Mbed TLS 3.6.6, not upstream</strong> (D042). Pairing the ALT sources
 with upstream left multi-part GCM broken — FSP&#x27;s changes live in the PSA core its
@@ -212,7 +212,7 @@ Built and validated on FSP 6.7.0-beta0 (<a href="DECISIONS.html#d047">D047</a>).
 TF-M 2.3 is deferred to P7, where SCE9 is redone as a PSA transparent driver.</p></blockquote>
 <h3 id="p5--ra8x2-single-core--trustzone-cfg--bsp-sep-24--oct-9">P5 · RA8x2 single-core — TrustZone cfg + BSP (Sep 24 – Oct 9)</h3>
 <ul>
-<li>New <code>platform/ext/target/renesas/ra8x2</code>; RASC projects on FSP 6.7 (<a href="DECISIONS.html#d047">D047</a>).</li>
+<li>New <code>platform/ext/target/renesas/ra8m2</code> (the directory is <code>ra8m2</code>, not <code>ra8x2</code>); RASC projects on FSP 6.7 (<a href="DECISIONS.html#d047">D047</a>).</li>
 <li>TrustZone configuration (<code>target_cfg.c</code> — SAU/PPC/MPC), isolation HAL, DDSC bridge.</li>
 <li>BSP update: memory map, RSIP crypto driver, entropy source, Cortex-M85
 PACBTI / FPU-in-SPE.</li>

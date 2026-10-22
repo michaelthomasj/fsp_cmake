@@ -10,10 +10,15 @@ Fork point: **`dd2b7de19`** ("Docs: Release notes updates for v2.2.0"), i.e. TF-
 Regenerate the authoritative list at any time with:
 
 ```
-git diff --stat $(git merge-base HEAD upstream/main) -- \
-    platform/ext/common/ platform/include/ platform/ns/ bl2/ secure_fw/ config/ \
-    toolchain_GNUARM.cmake toolchain_IARARM.cmake
+git diff --stat $(git merge-base HEAD upstream/main) -- . ':(exclude)platform/ext/target/renesas'
 ```
+
+**Exclude only the port directory.** An earlier version of this command named specific
+subdirectories and therefore missed real edits to common files - `cmake/install.cmake`,
+`lib/ext/mcuboot/CMakeLists.txt`, `toolchain_ARMCLANG.cmake` and `toolchain_CLANG.cmake`
+among them - which also meant the "untracked divergence" re-check the Submission notes
+prescribe could never have found them. The wide form returns **39** files; the items below
+account for 20 of them, and the rest are listed under "Not yet accounted for".
 
 20 files differ. Each is accounted for below. (It was 21 until [D091] withdrew item 13 and
 returned `bl2/CMakeLists.txt` to byte-identical with TF-Mv2.2.0.)
@@ -298,6 +303,42 @@ debugging: **an `#if` whose value depends on which CMake target happens to compi
 fails silently, and a missing `-D` on a compile line does not distinguish "unset" from
 "unplumbed".** A `-Wundef` build of the SPE would have caught it on day one.
 
+
+### 16. GNU: pinned CMSE veneers drag FLASH's allocation pointer
+
+`platform/ext/common/gcc/tfm_isolation_s.ld.template` - commit `4025eedff` (2026-09-28),
+"Linker: give pinned CMSE veneers their own MEMORY region" (+46 lines, template lines 41-90).
+
+When `.gnu.sgstubs` is pinned to a fixed address inside the FLASH region, ld advances FLASH's
+allocation pointer past the veneers, so everything placed afterwards starts beyond them even
+when the space below is free. On this port that overran the regression-test link.
+
+**Fix, opt-in:** `TFM_LINKER_VENEERS_OWN_REGION` gives the pinned veneers a `MEMORY` region of
+their own and leaves FLASH's pointer where it was. All four RA platforms define it
+(`<part>/region_defs.h`, e.g. `ra6m5/region_defs.h:202-203`); platforms that do not set it are
+unaffected. **A TF-M bump that drops the template change breaks the regression link on every
+RA part.** [D063].
+
+---
+
+## Not yet accounted for
+
+Found by the 2026-10-22 review when the regenerate command was widened. Listed so the gap is
+visible rather than silent:
+
+- **`cmake/install.cmake`** - an `AND TARGET signing_layout_ns` guard (`2d0d32d8f`).
+- **`lib/ext/mcuboot/CMakeLists.txt`** - replaces the hard-coded upstream `GIT_REPOSITORY` with
+  an overridable `${MCUBOOT_GIT_REPOSITORY}` hook (`c76fd57bf`). The Renesas fork URL itself is
+  set in `ra6m4/config.cmake`, inside the port.
+- **`toolchain_ARMCLANG.cmake` (+11) and `toolchain_CLANG.cmake` (+2)** - the `.srec` output of
+  item 8's own commit `d7df90820`, which item 8 does not list. Item 8 should name all four
+  toolchain files, not two.
+- **`platform/ext/accelerator/renesas/{sce9,rsip_e50d}/`** - 14 added files. New platform
+  content rather than edits to common code; it needs a destination decision, not a patch.
+- **`tfm_config.log`** - a 312-line log committed at the TF-M repo root (`95e7d4ba3`). An
+  accident; it should be deleted.
+
+---
 
 ## Local — not for upstream
 

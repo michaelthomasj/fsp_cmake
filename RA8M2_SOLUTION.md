@@ -24,10 +24,13 @@ Once RDPM has programmed `CFSAMONA.CFS2`, each alias reaches only its own half. 
 table below are from `0x02000000`; the non-secure rows sit in the other alias at the same
 offset.
 
-**2. `__SAUREGION_PRESENT` is `1`** (it is `0` on RA6M4/RA6E1/RA6M5). With an SAU present but
-unprogrammed, Armv8-M attributes every address Secure — the combined SAU/IDAU takes the more
-secure of the two — so a secure transaction to the non-secure alias is **refused**, so something must programme the SAU
-before BL2 touches the non-secure alias.
+**2. `__SAUREGION_PRESENT` is `1`** (it is `0` on RA6M4/RA6E1/RA6M5, which have an SAU with zero
+regions, not no SAU). With the SAU present but unprogrammed, Armv8-M marks the access **Secure**.
+That alone refuses nothing — Secure state may read Secure memory. The refusal is RA's
+**memory-side** check: once `CFSAMONA.CFS2` is programmed, the MRAM non-secure alias accepts only
+a **Non-secure** transaction. The Armv8-M half is that the SAU has to mark the alias NS so the
+transaction is *issued* non-secure in the first place. So something must programme the SAU before
+BL2 touches the non-secure alias.
 
 That used to be FSP's job: BL2 took its MCUboot flash backend from FSP, whose
 `flash_area_open()` programmed the SAU from `R_PSCU->CFSAMONA_b.CFS2` and whose

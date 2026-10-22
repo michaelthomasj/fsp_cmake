@@ -75,9 +75,12 @@ option-setting words were coalesced by the linker into <strong>one</strong> <cod
 preserved image: a segment at <code>0x0100A100</code> of <strong>388 bytes</strong> (<code>0x184</code>, to <code>0x0100A283</code>) holding
 the <strong>three</strong> words that BL2 emitted, of which <strong>376 bytes were zero fill</strong> written across
 configuration memory that should have been left alone.</p>
-<p><strong>What makes it lethal is that nothing warns you.</strong> The linker is content, the srec is clean,
-and <code>check_ofs.py --ra6-default</code> once validated against a hardcoded RA6 window that still
-contained the stale address, so it printed CLEAN.</p>
+<p><strong>What makes it lethal is that nothing warns you.</strong> The linker is content and the srec is clean.
+(The guard did not exist in July 2026 — it was added afterwards, <a href="DECISIONS.html#d002">D002</a> &quot;Later made automatic&quot;.)</p>
+<p><strong>Separately: the guard has produced a false CLEAN, on RA8M2.</strong> <code>check_ofs.py --ra6-default</code>
+validated against a hardcoded RA6 window, and RA8M2&#x27;s option memory lies outside it, so the
+check passed while inspecting nothing. <a href="DECISIONS.html#d056">D056</a>. <code>--require-segments</code> is now on for every BL2
+precisely so an empty inspection reports as a failure rather than a pass.</p>
 <p><strong>Prevention, all three of which are in place:</strong></p>
 <ul>
 <li>One <code>MEMORY</code> region per option word, never a shared span.</li>

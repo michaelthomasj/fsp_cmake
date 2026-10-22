@@ -198,7 +198,12 @@ BL2 (see the note above), but it is the wrong default to ship.</li>
 <li><input type="checkbox" disabled> <strong>Validate primary slot</strong> enabled — the secure image&#x27;s trailer is NS-writable by
 construction (RA has one secure region and it precedes the NSC), so this is what bounds
 that to a DoS. Do not turn it off.</li>
-<li><input type="checkbox" disabled> Header <strong><code>0x200</code></strong> / trailer <strong><code>0x100</code></strong>. <code>config.cmake</code> reads these out of
+<li><input type="checkbox" disabled> Header <strong><code>0x200</code></strong> / <strong>trailer partitions size <code>0</code></strong> (end markers, not real trailers).
+A real <code>0x100</code> <code>__BL_0_P_T</code> after <code>FLASH_CPU0_C</code> would put 256 secure bytes between the
+NSC and the non-secure boundary, which breaks §3&#x27;s &quot;NSC ends exactly on the NS boundary&quot;
+and <strong>RDPM cannot express it</strong>. MCUboot takes its trailer from the slot tail instead.
+All four trailer partitions are zero-size in <code>ra6e1_secure</code>. <code>config.cmake</code> reads these
+out of
 <code>bsp_linker_info.h</code> (<code>___BL_0_P_H_SIZE</code>, <code>___BL_0_P_T_SIZE</code>) because TF-M&#x27;s own defaults
 are <code>0x400</code> — and those cache values are what <strong>imgtool signs with</strong>. Left at the default,
 the payload is placed <code>0x400</code> into the slot while the image is linked for slot+<code>0x200</code>:

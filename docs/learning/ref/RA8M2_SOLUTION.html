@@ -77,10 +77,13 @@ so the same physical MRAM appears twice: secure at <code>0x02000000</code>, non-
 Once RDPM has programmed <code>CFSAMONA.CFS2</code>, each alias reaches only its own half. Offsets in the
 table below are from <code>0x02000000</code>; the non-secure rows sit in the other alias at the same
 offset.</p>
-<p><strong>2. <code>__SAUREGION_PRESENT</code> is <code>1</code></strong> (it is <code>0</code> on RA6M4/RA6E1/RA6M5). With an SAU present but
-unprogrammed, Armv8-M attributes every address Secure — the combined SAU/IDAU takes the more
-secure of the two — so a secure transaction to the non-secure alias is <strong>refused</strong>, so something must programme the SAU
-before BL2 touches the non-secure alias.</p>
+<p><strong>2. <code>__SAUREGION_PRESENT</code> is <code>1</code></strong> (it is <code>0</code> on RA6M4/RA6E1/RA6M5, which have an SAU with zero
+regions, not no SAU). With the SAU present but unprogrammed, Armv8-M marks the access <strong>Secure</strong>.
+That alone refuses nothing — Secure state may read Secure memory. The refusal is RA&#x27;s
+<strong>memory-side</strong> check: once <code>CFSAMONA.CFS2</code> is programmed, the MRAM non-secure alias accepts only
+a <strong>Non-secure</strong> transaction. The Armv8-M half is that the SAU has to mark the alias NS so the
+transaction is <em>issued</em> non-secure in the first place. So something must programme the SAU before
+BL2 touches the non-secure alias.</p>
 <p>That used to be FSP&#x27;s job: BL2 took its MCUboot flash backend from FSP, whose
 <code>flash_area_open()</code> programmed the SAU from <code>R_PSCU-&gt;CFSAMONA_b.CFS2</code> and whose
 <code>flash_on_chip_cleanup()</code> tore it down, with <code>DEFAULT_MCUBOOT_FLASH_MAP</code> and

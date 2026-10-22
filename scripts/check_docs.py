@@ -54,7 +54,7 @@ LINK_EXEMPT = {DECISIONS}
 # entries that do not exist yet ("needs a superseding entry (D120)") and files as they were on the
 # review date, so they are not held to resolution. Checking them blocked every .md commit until
 # someone wrote the entry a review merely proposed.
-PATH_EXEMPT = ("docs/artifacts/",)
+PATH_EXEMPT = ("docs/artifacts",)  # docs/artifacts/, docs/artifacts_v2/, ...
 
 RE_ENTRY = re.compile(r"^## (D\d+) — ", re.M)
 RE_CITE = re.compile(r"\bD(\d{3})\b")

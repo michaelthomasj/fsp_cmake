@@ -6,7 +6,8 @@ newer TF-M without re-deriving the reasoning.
 
 **Live parts: RA6M5 and RA8M2.** RA6M4 and RA6E1 are in-tree but dormant — both EK-RA6M4 boards
 were bricked by the OFS coalescing defect (DECISIONS D002). Sections below are part-neutral
-unless they name a part; per-part specifics live in `RA6M5_SOLUTION.md` and `RA6E1_SOLUTION.md`,
+unless they name a part; per-part specifics live in `RA6M5_SOLUTION.md` and `RA8M2_SOLUTION.md`
+(and `RA6E1_SOLUTION.md` for the dormant part),
 and the RA6M4-era documents are under `archive/ra6m4/`.
 
 > This file is the stable companion to `DECISIONS.md`, which is the append-only log of *why*.
@@ -101,11 +102,13 @@ define simply keeps winning, silently, and the deviation outlives its reason.
 
 ## 3. Memory map — authoritative source
 - **`flash_layout.h` + `region_defs.h` are authoritative** for the build (MCUboot and TF-M read
-  them). The `FLASH_*_PARTITION_*` cache vars in `config.cmake` are **vestigial** here (only mps3
-  platforms consume them) and are kept only for documentation — they must match `flash_layout.h`.
-- Layout (1 MB flash, dual-image MCUboot): BL2 `0x0` 128K · S primary `0x20000` 192K · NS primary
-  `0x50000` 128K · S secondary `0x70000` 192K · NS secondary `0xA0000` 128K · scratch `0xC0000` 256K.
-  RAM 256K: S `0x20000000` 128K · NS `0x20020000` 128K.
+  them). No `FLASH_*_PARTITION_*` cache variable is set by either live part - only mps3 platforms
+  consume them, and the RA6M4-era note that they were "kept for documentation" no longer applies.
+- **Per-part layouts are deliberately not repeated here** (see §7 for why). The 1 MB single-bank
+  map this section used to print was RA6M4's and matches neither live part: RA6M5 uses the whole
+  2 MB with BL2 at 96 KB, and RA8M2 is MRAM based at `0x02000000`. The authoritative figures live
+  in `RA6M5_SOLUTION.md` and `RA8M2_SOLUTION.md`, generated from each solution's
+  `bsp_linker_info.h`.
 
 ## 4. Flash driver geometry
 Per-part, and the one place where getting a constant wrong fails only on hardware.
@@ -146,7 +149,8 @@ FSP's `flash_map.c`.
 two is what made this take three attempts.
 
 ## 5. MCUboot / BL2
-- **Bootutil:** TF-M downloads a Renesas MCUboot fork. It is **not** the copy RASC ships, and the
+- **Bootutil:** TF-M downloads **upstream** MCUboot (`MCUBOOT_VERSION 6071ceb`). Only the dormant
+  ra6m4 overrides this with the Renesas fork (`renesas/mcuboot 2.1.0+renesas.3`). It is **not** the copy RASC ships, and the
   difference is load-bearing: RASC's `boot_hooks.h` is 287 lines against TF-M's 181, adding
   `BOOT_HOOK_FLASH_AREA_CALL`, `BOOT_HOOK_FIND_SLOT_CALL` and `BOOT_HOOK_GO_CALL_FIH`. Any FSP
   source that calls those hooks would need a shim when built against TF-M's copy. No FSP
@@ -161,11 +165,16 @@ two is what made this take three attempts.
 - **NV rollback counters:** TF-M's `bl2/src/security_cnt.c` (not provided by `rm_mcuboot_port`).
 
 ## 6. Crypto
-- **Now:** software crypto — TF-M's own mbedcrypto for BL2 image verification (`CRYPTO_HW_ACCELERATOR
-  OFF`). FSP's mbedTLS is entangled with the FSP MCUboot config (`bsp_linker_info.h`) and was NOT grafted.
-- **Later (TODO):** hardware crypto via SCE9/RSIP. Staged: `mbedtls_user_config.h` (disables the SCE9
-  `*_ALT` macros for SW; KEEP `MBEDTLS_ENTROPY_HARDWARE_ALT` — the TRNG stays the entropy source even in
-  SW mode). Switching to HW = re-enable the ALT path + isolate the FSP-mbedTLS/FSP-MCUboot-config coupling.
+- **Hardware crypto is in place on both parts.** `CRYPTO_HW_ACCELERATOR` is **ON**
+  (`ra6m5/config.cmake:127`, `ra8m2/config.cmake:150`), with `CRYPTO_HW_ACCELERATOR_TYPE`
+  `renesas/sce9` on RA6M5 and `renesas/rsip_e50d` on RA8M2. BL2 hashes on the engine too.
+- **Crypto is built from FSP's Mbed TLS overlay, not TF-M's own** - `fsp_mbedtls.cmake` FORCEs
+  `MBEDCRYPTO_PATH` at the FSP tree ([D042]). The ciphers are reached through FSP's `*_ALT`
+  macros ([D036], [D039], [D050]). The "entangled with the FSP MCUboot config" obstacle this
+  section used to describe was resolved; FSP's Mbed TLS is grafted.
+- **CCM stays in software** ([D043]), and `MBEDTLS_ENTROPY_HARDWARE_ALT` keeps the TRNG as the
+  entropy source either way.
+- `-DCRYPTO_HW_ACCELERATOR=OFF` returns to TF-M's own mbedcrypto if a comparison is needed.
 
 ## 7. TrustZone: SAU/IDAU, veneers, NSC
 **The one per-part difference that matters most.** Both live parts attribute memory through the
@@ -178,9 +187,13 @@ RA6M5) the SAU in software. But RA8M2 has a second address alias and an SAU, and
 | `BSP_FEATURE_TZ_NS_OFFSET` | `0x00000000` | `0x10000000` |
 | Flash aliases | one | secure `0x02000000`, non-secure `0x12000000` |
 
-The consequence is not cosmetic. With no SAU, Armv8-M attributes **every** address Secure (the
-combined SAU/IDAU takes the more secure of the two), so on RA8M2 a secure transaction to the
-non-secure alias is refused until the SAU is programmed. That is why BL2 on RA8M2 programmes the SAU
+The consequence is not cosmetic, but state it precisely. Armv8-M attributes every address Secure
+when the SAU is **disabled and `SAU_CTRL.ALLNS` is 0** - the reset state. With `ALLNS` set to 1 the
+IDAU alone decides, which is the only reason RA6M5 works with **zero SAU regions**: FSP's
+`R_BSP_SecurityInit` writes `SAU->CTRL = SAU_CTRL_ALLNS_Msk` (`bsp_security.c:277`). Replace FSP's
+startup and that stops being true. On RA8M2, which has SAU regions, the SAU must mark the
+non-secure alias NS so the transaction is *issued* non-secure, and nothing may touch that alias
+until it does. That is why BL2 on RA8M2 programmes the SAU
 itself, in `bl2_boot_hal.c` - `bl2_sau_init()` is the first thing `boot_platform_post_init()`
 does, with the bounds imported from FSP's `flash_map.c`. It used to arrive as a side effect of
 FSP's `flash_area_open()`, which is what [D073]/[D079] describe; [D091] moved both parts onto
@@ -196,7 +209,8 @@ Attribution itself is entirely what is burned via RFP/RDPM — see §7.1.
   at provisioning.
 - **Boundaries to program:** deliberately **not listed here.** They are per-part, they are RDPM
   input, and a stale copy in a third document is how a board gets provisioned wrong. The owning
-  documents are `RA6M5_SOLUTION.md` §"TrustZone boundary values" and `RA6E1_SOLUTION.md`; both
+  documents are `RA6M5_SOLUTION.md` §"TrustZone boundary values" and `RA8M2_SOLUTION.md`
+  (`RA6E1_SOLUTION.md` for the dormant part); all
   derive the values from the generated layout and show the 32 KB / 8 KB block checks. RDPM
   **erases the part** — reflash all three images afterwards.
 
@@ -287,7 +301,10 @@ the image that actually failed in July: MCUboot → `ARM_Flash_Initialize` → `
 image calls and BL2 never does. (A comment in the RA6E1 `tfm_hal_platform.c` claims `Driver_Flash.c`
 also does it defensively; it does not.)
 
-Two ways to close it, pick one:
+**Closed by option 1, and enforced at build time** ([D034]): `BSP_CFG_EARLY_INIT = 1` is required
+in the bootloader project as well as the secure one, and `bl2_option_setting.c` plus
+`<part>_layout_checks.c` `#error` when it is 0. Option 2 below was rejected -
+`bl2_boot_hal.c` contains no `SystemCoreClockUpdate()`. Both are kept for the reasoning:
 1. `BSP_CFG_EARLY_INIT = 1` in the bootloader project too — but that project is shared with the
    standalone e2 bootloader build, so it changes something outside the TF-M port.
 2. Override the `__WEAK boot_platform_post_init()` in the port and call `SystemCoreClockUpdate()`
@@ -429,9 +446,12 @@ the only tell — over ~1 MB means it spans the option memory.
   has its own RTT control block.
 
 ## 10. Non-secure app
-- FreeRTOS NS app from the RASC `_ns_rtos` project (`FSP_NS_APP_DIR`). Its `memory_regions.ld` was fixed
-  to the TF-M NS partition (RAM `0x20020000`, flash `0x50400`) — RASC had generated a standalone layout
-  (secure-RAM `0x20002000`) that would have SecureFaulted the S→NS jump.
+- The live parts build the **port's split NSPE** (`ns_app`, [D005]) or the `tf-m-tests` suites,
+  against `<part>_gcc_nonsecure` / `<part>_gcc_CPU0_nonsecure` as `FSP_NS_APP_DIR`. There is no
+  FreeRTOS in either `ns_app`.
+- The FreeRTOS `_ns_rtos` arrangement this section used to describe, with its hand-fixed
+  `memory_regions.ld`, was RA6M4-era. Per-part NS partition addresses live in the solution
+  documents, not here (§7).
 
 ## 11. Toolchains
 - **GNU Arm** (arm-none-eabi 13.2) and **IAR** (10.10.2) are both supported, on both live parts.

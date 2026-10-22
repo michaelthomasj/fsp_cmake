@@ -147,7 +147,20 @@ C:\b\m2appns\bin\tfm_ns_signed.bin     the non-secure image
 ## 6. Flash and run
 
 Use the e2 debug launch configurations — they already carry the correct addresses and the two
-safety settings below. For RA8M2 they are in `ra8m2_gcc_mcuboot/`:
+safety settings below. For RA8M2 they are in `ra8m2_gcc_mcuboot/`.
+
+> **These launches do not flash what §5 just built.** Each names its own build tree -
+> `m2gflih`, `m2cry`, `m2att`, `m2sto` - and **none references `m2app`/`m2appns`**. Running
+> §5 then §6 either flashes different images or fails on missing files; there is no
+> application launch for RA8M2. Pick one:
+>
+> - build the tree a launch expects - for the first row,
+>   `scripts\reg_build_gcc.bat C:\b\m2gflih C:\b\m2gflihns ra8m2 flih 1 SFN`; or
+> - clone a launch onto your application tree with `scripts\mk_level_launch.py`, which
+>   rewrites the paths and forces `setTZBoundaries` false.
+>
+> §5 is still worth running on its own - it proves the toolchain and the FSP projects - but it
+> is not the input to the table below.
 
 | Launch | Runs |
 |---|---|
@@ -275,7 +288,7 @@ on a first build:
 | `bsp_linker_info.h: No such file` | §4 — the e2 solution was not *built* |
 | `Filename too long` on `3rdparty/everest/...` | build directory path too deep; use `C:\b\` |
 | `C1083: stdio.h` in a PSA Arch build | `scripts\vs_build.bat` not run |
-| `INVALID CONFIG: TFM_SPM_DEBUG_TRACE AND ... _SILENCE` | `CMAKE_BUILD_TYPE` omitted |
+| `INVALID CONFIG: TFM_SPM_DEBUG_TRACE AND ... _SILENCE` | **Any non-Debug build type, given the platform's `TFM_SPM_DEBUG_TRACE ON`.** `MinSizeRel` and `Release` set `TFM_SPM_LOG_LEVEL` to `_SILENCE`, the platform config then turns `TFM_SPM_DEBUG_TRACE` ON, and `check_config.cmake:119` rejects the pair. Pass `-DTFM_SPM_LOG_LEVEL=TFM_SPM_LOG_LEVEL_DEBUG`, or `-DTFM_SPM_DEBUG_TRACE=OFF` for the smaller image |
 | Nothing on RTT | wrong control-block address (it moves every build), or BL2 — see §6 |
 | `region CODE_RAM overflowed` | see [CONFIGURATION.md](CONFIGURATION.md) |
 

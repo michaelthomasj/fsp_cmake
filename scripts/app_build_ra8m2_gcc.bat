@@ -11,9 +11,14 @@ rem  CMAKE_BUILD_TYPE=MinSizeRel is NOT optional on GNUARM. Debug does not fit: 
 rem  out around 414 KB against a 293 KB secure region. IAR Debug does fit (293 KB), which is
 rem  why app_build_ra8m2_iar.bat uses Debug and this one does not. DECISIONS D056.
 rem
-rem  MinSizeRel leaves TFM_SPM_LOG_LEVEL at its default, so unlike the IAR script there is no
-rem  TFM_SPM_DEBUG_TRACE conflict to work around. Pass -DTFM_SPM_LOG_LEVEL=... explicitly if
-rem  you want SPM tracing here.
+rem  MinSizeRel DOES conflict with TFM_SPM_DEBUG_TRACE, and this comment used to claim it did
+rem  not. config/build_type/minsizerel.cmake:9 sets TFM_SPM_LOG_LEVEL to _SILENCE, the platform
+rem  config then sets TFM_SPM_DEBUG_TRACE ON (ra8m2/config.cmake:190), and check_config.cmake:119
+rem  rejects the pair:
+rem      INVALID CONFIG: TFM_SPM_DEBUG_TRACE AND TFM_SPM_LOG_LEVEL = TFM_SPM_LOG_LEVEL_SILENCE
+rem  Verified 2026-10-22 by running this script on a clean tree: it stopped at configure.
+rem  -DTFM_SPM_LOG_LEVEL=TFM_SPM_LOG_LEVEL_DEBUG is therefore passed below, as reg_build_gcc.bat
+rem  has always done. Use -DTFM_SPM_DEBUG_TRACE=OFF instead if you want the smaller image.
 rem
 rem  Build directories must be SHORT. Under a deep path the Mbed TLS overlay clone fails with
 rem  "Filename too long" on 3rdparty/everest/..., which is why the defaults are under C:\b.
@@ -45,7 +50,8 @@ if not exist "%SPE%\CMakeCache.txt" (
     -DFSP_BL2_APP_DIR=%FSP_CMAKE%/ra8m2_gcc_mcuboot ^
     -DFSP_NS_APP_DIR=%FSP_CMAKE%/ra8m2_gcc_CPU0_nonsecure ^
     -DTFM_ISOLATION_LEVEL=1 ^
-    -DCONFIG_TFM_SPM_BACKEND=SFN
+    -DCONFIG_TFM_SPM_BACKEND=SFN ^
+    -DTFM_SPM_LOG_LEVEL=TFM_SPM_LOG_LEVEL_DEBUG
   if errorlevel 1 exit /b 1
 )
 rem  'install' produces api_ns/, which the NS build below consumes. It also runs the OFS

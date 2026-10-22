@@ -165,7 +165,19 @@ C:\b\m2appns\bin\tfm_ns_signed.bin     the non-secure image</code></pre>
 <hr>
 <h2 id="s6">6. Flash and run</h2>
 <p>Use the e2 debug launch configurations — they already carry the correct addresses and the two
-safety settings below. For RA8M2 they are in <code>ra8m2_gcc_mcuboot/</code>:</p>
+safety settings below. For RA8M2 they are in <code>ra8m2_gcc_mcuboot/</code>.</p>
+<blockquote><p><strong>These launches do not flash what §5 just built.</strong> Each names its own build tree -
+<code>m2gflih</code>, <code>m2cry</code>, <code>m2att</code>, <code>m2sto</code> - and <strong>none references <code>m2app</code>/<code>m2appns</code></strong>. Running
+§5 then §6 either flashes different images or fails on missing files; there is no
+application launch for RA8M2. Pick one:</p>
+<ul>
+<li>build the tree a launch expects - for the first row,
+<code>scripts\reg_build_gcc.bat C:\b\m2gflih C:\b\m2gflihns ra8m2 flih 1 SFN</code>; or</li>
+<li>clone a launch onto your application tree with <code>scripts\mk_level_launch.py</code>, which
+rewrites the paths and forces <code>setTZBoundaries</code> false.</li>
+</ul>
+<p>§5 is still worth running on its own - it proves the toolchain and the FSP projects - but it
+is not the input to the table below.</p></blockquote>
 <div class="table-wrap"><table>
 <tr><th>Launch</th><th>Runs</th></tr>
 <tr><td><code>ra8m2_TFM_flih_gcc</code></td><td>the full regression suite, including interrupt tests</td></tr>
@@ -258,7 +270,7 @@ on a first build:</p>
 <tr><td><code>bsp_linker_info.h: No such file</code></td><td>§4 — the e2 solution was not <em>built</em></td></tr>
 <tr><td><code>Filename too long</code> on <code>3rdparty/everest/...</code></td><td>build directory path too deep; use <code>C:\b\</code></td></tr>
 <tr><td><code>C1083: stdio.h</code> in a PSA Arch build</td><td><code>scripts\vs_build.bat</code> not run</td></tr>
-<tr><td><code>INVALID CONFIG: TFM_SPM_DEBUG_TRACE AND ... _SILENCE</code></td><td><code>CMAKE_BUILD_TYPE</code> omitted</td></tr>
+<tr><td><code>INVALID CONFIG: TFM_SPM_DEBUG_TRACE AND ... _SILENCE</code></td><td><strong>Any non-Debug build type, given the platform&#x27;s <code>TFM_SPM_DEBUG_TRACE ON</code>.</strong> <code>MinSizeRel</code> and <code>Release</code> set <code>TFM_SPM_LOG_LEVEL</code> to <code>_SILENCE</code>, the platform config then turns <code>TFM_SPM_DEBUG_TRACE</code> ON, and <code>check_config.cmake:119</code> rejects the pair. Pass <code>-DTFM_SPM_LOG_LEVEL=TFM_SPM_LOG_LEVEL_DEBUG</code>, or <code>-DTFM_SPM_DEBUG_TRACE=OFF</code> for the smaller image</td></tr>
 <tr><td>Nothing on RTT</td><td>wrong control-block address (it moves every build), or BL2 — see §6</td></tr>
 <tr><td><code>region CODE_RAM overflowed</code></td><td>see <a href="CONFIGURATION.html">CONFIGURATION.md</a></td></tr>
 </table></div>

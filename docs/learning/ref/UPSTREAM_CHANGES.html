@@ -45,6 +45,7 @@
       <li><a href="#top">UPSTREAM_CHANGES.md</a>
         <ol>
           <li><a href="#ready-to-upstream">Ready to upstream</a></li>
+          <li><a href="#not-yet-accounted-for">Not yet accounted for</a></li>
           <li><a href="#local--not-for-upstream">Local — not for upstream</a></li>
           <li><a href="#submission-notes">Submission notes</a></li>
         </ol>
@@ -63,9 +64,13 @@ have a different destination — a patch series to TrustedFirmware-M rather than
 record — and because a fork carrying silent edits to common files is a maintenance trap.</p>
 <p>Fork point: <strong><code>dd2b7de19</code></strong> (&quot;Docs: Release notes updates for v2.2.0&quot;), i.e. TF-M v2.2.0.
 Regenerate the authoritative list at any time with:</p>
-<pre><code>git diff --stat $(git merge-base HEAD upstream/main) -- \
-    platform/ext/common/ platform/include/ platform/ns/ bl2/ secure_fw/ config/ \
-    toolchain_GNUARM.cmake toolchain_IARARM.cmake</code></pre>
+<pre><code>git diff --stat $(git merge-base HEAD upstream/main) -- . ':(exclude)platform/ext/target/renesas'</code></pre>
+<p><strong>Exclude only the port directory.</strong> An earlier version of this command named specific
+subdirectories and therefore missed real edits to common files - <code>cmake/install.cmake</code>,
+<code>lib/ext/mcuboot/CMakeLists.txt</code>, <code>toolchain_ARMCLANG.cmake</code> and <code>toolchain_CLANG.cmake</code>
+among them - which also meant the &quot;untracked divergence&quot; re-check the Submission notes
+prescribe could never have found them. The wide form returns <strong>39</strong> files; the items below
+account for 20 of them, and the rest are listed under &quot;Not yet accounted for&quot;.</p>
 <p>20 files differ. Each is accounted for below. (It was 21 until <a href="DECISIONS.html#d091">D091</a> withdrew item 13 and
 returned <code>bl2/CMakeLists.txt</code> to byte-identical with TF-Mv2.2.0.)</p>
 <hr>
@@ -272,6 +277,35 @@ deviation rather than documenting it. Those three now carry no hand-defines at a
 debugging: **an <code>#if</code> whose value depends on which CMake target happens to compile the file
 fails silently, and a missing <code>-D</code> on a compile line does not distinguish &quot;unset&quot; from
 &quot;unplumbed&quot;.** A <code>-Wundef</code> build of the SPE would have caught it on day one.</p>
+<h3 id="s16">16. GNU: pinned CMSE veneers drag FLASH&#x27;s allocation pointer</h3>
+<p><code>platform/ext/common/gcc/tfm_isolation_s.ld.template</code> - commit <code>4025eedff</code> (2026-09-28),
+&quot;Linker: give pinned CMSE veneers their own MEMORY region&quot; (+46 lines, template lines 41-90).</p>
+<p>When <code>.gnu.sgstubs</code> is pinned to a fixed address inside the FLASH region, ld advances FLASH&#x27;s
+allocation pointer past the veneers, so everything placed afterwards starts beyond them even
+when the space below is free. On this port that overran the regression-test link.</p>
+<p><strong>Fix, opt-in:</strong> <code>TFM_LINKER_VENEERS_OWN_REGION</code> gives the pinned veneers a <code>MEMORY</code> region of
+their own and leaves FLASH&#x27;s pointer where it was. All four RA platforms define it
+(<code>&lt;part&gt;/region_defs.h</code>, e.g. <code>ra6m5/region_defs.h:202-203</code>); platforms that do not set it are
+unaffected. **A TF-M bump that drops the template change breaks the regression link on every
+RA part.** <a href="DECISIONS.html#d063">D063</a>.</p>
+<hr>
+<h2 id="not-yet-accounted-for">Not yet accounted for</h2>
+<p>Found by the 2026-10-22 review when the regenerate command was widened. Listed so the gap is
+visible rather than silent:</p>
+<ul>
+<li><strong><code>cmake/install.cmake</code></strong> - an <code>AND TARGET signing_layout_ns</code> guard (<code>2d0d32d8f</code>).</li>
+<li><strong><code>lib/ext/mcuboot/CMakeLists.txt</code></strong> - replaces the hard-coded upstream <code>GIT_REPOSITORY</code> with
+an overridable <code>${MCUBOOT_GIT_REPOSITORY}</code> hook (<code>c76fd57bf</code>). The Renesas fork URL itself is
+set in <code>ra6m4/config.cmake</code>, inside the port.</li>
+<li><strong><code>toolchain_ARMCLANG.cmake</code> (+11) and <code>toolchain_CLANG.cmake</code> (+2)</strong> - the <code>.srec</code> output of
+item 8&#x27;s own commit <code>d7df90820</code>, which item 8 does not list. Item 8 should name all four
+toolchain files, not two.</li>
+<li><strong><code>platform/ext/accelerator/renesas/{sce9,rsip_e50d}/</code></strong> - 14 added files. New platform
+content rather than edits to common code; it needs a destination decision, not a patch.</li>
+<li><strong><code>tfm_config.log</code></strong> - a 312-line log committed at the TF-M repo root (<code>95e7d4ba3</code>). An
+accident; it should be deleted.</li>
+</ul>
+<hr>
 <h2 id="local--not-for-upstream">Local — not for upstream</h2>
 <h3 id="cmsis_overrideh-additions"><code>cmsis_override.h</code> additions</h3>
 <p><code>platform/include/cmsis_override.h</code> (pre-existing upstream file, +51 lines)</p>

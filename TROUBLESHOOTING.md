@@ -24,9 +24,13 @@ preserved image: a segment at `0x0100A100` of **388 bytes** (`0x184`, to `0x0100
 the **three** words that BL2 emitted, of which **376 bytes were zero fill** written across
 configuration memory that should have been left alone.
 
-**What makes it lethal is that nothing warns you.** The linker is content, the srec is clean,
-and `check_ofs.py --ra6-default` once validated against a hardcoded RA6 window that still
-contained the stale address, so it printed CLEAN.
+**What makes it lethal is that nothing warns you.** The linker is content and the srec is clean.
+(The guard did not exist in July 2026 — it was added afterwards, [D002] "Later made automatic".)
+
+**Separately: the guard has produced a false CLEAN, on RA8M2.** `check_ofs.py --ra6-default`
+validated against a hardcoded RA6 window, and RA8M2's option memory lies outside it, so the
+check passed while inspecting nothing. [D056]. `--require-segments` is now on for every BL2
+precisely so an empty inspection reports as a failure rather than a pass.
 
 **Prevention, all three of which are in place:**
 
