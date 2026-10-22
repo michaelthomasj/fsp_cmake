@@ -48,7 +48,7 @@
         <ol>
           <li><a href="#threads--read-the-entry-in-bold">Threads — read the entry in bold</a></li>
           <li><a href="#standing-118">Standing (118)</a></li>
-          <li><a href="#superseded-11">Superseded (11)</a></li>
+          <li><a href="#superseded-12">Superseded (12)</a></li>
         </ol>
       </li>
     </ol>
@@ -62,12 +62,12 @@
 <p><code>DECISIONS.md</code> is append-only, so the position on any question is stated by the newest entry in its thread and the earlier ones remain as the reasoning. This file says which entry that is. For the handful of questions that need a paragraph rather than a title, read the hand-written <strong>Settled questions</strong> table at the top of <code>DECISIONS.md</code>.</p>
 <div class="table-wrap"><table>
 <tr><th></th><th></th></tr>
-<tr><td>Entries</td><td><strong>129</strong></td></tr>
+<tr><td>Entries</td><td><strong>130</strong></td></tr>
 <tr><td>Standing</td><td><strong>118</strong></td></tr>
-<tr><td>Superseded</td><td><strong>11</strong></td></tr>
+<tr><td>Superseded</td><td><strong>12</strong></td></tr>
 <tr><td>Standing but corrected on some point</td><td><strong>31</strong></td></tr>
 <tr><td>Standing, but the question they left open is closed</td><td><strong>3</strong></td></tr>
-<tr><td>Supersede lineages</td><td><strong>8</strong></td></tr>
+<tr><td>Supersede lineages</td><td><strong>9</strong></td></tr>
 </table></div>
 <hr>
 <h2 id="threads--read-the-entry-in-bold">Threads — read the entry in bold</h2>
@@ -76,6 +76,7 @@
 <tr><th>Thread</th><th>Stands</th><th>What moved</th></tr>
 <tr><td>D001 → <strong>D002</strong></td><td><code>D002</code></td><td>D002 supersedes D001</td></tr>
 <tr><td>D031 → <strong>D033</strong></td><td><code>D033</code></td><td>D033 supersedes D031</td></tr>
+<tr><td>D035 → <strong>D130</strong></td><td><code>D130</code></td><td>D130 supersedes D035</td></tr>
 <tr><td>D052 → <strong>D053</strong></td><td><code>D053</code></td><td>D053 supersedes D052</td></tr>
 <tr><td>D075 → <strong>D076</strong></td><td><code>D076</code></td><td>D076 supersedes D075</td></tr>
 <tr><td>D079 → D082 → D085 → D090 → <strong>D091</strong></td><td><code>D091</code></td><td>D085 supersedes D082; D090 supersedes D085; D091 supersedes D079, D082; D091 corrects D090</td></tr>
@@ -120,7 +121,6 @@
 <tr><td><code>D032</code></td><td>2026-09-21</td><td>CORRECTION to the SCE9 size figures quoted on 2026-09-21</td><td>Accepted</td><td>—</td><td>—</td></tr>
 <tr><td><code>D033</code></td><td>2026-09-21</td><td>RA6M5 builds against the real e2 projects</td><td>Accepted</td><td>—</td><td>—</td></tr>
 <tr><td><code>D034</code></td><td>2026-09-21</td><td><code>BSP_CFG_EARLY_INIT</code> is asserted at build time, in both secure and BL2</td><td>Accepted</td><td>—</td><td>—</td></tr>
-<tr><td><code>D035</code></td><td>2026-09-21</td><td>Stay on TF-M 2.2; the TF-M 2.3 rebase is cancelled</td><td>Accepted</td><td>—</td><td>—</td></tr>
 <tr><td><code>D036</code></td><td>2026-09-21</td><td>SCE9 acceleration via FSP <code>*_ALT</code>: AES, AES-GCM, SHA-256 first; ECC held back</td><td><strong>Provisional - builds; not yet run on silicon</strong></td><td><code>D037</code></td><td>—</td></tr>
 <tr><td><code>D037</code></td><td>2026-09-21</td><td>SCE9 ECC enabled; P-521, Curve25519 and deterministic ECDSA removed from RA6M5</td><td><strong>Provisional - builds; not yet run on silicon</strong></td><td>—</td><td>—</td></tr>
 <tr><td><code>D038</code></td><td>2026-09-21</td><td>CORRECTION to D037: deterministic ECDSA is unsupported in FSP by design</td><td>Accepted</td><td>—</td><td>—</td></tr>
@@ -206,14 +206,16 @@
 <tr><td><code>D127</code></td><td>2026-10-22</td><td>the CMake target graph gets its own document, drawn in ASCII rather than mermaid</td><td>Accepted</td><td>—</td><td>—</td></tr>
 <tr><td><code>D128</code></td><td>2026-10-22</td><td>the metadata line is an index and may be repaired in place (new rule 7); ten relation fields corrected, and <a href="DECISIONS.html#d120">D120</a>/<a href="DECISIONS.html#d125">D125</a>/<a href="DECISIONS.html#d126">D126</a> each got one attribution wrong</td><td>Accepted</td><td><code>D129</code></td><td>—</td></tr>
 <tr><td><code>D129</code></td><td>2026-10-22</td><td>the v4 review of <code>BUILD_ARCHITECTURE.md</code>: eight findings, the FSPR attribution withdrawn in eleven more places, and line citations are now checked</td><td>Accepted</td><td>—</td><td>—</td></tr>
+<tr><td><code>D130</code></td><td>2026-10-22</td><td>TF-M 2.3 is deferred, not cancelled: the gate is FSP&#x27;s Mbed TLS 4.1 migration, expected ~2026-11-12</td><td>Accepted</td><td>—</td><td>—</td></tr>
 </table></div>
 <hr>
-<h2 id="superseded-11">Superseded (11)</h2>
+<h2 id="superseded-12">Superseded (12)</h2>
 <p>Kept for the reasoning. <strong>Do not cite one of these without reading what replaced it</strong> — in several cases the later entry reverses the earlier claim outright.</p>
 <div class="table-wrap"><table>
 <tr><th>#</th><th>Date</th><th>Position as stated then</th><th>Superseded by</th></tr>
 <tr><td><code>D001</code></td><td>2026-07-21</td><td>Option-setting (OFS) memory must never be linked into an image</td><td><code>D002</code></td></tr>
 <tr><td><code>D031</code></td><td>2026-09-21</td><td>The RA6M5 port was verified against a staged project set, not the e2 projects</td><td><code>D033</code></td></tr>
+<tr><td><code>D035</code></td><td>2026-09-21</td><td>Stay on TF-M 2.2; the TF-M 2.3 rebase is cancelled</td><td><code>D130</code></td></tr>
 <tr><td><code>D052</code></td><td>2026-09-24</td><td>The E50D pack is missing both session-leak fixes; RA8M2 bring-up proceeds anyway</td><td><code>D053</code></td></tr>
 <tr><td><code>D075</code></td><td>2026-10-01</td><td>BL2 must enable the SAU on RA8M2; the right alias is not enough</td><td><code>D076</code></td></tr>
 <tr><td><code>D079</code></td><td>2026-10-02</td><td>BL2 takes its MCUboot flash backend from FSP; closes <a href="DECISIONS.html#d076">D076</a></td><td><code>D091</code></td></tr>

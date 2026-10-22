@@ -152,12 +152,12 @@
   <header class="head">
     <div class="eyebrow">Project Plan · Revised 2026-10-12 · M5 met 49 days early</div>
     <h1>TF-M on Renesas RA — RA6E1 → RA6M5 → RA8x2 (single-core), FSP 6.7, GNUARM + IAR</h1>
-    <p class="sub"><b>RA6E1, RA6M5 and RA8M2 are all complete on both toolchains</b> and validated beyond the original bar — the PSA Arch attestation, storage and crypto suites pass under GNUARM and IAR on all three parts. RA6M5 is the upstream vehicle and the first platform here with <b>SCE9 hardware crypto active</b>; RA8M2 adds <b>RSIP-E50D</b>, measured boot verified from the boot record, and a proven MCUboot secondary-slot upgrade. <b>M5 was met 2026-10-09, 49 days early.</b> Remaining on the primary track is <b>FWU on RA6M5</b>. The <b>TF-M 2.3 update is future work</b>, after the rsip7 update — 2.3 replaces Mbed TLS with TF-PSA-Crypto. Dual-core and the inter-core mailbox HAL are <b>descoped</b>. All dates are targets.</p>
+    <p class="sub"><b>RA6E1, RA6M5 and RA8M2 are all complete on both toolchains</b> and validated beyond the original bar — the PSA Arch attestation, storage and crypto suites pass under GNUARM and IAR on all three parts. RA6M5 is the upstream vehicle and the first platform here with <b>SCE9 hardware crypto active</b>; RA8M2 adds <b>RSIP-E50D</b>, measured boot verified from the boot record, and a proven MCUboot secondary-slot upgrade. <b>M5 was met 2026-10-09, 49 days early.</b> Remaining on the primary track is <b>FWU on RA6M5</b>. The <b>TF-M 2.3 update is deferred, gated on FSP's Mbed TLS v4.1 migration (~2026-11-12, D130)</b>, after the rsip7 update — 2.3 replaces Mbed TLS with TF-PSA-Crypto. Dual-core and the inter-core mailbox HAL are <b>descoped</b>. All dates are targets.</p>
     <div class="metarow">
       <div class="meta ok"><div class="k">RA6E1 · GNUARM + IAR</div><div class="v">done 2026-09-14</div></div>
       <div class="meta ok"><div class="k">RA6M5 · upstream vehicle</div><div class="v">done 2026-09-23</div></div>
       <div class="meta ok"><div class="k">RA8x2 single-core goal</div><div class="v">done 2026-10-09</div></div>
-      <div class="meta"><div class="k">TF-M 2.3 · TF-PSA-Crypto</div><div class="v">future · after rsip7</div></div>
+      <div class="meta"><div class="k">TF-M 2.3 · TF-PSA-Crypto</div><div class="v">deferred · gated on FSP Mbed TLS v4.1, ~2026-11-12</div></div>
       <div class="meta"><div class="k">NS image in OSPI</div><div class="v">future · last, after P7</div></div>
       <div class="meta"><div class="k">Toolchains</div><div class="v">GNUARM + IAR</div></div>
       <div class="meta"><div class="k">Resourcing</div><div class="v">1 engineer</div></div>
@@ -195,7 +195,7 @@
       </ul>
     </div>
   </div>
-  <div class="deferbar"><b>Out of scope</b><span>dual-core / inter-core mailbox HAL (descoped 2026-09-14) · ARMCLANG · upstream merge → stretch · TF-M 2.3 → future, after rsip7 · NS-in-OSPI → last, after P7</span></div>
+  <div class="deferbar"><b>Out of scope</b><span>dual-core / inter-core mailbox HAL (descoped 2026-09-14) · ARMCLANG · upstream merge → stretch · TF-M 2.3 → deferred, gated on FSP Mbed TLS v4.1 (~2026-11-12) · NS-in-OSPI → last, after P7</span></div>
 
   <h2>Timeline</h2>
   <div class="gantt-scroll">
@@ -242,7 +242,7 @@
       <div class="g-track" style="grid-row:7"></div>
       <div class="bar stretch" style="grid-row:7;grid-column:14/20">upstream (Gerrit)<span class="ms">M6</span></div>
 
-      <div class="g-lab" style="grid-row:8"><span class="id">P7</span><span class="tx">Future — TF-M 2.3 / TF-PSA-Crypto</span></div>
+      <div class="g-lab" style="grid-row:8"><span class="id">P7</span><span class="tx">Deferred — TF-M 2.3 / TF-PSA-Crypto</span></div>
       <div class="g-track" style="grid-row:8"></div>
       <div class="bar future" style="grid-row:8;grid-column:20/22">after rsip7<span class="ms">M7</span></div>
 
@@ -321,8 +321,9 @@
 
     <div class="ph future">
       <div class="ph-top"><span class="ph-id">P7</span><span class="ph-dates">future · after the rsip7 update</span></div>
-      <h3>Future — TF-M 2.3 / TF-PSA-Crypto</h3>
+      <h3>TF-M 2.3 / TF-PSA-Crypto — deferred, gated on FSP's Mbed TLS v4.1 migration</h3>
       <ul>
+        <li><b>Gate:</b> FSP completing its Mbed TLS <b>v4.1</b> migration, expected ~2026-11-12 (D130). 4.x is where the crypto library splits out as TF-PSA-Crypto, which is what 2.3 consumes — rebasing first would put FSP's 3.6-era stack on a TF-M that cannot host it.</li>
         <li>TF-M 2.3.0 pins TF-PSA-Crypto v1.1.0, 2.3.1 pins v1.1.1 — <b>no Mbed TLS, no <span class="mono">*_ALT</span></b>. CC312's legacy ALT path is gone in 2.3.0.</li>
         <li>SCE9 acceleration is redone as a PSA transparent driver — the same model as the rsip7 CM driver, which is why it follows that update.</li>
         <li>Rebase from <span class="mono">dd2b7de19</span>: 10 of 20 shared files conflict; SPM logging rewritten (<span class="mono">lib/tfm_log</span>), so the trace option and RTT backend need porting; item 6 still needed at the moved <span class="mono">scripts/wrapper.py</span>. Detail in DECISIONS D035.</li>
@@ -357,7 +358,7 @@
         <tr class="ok"><td class="id">M4 ✓</td><td class="date">2026-09-23</td><td class="gate">RA6M5 full chain, both toolchains, SCE9 ciphers active — 23 days early</td></tr>
         <tr class="ok"><td class="id">M5</td><td class="date">2026-10-09</td><td class="gate"><b>RA8M2 single-core full chain, both toolchains</b> — RSIP-E50D, measured boot and MCUboot upgrade verified. 49 days early.</td></tr>
         <tr class="stretch"><td class="id">M6</td><td class="date">~2027 Q1–Q2</td><td class="gate"><i>Stretch</i> — merged into Arm TF-M upstream (port waits on M7)</td></tr>
-        <tr class="stretch"><td class="id">M7</td><td class="date">future</td><td class="gate"><i>Future</i> — TF-M 2.3 / TF-PSA-Crypto, after the rsip7 update</td></tr>
+        <tr class="stretch"><td class="id">M7</td><td class="date">deferred</td><td class="gate">TF-M 2.3 / TF-PSA-Crypto — gated on FSP's Mbed TLS v4.1 migration, ~2026-11-12 (D130)</td></tr>
         <tr class="stretch"><td class="id">M8</td><td class="date">future</td><td class="gate"><i>Future</i> — RA8x2 NS image in OSPI, executed in place (after M7)</td></tr>
       </tbody>
     </table>

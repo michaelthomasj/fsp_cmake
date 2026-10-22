@@ -9,16 +9,17 @@ measured boot verified from the boot record, and MCUboot secondary-slot upgrade.
 **M5 was met 2026-10-09, 49 days early** (D106). What remains on the primary
 track is FWU on RA6M5.
 
-**TF-M 2.3 is future work (revised 2026-09-21).** TF-M 2.3 replaces Mbed TLS with
-TF-PSA-Crypto, which has no `*_ALT` mechanism. It moves to the end of the plan,
-after the rsip7 update — SCE9 acceleration is built on the 3.6 ALT route now and
-redone as a PSA driver then.
+**TF-M 2.3 is deferred, gated on FSP's Mbed TLS v4.1 migration — expected ~2026-11-12**
+([[D130]]). TF-M 2.3 replaces Mbed TLS with TF-PSA-Crypto, which has no `*_ALT`
+mechanism, so it cannot host FSP's 3.6-era crypto stack. SCE9 acceleration is built
+on the 3.6 ALT route now and redone as a PSA transparent driver then. It is the last
+phase, **P7**.
 
-> **This does not match [[D035]], which should be read first.** [[D035]] is Accepted and says
-> the 2.3 rebase is **cancelled** and "P5 of PROJECT_PLAN.md is cancelled" — not deferred. No
-> later entry records the reopening this paragraph assumes. Either the position changed without
-> a decision entry, or this paragraph is wrong; it needs an entry that supersedes [[D035]]
-> before anyone plans against it.
+> **[[D035]] said *cancelled*; [[D130]] supersedes it with *deferred*.** The working state is
+> the same either way — v2.2.0 / Mbed TLS 3.6.3 — but the planning consequence is opposite,
+> and this document asserted "future work" against an Accepted "cancelled" for a month.
+> Note also that [[D035]]'s "P5 of PROJECT_PLAN.md is cancelled" uses the **2026-09-21**
+> numbering: that work is now **P7**, and today's P5 is RA8x2 single-core, which is done.
 
 **Scope change — RA8x2 is single-core.** The previous revision built the whole
 RA8x2 leg around dual-core operation and binding FSP's inter-core comms to
@@ -40,7 +41,7 @@ dates rather than cutting scope.
 | **RA6E1 (GNUARM + IAR)** | **done 2026-09-14** (target was ~09-25) |
 | **RA6M5 — upstream vehicle** | **done 2026-09-23** (target was ~10-16) |
 | **Primary goal — RA8x2 single-core** | **done 2026-10-09** (target was ~11-27) |
-| TF-M 2.3 / TF-PSA-Crypto | future — after the rsip7 update |
+| TF-M 2.3 / TF-PSA-Crypto | **deferred** — gated on FSP's Mbed TLS v4.1 migration, ~2026-11-12 ([[D130]]) |
 | Revised | 2026-10-12 |
 | Toolchains | GNUARM + IAR |
 | Validation | boot + crypto NSC app; PSA Arch suites where available |
@@ -97,8 +98,8 @@ dates rather than cutting scope.
   followed on **2026-10-21** ([[D116]], [[D118]], [[D119]]), **regression+FLIH only** ([[D126]]
   §4). [[D124]] is RA6M5 IAR L3, not this part.
 
-**Future — TF-M 2.3 / TF-PSA-Crypto (after the rsip7 update)**
-- Rebase from the v2.2.0 fork point; SCE9 redone as a PSA transparent driver.
+**Deferred — TF-M 2.3 / TF-PSA-Crypto (gated on FSP's Mbed TLS v4.1 migration, ~2026-11-12)**
+- Rebase from the v2.2.0 fork point; SCE9 redone as a PSA transparent driver. [[D130]].
 
 **Future — NS image in OSPI, executed in place (last, after TF-M 2.3)**
 - Relieves the RA8M2 MRAM budget: 1 MB cannot hold four slots plus the PSA Arch
@@ -120,13 +121,14 @@ dates rather than cutting scope.
 | **P4** | RA6M5 port + SCE9 crypto acceleration | 2026-09-15 | **2026-09-23** | ✅ done, 23d early |
 | **P5** | RA8x2 single-core — TrustZone cfg + BSP | **2026-09-24** | **2026-10-09** | ✅ done, 49d early |
 | **P6** | *Stretch* — upstream to Arm TF-M | 2027-01-11 | 2027-03-26 | Stretch |
-| **P7** | *Future* — TF-M 2.3 / TF-PSA-Crypto | after rsip7 | — | Future |
+| **P7** | TF-M 2.3 / TF-PSA-Crypto | gated on FSP Mbed TLS v4.1 (~2026-11-12) | — | **Deferred** ([[D130]]) |
 | **P8** | *Future* — NS image in OSPI (XIP) | after P7 | — | Future |
 
 Critical path: **P4 → P5** (sequential under one engineer).
 
-The primary goal moves forward three weeks, to ~Nov 27, because the TF-M 2.3
-rebase that sat ahead of RA8x2 is now future work. P7 is undated.
+The primary goal moved forward three weeks, to ~Nov 27, because the TF-M 2.3
+rebase that sat ahead of RA8x2 was deferred. P7 has no end date: its **start** is
+gated on FSP's Mbed TLS v4.1 migration, expected ~2026-11-12 ([[D130]]).
 
 ---
 
@@ -188,7 +190,11 @@ rebase that sat ahead of RA8x2 is now future work. P7 is undated.
   obsolete there.
 - **Exit M6** — RA6M5 (+ RA8x2) merged upstream. The port waits on P7.
 
-### P7 · Future — TF-M 2.3 / TF-PSA-Crypto (after the rsip7 update)
+### P7 · TF-M 2.3 / TF-PSA-Crypto — deferred, gated on FSP's Mbed TLS v4.1 migration
+- **Gate:** FSP completing its Mbed TLS **v4.1** migration, expected ~2026-11-12
+  ([[D130]]). 4.x is where the crypto library splits out as TF-PSA-Crypto, which is
+  what 2.3 consumes — rebasing first would put FSP's 3.6-era stack on a TF-M that
+  cannot host it. Re-confirm the version pairing when the migration lands.
 - TF-M 2.3.0 pins TF-PSA-Crypto v1.1.0, 2.3.1 pins v1.1.1 — no Mbed TLS, no
   `*_ALT`. CC312's legacy ALT path is gone in 2.3.0.
 - SCE9 acceleration redone as a PSA transparent driver — the rsip7 CM driver
@@ -243,7 +249,7 @@ which P7 rewrites against TF-PSA-Crypto. Doing it first would be done twice.
 | M4 | **2026-09-23** | ✅ RA6M5 full chain, both toolchains, SCE9 ciphers active — 23 days early |
 | **M5** | **2026-10-09** | ✅ RA8M2 single-core full chain, both toolchains, RSIP-E50D, measured boot + MCUboot upgrade verified — 49 days early |
 | M6 | ~2027 Q1–Q2 | *Stretch* — merged into Arm TF-M upstream (port waits on M7) |
-| M7 | future | *Future* — TF-M 2.3 / TF-PSA-Crypto, after the rsip7 update |
+| M7 | deferred | TF-M 2.3 / TF-PSA-Crypto — gated on FSP's Mbed TLS v4.1 migration, ~2026-11-12 ([[D130]]) |
 | M8 | future | *Future* — RA8x2 NS image in OSPI, executed in place (after M7) |
 
 ---

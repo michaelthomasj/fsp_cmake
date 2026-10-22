@@ -7107,3 +7107,47 @@ explanation against the build files. [D128]: check the sibling entry you are cit
 `BUILD_ARCHITECTURE.md` because they are detailed and confident, and four of them were years
 out of date. A comment is evidence of what someone believed when they wrote it — the same thing
 this log says about its own superseded entries, and it deserves the same scepticism.
+
+---
+
+## D130 — TF-M 2.3 is deferred, not cancelled: the gate is FSP's Mbed TLS 4.1 migration, expected ~2026-11-12
+
+**Date:** 2026-10-22 · **Status:** Accepted · **Supersedes:** [D035] · **Evidence:** decision from the rm_psa_crypto owner; closes the [D035]/`PROJECT_PLAN.md` contradiction raised by the v3 review (F087 thread)
+
+**Decision.** TF-M 2.3 / TF-PSA-Crypto is **deferred**, gated on FSP completing its **Mbed TLS
+v4.1 migration** — expected within three weeks of this entry, so **~2026-11-12**. [D035] said
+the rebase was *cancelled*; that is superseded. The port stays on v2.2.0 / Mbed TLS 3.6.3 until
+the gate clears, which is the same working state either word implies — but the planning
+consequence is opposite, and `PROJECT_PLAN.md` has been asserting "future work" against an
+Accepted entry that said "cancelled" since 2026-09-21.
+
+**Why a dependency and not a date.** Mbed TLS 4.x is where the crypto library splits out as
+TF-PSA-Crypto, and that split is precisely what TF-M 2.3 consumes: 2.3.0 pins TF-PSA-Crypto
+v1.1.0, 2.3.1 pins v1.1.1 ([D035]). Rebasing before FSP has migrated would mean carrying FSP's
+3.6-era crypto stack onto a TF-M that cannot host it — the `*_ALT` mechanism the port's SCE9
+acceleration is built on does not exist above 3.6. So the gate is FSP's migration landing, not
+a calendar slot. Re-confirm the version pairing when it does; "4.1" and "TF-PSA-Crypto 1.1.1"
+are stated here as given, not as verified against a released manifest.
+
+**What survives from [D035].** Its body stays the reference for the rebase itself and nothing in
+it is withdrawn:
+- the four-item upstream delta (items 9 and 11 fixed upstream, 10 obsolete, **6 still needed** at
+  the relocated `bl2/ext/mcuboot/scripts/wrapper.py`);
+- the SPM-logging rewrite (`lib/tfm_log`, `ERROR_RAW`/`INFO_RAW`), which removes
+  `SPMLOG_*`, `tfm_spm_log.h` and the `TFM_SPM_LOG_LEVEL_SILENCE` vocabulary — so item 7 and the
+  RTT SPM-log backend both need porting, and `CONFIG_TFM_BACKTRACE_ON_CORE_PANIC` (GCC-only)
+  overlaps item 7;
+- 10 of 20 surviving shared files conflicted.
+
+**One stale reference inside [D035].** It says "P5 of `PROJECT_PLAN.md` is cancelled". That is
+the plan numbering **as of 2026-09-21**; the plan was renumbered when RA8x2 became the primary
+goal, and this work is now **P7**. Today's P5 is RA8x2 single-core, which is done. Anyone
+reading [D035] against the current plan would cancel the wrong phase — the hazard [D128] rule 7
+exists for, except here it is prose, so it stays and this entry is the correction.
+
+**Consequences that do not change.** The "TF-M 2.3 debt grows while deferred" risk row stands and
+is now correctly worded: every change to a shared file adds to the eventual P7 rebase, and
+upstream submission of the port waits on it. The ALT route remains Mbed TLS 3.6-only and is
+redone as a PSA transparent driver in P7, following the rsip7 CM driver model. The
+TF-PSA-Crypto work itself lives in the sibling `fsp_tf_psa_crypto` repository with its own
+decision log (`GETTING_STARTED.md`), not here.

@@ -6,12 +6,12 @@
 
 | | |
 |---|---|
-| Entries | **129** |
+| Entries | **130** |
 | Standing | **118** |
-| Superseded | **11** |
+| Superseded | **12** |
 | Standing but corrected on some point | **31** |
 | Standing, but the question they left open is closed | **3** |
-| Supersede lineages | **8** |
+| Supersede lineages | **9** |
 
 ---
 
@@ -23,6 +23,7 @@ A later entry **supersedes** an earlier one: same question, newer answer. Citing
 |---|---|---|
 | D001 → **D002** | `D002` | D002 supersedes D001 |
 | D031 → **D033** | `D033` | D033 supersedes D031 |
+| D035 → **D130** | `D130` | D130 supersedes D035 |
 | D052 → **D053** | `D053` | D053 supersedes D052 |
 | D075 → **D076** | `D076` | D076 supersedes D075 |
 | D079 → D082 → D085 → D090 → **D091** | `D091` | D085 supersedes D082; D090 supersedes D085; D091 supersedes D079, D082; D091 corrects D090 |
@@ -70,7 +71,6 @@ Nothing supersedes these. The title is the position. Where a later entry correct
 | `D032` | 2026-09-21 | CORRECTION to the SCE9 size figures quoted on 2026-09-21 | Accepted | — | — |
 | `D033` | 2026-09-21 | RA6M5 builds against the real e2 projects | Accepted | — | — |
 | `D034` | 2026-09-21 | `BSP_CFG_EARLY_INIT` is asserted at build time, in both secure and BL2 | Accepted | — | — |
-| `D035` | 2026-09-21 | Stay on TF-M 2.2; the TF-M 2.3 rebase is cancelled | Accepted | — | — |
 | `D036` | 2026-09-21 | SCE9 acceleration via FSP `*_ALT`: AES, AES-GCM, SHA-256 first; ECC held back | **Provisional - builds; not yet run on silicon** | `D037` | — |
 | `D037` | 2026-09-21 | SCE9 ECC enabled; P-521, Curve25519 and deterministic ECDSA removed from RA6M5 | **Provisional - builds; not yet run on silicon** | — | — |
 | `D038` | 2026-09-21 | CORRECTION to D037: deterministic ECDSA is unsupported in FSP by design | Accepted | — | — |
@@ -156,10 +156,11 @@ Nothing supersedes these. The title is the position. Where a later entry correct
 | `D127` | 2026-10-22 | the CMake target graph gets its own document, drawn in ASCII rather than mermaid | Accepted | — | — |
 | `D128` | 2026-10-22 | the metadata line is an index and may be repaired in place (new rule 7); ten relation fields corrected, and [D120]/[D125]/[D126] each got one attribution wrong | Accepted | `D129` | — |
 | `D129` | 2026-10-22 | the v4 review of `BUILD_ARCHITECTURE.md`: eight findings, the FSPR attribution withdrawn in eleven more places, and line citations are now checked | Accepted | — | — |
+| `D130` | 2026-10-22 | TF-M 2.3 is deferred, not cancelled: the gate is FSP's Mbed TLS 4.1 migration, expected ~2026-11-12 | Accepted | — | — |
 
 ---
 
-## Superseded (11)
+## Superseded (12)
 
 Kept for the reasoning. **Do not cite one of these without reading what replaced it** — in several cases the later entry reverses the earlier claim outright.
 
@@ -167,6 +168,7 @@ Kept for the reasoning. **Do not cite one of these without reading what replaced
 |---|---|---|---|
 | `D001` | 2026-07-21 | Option-setting (OFS) memory must never be linked into an image | `D002` |
 | `D031` | 2026-09-21 | The RA6M5 port was verified against a staged project set, not the e2 projects | `D033` |
+| `D035` | 2026-09-21 | Stay on TF-M 2.2; the TF-M 2.3 rebase is cancelled | `D130` |
 | `D052` | 2026-09-24 | The E50D pack is missing both session-leak fixes; RA8M2 bring-up proceeds anyway | `D053` |
 | `D075` | 2026-10-01 | BL2 must enable the SAU on RA8M2; the right alias is not enough | `D076` |
 | `D079` | 2026-10-02 | BL2 takes its MCUboot flash backend from FSP; closes [D076] | `D091` |
