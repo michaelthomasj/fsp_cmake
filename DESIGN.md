@@ -337,8 +337,10 @@ archive (`KEEP` only helps once linked).
 
 **⚠ The critical decision — one MEMORY region per option group.** The option-setting map is
 **sparse**: thirteen register groups holding 92 bytes of real data spread across a 460-byte span.
-The 368 bytes between them are other FCU configuration, including the **FSPR permanence word**, and
-are not ours to write.
+The 368 bytes between them are other FCU configuration and are not ours to write. (An earlier
+revision named the **FSPR permanence word** here. [D094] withdrew that: RA6M4 does not implement
+the Flash Access Window, so FSPR does not exist on the part. Which field actually died is still
+open - see below.)
 
 - **Correct** (what FSP's generated `fsp_gen.ld` does, and what we now do): declare thirteen
   discrete `MEMORY` regions, each sized to exactly its group, and assign every section with
@@ -347,8 +349,16 @@ are not ours to write.
 - **Fatal** (what we did until 2026-07-21): bare addressed sections with no `> REGION`
   — `.option_setting_ofs0 0x0100A100 : { ... }`. ld coalesces all thirteen into **one PT_LOAD**
   spanning the full 460 bytes and **zero-fills the gaps**. A debugger loading the ELF writes that
-  whole span, clearing FSPR → **the part is permanently bricked**. This destroyed two EK-RA6M4
-  boards.
+  whole span across config memory that should have been left alone → **the part is permanently
+  bricked**. This destroyed two EK-RA6M4 boards.
+
+  **Which zeroed field killed them is not established, and this log disagrees with itself.**
+  [D065] names **PBPS** at `0x0100A1E0` (one-time Permanent Block Protect); [D094], which is
+  later and is the operative entry, says the field is **unknown**, having disproved FSPR
+  permanence (register absent on RA6M4) and OFS1_SEL content (byte-identical on a working
+  board). Treat PBPS as the surviving candidate, not a finding. Post-brick readback gave
+  `DLMMON = 0x2` = SSD, an open state, not a DLM lock. Do not read FAWMON. The mechanism above
+  is proven byte-exact regardless, and none of the guidance depends on naming the field.
 
 **The zero fill is invisible in the srec.** It lives in the program header, not in any section, and
 `objcopy -O srec` emits from sections. This is why the srec-diff approach (the premise of the

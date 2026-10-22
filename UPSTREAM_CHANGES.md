@@ -256,114 +256,43 @@ the link. A platform `setvbuf(stdout, NULL, _IONBF, 0)` is needed alongside it, 
 logs a few hundred bytes and chainloads without ever flushing. DECISIONS D107, D108.
 
 
-### 15. `TFM_ISOLATION_LEVEL` never reaches `tfm_hal_isolation_v8m.c`
+### 15. WITHDRAWN - `TFM_ISOLATION_LEVEL` does reach `tfm_hal_isolation_v8m.c` upstream
 
-**Report only; no upstream file is modified for this item.** The port defines the two macros
-on `platform_s` inside `platform/ext/target/renesas/`, so this does not appear in the file
-diff above. The fix belongs upstream, which is why it is written up here.
+**Withdrawn 2026-10-22 ([D120]). Do not submit.**
 
-**The defect is an asymmetry, not an absence.** `TFM_ISOLATION_LEVEL` does reach the SPM -
-`backend_ipc.o` and `interrupt.o` both compile with it, verified on the generated compile
-lines - because `tfm_spm` picks up `psa_interface` transitively. It is only `platform_s`,
-and therefore only the isolation HAL, that misses it. Both halves then act on *different*
-values of the same macro, which is what makes the failures so hard to read: the SPM behaves
-as configured while the HAL behaves as though the level were 0.
+This asked upstream to define `TFM_ISOLATION_LEVEL` and `CONFIG_TFM_PARTITION_META` for
+`platform_s`, on the claim that the shared Armv8-M isolation HAL compiles without them "on
+every platform using the shared HAL". **That claim was false.** The macros go missing only
+because of how *this port* builds the file.
 
-**Affects every platform using the shared Armv8-M isolation HAL, at isolation 2 and 3.**
-Report plus a one-line fix; the port works around it inside
-`platform/ext/target/renesas/`, so it does not appear in the file diff above.
+**What decides it is the target the source is added to.** `psa_interface` carries both
+macros (`interface/CMakeLists.txt:37`). `tfm_spm` links `psa_interface`; `platform_s` links
+`tfm_config` and does not.
 
-`platform/ext/common/tfm_hal_isolation_v8m.c` switches on `TFM_ISOLATION_LEVEL`
-throughout. The only target that defines it is `psa_interface`:
-
-```cmake
-# interface/CMakeLists.txt:37
-target_compile_definitions(psa_interface INTERFACE
-    $<$<BOOL:${TFM_ISOLATION_LEVEL}>:TFM_ISOLATION_LEVEL=${TFM_ISOLATION_LEVEL}>
-```
-
-and `platform/CMakeLists.txt` links `platform_s` against `tfm_config`, not
-`psa_interface`. The macro is therefore **undefined** in that translation unit, and
-`#if` on an undefined macro is 0 with no diagnostic.
-
-The resulting behaviour at isolation 2 is the worst available combination:
-
-| Test | Undefined | Effect |
+| Platform | Adds `tfm_hal_isolation_v8m.c` to | Gets the macros |
 |---|---|---|
-| `#if TFM_ISOLATION_LEVEL == 1` | false | `privileged = IS_PSA_ROT()` - ARoT partitions ARE de-privileged |
-| `#if TFM_ISOLATION_LEVEL == 2` | **false** | **the named-MMIO region is never programmed** |
+| an519, an524, corstone300/310, mps4, musca_b1/s1, rse, alcor | `tfm_spm` | yes |
+| ra6e1, ra6m4, ra6m5, ra8m2 | `platform_s` | **no** |
 
-Isolation is enforced, but the `mmio_region` grant that makes a peripheral usable is
-silently dropped. An ARoT partition touching its own declared peripheral takes a DACCVIOL.
-At isolation 3 the per-switch MMIO path is lost the same way, and `privileged` is wrong at
-isolation 1 as well, where upstream intends `true` for every partition.
+Every one of the nine upstream users adds it to `tfm_spm`. All four RA ports add it to
+`platform_s`. **Measured:** an519 configured at isolation 2 compiles
+`tfm_spm.dir/.../tfm_hal_isolation_v8m.o` with `-DTFM_ISOLATION_LEVEL=2`,
+`-DCONFIG_TFM_PARTITION_META` and `-DCONFIG_TFM_ENABLE_MEMORY_PROTECT` all present.
 
-**Measured on RA6M5, 2026-10-21.** A post-partition MPU dump showed 5 enabled regions where
-6 were expected, with nothing covering the peripheral; adding the define took it to 6 and
-the full regression suite then passed at isolation 2, FLIH IRQ tests included. DECISIONS
-D113.
+`PLATFORM_DEFAULT_ATTEST_HAL=OFF` is a second, independent contributor and not the trigger.
+`platform_s` PRIVATE-links `tfm_sprt`, which PUBLIC-links `psa_interface`, but only under
+that flag (`platform/CMakeLists.txt:109`); the RA ports set it OFF. So does **mps4**, which
+still gets the macros because it uses `tfm_spm`.
 
-**The isolation-1 consequence is measured too, and it is the more serious one.** At isolation
-1 the undefined macro makes `#if TFM_ISOLATION_LEVEL == 1` false, so the HAL falls through to
-`privileged = IS_PSA_ROT()` and de-privileges ARoT partitions at a level that is supposed to
-have no isolation between them. With the IPC backend that is not a latent inefficiency - it
-is a boot failure: a HardFault on the PendSV write in `arch_attempt_schedule()`
-(`backend_ipc.c:517`), precise BusFault, BFAR `0xE000ED04`, reproducible on both RA6M5 and
-RA8M2. Defining the macro fixes it; RA8M2 then passes the full regression suite at isolation 1
-with the IPC backend, secure and non-secure, FLIH tests included. DECISIONS D116.
+**Nothing is owed upstream.** The port's own fix - `target_compile_definitions(platform_s
+PRIVATE ...)` - still works and still ships. The cleaner fix is to move the source to
+`tfm_spm` and match the other nine, which would delete the deviation instead of documenting
+it; not attempted yet.
 
-So the defect is not confined to isolation 2 and 3. **Isolation 1 + IPC does not boot at all**
-on a platform using the shared v8-m HAL, which is a plausible explanation for why no upstream
-CI job appears to cover that pair.
-
-**Fix** - either link the target that already carries it:
-
-```cmake
-target_link_libraries(platform_s PRIVATE psa_interface)
-```
-
-or, narrower, add the definition directly in `platform/CMakeLists.txt`:
-
-```cmake
-target_compile_definitions(platform_s PRIVATE
-    $<$<BOOL:${TFM_ISOLATION_LEVEL}>:TFM_ISOLATION_LEVEL=${TFM_ISOLATION_LEVEL}>)
-```
-
-**Why it has gone unnoticed:** the FLIH/SLIH suites are the only tests that declare an
-`mmio_region`, and they appear never to be run above isolation 1 - upstream CI included.
-A `-Wundef` build of the SPE would have caught it.
-
-**It is not one macro.** The isolation-3 run found a second one immediately, which is why the
-first fix above - linking `psa_interface` - is the one to prefer over adding definitions
-individually. `CONFIG_TFM_PARTITION_META` is also carried only by `psa_interface`, and the
-level-3 static table is an `#if`/`#elif` with no `#else`:
-
-```c
-#if   TFM_ISOLATION_LEVEL != 3               /* -> App RoT data region    */
-#elif defined(CONFIG_TFM_PARTITION_META)     /* -> TFM_SP_META_PTR region */
-#endif
-```
-
-With both undefined **neither arm fires**: isolation 3 programmes four static regions instead
-of five and nothing covers the partition-metadata pointer the SPM dereferences. Measured on
-RA6M5: 4 enabled regions, then `MMFSR 0x82, MMFAR 0x20000400` - `TFM_SP_META_PTR` itself.
-Isolation 2 cannot expose it, because there the `!= 3` arm wins either way. DECISIONS D114.
-
-What the translation unit actually depends on:
-
-| Macro | Reaches the HAL? | Carried by |
-|---|---|---|
-| `CONFIG_TFM_ENABLE_MEMORY_PROTECT` | yes | `platform/CMakeLists.txt:125`, PUBLIC on `platform_s` |
-| `CONFIG_TFM_MMIO_REGION_ENABLE` | yes | generated `config_impl.h` |
-| `TFM_PXN_ENABLE` | yes | `platform/CMakeLists.txt:126`, PUBLIC on `platform_s` |
-| `TFM_ISOLATION_LEVEL` | **no** | `psa_interface` only |
-| `CONFIG_TFM_PARTITION_META` | **no** | `psa_interface` only |
-
-`TFM_PXN_ENABLE` is in that table deliberately. An earlier revision of this item listed it as
-a third instance; it is not one. It is emitted on the line immediately after
-`CONFIG_TFM_ENABLE_MEMORY_PROTECT`, in the same PUBLIC block, and it works - it was simply
-absent from every compile line inspected because it defaults OFF. Only the two
-`psa_interface`-only macros are defects. DECISIONS D115.
+Kept rather than deleted because the underlying hazard generalises and cost five rounds of
+debugging: **an `#if` whose value depends on which CMake target happens to compile the file
+fails silently, and a missing `-D` on a compile line does not distinguish "unset" from
+"unplumbed".** A `-Wundef` build of the SPE would have caught it on day one.
 
 
 ## Local — not for upstream

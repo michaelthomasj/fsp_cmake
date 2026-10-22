@@ -269,7 +269,7 @@ Everything is sequential under one engineer.
 ### Test coverage gaps — suites never run on ANY part (surveyed 2026-10-06)
 
 Enumerated from `tf-m-tests` and `psa-arch-tests` and checked against every build tree in
-`C:`. **Zero trees enable any of these.**
+`C:\b`. **Zero trees enable any of these.**
 
 | Suite | Option | Why it has not run | Applicable? |
 |---|---|---|---|

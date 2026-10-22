@@ -6199,3 +6199,121 @@ defect above isolation 1 on this part, after producing four below it ([D083], [D
   mattered before: `__SAUREGION_PRESENT`, MRAM versus flash, and `MCUBOOT_ALIGN_VAL`.
 - **`m5gl1i`** - RA6M5 L1+IPC, still unrun ([D116], [D117]).
 - Item 9's classification in `UPSTREAM_CHANGES.md` ([D117] item 6).
+---
+
+## D120 — the isolation-macro gap is this port's, not upstream's; [D113]'s root cause was wrong and upstream item 15 is withdrawn
+
+**Date:** 2026-10-22 · **Status:** Accepted · **Corrects** [D113], [D114], [D117] · **Withdraws** `UPSTREAM_CHANGES.md` item 15 · an519 measured
+
+An external documentation review (findings F014, F196, F200) challenged the root cause
+recorded in [D113] and repeated in [D114], [D117], upstream item 15 and four port comments.
+It was right, and verifying it produced a sharper answer than the review itself reached.
+
+### What [D113] said, and why it is wrong
+
+[D113]: *"`platform_s` links `tfm_config`, **not** `psa_interface` ... So
+`platform/ext/common/tfm_hal_isolation_v8m.c` ... compiles with it **undefined** on every
+platform using the shared HAL."*
+
+The first clause is true. **The conclusion does not follow**, because nothing obliges the
+shared HAL to be compiled into `platform_s` at all. That is a per-platform choice, and this
+port is the outlier:
+
+| Platform | Adds `tfm_hal_isolation_v8m.c` to | Macros arrive? |
+|---|---|---|
+| an519, an524, corstone300, corstone310, mps4, musca_b1, musca_s1, rse, alcor | `tfm_spm` | **yes** |
+| ra6e1, ra6m4, ra6m5, ra8m2 | `platform_s` | **no** |
+
+`tfm_spm` links `psa_interface`; `platform_s` links `tfm_config`. **Nine upstream users out
+of nine put it in `tfm_spm`. All four RA ports put it in `platform_s`.**
+
+**Measured, to the standard [D113] itself demanded.** an519 configured at isolation 2:
+
+```
+object: secure_fw/spm/CMakeFiles/tfm_spm.dir/__/__/platform/ext/common/tfm_hal_isolation_v8m.o
+flags : -DTFM_ISOLATION_LEVEL=2  -DCONFIG_TFM_PARTITION_META  -DCONFIG_TFM_ENABLE_MEMORY_PROTECT
+```
+
+All three present. There is no upstream defect.
+
+### The attest-HAL setting contributes but is not the trigger
+
+The review's own account stopped here, and it is worth recording why it is incomplete.
+`platform_s` PRIVATE-links `tfm_sprt`, which PUBLIC-links `psa_interface`, but only when
+`PLATFORM_DEFAULT_ATTEST_HAL` is ON (`platform/CMakeLists.txt:109`; default ON at
+`config/config_base.cmake:116`). Exactly six platforms set it OFF: mps4, rse and the four RA
+ports.
+
+So for this port the macros are blocked twice over - wrong target, and the one edge that
+would have rescued it switched off. But **mps4 sets it OFF and is fine**, because it uses
+`tfm_spm`. The target choice is the cause; the attest-HAL setting is why there is no
+accidental backstop.
+
+(`rse` is not exposed either way - it supplies its own `tfm_hal_isolation_rse.c`.)
+
+### Correction to [D114]: "with both undefined, neither arm fires"
+
+[D114] and the old item 15 both say that with both macros undefined, neither arm of
+
+```c
+#if   TFM_ISOLATION_LEVEL != 3        /* App RoT data region   */
+#elif defined(CONFIG_TFM_PARTITION_META)  /* TFM_SP_META_PTR region */
+#endif
+```
+
+fires. **False.** Undefined evaluates to 0, `0 != 3` is true, so the App RoT data arm fires
+and the `#elif` is never reached - which is exactly why isolation 2 behaved sanely and why
+[D113]'s dump showed the App RoT data region present.
+
+"Neither arm fires" describes a different state: **after** [D113]'s fix had defined
+`TFM_ISOLATION_LEVEL=3`, while `CONFIG_TFM_PARTITION_META` was still missing. That is the
+four-region dump and the `MMFAR 0x20000400` fault [D114] recorded. The finding stands; the
+stated precondition was wrong, and it was wrong in two documents.
+
+Corollary worth keeping: with *both* undefined, level 3 would have built five static regions
+and every `#if TFM_ISOLATION_LEVEL == 3` block - bind index, per-switch reprogramming,
+`MIN_NR_PRIVATE_DATA_REGION` - would have compiled out silently.
+
+### What changed
+
+- `UPSTREAM_CHANGES.md` item 15 → **WITHDRAWN**, with the an519 measurement. Live upstream
+  defect fixes remain 10 (items 1-6, 9-12); the list now has two withdrawn entries, 13 and 15.
+- `ra6m5` and `ra8m2` `CMakeLists.txt`: the "an upstream gap, and a silent one" comment
+  replaced with the target table and the measurement. RA8M2's copy also stopped citing
+  RA6M5's AGT0 address as its own.
+- The port's `target_compile_definitions(platform_s PRIVATE ...)` fix is **unchanged and
+  still correct**. Only the explanation was wrong.
+
+### Still open
+
+- **`ra6e1` and `ra6m4` have neither define** and compile the shared HAL into `platform_s`,
+  so they carry the same gap unfixed. Harmless while they only run isolation 1 + SFN - no
+  MPU regions are programmed there at all - but it is latent, and it is the same two lines.
+- **Moving the source to `tfm_spm`** would delete the deviation instead of documenting it,
+  and match all nine upstream users. Untried. It touches four ports' build files, so it is a
+  decision, not a cleanup.
+
+### The RA6M4 brick cause is contested in this log, and [D094] wins
+
+Recorded here because the course review hit it and it will be hit again. [D065] (2026-09-29)
+names **PBPS at `0x0100A1E0`** as "the exact word that destroyed two EK-RA6M4 boards".
+[D094] (2026-10-06) says **"which zeroed field killed the boards is still unknown"**, having
+disproved FSPR permanence (no Flash Access Window on RA6M4) and OFS1_SEL content
+(byte-identical on a working board). [D094] is later and is the operative entry: **PBPS is
+the surviving candidate, not a finding.** `DESIGN.md` §8.4 still describes the withdrawn
+FSPR mechanism and needs correcting.
+
+Neither the mechanism nor the guidance depends on this: the coalesced zero-filled `PT_LOAD`
+is proven byte-exact, and the rules - one `MEMORY` region per option word, audit
+`readelf -l`, flash `.elf`/`.hex` never `.bin` - are unaffected.
+
+### Method note
+
+[D113] said "read the compile line before trusting the source". It did read the compile line -
+and saw a macro absent. [D117] then added that a missing `-D` does not distinguish *unset*
+from *unplumbed*, after the PXN error. This entry adds the third member of the family:
+
+**A missing `-D` also does not tell you whether the file was supposed to be compiled by that
+target at all.** The compile line answers "what did this object get"; it cannot answer "is
+this the object upstream builds". Checking that needed one question nobody asked for five
+rounds - *which target do the other platforms add this source to?* - and it is a single grep.

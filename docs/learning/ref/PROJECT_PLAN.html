@@ -314,7 +314,7 @@ Everything is sequential under one engineer.</p>
 <hr>
 <h3 id="test-coverage-gaps--suites-never-run-on-any-part-surveyed-2026-10-06">Test coverage gaps — suites never run on ANY part (surveyed 2026-10-06)</h3>
 <p>Enumerated from <code>tf-m-tests</code> and <code>psa-arch-tests</code> and checked against every build tree in
-<code>C:␈</code>. <strong>Zero trees enable any of these.</strong></p>
+<code>C:\b</code>. <strong>Zero trees enable any of these.</strong></p>
 <div class="table-wrap"><table>
 <tr><th>Suite</th><th>Option</th><th>Why it has not run</th><th>Applicable?</th></tr>
 <tr><td><strong>Firmware Update</strong></td><td><code>TEST_S_FWU</code>, <code>TEST_NS_FWU</code></td><td><code>TFM_PARTITION_FIRMWARE_UPDATE</code> is OFF on both parts</td><td><strong>Yes - highest value.</strong> Exercises the PSA FWU API over the MCUboot slots this port already has. RA8M2 secure slot has ~670 B spare, so the partition may not fit without turning something off. <strong>The bootloader half is now proven</strong> - BL2 installs both images from their secondary slots and erases them (<a href="DECISIONS.html#d100">D100</a>) - so what FWU adds is the API that <em>places</em> an image there</td></tr>

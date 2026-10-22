@@ -366,18 +366,27 @@ lib, since nothing references the OFS symbols and the linker would never pull th
 archive (<code>KEEP</code> only helps once linked).</p>
 <p><strong>⚠ The critical decision — one MEMORY region per option group.</strong> The option-setting map is
 <strong>sparse</strong>: thirteen register groups holding 92 bytes of real data spread across a 460-byte span.
-The 368 bytes between them are other FCU configuration, including the <strong>FSPR permanence word</strong>, and
-are not ours to write.</p>
+The 368 bytes between them are other FCU configuration and are not ours to write. (An earlier
+revision named the <strong>FSPR permanence word</strong> here. <a href="DECISIONS.html#d094">D094</a> withdrew that: RA6M4 does not implement
+the Flash Access Window, so FSPR does not exist on the part. Which field actually died is still
+open - see below.)</p>
 <ul>
-<li><strong>Correct</strong> (what FSP&#x27;s generated <code>fsp_gen.ld</code> does, and what we now do): declare thirteen
+<li><p><strong>Correct</strong> (what FSP&#x27;s generated <code>fsp_gen.ld</code> does, and what we now do): declare thirteen
 discrete <code>MEMORY</code> regions, each sized to exactly its group, and assign every section with
 <code>&gt; OPTION_SETTING_xxx</code>. ld then emits <strong>one PT_LOAD per group</strong> and physically cannot fill
-between them.</li>
-<li><strong>Fatal</strong> (what we did until 2026-07-21): bare addressed sections with no <code>&gt; REGION</code>
+between them.</p></li>
+<li><p><strong>Fatal</strong> (what we did until 2026-07-21): bare addressed sections with no <code>&gt; REGION</code>
 — <code>.option_setting_ofs0 0x0100A100 : { ... }</code>. ld coalesces all thirteen into <strong>one PT_LOAD</strong>
 spanning the full 460 bytes and <strong>zero-fills the gaps</strong>. A debugger loading the ELF writes that
-whole span, clearing FSPR → <strong>the part is permanently bricked</strong>. This destroyed two EK-RA6M4
-boards.</li>
+whole span across config memory that should have been left alone → **the part is permanently
+bricked**. This destroyed two EK-RA6M4 boards.</p>
+<p><strong>Which zeroed field killed them is not established, and this log disagrees with itself.</strong>
+<a href="DECISIONS.html#d065">D065</a> names <strong>PBPS</strong> at <code>0x0100A1E0</code> (one-time Permanent Block Protect); <a href="DECISIONS.html#d094">D094</a>, which is
+later and is the operative entry, says the field is <strong>unknown</strong>, having disproved FSPR
+permanence (register absent on RA6M4) and OFS1_SEL content (byte-identical on a working
+board). Treat PBPS as the surviving candidate, not a finding. Post-brick readback gave
+<code>DLMMON = 0x2</code> = SSD, an open state, not a DLM lock. Do not read FAWMON. The mechanism above
+is proven byte-exact regardless, and none of the guidance depends on naming the field.</p></li>
 </ul>
 <p><strong>The zero fill is invisible in the srec.</strong> It lives in the program header, not in any section, and
 <code>objcopy -O srec</code> emits from sections. This is why the srec-diff approach (the premise of the

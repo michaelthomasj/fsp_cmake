@@ -165,6 +165,7 @@
           <li><a href="#d117">D117 — six corrections from an external review: [D113] overstated FLIH, [D116] closed a question that was answerable, and three ports deny the IDAU exists</a></li>
           <li><a href="#d118">D118 — first IAR run above isolation 1: RA8M2 L2 green, and the MMIO region is the only toolchain-invariant in the table</a></li>
           <li><a href="#d119">D119 — [D114]&#x27;s second macro confirmed under IAR; RA8M2 is complete at every level on both toolchains</a></li>
+          <li><a href="#d120">D120 — the isolation-macro gap is this port&#x27;s, not upstream&#x27;s; [D113]&#x27;s root cause was wrong and upstream item 15 is withdrawn</a></li>
         </ol>
       </li>
     </ol>
@@ -4921,6 +4922,94 @@ mattered before: <code>__SAUREGION_PRESENT</code>, MRAM versus flash, and <code>
 <li><strong><code>m5gl1i</code></strong> - RA6M5 L1+IPC, still unrun (<a href="DECISIONS.html#d116">D116</a>, <a href="DECISIONS.html#d117">D117</a>).</li>
 <li>Item 9&#x27;s classification in <code>UPSTREAM_CHANGES.md</code> (<a href="DECISIONS.html#d117">D117</a> item 6).</li>
 </ul>
+<hr>
+<h2 id="d120">D120 — the isolation-macro gap is this port&#x27;s, not upstream&#x27;s; <a href="DECISIONS.html#d113">D113</a>&#x27;s root cause was wrong and upstream item 15 is withdrawn</h2>
+<p><strong>Date:</strong> 2026-10-22 · <strong>Status:</strong> Accepted · <strong>Corrects</strong> <a href="DECISIONS.html#d113">D113</a>, <a href="DECISIONS.html#d114">D114</a>, <a href="DECISIONS.html#d117">D117</a> · <strong>Withdraws</strong> <code>UPSTREAM_CHANGES.md</code> item 15 · an519 measured</p>
+<p>An external documentation review (findings F014, F196, F200) challenged the root cause
+recorded in <a href="DECISIONS.html#d113">D113</a> and repeated in <a href="DECISIONS.html#d114">D114</a>, <a href="DECISIONS.html#d117">D117</a>, upstream item 15 and four port comments.
+It was right, and verifying it produced a sharper answer than the review itself reached.</p>
+<h3 id="what-d113-said-and-why-it-is-wrong">What <a href="DECISIONS.html#d113">D113</a> said, and why it is wrong</h3>
+<p><a href="DECISIONS.html#d113">D113</a>: *&quot;<code>platform_s</code> links <code>tfm_config</code>, <strong>not</strong> <code>psa_interface</code> ... So
+<code>platform/ext/common/tfm_hal_isolation_v8m.c</code> ... compiles with it <strong>undefined</strong> on every
+platform using the shared HAL.&quot;*</p>
+<p>The first clause is true. <strong>The conclusion does not follow</strong>, because nothing obliges the
+shared HAL to be compiled into <code>platform_s</code> at all. That is a per-platform choice, and this
+port is the outlier:</p>
+<div class="table-wrap"><table>
+<tr><th>Platform</th><th>Adds <code>tfm_hal_isolation_v8m.c</code> to</th><th>Macros arrive?</th></tr>
+<tr><td>an519, an524, corstone300, corstone310, mps4, musca_b1, musca_s1, rse, alcor</td><td><code>tfm_spm</code></td><td><strong>yes</strong></td></tr>
+<tr><td>ra6e1, ra6m4, ra6m5, ra8m2</td><td><code>platform_s</code></td><td><strong>no</strong></td></tr>
+</table></div>
+<p><code>tfm_spm</code> links <code>psa_interface</code>; <code>platform_s</code> links <code>tfm_config</code>. **Nine upstream users out
+of nine put it in <code>tfm_spm</code>. All four RA ports put it in <code>platform_s</code>.**</p>
+<p><strong>Measured, to the standard <a href="DECISIONS.html#d113">D113</a> itself demanded.</strong> an519 configured at isolation 2:</p>
+<pre><code>object: secure_fw/spm/CMakeFiles/tfm_spm.dir/__/__/platform/ext/common/tfm_hal_isolation_v8m.o
+flags : -DTFM_ISOLATION_LEVEL=2  -DCONFIG_TFM_PARTITION_META  -DCONFIG_TFM_ENABLE_MEMORY_PROTECT</code></pre>
+<p>All three present. There is no upstream defect.</p>
+<h3 id="the-attest-hal-setting-contributes-but-is-not-the-trigger">The attest-HAL setting contributes but is not the trigger</h3>
+<p>The review&#x27;s own account stopped here, and it is worth recording why it is incomplete.
+<code>platform_s</code> PRIVATE-links <code>tfm_sprt</code>, which PUBLIC-links <code>psa_interface</code>, but only when
+<code>PLATFORM_DEFAULT_ATTEST_HAL</code> is ON (<code>platform/CMakeLists.txt:109</code>; default ON at
+<code>config/config_base.cmake:116</code>). Exactly six platforms set it OFF: mps4, rse and the four RA
+ports.</p>
+<p>So for this port the macros are blocked twice over - wrong target, and the one edge that
+would have rescued it switched off. But <strong>mps4 sets it OFF and is fine</strong>, because it uses
+<code>tfm_spm</code>. The target choice is the cause; the attest-HAL setting is why there is no
+accidental backstop.</p>
+<p>(<code>rse</code> is not exposed either way - it supplies its own <code>tfm_hal_isolation_rse.c</code>.)</p>
+<h3 id="correction-to-d114-with-both-undefined-neither-arm-fires">Correction to <a href="DECISIONS.html#d114">D114</a>: &quot;with both undefined, neither arm fires&quot;</h3>
+<p><a href="DECISIONS.html#d114">D114</a> and the old item 15 both say that with both macros undefined, neither arm of</p>
+<pre><code class="language-c">#if   TFM_ISOLATION_LEVEL != 3        /* App RoT data region   */
+#elif defined(CONFIG_TFM_PARTITION_META)  /* TFM_SP_META_PTR region */
+#endif</code></pre>
+<p>fires. <strong>False.</strong> Undefined evaluates to 0, <code>0 != 3</code> is true, so the App RoT data arm fires
+and the <code>#elif</code> is never reached - which is exactly why isolation 2 behaved sanely and why
+<a href="DECISIONS.html#d113">D113</a>&#x27;s dump showed the App RoT data region present.</p>
+<p>&quot;Neither arm fires&quot; describes a different state: <strong>after</strong> <a href="DECISIONS.html#d113">D113</a>&#x27;s fix had defined
+<code>TFM_ISOLATION_LEVEL=3</code>, while <code>CONFIG_TFM_PARTITION_META</code> was still missing. That is the
+four-region dump and the <code>MMFAR 0x20000400</code> fault <a href="DECISIONS.html#d114">D114</a> recorded. The finding stands; the
+stated precondition was wrong, and it was wrong in two documents.</p>
+<p>Corollary worth keeping: with <em>both</em> undefined, level 3 would have built five static regions
+and every <code>#if TFM_ISOLATION_LEVEL == 3</code> block - bind index, per-switch reprogramming,
+<code>MIN_NR_PRIVATE_DATA_REGION</code> - would have compiled out silently.</p>
+<h3 id="what-changed">What changed</h3>
+<ul>
+<li><code>UPSTREAM_CHANGES.md</code> item 15 → <strong>WITHDRAWN</strong>, with the an519 measurement. Live upstream
+defect fixes remain 10 (items 1-6, 9-12); the list now has two withdrawn entries, 13 and 15.</li>
+<li><code>ra6m5</code> and <code>ra8m2</code> <code>CMakeLists.txt</code>: the &quot;an upstream gap, and a silent one&quot; comment
+replaced with the target table and the measurement. RA8M2&#x27;s copy also stopped citing
+RA6M5&#x27;s AGT0 address as its own.</li>
+<li>The port&#x27;s <code>target_compile_definitions(platform_s PRIVATE ...)</code> fix is **unchanged and
+still correct**. Only the explanation was wrong.</li>
+</ul>
+<h3 id="still-open_2">Still open</h3>
+<ul>
+<li><strong><code>ra6e1</code> and <code>ra6m4</code> have neither define</strong> and compile the shared HAL into <code>platform_s</code>,
+so they carry the same gap unfixed. Harmless while they only run isolation 1 + SFN - no
+MPU regions are programmed there at all - but it is latent, and it is the same two lines.</li>
+<li><strong>Moving the source to <code>tfm_spm</code></strong> would delete the deviation instead of documenting it,
+and match all nine upstream users. Untried. It touches four ports&#x27; build files, so it is a
+decision, not a cleanup.</li>
+</ul>
+<h3 id="the-ra6m4-brick-cause-is-contested-in-this-log-and-d094-wins">The RA6M4 brick cause is contested in this log, and <a href="DECISIONS.html#d094">D094</a> wins</h3>
+<p>Recorded here because the course review hit it and it will be hit again. <a href="DECISIONS.html#d065">D065</a> (2026-09-29)
+names <strong>PBPS at <code>0x0100A1E0</code></strong> as &quot;the exact word that destroyed two EK-RA6M4 boards&quot;.
+<a href="DECISIONS.html#d094">D094</a> (2026-10-06) says <strong>&quot;which zeroed field killed the boards is still unknown&quot;</strong>, having
+disproved FSPR permanence (no Flash Access Window on RA6M4) and OFS1_SEL content
+(byte-identical on a working board). <a href="DECISIONS.html#d094">D094</a> is later and is the operative entry: **PBPS is
+the surviving candidate, not a finding.** <code>DESIGN.md</code> §8.4 still describes the withdrawn
+FSPR mechanism and needs correcting.</p>
+<p>Neither the mechanism nor the guidance depends on this: the coalesced zero-filled <code>PT_LOAD</code>
+is proven byte-exact, and the rules - one <code>MEMORY</code> region per option word, audit
+<code>readelf -l</code>, flash <code>.elf</code>/<code>.hex</code> never <code>.bin</code> - are unaffected.</p>
+<h3 id="method-note_9">Method note</h3>
+<p><a href="DECISIONS.html#d113">D113</a> said &quot;read the compile line before trusting the source&quot;. It did read the compile line -
+and saw a macro absent. <a href="DECISIONS.html#d117">D117</a> then added that a missing <code>-D</code> does not distinguish <em>unset</em>
+from <em>unplumbed</em>, after the PXN error. This entry adds the third member of the family:</p>
+<p>**A missing <code>-D</code> also does not tell you whether the file was supposed to be compiled by that
+target at all.** The compile line answers &quot;what did this object get&quot;; it cannot answer &quot;is
+this the object upstream builds&quot;. Checking that needed one question nobody asked for five
+rounds - <em>which target do the other platforms add this source to?</em> - and it is a single grep.</p>
 </main>
 </div>
 </body>
