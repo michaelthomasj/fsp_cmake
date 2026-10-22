@@ -73,14 +73,29 @@ defaulted, D101 for the RA8M2 IAR project parity); layouts and board settings ar
 <tr><td>Profile</td><td>profile_large</td><td>default</td><td>default</td></tr>
 <tr><td>Isolation</td><td>3</td><td>1</td><td>1</td></tr>
 <tr><td>SPM backend</td><td>IPC</td><td>SFN</td><td>SFN</td></tr>
-<tr><td>SPM trace</td><td><strong>on</strong> (<code>-DTFM_SPM_LOG_LEVEL=..._DEBUG</code>)</td><td>on</td><td>on</td></tr>
-<tr><td>Build type</td><td>MinSizeRel</td><td>MinSizeRel (GCC) / Debug (IAR)</td><td>Debug</td></tr>
-<tr><td>Secure-side logging</td><td>on</td><td><strong>off</strong></td><td>on</td></tr>
+<tr><td><code>TFM_SPM_DEBUG_TRACE</code></td><td><strong>off</strong> — passed explicitly</td><td>on (platform default)</td><td>on (platform default)</td></tr>
+<tr><td><code>TFM_SPM_LOG_LEVEL</code></td><td><code>_DEBUG</code>, passed</td><td><code>_DEBUG</code>, passed</td><td><code>_DEBUG</code> passed (GCC); from <code>Debug</code> (IAR)</td></tr>
+<tr><td><code>TFM_PARTITION_LOG_LEVEL</code></td><td><code>_INFO</code>, passed</td><td>build-type default</td><td>build-type default</td></tr>
+<tr><td><code>CONFIG_TFM_HALT_ON_CORE_PANIC</code></td><td><code>ON</code>, passed</td><td>default</td><td>default</td></tr>
+<tr><td>Build type</td><td>MinSizeRel</td><td>MinSizeRel, <strong>both toolchains</strong></td><td>MinSizeRel (GCC) / Debug (IAR)</td></tr>
 </table></div>
-<p>Secure-side logging is the one that cannot be shared. It costs ~3,785 B against <strong>670 B</strong> spare
-on RA8M2 (<a href="DECISIONS.html#d087">D087</a>; the 960 B this line used to quote was the retracted figure) — so it is set per script, not in the platform
-<code>config.cmake</code>. <strong>MinSizeRel is mandatory on RA8M2 under GNUARM</strong> (IAR <code>Debug</code> fits, <a href="DECISIONS.html#d055">D055</a>): <code>Debug</code> is ~414 KB against a 293 KB
-slot (<a href="DECISIONS.html#d057">D057</a>).</p>
+<p>Line references: <code>psa_arch_spe.bat:67-71</code> (and <code>psa_arch_spe_iar.bat:77-79</code>),
+<code>reg_build_gcc.bat:145,158-159</code>, <code>reg_build_iar.bat:89,103-104</code>,
+<code>app_build_ra8m2_gcc.bat:45,54</code>, <code>app_build_ra8m2_iar.bat:45</code>.</p>
+<p><strong>Why <code>TFM_SPM_LOG_LEVEL</code> is passed at all.</strong> Not a trace requirement — a <em>log-level</em> one.
+Both platform configs set <code>TFM_SPM_DEBUG_TRACE=ON</code>, and <code>MinSizeRel</code> sets <code>TFM_SPM_LOG_LEVEL</code>
+to <code>_SILENCE</code> (<code>config/build_type/minsizerel.cmake:9</code>). <code>check_config.cmake:119</code> rejects that
+pair outright:</p>
+<pre><code>INVALID CONFIG: TFM_SPM_DEBUG_TRACE AND TFM_SPM_LOG_LEVEL = TFM_SPM_LOG_LEVEL_SILENCE</code></pre>
+<p>so every MinSizeRel script passes <code>_DEBUG</code> to get past configure. <code>-DTFM_SPM_DEBUG_TRACE=OFF</code>
+is the other way out of the same conflict, and is what the PSA Arch scripts do. **The
+constraint has nothing to do with isolation 3 or the IPC backend** — the comment heads in
+<code>psa_arch_spe*.bat</code> that say otherwise are wrong on the reason, right on the action.</p>
+<p>Secure-side <em>partition</em> logging is the one that cannot be shared. It costs ~3,785 B against
+<strong>670 B</strong> spare on RA8M2 (<a href="DECISIONS.html#d087">D087</a>; the 960 B this line used to quote was the retracted figure)
+— so it is set per script, not in the platform <code>config.cmake</code>. **MinSizeRel is mandatory on
+RA8M2 under GNUARM** (IAR <code>Debug</code> fits, <a href="DECISIONS.html#d055">D055</a>): <code>Debug</code> is ~414 KB against a 293 KB slot
+(<a href="DECISIONS.html#d057">D057</a>).</p>
 <h2 id="build-trees">Build trees</h2>
 <p>One SPE serves all three PSA Arch suites — profile_large enables crypto, ITS, PS, attestation
 and platform — and each suite gets its own NS app. The regression SPE is separate because its

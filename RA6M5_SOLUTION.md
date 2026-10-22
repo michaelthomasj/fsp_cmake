@@ -135,8 +135,11 @@ built in e2.
 First hardware run (2026-09-21, CK-RA6M5 V2): `FSP_ERR_FCLK` from `R_FLASH_HP_Open` —
 `BSP_CFG_EARLY_INIT` was 0 in both secure and bootloader projects. See below.
 
-**2026-10-22 — the full regression suite passes at isolation 1+IPC, 2 and 3, both toolchains**,
-FLIH IRQ tests included ([[D122]], [[D123]], [[D124]]).
+**2026-10-22 — the regression suite passes at isolation 2 and 3 on both toolchains**, FLIH IRQ
+tests included ([[D123]], [[D124]]). **Isolation 1+IPC: GNUARM only, and secure suites only** —
+no IAR L1+IPC tree exists ([[D124]]'s matrix shows `-`), and the one GNUARM run's non-secure
+half was truncated, so [[D125]] §4 marks that row secure-only. [[D123]]'s **IAR L2** secure
+half is likewise reported rather than captured ([[D128]] §4).
 
 **2026-09-23 — all three PSA Arch suites pass from both toolchains** (profile_large, isolation
 3, IPC), on FSP 6.7.0-beta0 — crypto 63/0/1, attestation 1/0/0, storage 11/0/6, identical on

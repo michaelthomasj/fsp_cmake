@@ -173,8 +173,11 @@ two is what made this take three attempts.
   `MBEDCRYPTO_PATH` at the FSP tree ([D042]). The ciphers are reached through FSP's `*_ALT`
   macros ([D036], [D039], [D050]). The "entangled with the FSP MCUboot config" obstacle this
   section used to describe was resolved; FSP's Mbed TLS is grafted.
-- **CCM stays in software** ([D043]), and `MBEDTLS_ENTROPY_HARDWARE_ALT` keeps the TRNG as the
-  entropy source either way.
+- **CCM stays in software** ([D043]). The TRNG stays the entropy source either way, through
+  **`MBEDTLS_PSA_CRYPTO_EXTERNAL_RNG`** (`<part>/mbedtls_extra_config.h`), served by
+  `sce_trng.c`. FSP's `MBEDTLS_ENTROPY_HARDWARE_ALT` is **deliberately not enabled** —
+  `sce9/mbedtls_accelerator_config.h:78-80` says why: the entropy is already hardware by the
+  external-RNG route, and enabling both would stack two paths to the same engine.
 - `-DCRYPTO_HW_ACCELERATOR=OFF` returns to TF-M's own mbedcrypto if a comparison is needed.
 
 ## 7. TrustZone: SAU/IDAU, veneers, NSC
@@ -343,16 +346,26 @@ FSP's generated script, unforked ([D006], and the §7 statement "no custom secur
 
 ### 8.3 BL2 lives at the base of flash
 `BL2_CODE_START` derives from the **`FLASH_BL` partition start**
-(`BSP_PARTITION_FLASH_BL_CPU0_S_START`), **not** `S_ROM_ALIAS_BASE` - which is `0xA0000` on
-RA6M5 (its `0x20000` is the secure *secondary* slot) and `0x02068000` on RA8M2. Check `__Vectors`
-at the part's flash base: `0x0` on RA6M5, `0x02000000` on RA8M2. The latter is the
-*secure image* base (`0x20000` when BL2 is on), so it linked the bootloader into the secure slot:
-nothing at the reset vector, and the flash step for `tfm_s_signed.bin` landed on top of the
-misplaced bootloader. The device never ran BL2 at all — which is why a run of earlier fixes
-appeared to change nothing. Verify: `__Vectors` at `0x0` in `bl2.axf`.
+(`BSP_PARTITION_FLASH_BL_CPU0_S_START`), **not** `S_ROM_ALIAS_BASE`.
+
+`S_ROM_ALIAS_BASE` is the **secure image** base — `0xA0000` on RA6M5 (where `0x20000` is the
+secure *secondary* slot), `0x02068000` on RA8M2 — so deriving BL2 from it put the ra6m4
+bootloader in the secure slot: nothing at the reset vector, and the flash step for
+`tfm_s_signed.bin` landed on top of the misplaced bootloader. The device never ran BL2 at all,
+which is why a run of earlier fixes appeared to change nothing.
+
+**Verify:** `__Vectors` sits at the part's **flash base** in `bl2.axf` — `0x0` on RA6M5,
+`0x02000000` on RA8M2.
 
 ### 8.4 OFS (option-setting memory) — BL2 only, DISCRETE regions
-OFS (`0x0100A100`–`0x0100A2CC`) is emitted into the **BL2 image only**. Reasons: (a) the secure/NS
+
+> **Geometry in this section is RA6's** (`0x0100A1xx`, thirteen groups). The *principle* — one
+> `MEMORY` region per group, never a coalesced `PT_LOAD` — is part-neutral and is the whole
+> point. The numbers are not: **RA8M2's option memory is at `0x02C9F040`+ in five disjoint
+> windows with six placed groups.** The per-part table is at the end of this section; the
+> authority for each part is its own `region_defs.h` and `<part>_bl2.ld`.
+
+OFS is emitted into the **BL2 image only**. Reasons: (a) the secure/NS
 images are MCUboot-signed and imgtool needs a **contiguous** payload — OFS is non-contiguous with
 code flash; (b) two images programming OFS would collide. FSP's `bsp_linker.c` gates OFS on
 `#ifndef BSP_BOOTLOADED_APPLICATION` (bootloader only) for the same reason.
@@ -363,18 +376,22 @@ lib, since nothing references the OFS symbols and the linker would never pull th
 archive (`KEEP` only helps once linked).
 
 **⚠ The critical decision — one MEMORY region per option group.** The option-setting map is
-**sparse**: thirteen register groups holding 92 bytes of real data spread across a 460-byte span.
-The 368 bytes between them are other FCU configuration and are not ours to write. (An earlier
+**sparse**. On RA6E1/RA6M4: thirteen register groups holding 92 bytes of real data (8 × `0x4`
++ 5 × `0xC`) across a 460-byte span, `0x0100A100`–`0x0100A2CC`, leaving 368 bytes between them.
+**RA6M5 has the same thirteen groups at the same starts but wider block-protect words** —
+BPS/PBPS and their `_SEC`/`_SEL` mirrors are `0x10`, not `0xC`, because 2 MB of code flash has
+more protectable blocks — so 112 bytes of data across a 464-byte span to `0x0100A2D0`, leaving
+352. Those bytes between are other FCU configuration and are not ours to write. (An earlier
 revision named the **FSPR permanence word** here. [D094] withdrew that: RA6M4 does not implement
 the Flash Access Window, so FSPR does not exist on the part. Which field actually died is still
 open - see below.)
 
-- **Correct** (what FSP's generated `fsp_gen.ld` does, and what we now do): declare thirteen
-  discrete `MEMORY` regions, each sized to exactly its group, and assign every section with
-  `> OPTION_SETTING_xxx`. ld then emits **one PT_LOAD per group** and physically cannot fill
-  between them.
+- **Correct** (what FSP's generated `fsp_gen.ld` does, and what we now do): declare **one
+  discrete `MEMORY` region per group** — thirteen in `ra6m5_bl2.ld`, six in `ra8m2_bl2.ld` —
+  each sized to exactly its group, and assign every section with `> OPTION_SETTING_xxx`. ld
+  then emits **one PT_LOAD per group** and physically cannot fill between them.
 - **Fatal** (what we did until 2026-07-21): bare addressed sections with no `> REGION`
-  — `.option_setting_ofs0 0x0100A100 : { ... }`. ld coalesces all thirteen into **one PT_LOAD**
+  — `.option_setting_ofs0 0x0100A100 : { ... }`. ld coalesces them all into **one PT_LOAD**
   spanning every group the image actually emits, and **zero-fills the gaps**. A debugger loading
   the ELF writes that whole span across config memory that should have been left alone → **the
   part is permanently bricked**. This destroyed two EK-RA6M4 boards.
@@ -403,24 +420,49 @@ open - see below.)
 ```
 arm-none-eabi-readelf -l bin/bl2.axf
 ```
-Expect small separate LOAD segments (`FileSiz` 0x4 or 0xc) in the `0x0100Axxx` range and **never**
-one segment spanning `0x1CC`. Confirm the values match a known-good image before flashing.
+Expect **small separate LOAD segments** — on RA6M5, `FileSiz` `0x4` for the word groups and
+`0x10` for BPS/PBPS, in `0x0100Axxx`; on RA8M2, `0x4` only, in the five windows below — and
+**never** one segment spanning the whole map. Confirm the values match a known-good image
+before flashing.
 
 **This is now enforced by the build, not by remembering to run it.** `check_ofs.py` in the TF-M
 platform directory runs after every `bl2` and `tfm_s` link and fails the build if any `PT_LOAD`
-overlapping `0x0100A100`-`0x0100A2CF` exceeds 12 bytes (the largest single option word). It is a
-hard error with no opt-out switch — the failure it guards is silent, instant and unrecoverable, so
-a warning that scrolls past would be worth nothing. `tfm_s` is checked too and must report CLEAN.
+overlapping the part's option windows exceeds the per-part word limit. It is a hard error with
+no opt-out switch — the failure it guards is silent, instant and unrecoverable, so a warning
+that scrolls past would be worth nothing. `tfm_s` is checked too and must report CLEAN.
+
+**The windows and the limit are per part.** A guard pointed at the wrong window reads as
+verification and is worse than none ([D056]): run against an RA8M2 BL2 carrying six OFS
+segments, the RA6-hardcoded version printed *"CLEAN (no OFS segments) … safe to flash"*.
+The back-port of the per-part guards to RA6M5 and RA6E1 is still open ([D077]).
+
+| | Windows | Limit | Where |
+|---|---|---|---|
+| **RA6M5**, RA6E1, RA6M4 | one: `0x0100A100`–`0x0100A2CF` | `--max-word 0xC` | `ra6m5/CMakeLists.txt:884` (`--ra6-default`) |
+| **RA8M2** | five: `0x02C9F040`–`0x02C9F280`, `0x12C9F4C0`–`0x12C9F680`, `0x02E07600`–`0x02E07698`, `0x02E17700`–`0x02E17924`, `0x12E17780`–`0x12E17800` | `--max-word 4` | `ra8m2/CMakeLists.txt:1021-1039` |
+
+RA8M2's limit is `4` because `bl2_option_setting.c` places only 4-byte words there — deliberately
+tighter than the `0x80` a BPS word would need, to be raised only if BPS/PBPS are ever placed.
+BL2 also passes `--require-segments`, so an empty result fails rather than passing.
+
+> **Known tension, not yet resolved.** RA6M5's widest *defined* groups are `0x10`
+> (`BPS`/`PBPS` and mirrors, `region_defs.h:275-312`) while its guard limit is `--max-word 0xC`,
+> inherited from RA6E1/RA6M4 where those words are `0xC`. It does not fire today because
+> RA6M5's `bl2_option_setting.c` places none of them. **Enabling a BPS or PBPS group on RA6M5
+> will fail the guard on a correctly linked image** — raise the limit to `0x10` at that point,
+> and not before.
 
 The guard is verified against the real artifact rather than assumed to work:
 `bringup/bricking_evidence/bl2_BRICKED.elf` is the image that destroyed the boards, and the guard
 rejects it with `0x0100A100+388B` — 388 = `0x184`, the span itself. That file is the regression
 fixture for this check; do not delete it.
 
-Wired on **both** platforms, from a single shared copy at
-`platform/ext/target/renesas/common/check_ofs.py`. The option-setting map is byte-identical on
-RA6M4 and RA6E1, and the three copies that existed had already drifted — the RA6E1 one claimed
-RA6E1 boards were bricked. One guard, one place.
+Wired on **RA6M5 and RA8M2** (and the two dormant RA6 ports), from a single shared copy at
+`platform/ext/target/renesas/common/check_ofs.py`. It is shared because the *logic* is
+part-neutral — it reads program headers against windows passed on the command line — not
+because the maps agree; they do not, as the table above shows. RA6M4 and RA6E1 happen to be
+byte-identical to each other, and the three per-port copies that existed had already drifted:
+the RA6E1 one claimed RA6E1 boards were bricked. One guard, one place, windows per part.
 
 **Related, and narrower than it used to read:** `bsp_mcu_ofs_cfg.h` computes
 `OFS1_SEL = 0xFFFFF8F8 | ((BSP_CFG_CLOCKS_SECURE == 0) ? 0xF00 : 0)` only in its TrustZone-secure

@@ -114,11 +114,11 @@ git clone https://github.com/michaelthomasj/fsp_cmake.git
 
 rem  Only needed for the test-suite builds in §7
 git clone https://git.trustedfirmware.org/TF-M/tf-m-tests.git
-git clone https://github.com/ARM-software/psa-arch-tests.git
-# NOTE: the PSA Arch scripts select PSA_API_TEST_TARGET=renesas_ra, whose target directory
-# (tgt_dev_apis_tfm_renesas_ra) is local to this setup and is NOT in the upstream tree. A
-# plain upstream clone lacks it. Setting PSA_ARCH_TESTS_PATH to a local tree also skips
-# tf-m-tests' ten fetch_repo patches.</code></pre>
+git clone https://github.com/ARM-software/psa-arch-tests.git</code></pre>
+<p><strong>The <code>psa-arch-tests</code> clone is not sufficient on its own.</strong> The PSA Arch scripts select
+<code>PSA_API_TEST_TARGET=renesas_ra</code>, whose target directory <code>tgt_dev_apis_tfm_renesas_ra</code> is local
+to this setup and is <strong>not</strong> in the upstream tree, so a plain upstream clone lacks it. Setting
+<code>PSA_ARCH_TESTS_PATH</code> to a local tree also skips tf-m-tests&#x27; ten <code>fetch_repo</code> patches.</p>
 <p>Both repositories track the same branch:</p>
 <pre><code class="language-bat">cd trusted-firmware-m &amp;&amp; git checkout ra8m2_gen_6_7_TFM &amp;&amp; cd ..
 cd fsp_cmake        &amp;&amp; git checkout ra8m2_gen_6_7_TFM &amp;&amp; cd ..</code></pre>
@@ -234,7 +234,10 @@ them, so a wrong address is a silent &quot;prints nothing&quot;, not an error. T
 table of them in this repository — any such table is wrong within one rebuild.</li>
 <li><strong>First flash on an unfamiliar board:</strong> consider <code>-D&lt;PART&gt;_BL2_HALT_AT_MAIN=ON</code>, which spins
 BL2 at <code>main()</code> so option/lifecycle registers can be read back before MCUboot runs. Read
-<strong><code>DLMMON</code></strong> (<code>0x400E002C</code>) for the lifecycle state; <strong>do not read <code>FAWMON</code>/<code>FSPR</code></strong> — both
+<strong><code>DLMMON</code></strong> for the lifecycle state — the address is <strong>per part</strong>: <code>0x400E002C</code> on RA6M5,
+<code>0x40204038</code> on RA8M2 (<code>R_PSCU-&gt;DLMMON</code>; the register sits at offset <code>0x2C</code> of <code>R_PSCU</code> on
+RA6M5 and <code>0x38</code> on RA8M2, and the two <code>R_PSCU</code> bases differ as well). Reading RA6M5&#x27;s
+address on RA8M2 returns an unrelated register, not an error. <strong>Do not read <code>FAWMON</code>/<code>FSPR</code></strong> — both
 live parts report <code>BSP_FEATURE_FLASH_SUPPORTS_ACCESS_WINDOW = 0</code>, so those registers are not
 implemented and the values are meaningless (<a href="DECISIONS.html#d094">D094</a> made the same point for RA6M4). Note the
 image is <strong>not bootable</strong> with it set, and it does not help capture BL2&#x27;s log — the spin is

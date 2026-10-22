@@ -66,11 +66,12 @@ git clone https://github.com/michaelthomasj/fsp_cmake.git
 rem  Only needed for the test-suite builds in §7
 git clone https://git.trustedfirmware.org/TF-M/tf-m-tests.git
 git clone https://github.com/ARM-software/psa-arch-tests.git
-# NOTE: the PSA Arch scripts select PSA_API_TEST_TARGET=renesas_ra, whose target directory
-# (tgt_dev_apis_tfm_renesas_ra) is local to this setup and is NOT in the upstream tree. A
-# plain upstream clone lacks it. Setting PSA_ARCH_TESTS_PATH to a local tree also skips
-# tf-m-tests' ten fetch_repo patches.
 ```
+
+**The `psa-arch-tests` clone is not sufficient on its own.** The PSA Arch scripts select
+`PSA_API_TEST_TARGET=renesas_ra`, whose target directory `tgt_dev_apis_tfm_renesas_ra` is local
+to this setup and is **not** in the upstream tree, so a plain upstream clone lacks it. Setting
+`PSA_ARCH_TESTS_PATH` to a local tree also skips tf-m-tests' ten `fetch_repo` patches.
 
 Both repositories track the same branch:
 
@@ -227,7 +228,10 @@ Then:
   table of them in this repository — any such table is wrong within one rebuild.
 - **First flash on an unfamiliar board:** consider `-D<PART>_BL2_HALT_AT_MAIN=ON`, which spins
   BL2 at `main()` so option/lifecycle registers can be read back before MCUboot runs. Read
-  **`DLMMON`** (`0x400E002C`) for the lifecycle state; **do not read `FAWMON`/`FSPR`** — both
+  **`DLMMON`** for the lifecycle state — the address is **per part**: `0x400E002C` on RA6M5,
+  `0x40204038` on RA8M2 (`R_PSCU->DLMMON`; the register sits at offset `0x2C` of `R_PSCU` on
+  RA6M5 and `0x38` on RA8M2, and the two `R_PSCU` bases differ as well). Reading RA6M5's
+  address on RA8M2 returns an unrelated register, not an error. **Do not read `FAWMON`/`FSPR`** — both
   live parts report `BSP_FEATURE_FLASH_SUPPORTS_ACCESS_WINDOW = 0`, so those registers are not
   implemented and the values are meaningless ([D094] made the same point for RA6M4). Note the
   image is **not bootable** with it set, and it does not help capture BL2's log — the spin is

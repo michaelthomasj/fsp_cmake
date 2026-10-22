@@ -65,9 +65,11 @@
 flash, RSIP-E50D, Cortex-M85. FSP 6.7.0-beta0.</p>
 <p>Companion docs: <code>RA6M5_SOLUTION.md</code> (the port this is derived from), <code>DESIGN.md</code> (why — §4 for
 the flash backend, §7 for the SAU), <code>RA6E1_TEMPLATE_CHECKLIST.md</code> (what a solution must emit).</p>
-<blockquote><p><strong>Hardware status: the full regression passes</strong> (2026-10-06, <code>ra8m2_TFM_flih_gcc</code>, banner
-<code>TF-M v2.2.0+94dbaa08f</code>). Every secure and non-secure suite, zero failures, including the
-FLIH IRQ tests - the first complete run on this part. That exercised the SAU programming, the
+<blockquote><p><strong>Hardware status: the regression+FLIH configuration passes</strong> (2026-10-06,
+<code>ra8m2_TFM_flih_gcc</code>, banner <code>TF-M v2.2.0+94dbaa08f</code>). Every secure and non-secure suite in
+<em>that</em> configuration, zero failures, FLIH IRQ tests included - the first complete run on this
+part. <strong>The SLIH suite has never run on RA8M2 on either toolchain</strong> (<a href="DECISIONS.html#d126">D126</a> §4): the
+<code>m2gslih</code> trees were built and never got a launch. That exercised the SAU programming, the
 MRAM dual-alias driver, DF_EMULATION as ITS/PS backing, the RSIP-E50D, measured boot, and the
 RDPM values below. <strong>IAR now matches GCC on everything</strong>: the full regression, all three
 PSA Arch suites, measured boot and the MCUboot upgrade path all pass on silicon.
@@ -103,28 +105,35 @@ bounds imported from FSP&#x27;s <code>flash_map.c</code>. <code>DESIGN.md</code>
 <tr><th>name</th><th>parent</th><th>security</th><th>offset</th><th>size</th><th>role</th></tr>
 <tr><td><code>RAM_CPU0_S</code></td><td>RAM</td><td>s</td><td>0x0</td><td>0xE9C00</td><td>secure RAM (935 KB)</td></tr>
 <tr><td><code>RAM_CPU0_C</code></td><td>RAM</td><td>c</td><td>0xE9C00</td><td>0x400</td><td>NSC RAM (1 KB)</td></tr>
-<tr><td><code>RAM_CPU0_N</code></td><td>RAM</td><td>n</td><td>0xEA000</td><td>0xEA000</td><td>NS RAM (936 KB)</td></tr>
-<tr><td><code>RAM_BL_CPU0_S</code></td><td>RAM</td><td>s</td><td>0x0</td><td>0x1200</td><td>BL2 RAM</td></tr>
+<tr><td><code>RAM_CPU0_N</code></td><td><code>RAM_NS</code></td><td>n</td><td>0xEA000</td><td>0xEA000</td><td>NS RAM (936 KB)</td></tr>
+<tr><td><code>RAM_BL_CPU0_S</code></td><td><code>RAM</code></td><td>s</td><td>0x0</td><td>0x1200</td><td>BL2 RAM</td></tr>
 <tr><td><code>FLASH_BL_CPU0_S</code></td><td><code>FLASH</code></td><td>s</td><td>0x00000</td><td>0x10000</td><td>BL2 (64 KB)</td></tr>
 <tr><td><code>DF_EMULATION</code></td><td><code>FLASH</code></td><td>s</td><td>0x10000</td><td>0x10000</td><td>ITS + PS + NV counters (64 KB)</td></tr>
+<tr><td><code>__BL_0_S_H</code></td><td><code>FLASH</code></td><td>s</td><td>0x20000</td><td>0x200</td><td>image 0 secondary header</td></tr>
+<tr><td><code>__BL_0_S_I</code></td><td><code>FLASH</code></td><td>s</td><td>0x20200</td><td>0x47E00</td><td>image 0 secondary</td></tr>
+<tr><td><code>__BL_0_S_T</code></td><td><code>FLASH</code></td><td>s</td><td>0x68000</td><td>0x0</td><td></td></tr>
+<tr><td><code>__BL_0_P_H</code></td><td><code>FLASH</code></td><td>s</td><td>0x68000</td><td>0x200</td><td>image 0 primary header</td></tr>
+<tr><td><code>FLASH_CPU0_S</code></td><td><code>FLASH</code></td><td>s</td><td>0x68200</td><td>0x47A00</td><td>secure code</td></tr>
+<tr><td><code>FLASH_CPU0_C</code></td><td><code>FLASH</code></td><td>c</td><td>0xAFC00</td><td>0x400</td><td>NSC veneers (1 KB)</td></tr>
+<tr><td><code>__BL_0_P_T</code></td><td><code>FLASH</code></td><td>s</td><td>0xB0000</td><td>0x0</td><td></td></tr>
+<tr><td><code>__BL_1_P_H</code></td><td><code>FLASH_NS</code></td><td>n</td><td>0xB0000</td><td>0x200</td><td>image 1 primary header</td></tr>
+<tr><td><code>FLASH_CPU0_N</code></td><td><code>FLASH_NS</code></td><td>n</td><td>0xB0200</td><td>0x27E00</td><td>NS code</td></tr>
+<tr><td><code>__BL_1_P_T</code></td><td><code>FLASH_NS</code></td><td>n</td><td>0xD8000</td><td>0x0</td><td></td></tr>
+<tr><td><code>__BL_1_S_H</code></td><td><code>FLASH_NS</code></td><td>n</td><td>0xD8000</td><td>0x200</td><td>image 1 secondary header</td></tr>
+<tr><td><code>__BL_1_S_I</code></td><td><code>FLASH_NS</code></td><td>n</td><td>0xD8200</td><td>0x27E00</td><td>image 1 secondary</td></tr>
+<tr><td><code>__BL_1_S_T</code></td><td><code>FLASH_NS</code></td><td>n</td><td>0x100000</td><td>0x0</td><td></td></tr>
 </table></div>
-<blockquote><p><strong>Names in this table are <code>bsp_linker_info.h</code>&#x27;s</strong>, and the parent column is the <em>solution&#x27;s</em>
-(<code>FLASH</code>, <code>FLASH_N</code>, <code>RAM</code>, ...), not the invented &quot;MRAM&quot;. When you repartition you edit
-<code>solution.xml</code>, where the same regions appear under the solution names - <code>FLASH_CPU0_B</code>,
-<code>FLASH_NS_CPU0_N</code> and so on. Map one to the other before editing.</p></blockquote>
-<p>| <code>__BL_0_S_H</code> | MRAM | s | 0x20000 | 0x200 | image 0 secondary header |</p>
-<p>| <code>__BL_0_S_I</code> | MRAM | s | 0x20200 | 0x47E00 | image 0 secondary |</p>
-<p>| <code>__BL_0_S_T</code> | MRAM | s | 0x68000 | 0x0 | |</p>
-<p>| <code>__BL_0_P_H</code> | MRAM | s | 0x68000 | 0x200 | image 0 primary header |</p>
-<p>| <code>FLASH_CPU0_S</code> | MRAM | s | 0x68200 | 0x47A00 | secure code |</p>
-<p>| <code>FLASH_CPU0_C</code> | MRAM | c | 0xAFC00 | 0x400 | NSC veneers (1 KB) |</p>
-<p>| <code>__BL_0_P_T</code> | MRAM | s | 0xB0000 | 0x0 | |</p>
-<p>| <code>__BL_1_P_H</code> | MRAM | n | 0xB0000 | 0x200 | image 1 primary header |</p>
-<p>| <code>FLASH_CPU0_N</code> | MRAM | n | 0xB0200 | 0x27E00 | NS code |</p>
-<p>| <code>__BL_1_P_T</code> | MRAM | n | 0xD8000 | 0x0 | |</p>
-<p>| <code>__BL_1_S_H</code> | MRAM | n | 0xD8000 | 0x200 | image 1 secondary header |</p>
-<p>| <code>__BL_1_S_I</code> | MRAM | n | 0xD8200 | 0x27E00 | image 1 secondary |</p>
-<p>| <code>__BL_1_S_T</code> | MRAM | n | 0x100000 | 0x0 | |</p>
+<blockquote><p><strong>Two naming systems, and you need both.</strong> The <strong>name</strong> column is
+<code>bsp_linker_info.h</code>&#x27;s — what the port&#x27;s CMake and headers consume. The <strong>parent</strong> column is
+read straight off <code>&lt;memory parent="..."&gt;</code> in <code>ra8m2_gcc/solution.xml</code>, which is the file you
+edit to repartition. Earlier revisions of this table put &quot;MRAM&quot; in that column; no such
+parent exists.</p>
+<p>The two systems disagree on more than the parent. The secure/NSC/BL2 regions hang off
+<strong><code>FLASH</code></strong> and <strong><code>RAM</code></strong>; the non-secure ones off <strong><code>FLASH_NS</code></strong> and <strong><code>RAM_NS</code></strong> — a
+separate parent, not a suffix. And some regions are renamed outright: BL2 is
+<code>FLASH_BL_CPU0_S</code> in the header and <strong><code>FLASH_CPU0_B</code></strong> in the solution, NS code is
+<code>FLASH_CPU0_N</code> and <strong><code>FLASH_NS_CPU0_N</code></strong>. Map the name before editing, or you will edit the
+wrong region.</p></blockquote>
 <p>In 32 KB units: BL2 2, DF_EMULATION 2, secure slots 9 each, NS slots 5 each — 32 units, no
 remainder. <code>flash_layout.h:196-197</code> states the same sum as
 <code>64 K BL2 + 64 K DF_EMULATION + 2 x 288 K secure + 2 x 160 K non-secure = 1024 K</code>.</p>
@@ -324,8 +333,9 @@ is <strong>3</strong> (plaintext <em>and</em> wrapped) in the generated <code>ra
 parts select <code>vendor_plaintext_wrapped</code> in RASC, so the format config is not what selects the
 failing path and raising it cannot help. Hardware RSA keygen on E50D requires the <em>caller</em> to
 ask for a wrapped key, which a conformance test does not do. D097, D098, <strong>D111</strong>.</p></li>
-<li><p><strong><del>Run the IAR trees.</del> DONE 2026-10-22</strong> (<a href="DECISIONS.html#d118">D118</a>, <a href="DECISIONS.html#d119">D119</a>) — IAR is green at isolation
-2 and 3 on this part, secure and non-secure, FLIH tests included. Original note follows.
+<li><p><strong><del>Run the IAR trees.</del> DONE 2026-10-21</strong> (<a href="DECISIONS.html#d118">D118</a>, <a href="DECISIONS.html#d119">D119</a> — both are dated 2026-10-21;
+this line said 2026-10-22) — IAR is green at isolation 2 and 3 on this part, secure and
+non-secure, FLIH tests included. <strong>Regression+FLIH only</strong>, per <a href="DECISIONS.html#d126">D126</a> §4. Original note follows.
 The GCC side is done: full regression, PSA Arch attestation (1/1), and
 measured boot verified from the boot record at <code>0x22000000</code> - magic <code>0x2016</code>, NSPE 0.0.0 and
 SPE 2.2.0, both SHA-256 measurements equal to the signed images&#x27; TLVs (D095, D096).

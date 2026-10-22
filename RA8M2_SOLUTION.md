@@ -6,9 +6,11 @@ flash, RSIP-E50D, Cortex-M85. FSP 6.7.0-beta0.
 Companion docs: `RA6M5_SOLUTION.md` (the port this is derived from), `DESIGN.md` (why — §4 for
 the flash backend, §7 for the SAU), `RA6E1_TEMPLATE_CHECKLIST.md` (what a solution must emit).
 
-> **Hardware status: the full regression passes** (2026-10-06, `ra8m2_TFM_flih_gcc`, banner
-> `TF-M v2.2.0+94dbaa08f`). Every secure and non-secure suite, zero failures, including the
-> FLIH IRQ tests - the first complete run on this part. That exercised the SAU programming, the
+> **Hardware status: the regression+FLIH configuration passes** (2026-10-06,
+> `ra8m2_TFM_flih_gcc`, banner `TF-M v2.2.0+94dbaa08f`). Every secure and non-secure suite in
+> *that* configuration, zero failures, FLIH IRQ tests included - the first complete run on this
+> part. **The SLIH suite has never run on RA8M2 on either toolchain** ([[D126]] §4): the
+> `m2gslih` trees were built and never got a launch. That exercised the SAU programming, the
 > MRAM dual-alias driver, DF_EMULATION as ITS/PS backing, the RSIP-E50D, measured boot, and the
 > RDPM values below. **IAR now matches GCC on everything**: the full regression, all three
 > PSA Arch suites, measured boot and the MCUboot upgrade path all pass on silicon.
@@ -54,28 +56,36 @@ bounds imported from FSP's `flash_map.c`. `DESIGN.md` §4 carries the reasoning.
 |---|---|---|---|---|---|
 | `RAM_CPU0_S` | RAM | s | 0x0 | 0xE9C00 | secure RAM (935 KB) |
 | `RAM_CPU0_C` | RAM | c | 0xE9C00 | 0x400 | NSC RAM (1 KB) |
-| `RAM_CPU0_N` | RAM | n | 0xEA000 | 0xEA000 | NS RAM (936 KB) |
-| `RAM_BL_CPU0_S` | RAM | s | 0x0 | 0x1200 | BL2 RAM |
+| `RAM_CPU0_N` | `RAM_NS` | n | 0xEA000 | 0xEA000 | NS RAM (936 KB) |
+| `RAM_BL_CPU0_S` | `RAM` | s | 0x0 | 0x1200 | BL2 RAM |
 | `FLASH_BL_CPU0_S` | `FLASH` | s | 0x00000 | 0x10000 | BL2 (64 KB) |
 | `DF_EMULATION` | `FLASH` | s | 0x10000 | 0x10000 | ITS + PS + NV counters (64 KB) |
+| `__BL_0_S_H` | `FLASH` | s | 0x20000 | 0x200 | image 0 secondary header |
+| `__BL_0_S_I` | `FLASH` | s | 0x20200 | 0x47E00 | image 0 secondary |
+| `__BL_0_S_T` | `FLASH` | s | 0x68000 | 0x0 | |
+| `__BL_0_P_H` | `FLASH` | s | 0x68000 | 0x200 | image 0 primary header |
+| `FLASH_CPU0_S` | `FLASH` | s | 0x68200 | 0x47A00 | secure code |
+| `FLASH_CPU0_C` | `FLASH` | c | 0xAFC00 | 0x400 | NSC veneers (1 KB) |
+| `__BL_0_P_T` | `FLASH` | s | 0xB0000 | 0x0 | |
+| `__BL_1_P_H` | `FLASH_NS` | n | 0xB0000 | 0x200 | image 1 primary header |
+| `FLASH_CPU0_N` | `FLASH_NS` | n | 0xB0200 | 0x27E00 | NS code |
+| `__BL_1_P_T` | `FLASH_NS` | n | 0xD8000 | 0x0 | |
+| `__BL_1_S_H` | `FLASH_NS` | n | 0xD8000 | 0x200 | image 1 secondary header |
+| `__BL_1_S_I` | `FLASH_NS` | n | 0xD8200 | 0x27E00 | image 1 secondary |
+| `__BL_1_S_T` | `FLASH_NS` | n | 0x100000 | 0x0 | |
 
-> **Names in this table are `bsp_linker_info.h`'s**, and the parent column is the *solution's*
-> (`FLASH`, `FLASH_N`, `RAM`, ...), not the invented "MRAM". When you repartition you edit
-> `solution.xml`, where the same regions appear under the solution names - `FLASH_CPU0_B`,
-> `FLASH_NS_CPU0_N` and so on. Map one to the other before editing.
-| `__BL_0_S_H` | MRAM | s | 0x20000 | 0x200 | image 0 secondary header |
-| `__BL_0_S_I` | MRAM | s | 0x20200 | 0x47E00 | image 0 secondary |
-| `__BL_0_S_T` | MRAM | s | 0x68000 | 0x0 | |
-| `__BL_0_P_H` | MRAM | s | 0x68000 | 0x200 | image 0 primary header |
-| `FLASH_CPU0_S` | MRAM | s | 0x68200 | 0x47A00 | secure code |
-| `FLASH_CPU0_C` | MRAM | c | 0xAFC00 | 0x400 | NSC veneers (1 KB) |
-| `__BL_0_P_T` | MRAM | s | 0xB0000 | 0x0 | |
-| `__BL_1_P_H` | MRAM | n | 0xB0000 | 0x200 | image 1 primary header |
-| `FLASH_CPU0_N` | MRAM | n | 0xB0200 | 0x27E00 | NS code |
-| `__BL_1_P_T` | MRAM | n | 0xD8000 | 0x0 | |
-| `__BL_1_S_H` | MRAM | n | 0xD8000 | 0x200 | image 1 secondary header |
-| `__BL_1_S_I` | MRAM | n | 0xD8200 | 0x27E00 | image 1 secondary |
-| `__BL_1_S_T` | MRAM | n | 0x100000 | 0x0 | |
+> **Two naming systems, and you need both.** The **name** column is
+> `bsp_linker_info.h`'s — what the port's CMake and headers consume. The **parent** column is
+> read straight off `<memory parent="...">` in `ra8m2_gcc/solution.xml`, which is the file you
+> edit to repartition. Earlier revisions of this table put "MRAM" in that column; no such
+> parent exists.
+>
+> The two systems disagree on more than the parent. The secure/NSC/BL2 regions hang off
+> **`FLASH`** and **`RAM`**; the non-secure ones off **`FLASH_NS`** and **`RAM_NS`** — a
+> separate parent, not a suffix. And some regions are renamed outright: BL2 is
+> `FLASH_BL_CPU0_S` in the header and **`FLASH_CPU0_B`** in the solution, NS code is
+> `FLASH_CPU0_N` and **`FLASH_NS_CPU0_N`**. Map the name before editing, or you will edit the
+> wrong region.
 
 In 32 KB units: BL2 2, DF_EMULATION 2, secure slots 9 each, NS slots 5 each — 32 units, no
 remainder. `flash_layout.h:196-197` states the same sum as
@@ -331,8 +341,9 @@ port now**, and FSP's `flash_area_open()` is not built. Today `Driver_FLASH0` ow
   parts select `vendor_plaintext_wrapped` in RASC, so the format config is not what selects the
   failing path and raising it cannot help. Hardware RSA keygen on E50D requires the *caller* to
   ask for a wrapped key, which a conformance test does not do. D097, D098, **D111**.
-- **~~Run the IAR trees.~~ DONE 2026-10-22** ([[D118]], [[D119]]) — IAR is green at isolation
-  2 and 3 on this part, secure and non-secure, FLIH tests included. Original note follows.
+- **~~Run the IAR trees.~~ DONE 2026-10-21** ([[D118]], [[D119]] — both are dated 2026-10-21;
+  this line said 2026-10-22) — IAR is green at isolation 2 and 3 on this part, secure and
+  non-secure, FLIH tests included. **Regression+FLIH only**, per [[D126]] §4. Original note follows.
   The GCC side is done: full regression, PSA Arch attestation (1/1), and
   measured boot verified from the boot record at `0x22000000` - magic `0x2016`, NSPE 0.0.0 and
   SPE 2.2.0, both SHA-256 measurements equal to the signed images' TLVs (D095, D096).

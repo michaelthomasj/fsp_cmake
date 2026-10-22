@@ -171,8 +171,11 @@ now carried in this repo: modules added, partitions set to the layout above, reg
 built in e2.</p>
 <p>First hardware run (2026-09-21, CK-RA6M5 V2): <code>FSP_ERR_FCLK</code> from <code>R_FLASH_HP_Open</code> —
 <code>BSP_CFG_EARLY_INIT</code> was 0 in both secure and bootloader projects. See below.</p>
-<p><strong>2026-10-22 — the full regression suite passes at isolation 1+IPC, 2 and 3, both toolchains</strong>,
-FLIH IRQ tests included (<a href="DECISIONS.html#d122">D122</a>, <a href="DECISIONS.html#d123">D123</a>, <a href="DECISIONS.html#d124">D124</a>).</p>
+<p><strong>2026-10-22 — the regression suite passes at isolation 2 and 3 on both toolchains</strong>, FLIH IRQ
+tests included (<a href="DECISIONS.html#d123">D123</a>, <a href="DECISIONS.html#d124">D124</a>). <strong>Isolation 1+IPC: GNUARM only, and secure suites only</strong> —
+no IAR L1+IPC tree exists (<a href="DECISIONS.html#d124">D124</a>&#x27;s matrix shows <code>-</code>), and the one GNUARM run&#x27;s non-secure
+half was truncated, so <a href="DECISIONS.html#d125">D125</a> §4 marks that row secure-only. <a href="DECISIONS.html#d123">D123</a>&#x27;s <strong>IAR L2</strong> secure
+half is likewise reported rather than captured (<a href="DECISIONS.html#d128">D128</a> §4).</p>
 <p><strong>2026-09-23 — all three PSA Arch suites pass from both toolchains</strong> (profile_large, isolation
 3, IPC), on FSP 6.7.0-beta0 — crypto 63/0/1, attestation 1/0/0, storage 11/0/6, identical on
 GCC and IAR, zero failures (<a href="DECISIONS.html#d046">D046</a>). Launches for all six are in <code>ra6m5_gcc_nonsecure/</code>.

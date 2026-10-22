@@ -175,6 +175,7 @@
           <li><a href="#d125">D125 — six corrections to [D120]–[D123] from the second documentation review; the HAL never left the PSA-RoT code region</a></li>
           <li><a href="#d126">D126 — eighteen corrections to [D110]–[D125] from the second review; two carried items closed, and [D115]&#x27;s &quot;three of four corners&quot; was wrong</a></li>
           <li><a href="#d127">D127 — the CMake target graph gets its own document, drawn in ASCII rather than mermaid</a></li>
+          <li><a href="#d128">D128 — the metadata line is an index and may be repaired in place (new rule 7); ten relation fields corrected, and [D120]/[D125]/[D126] each got one attribution wrong</a></li>
         </ol>
       </li>
     </ol>
@@ -201,6 +202,12 @@ something untrue, supersede it. Silent repair destroys the record of having beli
 chosen cannot be re-evaluated later.</li>
 <li>Entries dated before this file existed are <strong>back-filled</strong> and say so, with the source they were
 reconstructed from. Their dates are the dates of the decision, not of the write-up.</li>
+<li><strong>The metadata line is an index, not the record.</strong> Rules 1 and 4 govern an entry&#x27;s <em>prose</em>,
+which is never edited. The <code>**Date:** … **Status:** … **Supersedes / Corrects / Closes /
+Builds on:** …</code> line is machine-read by <code>scripts/build_settled.py</code> and
+<code>scripts/build_course_glossary.py</code> — rule 2 already mutates it — and **may be corrected in
+place** when it misdescribes a relation. The entry that finds the error states what it
+changed. An index that cannot be corrected is one nobody can rely on; see <a href="DECISIONS.html#d128">D128</a>.</li>
 </ol>
 <p>Statuses: <code>Accepted</code> · <code>Superseded by Dxxx</code> · <code>Provisional</code> (taken, not yet validated) ·
 <code>Withdrawn</code> (abandoned without a replacement).</p>
@@ -514,7 +521,7 @@ writes <code>BUILDING.md</code> should record the patch step; whoever revisits t
 rejected option once the target settles.</p>
 <hr>
 <h2 id="d015">D015 — Isolation 3 + IPC confirmed on hardware; D008 is no longer provisional</h2>
-<p><strong>Date:</strong> 2026-09-08 · <strong>Status:</strong> Accepted · <strong>Builds on:</strong> <a href="DECISIONS.html#d008">D008</a></p>
+<p><strong>Date:</strong> 2026-09-08 · <strong>Status:</strong> Accepted · <strong>Closes:</strong> <a href="DECISIONS.html#d008">D008</a> · <strong>Builds on:</strong> <a href="DECISIONS.html#d008">D008</a></p>
 <p><strong>Context.</strong> D008 declared <code>PLATFORM_HAS_ISOLATION_L3_SUPPORT</code> on the strength of a build and a
 static region count, and said explicitly that the flag asserts the port has been built <em>and run</em> at
 L3 while only the first was true. Two things were unproven: the MPU region budget, checked at runtime
@@ -555,7 +562,7 @@ anticipated is not going to happen. Anything RA6M4-specific in the status docs s
 historical.</p>
 <hr>
 <h2 id="d017">D017 — The PSA Arch target stays a local patch for RA6E1; the RA6M5 one goes upstream</h2>
-<p><strong>Date:</strong> 2026-09-09 · <strong>Status:</strong> Accepted · <strong>Builds on:</strong> <a href="DECISIONS.html#d014">D014</a> · <strong>Evidence:</strong> Resolves the open question in D014</p>
+<p><strong>Date:</strong> 2026-09-09 · <strong>Status:</strong> Accepted · <strong>Closes:</strong> <a href="DECISIONS.html#d014">D014</a> · <strong>Builds on:</strong> <a href="DECISIONS.html#d014">D014</a> · <strong>Evidence:</strong> Resolves the open question in <a href="DECISIONS.html#d014">D014</a></p>
 <p><strong>Context.</strong> D014 left open whether <code>tgt_dev_apis_tfm_ra6e1</code> should be contributed to
 ARM-software/psa-arch-tests or carried as an eleventh patch in <code>tf-m-tests/tests_psa_arch/fetch_repo/</code>
 beside the three platform additions already there (Corstone-315/320, rp2350, Musca S1/B1).</p>
@@ -1321,7 +1328,7 @@ version when RA8x2 projects are generated in P5.</p>
 <p>6.7 is therefore the baseline for the remaining work. Mbed TLS is unchanged at 3.6.6 between
 the two, so the FSP Mbed TLS overlay (<a href="DECISIONS.html#d042">D042</a>) is unaffected.</p>
 <h2 id="d048">D048 — <code>.ram_from_flash</code> is copied by the platform, not by ILINK — closes <a href="DECISIONS.html#d029">D029</a></h2>
-<p><strong>Date:</strong> 2026-09-23 · <strong>Status:</strong> Accepted · <strong>Builds on:</strong> <a href="DECISIONS.html#d029">D029</a> · <strong>Evidence:</strong> Resolves the open defect in <a href="DECISIONS.html#d029">D029</a></p>
+<p><strong>Date:</strong> 2026-09-23 · <strong>Status:</strong> Accepted · <strong>Closes:</strong> <a href="DECISIONS.html#d029">D029</a> · <strong>Builds on:</strong> <a href="DECISIONS.html#d029">D029</a> · <strong>Evidence:</strong> Resolves the open defect in <a href="DECISIONS.html#d029">D029</a></p>
 <p><strong>The defect, reproduced on RA6M5.</strong> IAR at isolation 3 left FSP&#x27;s code-flash program/erase
 routines in flash: <code>.ram_from_flash</code> at <code>0x000B0120</code>, listed under &quot;No sections matched&quot;, with
 <code>ER_CODE_SRAM</code> empty. Isolation 1 relocated them correctly from the same sources. GNUARM was
@@ -3193,7 +3200,7 @@ now produces a <code>bl2.bin</code> byte-for-byte the same size as <code>m2gflih
 <p>Remaining from the plan: <code>RECONFIGURING_THE_LAYOUT.md</code>.</p>
 <hr>
 <h2 id="d090">D090 — the RA6M5 FSP-backend failure was a struct flash_area mismatch; <a href="DECISIONS.html#d085">D085</a> is superseded</h2>
-<p><strong>Date:</strong> 2026-10-05 · <strong>Status:</strong> Superseded by D091 · <strong>Supersedes:</strong> <a href="DECISIONS.html#d085">D085</a>, <a href="DECISIONS.html#d082">D082</a> · <strong>Evidence:</strong> Supersedes <a href="DECISIONS.html#d085">D085</a>, restores <a href="DECISIONS.html#d082">D082</a></p>
+<p><strong>Date:</strong> 2026-10-05 · <strong>Status:</strong> Superseded by D091 · <strong>Supersedes:</strong> <a href="DECISIONS.html#d085">D085</a> · <strong>Builds on:</strong> <a href="DECISIONS.html#d082">D082</a> · <strong>Evidence:</strong> Supersedes <a href="DECISIONS.html#d085">D085</a>; restores <a href="DECISIONS.html#d082">D082</a></p>
 <p><a href="DECISIONS.html#d085">D085</a> reverted RA6M5 to TF-M&#x27;s MCUboot flash backend and recorded the failure as unexplained
 after eliminating nine hypotheses. The cause is now known, fixed, and **verified on hardware:
 the full regression suite passes with FSP&#x27;s backend**, secure and non-secure, including the
@@ -3379,7 +3386,7 @@ SAU/IDAU difference between the parts. The genuine RA6/RA8 split lives a few lin
 line of code is not evidence that it is compiled, and this file is full of feature guards.</p>
 <hr>
 <h2 id="d093">D093 — <code>BSP_TZ_CFG_MSAR=0</code> on RA8M2: a workaround for an e2 generator defect, to be removed</h2>
-<p><strong>Date:</strong> 2026-10-06 · <strong>Status:</strong> Accepted, <strong>temporary · **Builds on:</strong> <a href="DECISIONS.html#d092">D092</a></p>
+<p><strong>Date:</strong> 2026-10-06 · <strong>Status:</strong> Accepted, <strong>temporary</strong> · <strong>Builds on:</strong> <a href="DECISIONS.html#d092">D092</a></p>
 <p><a href="DECISIONS.html#d092">D092</a> traced RA8M2&#x27;s first-boot HardFault to <code>MSAR</code> marking MRAM&#x27;s <code>MRCPFB</code> non-secure, and
 said the fix was setting Clocks to Secure in e2. <strong>That instruction was wrong</strong>, and the
 correction is the substance of this entry.</p>
@@ -3435,7 +3442,7 @@ is compiled, and a setting is not evidence of what it emits** - both need the gu
 generated artifact diffed.</p>
 <hr>
 <h2 id="d094">D094 — the RA6M4 brick: coalescing is proven, the killed field is not; <a href="DECISIONS.html#d093">D093</a>&#x27;s attribution corrected</h2>
-<p><strong>Date:</strong> 2026-10-06 · <strong>Status:</strong> Accepted · <strong>Corrects:</strong> <a href="DECISIONS.html#d093">D093</a> · <strong>Evidence:</strong> Corrects <a href="DECISIONS.html#d093">D093</a> and commit <code>7b99ce397</code>;
+<p><strong>Date:</strong> 2026-10-06 · <strong>Status:</strong> Accepted · <strong>Corrects:</strong> <a href="DECISIONS.html#d002">D002</a>, <a href="DECISIONS.html#d093">D093</a> · <strong>Evidence:</strong> Corrects <a href="DECISIONS.html#d093">D093</a> and commit <code>7b99ce397</code>;
 <strong>qualifies</strong> <a href="DECISIONS.html#d002">D002</a></p>
 <p>Measured from <code>bringup/bricking_evidence/bl2_BRICKED.elf</code>, the exact image flashed to the two
 EK-RA6M4 boards, rather than from recollection or from either commit message.</p>
@@ -3891,7 +3898,7 @@ still needs.</p>
 given one). <code>reg_build_iar.bat C:\b\m2islih C:\b\m2islihns ra8m2 slih</code> would add the pair.</p>
 <hr>
 <h2 id="d103">D103 — supersedes <a href="DECISIONS.html#d102">D102</a> on the IAR launch host project: it is the IAR project, and auto-config is false</h2>
-<p><strong>Date:</strong> 2026-10-08 · <strong>Status:</strong> Accepted · <strong>Corrects:</strong> <a href="DECISIONS.html#d102">D102</a> · <strong>Evidence:</strong> Corrects two attribute choices in <a href="DECISIONS.html#d102">D102</a></p>
+<p><strong>Date:</strong> 2026-10-08 · <strong>Status:</strong> Accepted · <strong>Supersedes:</strong> <a href="DECISIONS.html#d102">D102</a> · <strong>Evidence:</strong> Corrects two attribute choices in <a href="DECISIONS.html#d102">D102</a></p>
 <p><a href="DECISIONS.html#d102">D102</a> generated the five RA8M2 IAR launches by copying the GCC twins and swapping build-tree
 paths only, on the evidence that the RA6M5 GCC/IAR pair differs in exactly nine lines, all
 paths. That evidence was sound and the conclusion drawn from it was still wrong in two places,
@@ -4223,7 +4230,7 @@ in this one line, and the GCC one is the degraded one.</p>
 available under both. Nothing is outstanding against M5.</p>
 <hr>
 <h2 id="d110">D110 — corrects the framing of <a href="DECISIONS.html#d107">D107</a>/<a href="DECISIONS.html#d108">D108</a>: the root cause is the call route, not the buffering</h2>
-<p><strong>Date:</strong> 2026-10-09 · <strong>Status:</strong> Accepted · <strong>Evidence:</strong> Correction from the rm_psa_crypto owner</p>
+<p><strong>Date:</strong> 2026-10-09 · <strong>Status:</strong> Accepted · <strong>Corrects:</strong> <a href="DECISIONS.html#d107">D107</a>, <a href="DECISIONS.html#d108">D108</a> · <strong>Evidence:</strong> Correction from the rm_psa_crypto owner</p>
 <p>The owner&#x27;s summary, which is the right one: *the issue was not that IAR buffered BL2&#x27;s 400
 bytes and failed to flush them - it was that BL2 printed by a different call than the secure
 image.* Both earlier entries led with buffering and buried that.</p>
@@ -4943,7 +4950,7 @@ mattered before: <code>__SAUREGION_PRESENT</code>, MRAM versus flash, and <code>
 </ul>
 <hr>
 <h2 id="d120">D120 — the isolation-macro gap is this port&#x27;s, not upstream&#x27;s; <a href="DECISIONS.html#d113">D113</a>&#x27;s root cause was wrong and upstream item 15 is withdrawn</h2>
-<p><strong>Date:</strong> 2026-10-22 · <strong>Status:</strong> Accepted · <strong>Corrects:</strong> <a href="DECISIONS.html#d113">D113</a>, <a href="DECISIONS.html#d114">D114</a>, <a href="DECISIONS.html#d117">D117</a> · <strong>Evidence:</strong> Withdraws <code>UPSTREAM_CHANGES.md</code> item 15; an519 measured</p>
+<p><strong>Date:</strong> 2026-10-22 · <strong>Status:</strong> Accepted · <strong>Corrects:</strong> <a href="DECISIONS.html#d065">D065</a>, <a href="DECISIONS.html#d113">D113</a>, <a href="DECISIONS.html#d117">D117</a> · <strong>Evidence:</strong> Withdraws <code>UPSTREAM_CHANGES.md</code> item 15; an519 measured</p>
 <p>An external documentation review (findings F014, F196, F200) challenged the root cause
 recorded in <a href="DECISIONS.html#d113">D113</a> and repeated in <a href="DECISIONS.html#d114">D114</a>, <a href="DECISIONS.html#d117">D117</a>, upstream item 15 and four port comments.
 It was right, and verifying it produced a sharper answer than the review itself reached.</p>
@@ -5359,7 +5366,7 @@ in a wrong sentence.** The measurements were checked; the sentences were not. Ch
 means checking the claim, not the number it sits next to.</p>
 <hr>
 <h2 id="d126">D126 — eighteen corrections to <a href="DECISIONS.html#d110">D110</a>–<a href="DECISIONS.html#d125">D125</a> from the second review; two carried items closed, and <a href="DECISIONS.html#d115">D115</a>&#x27;s &quot;three of four corners&quot; was wrong</h2>
-<p><strong>Date:</strong> 2026-10-22 · <strong>Status:</strong> Accepted · <strong>Corrects:</strong> <a href="DECISIONS.html#d110">D110</a>, <a href="DECISIONS.html#d112">D112</a>, <a href="DECISIONS.html#d113">D113</a>, <a href="DECISIONS.html#d114">D114</a>, <a href="DECISIONS.html#d115">D115</a>, <a href="DECISIONS.html#d116">D116</a>, <a href="DECISIONS.html#d117">D117</a>, <a href="DECISIONS.html#d119">D119</a>, <a href="DECISIONS.html#d125">D125</a> · <strong>Evidence:</strong> source-verified</p>
+<p><strong>Date:</strong> 2026-10-22 · <strong>Status:</strong> Accepted · <strong>Corrects:</strong> <a href="DECISIONS.html#d110">D110</a>, <a href="DECISIONS.html#d112">D112</a>, <a href="DECISIONS.html#d113">D113</a>, <a href="DECISIONS.html#d114">D114</a>, <a href="DECISIONS.html#d115">D115</a>, <a href="DECISIONS.html#d116">D116</a>, <a href="DECISIONS.html#d117">D117</a>, <a href="DECISIONS.html#d119">D119</a>, <a href="DECISIONS.html#d124">D124</a> · <strong>Evidence:</strong> source-verified</p>
 <p>The second documentation review raised 18 findings against this log. All hold. They are
 collected here rather than as nine entries, because most are one-line factual slips and the
 pattern they form is worth more than any of them.</p>
@@ -5495,6 +5502,83 @@ and each was wrong:</p>
 <p>Consistent with <a href="DECISIONS.html#d126">D126</a>&#x27;s method note: all four were memory restating a plausible shape, and
 all four took one grep to settle. The new document cites file and line on every edge for that
 reason — a reader who doubts a line can check it without rebuilding the graph.</p>
+<hr>
+<h2 id="d128">D128 — the metadata line is an index and may be repaired in place (new rule 7); ten relation fields corrected, and <a href="DECISIONS.html#d120">D120</a>/<a href="DECISIONS.html#d125">D125</a>/<a href="DECISIONS.html#d126">D126</a> each got one attribution wrong</h2>
+<p><strong>Date:</strong> 2026-10-22 · <strong>Status:</strong> Accepted · <strong>Corrects:</strong> <a href="DECISIONS.html#d120">D120</a>, <a href="DECISIONS.html#d125">D125</a>, <a href="DECISIONS.html#d126">D126</a> · <strong>Evidence:</strong> third documentation review (artifacts_v3), F246/F257/F258/F292–F295/F299/F300; all ten verified against the entries they name</p>
+<p>The third review raised the governance question this log had been dodging and found that the
+generated index had been wrong in eight ways, most of them introduced by the normalisation in
+<code>c0d6450</code> that was supposed to make it reliable.</p>
+<h3 id="s1_10">1. The rule question (F300), answered</h3>
+<p><code>c0d6450</code> rewrote the metadata line of <strong>91 entries</strong> and inserted <code>Date</code>/<code>Status</code> lines into 15
+(D019–D025, D057–D064), against a file whose rule 1 reads *&quot;Entries are never edited once
+written.&quot;* That was a real contradiction, not a technicality, and it is the commit that
+introduced the <a href="DECISIONS.html#d090">D090</a> and <a href="DECISIONS.html#d093">D093</a> errors below.</p>
+<p><strong>Resolved by distinguishing the record from the index, now rule 7.</strong> Rules 1 and 4 exist to
+protect the <em>reasoning</em> — &quot;silent repair destroys the record of having believed it&quot;. A relation
+field records no belief; it is a pointer, read only by the two generators. Rule 2 already
+appends to it. So the prose stays immutable and the index becomes repairable, with every repair
+named in the entry that found it. The alternative — appending an entry for each index error and
+teaching the generators to chase it — makes the index unqueryable to protect something that was
+never reasoning.</p>
+<p>Nothing in <code>c0d6450</code> touched an entry body. That was true then and is now the stated boundary.</p>
+<h3 id="s2_10">2. The ten fields corrected</h3>
+<div class="table-wrap"><table>
+<tr><th>Entry</th><th>Was</th><th>Now</th><th>Why</th></tr>
+<tr><td><a href="DECISIONS.html#d090">D090</a></td><td><code>Supersedes: [D085], [D082]</code></td><td><code>Supersedes: [D085]</code> · <code>Builds on: [D082]</code></td><td><strong>F292.</strong> The pre-normalisation line read &quot;Supersedes <a href="DECISIONS.html#d085">D085</a>, <strong>restores</strong> <a href="DECISIONS.html#d082">D082</a>&quot;. The index was telling readers <a href="DECISIONS.html#d090">D090</a> replaced an entry it brought back</td></tr>
+<tr><td><a href="DECISIONS.html#d093">D093</a></td><td><code>Accepted, **temporary</code></td><td><code>Accepted, **temporary**</code></td><td><strong>F299.</strong> Dropped closing emphasis; unbalanced <code>**</code> can swallow the rest of the generated table row</td></tr>
+<tr><td><a href="DECISIONS.html#d103">D103</a></td><td><code>Corrects: [D102]</code></td><td><code>Supersedes: [D102]</code></td><td><strong>F257.</strong> Its own title and <a href="DECISIONS.html#d102">D102</a>&#x27;s own Status both say supersedes. The mismatch made the glossary print &quot;superseded by D103, D103&quot; — the Status path and the field path each contributed one</td></tr>
+<tr><td><a href="DECISIONS.html#d110">D110</a></td><td><em>(no relation field)</em></td><td><code>Corrects: [D107], [D108]</code></td><td><strong>F258.</strong> Its title is &quot;corrects the framing of <a href="DECISIONS.html#d107">D107</a>/<a href="DECISIONS.html#d108">D108</a>&quot;. <a href="DECISIONS.html#d108">D108</a> showed as uncorrected</td></tr>
+<tr><td><a href="DECISIONS.html#d094">D094</a></td><td><code>Corrects: [D093]</code></td><td><code>Corrects: [D002], [D093]</code></td><td><strong>F293.</strong> Its body: &quot;<a href="DECISIONS.html#d002">D002</a> is right about the mechanism and overstated about the field&quot;</td></tr>
+<tr><td><a href="DECISIONS.html#d120">D120</a></td><td><code>Corrects: [D113], [D114], [D117]</code></td><td><code>Corrects: [D065], [D113], [D117]</code></td><td><strong>F246</strong> (D114, see §3) and <strong>F293</strong> (<a href="DECISIONS.html#d065">D065</a>&#x27;s PBPS claim is what <a href="DECISIONS.html#d120">D120</a> rules <a href="DECISIONS.html#d094">D094</a> overrides)</td></tr>
+<tr><td><a href="DECISIONS.html#d126">D126</a></td><td><code>Corrects: …, [D125]</code></td><td><code>Corrects: …, [D124]</code></td><td><strong>F295.</strong> See §4</td></tr>
+<tr><td><a href="DECISIONS.html#d015">D015</a></td><td><code>Builds on: [D008]</code></td><td><code>Closes: [D008]</code> · <code>Builds on: [D008]</code></td><td><strong>F293</strong></td></tr>
+<tr><td><a href="DECISIONS.html#d017">D017</a></td><td><code>Builds on: [D014]</code></td><td><code>Closes: [D014]</code> · <code>Builds on: [D014]</code></td><td><strong>F293</strong></td></tr>
+<tr><td><a href="DECISIONS.html#d048">D048</a></td><td><code>Builds on: [D029]</code></td><td><code>Closes: [D029]</code> · <code>Builds on: [D029]</code></td><td><strong>F293</strong></td></tr>
+</table></div>
+<p><strong><code>Closes</code> is a new relation</strong>, and the last three are why. <a href="DECISIONS.html#d008">D008</a> and <a href="DECISIONS.html#d014">D014</a> are
+<code>Provisional</code>; <a href="DECISIONS.html#d029">D029</a>&#x27;s title is literally <code>OPEN DEFECT</code>. Each was shut by a later entry that
+recorded the fact as <code>Builds on</code> — the one relation meaning <em>the earlier entry is untouched</em>.
+So <code>SETTLED.md</code> listed &quot;OPEN DEFECT: <code>.ram_from_flash</code> is excluded from copy-init&quot; in its
+<strong>Standing</strong> table, with the title as the current position, five weeks after <a href="DECISIONS.html#d048">D048</a> fixed it.
+That is the worst failure this index can have: not a stale detail, but pointing a reader at a
+closed defect as live. <code>Closes</code> says the entry&#x27;s <em>status</em> is historical while its reasoning
+stands — neither <code>Supersedes</code> (not replaced) nor <code>Corrects</code> (nothing in it was wrong). Like
+<code>Corrects</code> it forms no lineage: <a href="DECISIONS.html#d029">D029</a> and <a href="DECISIONS.html#d048">D048</a> answer different questions. The generator
+strikes the status through and names the closing entry.</p>
+<h3 id="s3_7">3. <a href="DECISIONS.html#d120">D120</a>&#x27;s &quot;Correction to <a href="DECISIONS.html#d114">D114</a>&quot; was aimed at the wrong target (F246)</h3>
+<p><a href="DECISIONS.html#d120">D120</a> attributes to <a href="DECISIONS.html#d114">D114</a> a claim that <strong>with both macros undefined neither arm fires</strong>, and
+corrects it. <a href="DECISIONS.html#d114">D114</a> does not say that. It is explicitly the isolation-3 run taken <em>after</em>
+<a href="DECISIONS.html#d113">D113</a>&#x27;s <code>TFM_ISOLATION_LEVEL</code> fix, and what it writes of <code>CONFIG_TFM_PARTITION_META</code> is
+&quot;Undefined, neither arm fires&quot; — which is the state <a href="DECISIONS.html#d120">D120</a> itself calls correct.</p>
+<p><strong>The &quot;both undefined&quot; error existed in exactly one place: <code>UPSTREAM_CHANGES.md</code> item 15</strong>
+(<code>e686c71:347</code>). <a href="DECISIONS.html#d114">D114</a>&#x27;s statement was right for its run. Under rule 2 a reader would have
+treated <a href="DECISIONS.html#d114">D114</a> as discredited, so <a href="DECISIONS.html#d114">D114</a> is removed from <a href="DECISIONS.html#d120">D120</a>&#x27;s <code>Corrects</code> list; <a href="DECISIONS.html#d120">D120</a>&#x27;s
+prose keeps the section, and this entry is what a reader following the index now reaches.</p>
+<h3 id="s4_4">4. <a href="DECISIONS.html#d125">D125</a> §4 holds <a href="DECISIONS.html#d122">D122</a> to a bar <a href="DECISIONS.html#d123">D123</a> does not clear either</h3>
+<p><a href="DECISIONS.html#d125">D125</a> §4 ruled that <a href="DECISIONS.html#d122">D122</a> called two runs &quot;green&quot; on secure evidence alone, and added that
+&quot;<strong><a href="DECISIONS.html#d123">D123</a> and <a href="DECISIONS.html#d124">D124</a> report both halves and are unaffected</strong>&quot;. <a href="DECISIONS.html#d123">D123</a> §2 says of its own
+RA6M5 IAR isolation-2 run: *&quot;The secure suite also passed; its RTT output was not captured, so
+the secure half is <strong>reported rather than recorded</strong> here.&quot;* That is the same gap, stated
+plainly by <a href="DECISIONS.html#d123">D123</a> itself, in the same review pass that found it in <a href="DECISIONS.html#d122">D122</a>. <a href="DECISIONS.html#d123">D123</a>&#x27;s IAR L2 cell
+should carry the same qualification its L3 GNUARM cell does not need.</p>
+<h3 id="s5_4">5. <a href="DECISIONS.html#d126">D126</a> §6&#x27;s last bullet was wrong, and so were two of its attributions (F295)</h3>
+<ul>
+<li><strong><a href="DECISIONS.html#d041">D041</a>.</strong> <a href="DECISIONS.html#d126">D126</a> says it &quot;has no &#x27;superseded by <a href="DECISIONS.html#d044">D044</a>&#x27; line, which rule 2 of this log
+requires&quot;. <a href="DECISIONS.html#d044">D044</a> carries <code>Corrects: [D041]</code> with the evidence &quot;supersedes the second fix in
+<a href="DECISIONS.html#d041">D041</a> only&quot; — and <code>Corrects</code> is the right relation, because <a href="DECISIONS.html#d044">D044</a> drops one of three fixes
+and leaves the rest standing. The relation was never missing. Nothing to fix.</li>
+<li><strong><a href="DECISIONS.html#d125">D125</a> twice.</strong> <a href="DECISIONS.html#d126">D126</a> §2 attributes the <code>tfm_arch.c:90</code> line number to &quot;<a href="DECISIONS.html#d117">D117</a>, <a href="DECISIONS.html#d125">D125</a>&quot;,
+and §6 attributes SAU wording to &quot;<a href="DECISIONS.html#d117">D117</a> §3 and <a href="DECISIONS.html#d125">D125</a>&quot;. <a href="DECISIONS.html#d125">D125</a> contains no occurrence of
+<code>tfm_arch</code>, <code>:90</code>, <code>:91</code>, <code>SAU</code>, <code>IDAU</code> or <code>ICSR</code>. Both corrections land on <a href="DECISIONS.html#d117">D117</a> alone, so
+<a href="DECISIONS.html#d125">D125</a> is removed from <a href="DECISIONS.html#d126">D126</a>&#x27;s <code>Corrects</code> list and <a href="DECISIONS.html#d124">D124</a> — which §1 does correct — added.</li>
+</ul>
+<h3 id="method-note_12">Method note</h3>
+<p><a href="DECISIONS.html#d126">D126</a> closed by saying: *when an entry explains why something failed, check the explanation
+against the build files.* Four of the five errors here are the narrower case — **an entry
+citing a sibling entry without opening it.** <a href="DECISIONS.html#d126">D126</a> attributed two corrections to <a href="DECISIONS.html#d125">D125</a> and a
+missing line to <a href="DECISIONS.html#d041">D041</a>; <a href="DECISIONS.html#d120">D120</a> attributed a precondition to <a href="DECISIONS.html#d114">D114</a>; <a href="DECISIONS.html#d125">D125</a> cleared <a href="DECISIONS.html#d123">D123</a> of a
+gap <a href="DECISIONS.html#d123">D123</a> describes in its own §2. Every one took a single search of the file this log is
+written in. The citation is the claim.</p>
 </main>
 </div>
 </body>

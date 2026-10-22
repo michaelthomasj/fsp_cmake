@@ -41,7 +41,22 @@ OUT = os.path.join(ROOT, "SETTLED.md")
 
 MID = u"\u00b7"
 DISPLACING = ("Supersedes", "Corrects")      # these change what an earlier entry asserts
-ADDITIVE = ("Builds on",)                    # these do not
+CLOSING = ("Closes",)                        # these change an earlier entry's STATUS, not its claims
+ADDITIVE = ("Builds on",)                    # these do nothing to the earlier entry
+
+# WHY "Closes" IS ITS OWN RELATION
+#
+# Three entries carry a status that was true when written and is not true now: D008 and D014
+# are "Provisional", D029's title is literally "OPEN DEFECT". Each was closed by a later entry
+# - D015, D017, D048 - which recorded it as "Builds on", the one relation that says the earlier
+# entry is untouched. So this file listed "OPEN DEFECT: .ram_from_flash is excluded from
+# copy-init" in the Standing table with its title as the current position, five weeks after
+# D048 fixed it. That is the worst failure this index can have: not a stale detail, but
+# pointing a reader at a closed defect as live.
+#
+# Closes is not Supersedes: the entry is not replaced and its reasoning is still the account of
+# the problem. It is not Corrects either: nothing in it was wrong. And like Corrects it must not
+# join a lineage - D029 and D048 answer different questions.
 
 
 def parse(text):
@@ -77,7 +92,7 @@ def parse(text):
             if s:
                 e["status"] = s.group(1).strip()
                 continue
-            for f in DISPLACING + ADDITIVE:
+            for f in DISPLACING + CLOSING + ADDITIVE:
                 r = re.match(r"\*\*%s:\*\*\s*(.*)$" % re.escape(f), p)
                 if r:
                     e["rel"][f] = re.findall(r"D\d{3}", r.group(1))
@@ -153,6 +168,10 @@ def render(entries):
     corrected = {t: [(s, f) for s, f in v if f == "Corrects"]
                  for t, v in displaced_by.items()}
     corrected = {t: v for t, v in corrected.items() if v}
+    closed = {}
+    for e in entries:
+        for target in e["rel"].get("Closes", []):
+            closed.setdefault(target, []).append(e["id"])
     live = [e for e in entries if e["id"] not in superseded]
     dead = [e for e in entries if e["id"] in superseded]
 
@@ -176,6 +195,8 @@ def render(entries):
     w("| Superseded | **%d** |" % len(dead))
     w("| Standing but corrected on some point | **%d** |"
       % len([e for e in live if e["id"] in corrected]))
+    w("| Standing, but the question they left open is closed | **%d** |"
+      % len([e for e in live if e["id"] in closed]))
     w("| Supersede lineages | **%d** |" % len(th))
     w("")
     w("---")
@@ -211,18 +232,23 @@ def render(entries):
     w("## Standing (%d)" % len(live))
     w("")
     w("Nothing supersedes these. The title is the position. Where a later entry corrects"
-      " one, the correction is named - the entry stands apart from that.")
+      " one, the correction is named - the entry stands apart from that. **Where the Closed"
+      " by column is filled, read the status as historical:** the entry describes a problem"
+      " that a later entry shut, so its own \"Open\" or \"Provisional\" is no longer true.")
     w("")
-    w("| # | Date | Position | Status | Corrected by |")
-    w("|---|---|---|---|---|")
+    w("| # | Date | Position | Status | Corrected by | Closed by |")
+    w("|---|---|---|---|---|---|")
     for e in sorted(live, key=lambda x: x["id"]):
         corr = ", ".join("`%s`" % c for c in
                          sorted({s for s, _ in corrected.get(e["id"], [])}))
+        shut = ", ".join("`%s`" % c for c in sorted(set(closed.get(e["id"], []))))
         st = e["status"] or "Accepted"
         if not st.startswith("Accepted"):
             st = "**%s**" % st
-        w("| `%s` | %s | %s | %s | %s |"
-          % (e["id"], e["date"], e["title"], st, corr or "—"))
+        if shut:
+            st = "~~%s~~" % st          # struck through: it was true when written
+        w("| `%s` | %s | %s | %s | %s | %s |"
+          % (e["id"], e["date"], e["title"], st, corr or "—", shut or "—"))
     w("")
     w("---")
     w("")
@@ -235,8 +261,12 @@ def render(entries):
     w("| # | Date | Position as stated then | Superseded by |")
     w("|---|---|---|---|")
     for e in sorted(dead, key=lambda x: x["id"]):
-        who = ", ".join("`%s`" % s for s in sorted({s for s, _ in superseded[e["id"]]}))
-        also = sorted({s for s, _ in corrected.get(e["id"], [])})
+        sup = {s for s, _ in superseded[e["id"]]}
+        who = ", ".join("`%s`" % s for s in sorted(sup))
+        # D091 both supersedes D082/D079 and corrects D090 ("the configuration is superseded,
+        # not the mechanism"). Both relations are real, but printing "superseded by D091 (also
+        # corrected by D091)" says nothing the first half did not.
+        also = sorted({s for s, _ in corrected.get(e["id"], [])} - sup)
         if also:
             who += " (also corrected by %s)" % ", ".join("`%s`" % c for c in also)
         w("| `%s` | %s | %s | %s |" % (e["id"], e["date"], e["title"], who))

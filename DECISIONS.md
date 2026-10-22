@@ -18,6 +18,12 @@ came to work that way, including the turns that were later reversed.
    chosen cannot be re-evaluated later.
 6. Entries dated before this file existed are **back-filled** and say so, with the source they were
    reconstructed from. Their dates are the dates of the decision, not of the write-up.
+7. **The metadata line is an index, not the record.** Rules 1 and 4 govern an entry's *prose*,
+   which is never edited. The `**Date:** … **Status:** … **Supersedes / Corrects / Closes /
+   Builds on:** …` line is machine-read by `scripts/build_settled.py` and
+   `scripts/build_course_glossary.py` — rule 2 already mutates it — and **may be corrected in
+   place** when it misdescribes a relation. The entry that finds the error states what it
+   changed. An index that cannot be corrected is one nobody can rely on; see [D128].
 
 Statuses: `Accepted` · `Superseded by Dxxx` · `Provisional` (taken, not yet validated) ·
 `Withdrawn` (abandoned without a replacement).
@@ -450,7 +456,7 @@ rejected option once the target settles.
 
 ## D015 — Isolation 3 + IPC confirmed on hardware; D008 is no longer provisional
 
-**Date:** 2026-09-08 · **Status:** Accepted · **Builds on:** [D008]
+**Date:** 2026-09-08 · **Status:** Accepted · **Closes:** [D008] · **Builds on:** [D008]
 
 **Context.** D008 declared `PLATFORM_HAS_ISOLATION_L3_SUPPORT` on the strength of a build and a
 static region count, and said explicitly that the flag asserts the port has been built *and run* at
@@ -506,7 +512,7 @@ historical.
 
 ## D017 — The PSA Arch target stays a local patch for RA6E1; the RA6M5 one goes upstream
 
-**Date:** 2026-09-09 · **Status:** Accepted · **Builds on:** [D014] · **Evidence:** Resolves the open question in D014
+**Date:** 2026-09-09 · **Status:** Accepted · **Closes:** [D014] · **Builds on:** [D014] · **Evidence:** Resolves the open question in [D014]
 
 **Context.** D014 left open whether `tgt_dev_apis_tfm_ra6e1` should be contributed to
 ARM-software/psa-arch-tests or carried as an eleventh patch in `tf-m-tests/tests_psa_arch/fetch_repo/`
@@ -1482,7 +1488,7 @@ the two, so the FSP Mbed TLS overlay ([D042]) is unaffected.
 
 ## D048 — `.ram_from_flash` is copied by the platform, not by ILINK — closes [D029]
 
-**Date:** 2026-09-23 · **Status:** Accepted · **Builds on:** [D029] · **Evidence:** Resolves the open defect in [D029]
+**Date:** 2026-09-23 · **Status:** Accepted · **Closes:** [D029] · **Builds on:** [D029] · **Evidence:** Resolves the open defect in [D029]
 
 **The defect, reproduced on RA6M5.** IAR at isolation 3 left FSP's code-flash program/erase
 routines in flash: `.ram_from_flash` at `0x000B0120`, listed under "No sections matched", with
@@ -3903,7 +3909,7 @@ Remaining from the plan: `RECONFIGURING_THE_LAYOUT.md`.
 
 ## D090 — the RA6M5 FSP-backend failure was a struct flash_area mismatch; [D085] is superseded
 
-**Date:** 2026-10-05 · **Status:** Superseded by D091 · **Supersedes:** [D085], [D082] · **Evidence:** Supersedes [D085], restores [D082]
+**Date:** 2026-10-05 · **Status:** Superseded by D091 · **Supersedes:** [D085] · **Builds on:** [D082] · **Evidence:** Supersedes [D085]; restores [D082]
 
 [D085] reverted RA6M5 to TF-M's MCUboot flash backend and recorded the failure as unexplained
 after eliminating nine hypotheses. The cause is now known, fixed, and **verified on hardware:
@@ -4162,7 +4168,7 @@ line of code is not evidence that it is compiled, and this file is full of featu
 
 ## D093 — `BSP_TZ_CFG_MSAR=0` on RA8M2: a workaround for an e2 generator defect, to be removed
 
-**Date:** 2026-10-06 · **Status:** Accepted, **temporary · **Builds on:** [D092]
+**Date:** 2026-10-06 · **Status:** Accepted, **temporary** · **Builds on:** [D092]
 
 [D092] traced RA8M2's first-boot HardFault to `MSAR` marking MRAM's `MRCPFB` non-secure, and
 said the fix was setting Clocks to Secure in e2. **That instruction was wrong**, and the
@@ -4245,7 +4251,7 @@ generated artifact diffed.
 
 ## D094 — the RA6M4 brick: coalescing is proven, the killed field is not; [D093]'s attribution corrected
 
-**Date:** 2026-10-06 · **Status:** Accepted · **Corrects:** [D093] · **Evidence:** Corrects [D093] and commit `7b99ce397`;
+**Date:** 2026-10-06 · **Status:** Accepted · **Corrects:** [D002], [D093] · **Evidence:** Corrects [D093] and commit `7b99ce397`;
 **qualifies** [D002]
 
 Measured from `bringup/bricking_evidence/bl2_BRICKED.elf`, the exact image flashed to the two
@@ -4848,7 +4854,7 @@ given one). `reg_build_iar.bat C:\b\m2islih C:\b\m2islihns ra8m2 slih` would add
 
 ## D103 — supersedes [D102] on the IAR launch host project: it is the IAR project, and auto-config is false
 
-**Date:** 2026-10-08 · **Status:** Accepted · **Corrects:** [D102] · **Evidence:** Corrects two attribute choices in [D102]
+**Date:** 2026-10-08 · **Status:** Accepted · **Supersedes:** [D102] · **Evidence:** Corrects two attribute choices in [D102]
 
 [D102] generated the five RA8M2 IAR launches by copying the GCC twins and swapping build-tree
 paths only, on the evidence that the RA6M5 GCC/IAR pair differs in exactly nine lines, all
@@ -5315,7 +5321,7 @@ available under both. Nothing is outstanding against M5.
 
 ## D110 — corrects the framing of [D107]/[D108]: the root cause is the call route, not the buffering
 
-**Date:** 2026-10-09 · **Status:** Accepted · **Evidence:** Correction from the rm_psa_crypto owner
+**Date:** 2026-10-09 · **Status:** Accepted · **Corrects:** [D107], [D108] · **Evidence:** Correction from the rm_psa_crypto owner
 
 The owner's summary, which is the right one: *the issue was not that IAR buffered BL2's 400
 bytes and failed to flush them - it was that BL2 printed by a different call than the secure
@@ -6228,7 +6234,7 @@ defect above isolation 1 on this part, after producing four below it ([D083], [D
 
 ## D120 — the isolation-macro gap is this port's, not upstream's; [D113]'s root cause was wrong and upstream item 15 is withdrawn
 
-**Date:** 2026-10-22 · **Status:** Accepted · **Corrects:** [D113], [D114], [D117] · **Evidence:** Withdraws `UPSTREAM_CHANGES.md` item 15; an519 measured
+**Date:** 2026-10-22 · **Status:** Accepted · **Corrects:** [D065], [D113], [D117] · **Evidence:** Withdraws `UPSTREAM_CHANGES.md` item 15; an519 measured
 
 An external documentation review (findings F014, F196, F200) challenged the root cause
 recorded in [D113] and repeated in [D114], [D117], upstream item 15 and four port comments.
@@ -6759,7 +6765,7 @@ means checking the claim, not the number it sits next to.
 
 ## D126 — eighteen corrections to [D110]–[D125] from the second review; two carried items closed, and [D115]'s "three of four corners" was wrong
 
-**Date:** 2026-10-22 · **Status:** Accepted · **Corrects:** [D110], [D112], [D113], [D114], [D115], [D116], [D117], [D119], [D125] · **Evidence:** source-verified
+**Date:** 2026-10-22 · **Status:** Accepted · **Corrects:** [D110], [D112], [D113], [D114], [D115], [D116], [D117], [D119], [D124] · **Evidence:** source-verified
 
 The second documentation review raised 18 findings against this log. All hold. They are
 collected here rather than as nine entries, because most are one-line factual slips and the
@@ -6915,3 +6921,97 @@ and each was wrong:
 Consistent with [D126]'s method note: all four were memory restating a plausible shape, and
 all four took one grep to settle. The new document cites file and line on every edge for that
 reason — a reader who doubts a line can check it without rebuilding the graph.
+
+---
+
+## D128 — the metadata line is an index and may be repaired in place (new rule 7); ten relation fields corrected, and [D120]/[D125]/[D126] each got one attribution wrong
+
+**Date:** 2026-10-22 · **Status:** Accepted · **Corrects:** [D120], [D125], [D126] · **Evidence:** third documentation review (artifacts_v3), F246/F257/F258/F292–F295/F299/F300; all ten verified against the entries they name
+
+The third review raised the governance question this log had been dodging and found that the
+generated index had been wrong in eight ways, most of them introduced by the normalisation in
+`c0d6450` that was supposed to make it reliable.
+
+### 1. The rule question (F300), answered
+
+`c0d6450` rewrote the metadata line of **91 entries** and inserted `Date`/`Status` lines into 15
+(D019–D025, D057–D064), against a file whose rule 1 reads *"Entries are never edited once
+written."* That was a real contradiction, not a technicality, and it is the commit that
+introduced the [D090] and [D093] errors below.
+
+**Resolved by distinguishing the record from the index, now rule 7.** Rules 1 and 4 exist to
+protect the *reasoning* — "silent repair destroys the record of having believed it". A relation
+field records no belief; it is a pointer, read only by the two generators. Rule 2 already
+appends to it. So the prose stays immutable and the index becomes repairable, with every repair
+named in the entry that found it. The alternative — appending an entry for each index error and
+teaching the generators to chase it — makes the index unqueryable to protect something that was
+never reasoning.
+
+Nothing in `c0d6450` touched an entry body. That was true then and is now the stated boundary.
+
+### 2. The ten fields corrected
+
+| Entry | Was | Now | Why |
+|---|---|---|---|
+| [D090] | `Supersedes: [D085], [D082]` | `Supersedes: [D085]` · `Builds on: [D082]` | **F292.** The pre-normalisation line read "Supersedes [D085], **restores** [D082]". The index was telling readers [D090] replaced an entry it brought back |
+| [D093] | `Accepted, **temporary` | `Accepted, **temporary**` | **F299.** Dropped closing emphasis; unbalanced `**` can swallow the rest of the generated table row |
+| [D103] | `Corrects: [D102]` | `Supersedes: [D102]` | **F257.** Its own title and [D102]'s own Status both say supersedes. The mismatch made the glossary print "superseded by D103, D103" — the Status path and the field path each contributed one |
+| [D110] | *(no relation field)* | `Corrects: [D107], [D108]` | **F258.** Its title is "corrects the framing of [D107]/[D108]". [D108] showed as uncorrected |
+| [D094] | `Corrects: [D093]` | `Corrects: [D002], [D093]` | **F293.** Its body: "[D002] is right about the mechanism and overstated about the field" |
+| [D120] | `Corrects: [D113], [D114], [D117]` | `Corrects: [D065], [D113], [D117]` | **F246** (D114, see §3) and **F293** ([D065]'s PBPS claim is what [D120] rules [D094] overrides) |
+| [D126] | `Corrects: …, [D125]` | `Corrects: …, [D124]` | **F295.** See §4 |
+| [D015] | `Builds on: [D008]` | `Closes: [D008]` · `Builds on: [D008]` | **F293** |
+| [D017] | `Builds on: [D014]` | `Closes: [D014]` · `Builds on: [D014]` | **F293** |
+| [D048] | `Builds on: [D029]` | `Closes: [D029]` · `Builds on: [D029]` | **F293** |
+
+**`Closes` is a new relation**, and the last three are why. [D008] and [D014] are
+`Provisional`; [D029]'s title is literally `OPEN DEFECT`. Each was shut by a later entry that
+recorded the fact as `Builds on` — the one relation meaning *the earlier entry is untouched*.
+So `SETTLED.md` listed "OPEN DEFECT: `.ram_from_flash` is excluded from copy-init" in its
+**Standing** table, with the title as the current position, five weeks after [D048] fixed it.
+That is the worst failure this index can have: not a stale detail, but pointing a reader at a
+closed defect as live. `Closes` says the entry's *status* is historical while its reasoning
+stands — neither `Supersedes` (not replaced) nor `Corrects` (nothing in it was wrong). Like
+`Corrects` it forms no lineage: [D029] and [D048] answer different questions. The generator
+strikes the status through and names the closing entry.
+
+### 3. [D120]'s "Correction to [D114]" was aimed at the wrong target (F246)
+
+[D120] attributes to [D114] a claim that **with both macros undefined neither arm fires**, and
+corrects it. [D114] does not say that. It is explicitly the isolation-3 run taken *after*
+[D113]'s `TFM_ISOLATION_LEVEL` fix, and what it writes of `CONFIG_TFM_PARTITION_META` is
+"Undefined, neither arm fires" — which is the state [D120] itself calls correct.
+
+**The "both undefined" error existed in exactly one place: `UPSTREAM_CHANGES.md` item 15**
+(`e686c71:347`). [D114]'s statement was right for its run. Under rule 2 a reader would have
+treated [D114] as discredited, so [D114] is removed from [D120]'s `Corrects` list; [D120]'s
+prose keeps the section, and this entry is what a reader following the index now reaches.
+
+### 4. [D125] §4 holds [D122] to a bar [D123] does not clear either
+
+[D125] §4 ruled that [D122] called two runs "green" on secure evidence alone, and added that
+"**[D123] and [D124] report both halves and are unaffected**". [D123] §2 says of its own
+RA6M5 IAR isolation-2 run: *"The secure suite also passed; its RTT output was not captured, so
+the secure half is **reported rather than recorded** here."* That is the same gap, stated
+plainly by [D123] itself, in the same review pass that found it in [D122]. [D123]'s IAR L2 cell
+should carry the same qualification its L3 GNUARM cell does not need.
+
+### 5. [D126] §6's last bullet was wrong, and so were two of its attributions (F295)
+
+- **[D041].** [D126] says it "has no 'superseded by [D044]' line, which rule 2 of this log
+  requires". [D044] carries `Corrects: [D041]` with the evidence "supersedes the second fix in
+  [D041] only" — and `Corrects` is the right relation, because [D044] drops one of three fixes
+  and leaves the rest standing. The relation was never missing. Nothing to fix.
+- **[D125] twice.** [D126] §2 attributes the `tfm_arch.c:90` line number to "[D117], [D125]",
+  and §6 attributes SAU wording to "[D117] §3 and [D125]". [D125] contains no occurrence of
+  `tfm_arch`, `:90`, `:91`, `SAU`, `IDAU` or `ICSR`. Both corrections land on [D117] alone, so
+  [D125] is removed from [D126]'s `Corrects` list and [D124] — which §1 does correct — added.
+
+### Method note
+
+[D126] closed by saying: *when an entry explains why something failed, check the explanation
+against the build files.* Four of the five errors here are the narrower case — **an entry
+citing a sibling entry without opening it.** [D126] attributed two corrections to [D125] and a
+missing line to [D041]; [D120] attributed a precondition to [D114]; [D125] cleared [D123] of a
+gap [D123] describes in its own §2. Every one took a single search of the file this log is
+written in. The citation is the claim.

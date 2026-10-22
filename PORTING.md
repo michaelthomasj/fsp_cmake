@@ -112,7 +112,7 @@ set(TFM_SYSTEM_ARCHITECTURE armv8-m.main)      # or armv8.1-m.main
 set(TFM_SYSTEM_DSP          ON)
 set(TFM_SYSTEM_FP           ON)
 set(CONFIG_TFM_FP_ARCH      "fpv5-sp-d16")    # "fpv5-d16" on RA8M2 (M85, double precision)
-set(CONFIG_TFM_FP_ARCH_ASM  "FPv5-SP")        # "FPv5_D16" on RA8M2
+set(CONFIG_TFM_FP_ARCH_ASM  "FPv5_SP")        # "FPv5_D16" on RA8M2
 ```
 
 Getting the FP architecture wrong does not fail here; it fails at link with `Error[Lt006]`

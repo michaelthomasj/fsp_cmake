@@ -94,7 +94,8 @@ dates rather than cutting scope.
 **~~Primary goal — RA8M2 single-core (~late Nov)~~ — done 2026-10-09** ([[D106]])
 - TrustZone configuration + BSP update on FSP 6.7, GNUARM + IAR. Both toolchains build, the
   full chain runs on hardware, and the PSA Arch suites pass on both. Isolation 1+IPC, 2 and 3
-  followed on 2026-10-22 ([[D124]]).
+  followed on **2026-10-21** ([[D116]], [[D118]], [[D119]]), **regression+FLIH only** ([[D126]]
+  §4). [[D124]] is RA6M5 IAR L3, not this part.
 
 **Future — TF-M 2.3 / TF-PSA-Crypto (after the rsip7 update)**
 - Rebase from the v2.2.0 fork point; SCE9 redone as a PSA transparent driver.
@@ -285,9 +286,9 @@ Enumerated from `tf-m-tests` and `psa-arch-tests` and checked against every buil
 | Suite | Option | Why it has not run | Applicable? |
 |---|---|---|---|
 | **Firmware Update** | `TEST_S_FWU`, `TEST_NS_FWU` | `TFM_PARTITION_FIRMWARE_UPDATE` is OFF on both parts | **Yes - highest value.** Exercises the PSA FWU API over the MCUboot slots this port already has. RA8M2 secure slot has ~670 B spare, so the partition may not fit without turning something off. **The bootloader half is now proven** - BL2 installs both images from their secondary slots and erases them ([[D100]]) - so what FWU adds is the API that *places* an image there |
-| **IPC model** | `TEST_S_IPC`, `TEST_NS_IPC` | **CLOSED 2026-10-22.** Ten regression trees now run the IPC backend at isolation 1, 2 and 3 on both parts and both toolchains, `TFM_S_IPC_TEST_1001`-`1012` included | Done - [[D113]] to [[D124]] |
-| **Isolation 2 / 3** | `TFM_ISOLATION_LEVEL` | **CLOSED 2026-10-22.** The suite had never run above isolation 1 before [[D113]]; it is now green at L1+IPC, L2 and L3 on RA6M5 and RA8M2, GNUARM and IAR | Done - [[D124]] |
-| **SLIH above isolation 1** | `CONFIG_TFM_SLIH_API` | only the FLIH fixture has been run above L1. The SLIH service declares the same `mmio_region` and has never been exercised there | **Yes, cheap** - the trees and launches already exist |
+| **IPC model** | `TEST_S_IPC`, `TEST_NS_IPC` | **CLOSED 2026-10-22** for the levels that ran. Ten regression trees run the IPC backend: **L1+IPC on GNUARM only** (both parts), **L2 and L3 on both toolchains** (both parts) — 6 + 4. `TEST_S_IPC`/`TEST_NS_IPC` are on in all ten; no entry names the individual test ids, so none is claimed here | Done for L2/L3 - [[D113]] to [[D124]]. **No IAR L1+IPC tree exists** ([[D124]] matrix) |
+| **Isolation 2 / 3** | `TFM_ISOLATION_LEVEL` | **CLOSED 2026-10-22.** Never ran above isolation 1 before [[D113]]; now green at **L2 and L3 on RA6M5 and RA8M2, GNUARM and IAR**. L1+IPC is GNUARM-only, and RA6M5's is secure-only ([[D125]] §4) | Done - [[D124]] |
+| **SLIH above isolation 1** | `CONFIG_TFM_SLIH_API` | **No SLIH tree or launch above L1 exists.** The only SLIH launches are RA6M5's two at L1 (`ra6m5_TFM_slih_{gcc,iar}.launch`); SLIH has **never run on RA8M2** on either toolchain — the `m2gslih` trees were built and never got a launch ([[D126]] §4). The SLIH service declares the same `mmio_region` as FLIH and has never been exercised above L1 | **Yes** - but the L2/L3 trees and launches have to be made first |
 | **PSA Arch IPC suite** | `TEST_PSA_API=IPC` | only CRYPTO, INITIAL_ATTESTATION and STORAGE have been built. TF-M accepts `IPC`, and `psa-arch-tests/api-tests/ff/{ipc,partition}` exists | **Yes.** The Firmware Framework suite - different from the dev_apis ones already run |
 | **FPU** | `TEST_S_FPU`, `TEST_NS_FPU` | `CONFIG_TFM_ENABLE_CP10CP11=OFF` - the port is soft-float throughout | Only if FP is ever enabled. RA8M2 is Cortex-M85 with FP hardware, so this is a real gap for that part |
 | **NSID management** | `TEST_NS_MANAGE_NSID` | `TFM_NS_MANAGE_NSID` not set | Yes, cheap. Checks non-secure client ID handling |
@@ -302,8 +303,9 @@ direct Mbed TLS CTR caller still hits it. Needs a unit test against `mbedtls_aes
 itself, not another PSA-level suite.
 
 **Already covered, for contrast:** PS, ITS, Crypto, Attestation, Platform, SFN backend, FLIH IRQ
-(`*_TFM_flih_*`) and SLIH IRQ (`*_TFM_slih_*`, `TEST_NS_SLIH_IRQ=ON` in the slih trees), plus
-PSA Arch crypto / attestation / storage.
+(`*_TFM_flih_*`, both parts, both toolchains), plus PSA Arch crypto / attestation / storage.
+**SLIH IRQ is RA6M5 at isolation 1 only** (`ra6m5_TFM_slih_{gcc,iar}`, `TEST_NS_SLIH_IRQ=ON`) —
+it is in the gap table above, not here.
 
 **Order I would take them:** FWU first - it is the one with a user-visible feature behind it, and
 the MCUboot half beneath it is now run and passing ([[D100]]). Then PSA Arch IPC, then the cheap ones (NSID,
