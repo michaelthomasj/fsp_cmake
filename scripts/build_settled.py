@@ -286,8 +286,21 @@ def main():
         print("SETTLED.md up to date (%d entries)" % len(entries))
         return 0
 
-    io.open(OUT, "w", encoding="utf-8", newline="\n").write(new)
-    print("wrote SETTLED.md  (%d entries)" % len(entries))
+    if old != new:
+        io.open(OUT, "w", encoding="utf-8", newline="\n").write(new)
+        print("wrote SETTLED.md  (%d entries)" % len(entries))
+    else:
+        print("SETTLED.md already current (%d entries)" % len(entries))
+
+    if a.staged:
+        # Stage it, so the commit cannot contain DECISIONS.md without the index that
+        # describes it. Same contract the hook already applies to docs/learning/ref/.
+        r = subprocess.run(["git", "add", "SETTLED.md"], cwd=ROOT,
+                           capture_output=True, text=True)
+        if r.returncode != 0:
+            print("build_settled: could not stage SETTLED.md: %s" % r.stderr.strip())
+            return 2
+        print("staged SETTLED.md")
     return 0
 
 
