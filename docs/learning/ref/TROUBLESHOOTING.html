@@ -65,11 +65,16 @@ away rather than reproduced here.</p>
 <hr>
 <h2 id="brick-hazards">Brick hazards</h2>
 <h3 id="the-part-reads-back-0xda-and-will-not-respond">The part reads back <code>0xDA</code> and will not respond</h3>
-<p><strong>Permanent. The board is dead.</strong> FSPR, the option-memory permanence word, has been cleared and
-block protection is latched on. Two EK-RA6M4 boards were lost this way on 2026-07-21.</p>
-<p><strong>Cause.</strong> A BL2 image whose option-setting words were coalesced by the linker into <strong>one</strong>
-<code>PT_LOAD</code> segment spanning <code>0x0100A100</code>–<code>0x0100A2CC</code>. The gaps between the real words are
-zero-filled by the loader, and zero in those positions means &quot;protect, permanently&quot;.</p>
+<p><strong>Permanent. The board is dead.</strong> Two EK-RA6M4 boards were lost this way on 2026-07-21.
+<strong>Which field killed them is not known</strong> — <a href="DECISIONS.html#d094">D094</a> disproved both attributions that had been
+offered (FSPR permanence, which RA6M4 does not implement, and <code>OFS1_SEL</code> content, which was
+byte-identical to a working board). Post-brick readback gave <code>DLMMON = 0x2</code> = SSD, an open
+state, not a DLM lock.</p>
+<p><strong>Cause — the mechanism is proven even though the field is not.</strong> A BL2 image whose
+option-setting words were coalesced by the linker into <strong>one</strong> <code>PT_LOAD</code>. Measured on the
+preserved image: a segment at <code>0x0100A100</code> of <strong>388 bytes</strong> (<code>0x184</code>, to <code>0x0100A283</code>) holding
+the <strong>three</strong> words that BL2 emitted, of which <strong>376 bytes were zero fill</strong> written across
+configuration memory that should have been left alone.</p>
 <p><strong>What makes it lethal is that nothing warns you.</strong> The linker is content, the srec is clean,
 and <code>check_ofs.py --ra6-default</code> once validated against a hardcoded RA6 window that still
 contained the stale address, so it printed CLEAN.</p>
@@ -103,11 +108,15 @@ bootloader projects. Regenerate.</p>
 <p><strong>Now caught at build time</strong> — <code>&lt;part&gt;_layout_checks.c</code> and <code>bl2_option_setting.c</code> <code>#error</code> on
 it, so it fails the build rather than the board. <a href="DECISIONS.html#d034">D034</a>, <code>DESIGN.md</code> §8.1.</p>
 <h3 id="bootloader-panic-immediately-before-any-mcuboot-output">Bootloader panic immediately, before any MCUboot output</h3>
-<p><strong>Cause (RA8M2, and RA6M5 if FSP&#x27;s backend is ever re-enabled).</strong> The flash controller is opened
-twice. <code>boot_platform_init()</code> opens <code>g_mram0_ctrl</code> / <code>g_flash0_ctrl</code>, then FSP&#x27;s
-<code>flash_area_open()</code> opens the same controller, gets <code>FSP_ERR_ALREADY_OPEN</code> and returns −1.</p>
-<p><strong>Fix, already in place.</strong> <code>&lt;part&gt;_flash_release_for_mcuboot()</code> calls <code>R_MRAM_Close()</code> /
-<code>R_FLASH_HP_Close()</code> and is the first thing <code>boot_platform_post_init()</code> does. <a href="DECISIONS.html#d085">D085</a>.</p>
+<p><strong>Historical — applies only if FSP&#x27;s MCUboot backend is re-linked.</strong> Since <a href="DECISIONS.html#d091">D091</a> neither part
+builds <code>rm_mcuboot_port</code>, so this cannot occur in a current build.</p>
+<p><strong>Cause.</strong> The flash controller was opened twice: <code>boot_platform_init()</code> opened <code>g_mram0_ctrl</code> /
+<code>g_flash0_ctrl</code>, then FSP&#x27;s <code>flash_area_open()</code> opened the same controller, got
+<code>FSP_ERR_ALREADY_OPEN</code> and returned −1. The fix then was
+<code>&lt;part&gt;_flash_release_for_mcuboot()</code>, called first from <code>boot_platform_post_init()</code> (<a href="DECISIONS.html#d085">D085</a>).
+<strong>That function no longer exists.</strong> <a href="DECISIONS.html#d091">D091</a> removed the handover entirely - <code>mram_open_once()</code>
+tolerates <code>FSP_ERR_ALREADY_OPEN</code> - and <code>boot_platform_post_init()</code> now begins with
+<code>bl2_sau_init()</code>.</p>
 <h3 id="err-image-in-the-primary-slot-is-not-valid--unable-to-find-bootable-image"><code>[ERR] Image in the primary slot is not valid!</code> / <code>Unable to find bootable image</code></h3>
 <p>Work through these in order — the first three are the common causes:</p>
 <ol>
@@ -200,9 +209,21 @@ script reproduced (<a href="DECISIONS.html#d084">D084</a>), and a stale tool pat
 defaults** — <code>TFM_ISOLATION_LEVEL</code> and the <code>TFM_PARTITION_*</code> set are already in the cache by
 the time the profile file is read. <a href="DECISIONS.html#d007">D007</a>.</p>
 <h3 id="the-secure-primary-slot-generates-as-512-bytes">The secure primary slot generates as 512 bytes</h3>
-<p><strong>Partition emission order in the e2 solution</strong>, not geometry: <code>__BL_0_S_T</code> was emitted before
-<code>__BL_0_P_H</code>. After any repartition, read <code>Debug/bsp_linker_info.h</code> back and check that
-<code>__BL_0_P_H_START</code> equals <code>__BL_0_S_T_START</code>. <a href="DECISIONS.html#d078">D078</a>.</p>
+<p><strong>Partition emission order in the e2 solution</strong>, not geometry — and the direction matters:
+<code>__BL_0_P_H</code> was emitted <strong>before</strong> <code>__BL_0_S_T</code>. <code>S_T</code> first is the correct order, which is
+what RA6M5 generates. The generator sums partitions until it meets a <code>_T</code>; with <code>S_T</code> first it
+closes the secondary slot cleanly and <code>P_H</code> then opens the primary, and with <code>P_H</code> first the
+primary closes immediately at 0x200.</p>
+<p><strong>Do not check that the two STARTs are equal.</strong> They coincide in the broken layout <em>and</em> the
+correct one — 0x68000 on RA8M2, 0xA0000 on RA6M5 — so equality proves nothing. That coincidence
+was the first hypothesis and it was wrong.</p>
+<p><strong>The check that works:</strong> read <code>FLASH_AREA_0P</code>&#x27;s <code>.fa_size</code> out of <code>Debug/bsp_linker_info.h</code>.
+A 512-byte secure primary slot is the defect; it should carry <code>FLASH_CPU0_S</code> and <code>FLASH_CPU0_C</code>
+too. Or read the partition order directly out of <code>solution.xml</code>. <a href="DECISIONS.html#d078">D078</a>.</p>
+<p><strong>Note the port will not catch this for you.</strong> TF-M&#x27;s <code>flash_layout.h</code> computes slot sizes with
+<code>TFM_SLOT_SPAN</code> — header start to trailer end — which is address-based and immune, and since
+<a href="DECISIONS.html#d091">D091</a> the port does not consume FSP&#x27;s <code>flash_map[]</code> at all. This is a solution-generation
+defect that a clean TF-M build will not notice.</p>
 <hr>
 <h2 id="things-that-look-like-failures-and-are-not">Things that look like failures and are not</h2>
 <h3 id="rtt-prints-nothing">RTT prints nothing</h3>

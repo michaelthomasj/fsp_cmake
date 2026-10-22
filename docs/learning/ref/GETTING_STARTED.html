@@ -207,9 +207,12 @@ are how you confirm it by hand on an image you are about to flash.</p>
 them, so a wrong address is a silent &quot;prints nothing&quot;, not an error. There is deliberately no
 table of them in this repository — any such table is wrong within one rebuild.</li>
 <li><strong>First flash on an unfamiliar board:</strong> consider <code>-D&lt;PART&gt;_BL2_HALT_AT_MAIN=ON</code>, which spins
-BL2 at <code>main()</code> so FAWMON/FSPR can be read back before MCUboot runs. Note the image is **not
-bootable** with it set, and it does not help capture BL2&#x27;s log — it halts before the first
-print (<a href="DECISIONS.html#d107">D107</a>).</li>
+BL2 at <code>main()</code> so option/lifecycle registers can be read back before MCUboot runs. Read
+<strong><code>DLMMON</code></strong> (<code>0x400E002C</code>) for the lifecycle state; <strong>do not read <code>FAWMON</code>/<code>FSPR</code></strong> — both
+live parts report <code>BSP_FEATURE_FLASH_SUPPORTS_ACCESS_WINDOW = 0</code>, so those registers are not
+implemented and the values are meaningless (<a href="DECISIONS.html#d094">D094</a> made the same point for RA6M4). Note the
+image is <strong>not bootable</strong> with it set, and it does not help capture BL2&#x27;s log — the spin is
+at <code>bl2_main.c:112-125</code>, before any init or logging.</li>
 </ul>
 <h3 id="seeing-the-output">Seeing the output</h3>
 <p>Console output goes over <strong>SEGGER RTT</strong>, not a UART. Each image has its own control block and

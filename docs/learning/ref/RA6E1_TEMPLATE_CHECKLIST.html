@@ -242,9 +242,12 @@ board with the Renesas Device Partition Manager, in KB, and must be recomputed o
 repartition against the 32 KB (code) / 8 KB (SRAM) granularity rule. Current values in
 <code>RA6E1_SOLUTION.md</code>.</li>
 <li><strong>The OFS discrete-region rule.</strong> <code>ra6e1_bl2.ld</code> must keep thirteen <strong>discrete</strong> <code>MEMORY</code>
-regions, each <code>&gt; REGION</code>. One coalesced <code>PT_LOAD</code> zero-fills 368 bytes of FCU config including
-the FSPR permanence word and permanently bricks the part — invisible in the srec, and it cost
-two EK-RA6M4 boards on 2026-07-21. This lives in the TF-M port, not the template, but any
+regions, each <code>&gt; REGION</code>. One coalesced <code>PT_LOAD</code> zero-fills the option memory between the
+words and permanently bricks the part — invisible in the srec, and it cost two EK-RA6M4 boards
+on 2026-07-21. <strong>Measured on the bricked image</strong> (<a href="DECISIONS.html#d094">D094</a>): a 388-byte segment holding three
+emitted words, of which <strong>376 bytes were zero fill</strong>. The FSPR attribution an earlier revision
+of this line carried is withdrawn — RA6M4 has no Flash Access Window — and which zeroed field
+killed the boards is unknown. This lives in the TF-M port, not the template, but any
 layout change should be re-verified: <code>arm-none-eabi-readelf -l bin/bl2.axf</code>.</li>
 </ul>
 </main>

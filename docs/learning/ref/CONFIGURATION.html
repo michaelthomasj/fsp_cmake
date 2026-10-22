@@ -91,7 +91,7 @@ tree, not the config file. This has cost real debugging time twice (<a href="DEC
 <tr><th>Option</th><th>Meaning</th></tr>
 <tr><td><code>TFM_PLATFORM</code></td><td><code>renesas/ra6m5</code> or <code>renesas/ra8m2</code></td></tr>
 <tr><td><code>FSP_S_APP_DIR</code></td><td>the generated <strong>secure</strong> e2 project. Supplies <code>Debug/bsp_linker_info.h</code>, from which the whole layout is derived</td></tr>
-<tr><td><code>FSP_BL2_APP_DIR</code></td><td>the generated <strong>bootloader</strong> project. Supplies the OFS values and, on RA8M2, FSP&#x27;s MCUboot backend</td></tr>
+<tr><td><code>FSP_BL2_APP_DIR</code></td><td>the generated <strong>bootloader</strong> project. Supplies the OFS values and the FSP driver modules BL2 needs (<a href="DECISIONS.html#d091">D091</a> removed the FSP MCUboot backend from both parts)</td></tr>
 <tr><td><code>FSP_NS_APP_DIR</code></td><td>the generated <strong>non-secure</strong> project</td></tr>
 <tr><td><code>TFM_TOOLCHAIN_FILE</code></td><td><code>toolchain_GNUARM.cmake</code> or <code>toolchain_IARARM.cmake</code></td></tr>
 <tr><td><code>CMAKE_BUILD_TYPE</code></td><td><strong><code>MinSizeRel</code> is not optional on GNUARM.</strong> <code>Debug</code> does not fit — <code>tfm_s</code> comes out around 414 KB against RA8M2&#x27;s 293 KB secure region. IAR <code>Debug</code> does fit (<a href="DECISIONS.html#d056">D056</a>)</td></tr>
@@ -105,10 +105,9 @@ tree, not the config file. This has cost real debugging time twice (<a href="DEC
 <div class="table-wrap"><table>
 <tr><th>Variable</th><th>RA6M5</th><th>RA8M2</th></tr>
 <tr><td><code>FSP_MODULES_S</code></td><td><code>bsp flash sce agt</code></td><td><code>bsp flash sce agt</code></td></tr>
-<tr><td><code>FSP_MODULES_BL2</code></td><td><code>bsp flash</code></td><td><code>bsp flash mcuboot_port</code></td></tr>
+<tr><td><code>FSP_MODULES_BL2</code></td><td><code>bsp flash</code> (+ <code>sce</code> when <code>CRYPTO_HW_ACCELERATOR</code> is ON)</td><td><code>bsp flash</code> (+ <code>sce</code> when <code>CRYPTO_HW_ACCELERATOR</code> is ON)</td></tr>
 <tr><td><code>FSP_MODULE_DIRS_flash</code></td><td><code>r_flash_hp</code></td><td><strong><code>r_mram</code></strong> — MRAM, not HP flash</td></tr>
-<tr><td><code>FSP_MODULE_DIRS_mcuboot_port</code></td><td>—</td><td><code>rm_mcuboot_port</code></td></tr>
-<tr><td><code>FSP_MODULES_NEVER_BUILT</code></td><td><code>r_sce rm_psa_crypto rm_mcuboot_port</code></td><td><code>r_sce rm_psa_crypto</code></td></tr>
+<tr><td><code>FSP_MODULES_NEVER_BUILT</code></td><td><code>r_sce rm_psa_crypto rm_mcuboot_port</code></td><td><code>r_sce rm_psa_crypto rm_mcuboot_port</code></td></tr>
 </table></div>
 <p><code>FSP_MODULES_NEVER_BUILT</code> lists modules whose sources the port supplies or compiles by another
 route; naming one here keeps the generic module glob from also building it.</p>
@@ -215,7 +214,7 @@ has the room and the ordinary builds do not. That is why they are per-script rat
 <tr><td><code>TFM_NV_COUNTERS_AREA_SIZE</code></td><td><code>flash_layout.h</code></td><td>2048 B; PS and ITS split what remains</td></tr>
 <tr><td><code>TFM_HAL_PS_SECTORS_PER_BLOCK</code></td><td><code>flash_layout.h</code></td><td><code>(area/sector)/2</code>. <code>num_blocks &lt; 2</code> fails ITS <strong>and</strong> PS init outright, reported as pid 257</td></tr>
 <tr><td><code>FLASH_AREA_IMAGE_SECTOR_SIZE</code></td><td><code>flash_layout.h</code></td><td><code>0x8000</code> on both. <strong>Restates an FSP value</strong> and is not machine-checkable against it — see the note in <code>&lt;part&gt;_layout_checks.c</code> and diff FSP&#x27;s generated <code>mcuboot_config.h</code> after a pack uprev (<a href="DECISIONS.html#d054">D054</a>)</td></tr>
-<tr><td>OFS <code>OPTION_SETTING_*</code></td><td><code>region_defs.h</code> (RA6M5), generated <code>option_settings.h</code> (RA8M2)</td><td><strong>BRICK HAZARD.</strong> One <code>MEMORY</code> region per word; a coalesced <code>PT_LOAD</code> zero-fills the gaps and programs block protect to 0, permanently. Invisible in the srec — <code>readelf -l</code> is the only place it shows. <code>check_ofs.py</code> enforces it (<a href="DECISIONS.html#d002">D002</a>)</td></tr>
+<tr><td>OFS <code>OPTION_SETTING_*</code></td><td><code>region_defs.h</code> (RA6M5), generated <code>option_settings.h</code> (RA8M2)</td><td><strong>BRICK HAZARD.</strong> One <code>MEMORY</code> region per word; a coalesced <code>PT_LOAD</code> zero-fills the configuration memory between the words — permanent brick (<a href="DECISIONS.html#d094">D094</a>; which field dies is unknown). Invisible in the srec — <code>readelf -l</code> is the only place it shows. <code>check_ofs.py</code> enforces it (<a href="DECISIONS.html#d002">D002</a>)</td></tr>
 </table></div>
 <p><strong>OFS values are edited in the BOOTLOADER project</strong>, not the secure one. Both projects define
 the same <code>BSP_CFG_OPTION_SETTING_*</code> groups, so editing the wrong one has no effect and no

@@ -278,10 +278,13 @@ than merely fixed. <code>bl2/CMakeLists.txt</code> is byte-identical to TF-Mv2.2
 <p>The image layout is still the Solution&#x27;s: <code>FLASH_AREA_*_OFFSET/SIZE</code> derive from
 <code>BSP_PARTITION_*</code> regardless of which backend reads them. Layout ownership and backend ownership
 are separable, and conflating them is what made this take three attempts.</p>
-<p><strong>The flash controller is handed over, not shared.</strong> <code>boot_platform_init()</code> opens <code>g_mram0_ctrl</code>,
-and FSP&#x27;s <code>flash_area_open()</code> then opens the same controller and returns −1 on
-<code>FSP_ERR_ALREADY_OPEN</code> — a bootloader panic. <code>ra8m2_flash_release_for_mcuboot()</code> calls
-<code>R_MRAM_Close()</code> and is the first thing <code>boot_platform_post_init()</code> does.</p>
+<p><strong>The flash controller is no longer handed over.</strong> That paragraph described the FSP-backend
+arrangement <a href="DECISIONS.html#d091">D091</a> removed: <code>boot_platform_init()</code> opened <code>g_mram0_ctrl</code>, FSP&#x27;s
+<code>flash_area_open()</code> then opened the same controller and returned −1 on <code>FSP_ERR_ALREADY_OPEN</code>,
+so <code>ra8m2_flash_release_for_mcuboot()</code> had to close it first. **No such function exists in the
+port now**, and FSP&#x27;s <code>flash_area_open()</code> is not built. Today <code>Driver_FLASH0</code> owns <code>g_mram0</code>,
+<code>Driver_Flash.c</code> handles <code>FSP_ERR_ALREADY_OPEN</code> by close-and-reopen, and the first thing
+<code>boot_platform_post_init()</code> does is <code>bl2_sau_init()</code>.</p>
 <hr>
 <h2 id="open-items">Open items</h2>
 <ul>

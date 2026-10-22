@@ -125,8 +125,9 @@ discrete segments.</li>
 </ul>
 <p><code>check_ofs.py</code> enforces the region rule at build time. Keep it working for the new part.</p>
 <h3 id="bl2_boot_halc--43-similar-119-lines"><code>bl2_boot_hal.c</code> — 43% similar, 119 lines</h3>
-<p>BL2&#x27;s platform hooks. Part-specific content: the <strong>SAU programming</strong> (RA8 only — see §4), the
-flash controller handover, and any clock or security setup BL2 needs before MCUboot runs.</p>
+<p>BL2&#x27;s platform hooks. Part-specific content: the <strong>SAU programming</strong> (RA8 only — see §4) and
+the crypto-engine start before MCUboot hashes anything. The flash-controller handover that used
+to live here is gone (<a href="DECISIONS.html#d091">D091</a>): <code>mram_open_once()</code> tolerates <code>FSP_ERR_ALREADY_OPEN</code>.</p>
 <h3 id="config_tfm_targeth--41-similar-64-lines"><code>config_tfm_target.h</code> — 41% similar, 64 lines</h3>
 <p>Mostly the PS/ITS asset budget. <code>PS_NUM_ASSETS</code> is <strong>per part and capacity-bound</strong>: 5 on RA6M5
 (1,536 B PS block) against 155 on RA8M2 (15,872 B). Assert it in <code>&lt;part&gt;_layout_checks.c</code>.</p>

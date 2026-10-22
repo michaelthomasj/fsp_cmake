@@ -230,9 +230,11 @@ RA6M5) the SAU in software. But RA8M2 has a second address alias and an SAU, and
 </table></div>
 <p>The consequence is not cosmetic. With no SAU, Armv8-M attributes <strong>every</strong> address Secure (the
 combined SAU/IDAU takes the more secure of the two), so on RA8M2 a secure transaction to the
-non-secure alias is refused until the SAU is programmed. That is why BL2 on RA8M2 takes FSP&#x27;s
-flash backend, whose <code>flash_area_open()</code> programs the SAU from <code>R_PSCU-&gt;CFSAMONA_b.CFS2</code> and
-tears it down in <code>flash_on_chip_cleanup()</code> (§4, D073/D079). Once RDPM has programmed
+non-secure alias is refused until the SAU is programmed. That is why BL2 on RA8M2 programmes the SAU
+itself, in <code>bl2_boot_hal.c</code> - <code>bl2_sau_init()</code> is the first thing <code>boot_platform_post_init()</code>
+does, with the bounds imported from FSP&#x27;s <code>flash_map.c</code>. It used to arrive as a side effect of
+FSP&#x27;s <code>flash_area_open()</code>, which is what <a href="DECISIONS.html#d073">D073</a>/<a href="DECISIONS.html#d079">D079</a> describe; <a href="DECISIONS.html#d091">D091</a> moved both parts onto
+TF-M&#x27;s backend and the SAU programming came with it (§4). Once RDPM has programmed
 <code>CFSAMONA.CFS2</code>, each alias reaches only its own half.</p>
 <p>Attribution itself is entirely what is burned via RFP/RDPM — see §7.1.</p>
 <ul>
@@ -415,17 +417,25 @@ fixture for this check; do not delete it.</p>
 <code>platform/ext/target/renesas/common/check_ofs.py</code>. The option-setting map is byte-identical on
 RA6M4 and RA6E1, and the three copies that existed had already drifted — the RA6E1 one claimed
 RA6E1 boards were bricked. One guard, one place.</p>
-<p><strong>Related:</strong> <code>BSP_CFG_CLOCKS_SECURE = 1</code>. <code>bsp_mcu_ofs_cfg.h</code> computes
-<code>OFS1_SEL = 0xFFFFF8F8 | ((BSP_CFG_CLOCKS_SECURE == 0) ? 0xF00 : 0)</code>. With <code>0</code>, the clock-related
-OFS1 fields are marked <strong>non-secure</strong>; on a TZ part with boundaries programmed that attribution
-mismatch can lock out the debug interface. BL2 and the secure image own the clocks, so clocks must
-be secure. External RASC projects must set this in the RASC BSP configuration too.</p>
+<p><strong>Related, and narrower than it used to read:</strong> <code>bsp_mcu_ofs_cfg.h</code> computes
+<code>OFS1_SEL = 0xFFFFF8F8 | ((BSP_CFG_CLOCKS_SECURE == 0) ? 0xF00 : 0)</code> only in its TrustZone-secure
+branch. <strong>BL2 is built as the flat FSP role</strong>, so it takes the <code>#else</code> branch and <code>OFS1_SEL</code>
+carries no <code>CLOCKS_SECURE</code> term at all — <code>FSP_TZ_DEFS_BL2</code> is empty on both parts. The e2
+generator also emits <code>BSP_CFG_CLOCKS_SECURE (0)</code> whatever the RASC setting (<a href="DECISIONS.html#d093">D093</a>), so setting
+it in RASC changes nothing here.</p>
+<p><a href="DECISIONS.html#d094">D094</a> withdrew the <code>OFS1_SEL</code> attribution outright: the bricked image carried <code>0xFFFFF8F8</code>, the
+known-good value, byte-identical to a working board. The real RA8 consequence is the MRAM
+Security Attribution register, handled by <code>BSP_TZ_CFG_MSAR=0</code> (§1.1).</p>
 <p><strong>Note on <code>bl2.bin</code>:</strong> because OFS sits at <code>0x0100Axxx</code>, a plain <code>objcopy -O binary</code> pads
 <code>bl2.bin</code> to ~16.8 MB, zero-filling PBPS at <code>0x0100A1E0</code> — the brick, from an ELF that passes
 every check. <strong>Flash <code>bl2.hex</code> or <code>bl2.srec</code>, never <code>bl2.bin</code>.</strong></p>
-<p>Since 2026-09-29 all four ports re-emit the flat binary with <code>--remove-section=.option_setting*</code>
-and verify the result with <code>check_ofs.py --check-flat-bin</code>, so a <code>.bin</code> from a current build is
-~27 KB and safe. <strong>The rule stands regardless:</strong> a <code>.bin</code> from an older build dir, another
+<p>Since 2026-09-29 all four ports re-emit the flat binary and verify the result with
+<code>check_ofs.py --check-flat-bin</code>, so a <code>.bin</code> from a current build is safe - 33,388 B on RA6M5
+and 27,888 B on RA8M2. <strong>The re-emission is address-driven, not name-driven:</strong>
+<code>check_ofs.py --emit-safe-bin</code> walks the program headers, because <a href="DECISIONS.html#d068">D068</a> found that
+<code>--remove-section=.option_setting*</code> matches nothing under IAR ILINK, which renames those
+sections <code>P1</code>/<code>P7</code>/<code>P11</code> - the pattern silently succeeds and emits the full 16.8 MB brick.
+<strong>Never reproduce the strip by hand with <code>objcopy --remove-section</code>.</strong> <strong>The rule stands regardless:</strong> a <code>.bin</code> from an older build dir, another
 toolchain path, or a hand-run <code>objcopy</code> is lethal and looks identical in a file listing. Size is
 the only tell — over ~1 MB means it spans the option memory.</p>
 <h2 id="s9">9. Console / logging — SEGGER RTT (switchable)</h2>

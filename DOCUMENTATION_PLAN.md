@@ -129,7 +129,7 @@ describe.** That is the argument for item 3 below.
    references on its first run, all pointing at files that had been moved to `archive/ra6m4/`
    without their citations being updated. Now green and enforced. Original note: Three have already been found and fixed by accident
    rather than by checking ([D094]'s wrong D-numbers; `RA8M2_SOLUTION.md` describing the FSP
-   MCUboot backend months after [D091] removed it; `app_build_ra8m2_iar.bat` claiming the two
+   MCUboot backend days after [D091] removed it; `app_build_ra8m2_iar.bat` claiming the two
    project sets were out of sync after they had been reconciled). **There is no check for
    this.** A script that extracts every `DECISIONS.md` citation from every document and
    verifies the entry exists and its title matches the claim would have caught all three.
@@ -182,8 +182,9 @@ the survey already found one that is not a cache variable.
 `FSP_MODULES_S` / `FSP_MODULES_BL2` / `FSP_EXCLUDED_MODULES`, `<PART>_STDOUT_RTT`,
 `<PART>_RTT_BLOCKING`, `<PART>_NS_IN_SPE_BUILD` (default OFF on both live parts),
 `<PART>_BL2_HALT_AT_MAIN`, `<PART>_ORPHAN_CHECK_STRICT`, `TFM_SPM_DEBUG_TRACE`,
-`TFM_EXCEPTION_INFO_DUMP`, `PLATFORM_HAS_ISOLATION_L3_SUPPORT` (D008), and on RA8M2 only
-`DEFAULT_MCUBOOT_FLASH_MAP` / `DEFAULT_MCUBOOT_FLASH_BACKEND` (both OFF, D079/D085).
+`TFM_EXCEPTION_INFO_DUMP`, `PLATFORM_HAS_ISOLATION_L3_SUPPORT` (D008). `DEFAULT_MCUBOOT_FLASH_MAP` and
+`DEFAULT_MCUBOOT_FLASH_BACKEND` are **not** in this list: [D091] left neither set in either
+`config.cmake` - the map is ON by upstream default and the backend variable no longer exists.
 
 *Checked 2026-10-04:* the "not a cache variable" defect this file predicted does **not** exist
 on ra6m5 or ra8m2. Every user-facing `<PART>_*` option there is declared `CACHE BOOL`, some in

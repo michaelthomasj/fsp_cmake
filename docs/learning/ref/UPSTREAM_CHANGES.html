@@ -66,7 +66,8 @@ Regenerate the authoritative list at any time with:</p>
 <pre><code>git diff --stat $(git merge-base HEAD upstream/main) -- \
     platform/ext/common/ platform/include/ platform/ns/ bl2/ secure_fw/ config/ \
     toolchain_GNUARM.cmake toolchain_IARARM.cmake</code></pre>
-<p>21 files differ. Each is accounted for below.</p>
+<p>20 files differ. Each is accounted for below. (It was 21 until <a href="DECISIONS.html#d091">D091</a> withdrew item 13 and
+returned <code>bl2/CMakeLists.txt</code> to byte-identical with TF-Mv2.2.0.)</p>
 <hr>
 <h2 id="ready-to-upstream">Ready to upstream</h2>
 <h3 id="s1">1. IAR: <code>STACKSEAL</code> block reserves space but places no section</h3>

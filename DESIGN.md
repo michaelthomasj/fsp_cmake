@@ -180,9 +180,11 @@ RA6M5) the SAU in software. But RA8M2 has a second address alias and an SAU, and
 
 The consequence is not cosmetic. With no SAU, Armv8-M attributes **every** address Secure (the
 combined SAU/IDAU takes the more secure of the two), so on RA8M2 a secure transaction to the
-non-secure alias is refused until the SAU is programmed. That is why BL2 on RA8M2 takes FSP's
-flash backend, whose `flash_area_open()` programs the SAU from `R_PSCU->CFSAMONA_b.CFS2` and
-tears it down in `flash_on_chip_cleanup()` (§4, D073/D079). Once RDPM has programmed
+non-secure alias is refused until the SAU is programmed. That is why BL2 on RA8M2 programmes the SAU
+itself, in `bl2_boot_hal.c` - `bl2_sau_init()` is the first thing `boot_platform_post_init()`
+does, with the bounds imported from FSP's `flash_map.c`. It used to arrive as a side effect of
+FSP's `flash_area_open()`, which is what [D073]/[D079] describe; [D091] moved both parts onto
+TF-M's backend and the SAU programming came with it (§4). Once RDPM has programmed
 `CFSAMONA.CFS2`, each alias reaches only its own half.
 
 Attribution itself is entirely what is burned via RFP/RDPM — see §7.1.
@@ -395,19 +397,28 @@ Wired on **both** platforms, from a single shared copy at
 RA6M4 and RA6E1, and the three copies that existed had already drifted — the RA6E1 one claimed
 RA6E1 boards were bricked. One guard, one place.
 
-**Related:** `BSP_CFG_CLOCKS_SECURE = 1`. `bsp_mcu_ofs_cfg.h` computes
-`OFS1_SEL = 0xFFFFF8F8 | ((BSP_CFG_CLOCKS_SECURE == 0) ? 0xF00 : 0)`. With `0`, the clock-related
-OFS1 fields are marked **non-secure**; on a TZ part with boundaries programmed that attribution
-mismatch can lock out the debug interface. BL2 and the secure image own the clocks, so clocks must
-be secure. External RASC projects must set this in the RASC BSP configuration too.
+**Related, and narrower than it used to read:** `bsp_mcu_ofs_cfg.h` computes
+`OFS1_SEL = 0xFFFFF8F8 | ((BSP_CFG_CLOCKS_SECURE == 0) ? 0xF00 : 0)` only in its TrustZone-secure
+branch. **BL2 is built as the flat FSP role**, so it takes the `#else` branch and `OFS1_SEL`
+carries no `CLOCKS_SECURE` term at all — `FSP_TZ_DEFS_BL2` is empty on both parts. The e2
+generator also emits `BSP_CFG_CLOCKS_SECURE (0)` whatever the RASC setting ([D093]), so setting
+it in RASC changes nothing here.
+
+[D094] withdrew the `OFS1_SEL` attribution outright: the bricked image carried `0xFFFFF8F8`, the
+known-good value, byte-identical to a working board. The real RA8 consequence is the MRAM
+Security Attribution register, handled by `BSP_TZ_CFG_MSAR=0` (§1.1).
 
 **Note on `bl2.bin`:** because OFS sits at `0x0100Axxx`, a plain `objcopy -O binary` pads
 `bl2.bin` to ~16.8 MB, zero-filling PBPS at `0x0100A1E0` — the brick, from an ELF that passes
 every check. **Flash `bl2.hex` or `bl2.srec`, never `bl2.bin`.**
 
-Since 2026-09-29 all four ports re-emit the flat binary with `--remove-section=.option_setting*`
-and verify the result with `check_ofs.py --check-flat-bin`, so a `.bin` from a current build is
-~27 KB and safe. **The rule stands regardless:** a `.bin` from an older build dir, another
+Since 2026-09-29 all four ports re-emit the flat binary and verify the result with
+`check_ofs.py --check-flat-bin`, so a `.bin` from a current build is safe - 33,388 B on RA6M5
+and 27,888 B on RA8M2. **The re-emission is address-driven, not name-driven:**
+`check_ofs.py --emit-safe-bin` walks the program headers, because [D068] found that
+`--remove-section=.option_setting*` matches nothing under IAR ILINK, which renames those
+sections `P1`/`P7`/`P11` - the pattern silently succeeds and emits the full 16.8 MB brick.
+**Never reproduce the strip by hand with `objcopy --remove-section`.** **The rule stands regardless:** a `.bin` from an older build dir, another
 toolchain path, or a hand-run `objcopy` is lethal and looks identical in a file listing. Size is
 the only tell — over ~1 MB means it spans the option memory.
 

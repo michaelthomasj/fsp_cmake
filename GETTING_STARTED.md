@@ -201,9 +201,12 @@ Then:
   them, so a wrong address is a silent "prints nothing", not an error. There is deliberately no
   table of them in this repository — any such table is wrong within one rebuild.
 - **First flash on an unfamiliar board:** consider `-D<PART>_BL2_HALT_AT_MAIN=ON`, which spins
-  BL2 at `main()` so FAWMON/FSPR can be read back before MCUboot runs. Note the image is **not
-  bootable** with it set, and it does not help capture BL2's log — it halts before the first
-  print ([D107]).
+  BL2 at `main()` so option/lifecycle registers can be read back before MCUboot runs. Read
+  **`DLMMON`** (`0x400E002C`) for the lifecycle state; **do not read `FAWMON`/`FSPR`** — both
+  live parts report `BSP_FEATURE_FLASH_SUPPORTS_ACCESS_WINDOW = 0`, so those registers are not
+  implemented and the values are meaningless ([D094] made the same point for RA6M4). Note the
+  image is **not bootable** with it set, and it does not help capture BL2's log — the spin is
+  at `bl2_main.c:112-125`, before any init or logging.
 
 ### Seeing the output
 

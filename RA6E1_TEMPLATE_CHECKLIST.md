@@ -202,7 +202,10 @@ Measured from the current build; leave headroom rather than fitting exactly.
   repartition against the 32 KB (code) / 8 KB (SRAM) granularity rule. Current values in
   `RA6E1_SOLUTION.md`.
 - **The OFS discrete-region rule.** `ra6e1_bl2.ld` must keep thirteen **discrete** `MEMORY`
-  regions, each `> REGION`. One coalesced `PT_LOAD` zero-fills 368 bytes of FCU config including
-  the FSPR permanence word and permanently bricks the part — invisible in the srec, and it cost
-  two EK-RA6M4 boards on 2026-07-21. This lives in the TF-M port, not the template, but any
+  regions, each `> REGION`. One coalesced `PT_LOAD` zero-fills the option memory between the
+  words and permanently bricks the part — invisible in the srec, and it cost two EK-RA6M4 boards
+  on 2026-07-21. **Measured on the bricked image** ([D094]): a 388-byte segment holding three
+  emitted words, of which **376 bytes were zero fill**. The FSPR attribution an earlier revision
+  of this line carried is withdrawn — RA6M4 has no Flash Access Window — and which zeroed field
+  killed the boards is unknown. This lives in the TF-M port, not the template, but any
   layout change should be re-verified: `arm-none-eabi-readelf -l bin/bl2.axf`.

@@ -75,7 +75,8 @@ from RA6M5 into a part whose engine directory is <code>rsip_e50d</code>. Both no
 <li>An 87-line Protected Storage comment in <code>ra8m2/config_tfm_target.h</code> was RA6M5&#x27;s arithmetic
 verbatim, opening &quot;the RA8M2&#x27;s 8 KB data flash&quot; — a part with no data flash (<a href="DECISIONS.html#d086">D086</a>).</li>
 </ul>
-<p>Verified 2026-10-04 against both live parts.</p>
+<p>Verified 2026-10-04 against both live parts. §3 and the <code>rm_mcuboot_port</code> row were
+re-checked and corrected 2026-10-22 for <a href="DECISIONS.html#d091">D091</a>, which postdates that verification.</p>
 <hr>
 <h2 id="run-these-after-any-fsp-pack-uprev">Run these after any FSP pack uprev</h2>
 <h3 id="s1">1. The mbedTLS patch set — content comparison</h3>
@@ -123,15 +124,22 @@ so the first one reached silently suppresses the other. They do not define the s
 complete types, the link succeeds, and the only symptom is a bootloader rejecting a correct
 image (<a href="DECISIONS.html#d090">D090</a>). An FSP uprev that adds a member, or a TF-M bump that changes its struct, breaks
 this again with no warning.</p>
-<p><strong>The check</strong> - every linked object must report 12:</p>
+<p><strong>Since <a href="DECISIONS.html#d091">D091</a> the expected size is 16, not 12.</strong> Both parts now compile TF-M&#x27;s struct and
+never build <code>rm_mcuboot_port</code> (<code>FSP_MODULES_NEVER_BUILT</code> at <code>ra6m5/CMakeLists.txt:252</code> and
+<code>ra8m2/CMakeLists.txt:299</code>), so FSP&#x27;s header reaches no include path and the collision is
+structurally impossible. The check below was written when FSP&#x27;s 12-byte struct was expected;
+<strong>run unchanged it now flags every live <code>bootutil</code>/<code>flash_map</code> object as a failure</strong>, and
+acting on that would mean putting FSP&#x27;s header back.</p>
+<p><strong>The check</strong> - every linked object must report <strong>16</strong>:</p>
 <pre><code class="language-sh">for o in $(find &lt;build&gt;/bl2 &lt;build&gt;/platform -name '*.o'); do
   arm-none-eabi-readelf --debug-dump=info "$o" 2&gt;/dev/null |     awk -v f="$o" '/DW_TAG_structure_type/{s=1;n="";b=""}
          s&amp;&amp;/DW_AT_name.*: flash_area$/{n=1}
          s&amp;&amp;/DW_AT_byte_size/{b=$NF}
-         n&amp;&amp;b{if(b!=12)print b" bytes: "f; exit}'
+         n&amp;&amp;b{if(b!=16)print b" bytes: "f; exit}'
 done</code></pre>
-<p>Objects reporting 16 are only acceptable if they are TF-M&#x27;s own backend files left stale on
-disk - confirm with <code>grep -c &lt;object&gt; build.ninja</code> returning 0.</p>
+<p><strong>Objects reporting 12 are the failure now</strong> - FSP&#x27;s header has been reintroduced somewhere.
+A stale on-disk object can report either size; confirm with <code>grep -c &lt;object&gt; build.ninja</code>
+returning 0 before chasing it.</p>
 <h3 id="s4">4. The rm_psa_crypto tree — the cheapest canary found so far</h3>
 <pre><code class="language-sh">cd &lt;peaks-working&gt; &amp;&amp; git diff --stat ra/fsp/src/rm_psa_crypto/</code></pre>
 <p>Of 35 files, only <code>aes_alt.c</code> and <code>cipher_alt.c</code> have ever differed between the SCE9 and E50D
@@ -179,9 +187,11 @@ changed semantics.</p>
 <h3 id="shadows-an-fsp-module-wholesale">Shadows an FSP module wholesale</h3>
 <p><code>rm_mcuboot_port</code>, <code>rm_psa_crypto</code> + <code>ra/arm/mbedtls</code>, <code>r_sce</code>, <code>bsp_linker.c</code>, and
 <code>startup.c</code> / <code>ra_gen/main.c</code>. Each carries a stated reason.</p>
-<p><strong><code>rm_mcuboot_port</code> is no longer shadowed on RA8M2</strong> — it supplies the flash map and backend
-there (<a href="DECISIONS.html#d079">D079</a>), which is what removed the running cost that <a href="DECISIONS.html#d073">D073</a> / <a href="DECISIONS.html#d074">D074</a> paid. RA6M5 is back
-on TF-M&#x27;s (<a href="DECISIONS.html#d085">D085</a>), so this row differs per part.</p>
+<p><strong><code>rm_mcuboot_port</code> is shadowed on both parts</strong> — <a href="DECISIONS.html#d091">D091</a>. It briefly supplied the flash map
+and backend on RA8M2 (<a href="DECISIONS.html#d079">D079</a>), which is what removed the running cost <a href="DECISIONS.html#d073">D073</a>/<a href="DECISIONS.html#d074">D074</a> paid, and
+RA6M5 returned to TF-M&#x27;s at <a href="DECISIONS.html#d085">D085</a>; <a href="DECISIONS.html#d091">D091</a> then settled both parts on TF-M&#x27;s map and backend
+with FSP&#x27;s HAL behind <code>fa_driver</code>. This row no longer differs per part - both <code>CMakeLists.txt</code>
+list <code>rm_mcuboot_port</code> in <code>FSP_MODULES_NEVER_BUILT</code>.</p>
 <hr>
 <h2 id="the-linker-and-ofs-family--the-highest-consequence-case">The linker and OFS family — the highest-consequence case</h2>
 <p><strong>The failure mode is not a build error.</strong> Worked hazard: a user changes an OFS setting in e2,
@@ -191,7 +201,7 @@ rebuilds, and expects the new value to be programmed.</p>
 <tr><td>OFS <strong>values</strong></td><td>the <strong>bootloader</strong> project&#x27;s <code>ra_cfg/.../bsp_mcu_ofs_cfg.h</code></td><td>Edited in the <strong>secure</strong> project instead — no effect, no warning. <code>bl2_option_setting.c</code> compiles into <code>platform_bl2</code>, so only <code>FSP_BL2_APP_DIR</code> is on the path. Both projects define the same groups</td></tr>
 <tr><td>OFS <strong>addresses</strong></td><td>the bootloader project&#x27;s generated <code>Debug/memory_regions.*</code>, filtered into <code>option_settings.h</code> at configure time</td><td>Hand-transcribed until 2026-09-24, and they were RA6M5&#x27;s: OFS0 linked at <code>0x0100A100</code> instead of <code>0x02c9f040</code>. <strong>RA6M5 and RA6E1 still transcribe theirs</strong> — the open back-port in <a href="DECISIONS.html#d077">D077</a></td></tr>
 <tr><td>which <strong>groups</strong> exist</td><td>the device; FSP emits a <code>BSP_CFG_OPTION_SETTING_*</code> only for what the user set</td><td>A group enabled in e2 that the port does not place is <strong>dropped with no diagnostic.</strong> OFS2, OFS3_SEC and OFS3_SEL were dropped exactly this way</td></tr>
-<tr><td><strong>placement</strong></td><td><code>&lt;part&gt;_bl2.ld</code> MEMORY + sections, <code>&lt;part&gt;_bl2.icf</code> region + keep + place</td><td>One coalesced <code>PT_LOAD</code> zero-fills the gaps and programs block protect to 0 → <strong>permanent brick</strong> (<a href="DECISIONS.html#d002">D002</a>). Invisible in the srec</td></tr>
+<tr><td><strong>placement</strong></td><td><code>&lt;part&gt;_bl2.ld</code> MEMORY + sections, <code>&lt;part&gt;_bl2.icf</code> region + keep + place</td><td>One coalesced <code>PT_LOAD</code> zero-fills the gaps across option/config memory → <strong>permanent brick</strong> (<a href="DECISIONS.html#d002">D002</a>, <a href="DECISIONS.html#d094">D094</a> — the mechanism is proven, the field responsible is unidentified). Invisible in the srec</td></tr>
 </table></div>
 <h3 id="the-checks-that-exist-and-the-pattern-to-follow">The checks that exist, and the pattern to follow</h3>
 <p>Each hazard gets a mechanism, not a comment:</p>

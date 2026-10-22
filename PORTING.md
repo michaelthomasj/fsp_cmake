@@ -85,8 +85,9 @@ rules, both paid for in hardware:
 
 ### `bl2_boot_hal.c` — 43% similar, 119 lines
 
-BL2's platform hooks. Part-specific content: the **SAU programming** (RA8 only — see §4), the
-flash controller handover, and any clock or security setup BL2 needs before MCUboot runs.
+BL2's platform hooks. Part-specific content: the **SAU programming** (RA8 only — see §4) and
+the crypto-engine start before MCUboot hashes anything. The flash-controller handover that used
+to live here is gone ([D091]): `mram_open_once()` tolerates `FSP_ERR_ALREADY_OPEN`.
 
 ### `config_tfm_target.h` — 41% similar, 64 lines
 

@@ -40,7 +40,7 @@ tree, not the config file. This has cost real debugging time twice ([D083], [D08
 |---|---|
 | `TFM_PLATFORM` | `renesas/ra6m5` or `renesas/ra8m2` |
 | `FSP_S_APP_DIR` | the generated **secure** e2 project. Supplies `Debug/bsp_linker_info.h`, from which the whole layout is derived |
-| `FSP_BL2_APP_DIR` | the generated **bootloader** project. Supplies the OFS values and, on RA8M2, FSP's MCUboot backend |
+| `FSP_BL2_APP_DIR` | the generated **bootloader** project. Supplies the OFS values and the FSP driver modules BL2 needs ([D091] removed the FSP MCUboot backend from both parts) |
 | `FSP_NS_APP_DIR` | the generated **non-secure** project |
 | `TFM_TOOLCHAIN_FILE` | `toolchain_GNUARM.cmake` or `toolchain_IARARM.cmake` |
 | `CMAKE_BUILD_TYPE` | **`MinSizeRel` is not optional on GNUARM.** `Debug` does not fit — `tfm_s` comes out around 414 KB against RA8M2's 293 KB secure region. IAR `Debug` does fit ([D056]) |
@@ -58,10 +58,9 @@ These decide which FSP sources are compiled into which image. They live in
 | Variable | RA6M5 | RA8M2 |
 |---|---|---|
 | `FSP_MODULES_S` | `bsp flash sce agt` | `bsp flash sce agt` |
-| `FSP_MODULES_BL2` | `bsp flash` | `bsp flash mcuboot_port` |
+| `FSP_MODULES_BL2` | `bsp flash` (+ `sce` when `CRYPTO_HW_ACCELERATOR` is ON) | `bsp flash` (+ `sce` when `CRYPTO_HW_ACCELERATOR` is ON) |
 | `FSP_MODULE_DIRS_flash` | `r_flash_hp` | **`r_mram`** — MRAM, not HP flash |
-| `FSP_MODULE_DIRS_mcuboot_port` | — | `rm_mcuboot_port` |
-| `FSP_MODULES_NEVER_BUILT` | `r_sce rm_psa_crypto rm_mcuboot_port` | `r_sce rm_psa_crypto` |
+| `FSP_MODULES_NEVER_BUILT` | `r_sce rm_psa_crypto rm_mcuboot_port` | `r_sce rm_psa_crypto rm_mcuboot_port` |
 
 `FSP_MODULES_NEVER_BUILT` lists modules whose sources the port supplies or compiles by another
 route; naming one here keeps the generic module glob from also building it.
@@ -194,7 +193,7 @@ Not cache variables, but the ones people need to change, with the constraint tha
 | `TFM_NV_COUNTERS_AREA_SIZE` | `flash_layout.h` | 2048 B; PS and ITS split what remains |
 | `TFM_HAL_PS_SECTORS_PER_BLOCK` | `flash_layout.h` | `(area/sector)/2`. `num_blocks < 2` fails ITS **and** PS init outright, reported as pid 257 |
 | `FLASH_AREA_IMAGE_SECTOR_SIZE` | `flash_layout.h` | `0x8000` on both. **Restates an FSP value** and is not machine-checkable against it — see the note in `<part>_layout_checks.c` and diff FSP's generated `mcuboot_config.h` after a pack uprev ([D054]) |
-| OFS `OPTION_SETTING_*` | `region_defs.h` (RA6M5), generated `option_settings.h` (RA8M2) | **BRICK HAZARD.** One `MEMORY` region per word; a coalesced `PT_LOAD` zero-fills the gaps and programs block protect to 0, permanently. Invisible in the srec — `readelf -l` is the only place it shows. `check_ofs.py` enforces it ([D002]) |
+| OFS `OPTION_SETTING_*` | `region_defs.h` (RA6M5), generated `option_settings.h` (RA8M2) | **BRICK HAZARD.** One `MEMORY` region per word; a coalesced `PT_LOAD` zero-fills the configuration memory between the words — permanent brick ([D094]; which field dies is unknown). Invisible in the srec — `readelf -l` is the only place it shows. `check_ofs.py` enforces it ([D002]) |
 
 **OFS values are edited in the BOOTLOADER project**, not the secure one. Both projects define
 the same `BSP_CFG_OPTION_SETTING_*` groups, so editing the wrong one has no effect and no

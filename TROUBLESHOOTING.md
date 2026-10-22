@@ -12,12 +12,17 @@ away rather than reproduced here.
 
 ### The part reads back `0xDA` and will not respond
 
-**Permanent. The board is dead.** FSPR, the option-memory permanence word, has been cleared and
-block protection is latched on. Two EK-RA6M4 boards were lost this way on 2026-07-21.
+**Permanent. The board is dead.** Two EK-RA6M4 boards were lost this way on 2026-07-21.
+**Which field killed them is not known** — [D094] disproved both attributions that had been
+offered (FSPR permanence, which RA6M4 does not implement, and `OFS1_SEL` content, which was
+byte-identical to a working board). Post-brick readback gave `DLMMON = 0x2` = SSD, an open
+state, not a DLM lock.
 
-**Cause.** A BL2 image whose option-setting words were coalesced by the linker into **one**
-`PT_LOAD` segment spanning `0x0100A100`–`0x0100A2CC`. The gaps between the real words are
-zero-filled by the loader, and zero in those positions means "protect, permanently".
+**Cause — the mechanism is proven even though the field is not.** A BL2 image whose
+option-setting words were coalesced by the linker into **one** `PT_LOAD`. Measured on the
+preserved image: a segment at `0x0100A100` of **388 bytes** (`0x184`, to `0x0100A283`) holding
+the **three** words that BL2 emitted, of which **376 bytes were zero fill** written across
+configuration memory that should have been left alone.
 
 **What makes it lethal is that nothing warns you.** The linker is content, the srec is clean,
 and `check_ofs.py --ra6-default` once validated against a hardcoded RA6 window that still
@@ -64,12 +69,16 @@ it, so it fails the build rather than the board. [D034], `DESIGN.md` §8.1.
 
 ### Bootloader panic immediately, before any MCUboot output
 
-**Cause (RA8M2, and RA6M5 if FSP's backend is ever re-enabled).** The flash controller is opened
-twice. `boot_platform_init()` opens `g_mram0_ctrl` / `g_flash0_ctrl`, then FSP's
-`flash_area_open()` opens the same controller, gets `FSP_ERR_ALREADY_OPEN` and returns −1.
+**Historical — applies only if FSP's MCUboot backend is re-linked.** Since [D091] neither part
+builds `rm_mcuboot_port`, so this cannot occur in a current build.
 
-**Fix, already in place.** `<part>_flash_release_for_mcuboot()` calls `R_MRAM_Close()` /
-`R_FLASH_HP_Close()` and is the first thing `boot_platform_post_init()` does. [D085].
+**Cause.** The flash controller was opened twice: `boot_platform_init()` opened `g_mram0_ctrl` /
+`g_flash0_ctrl`, then FSP's `flash_area_open()` opened the same controller, got
+`FSP_ERR_ALREADY_OPEN` and returned −1. The fix then was
+`<part>_flash_release_for_mcuboot()`, called first from `boot_platform_post_init()` ([D085]).
+**That function no longer exists.** [D091] removed the handover entirely - `mram_open_once()`
+tolerates `FSP_ERR_ALREADY_OPEN` - and `boot_platform_post_init()` now begins with
+`bl2_sau_init()`.
 
 ### `[ERR] Image in the primary slot is not valid!` / `Unable to find bootable image`
 
@@ -198,9 +207,24 @@ the time the profile file is read. [D007].
 
 ### The secure primary slot generates as 512 bytes
 
-**Partition emission order in the e2 solution**, not geometry: `__BL_0_S_T` was emitted before
-`__BL_0_P_H`. After any repartition, read `Debug/bsp_linker_info.h` back and check that
-`__BL_0_P_H_START` equals `__BL_0_S_T_START`. [D078].
+**Partition emission order in the e2 solution**, not geometry — and the direction matters:
+`__BL_0_P_H` was emitted **before** `__BL_0_S_T`. `S_T` first is the correct order, which is
+what RA6M5 generates. The generator sums partitions until it meets a `_T`; with `S_T` first it
+closes the secondary slot cleanly and `P_H` then opens the primary, and with `P_H` first the
+primary closes immediately at 0x200.
+
+**Do not check that the two STARTs are equal.** They coincide in the broken layout *and* the
+correct one — 0x68000 on RA8M2, 0xA0000 on RA6M5 — so equality proves nothing. That coincidence
+was the first hypothesis and it was wrong.
+
+**The check that works:** read `FLASH_AREA_0P`'s `.fa_size` out of `Debug/bsp_linker_info.h`.
+A 512-byte secure primary slot is the defect; it should carry `FLASH_CPU0_S` and `FLASH_CPU0_C`
+too. Or read the partition order directly out of `solution.xml`. [D078].
+
+**Note the port will not catch this for you.** TF-M's `flash_layout.h` computes slot sizes with
+`TFM_SLOT_SPAN` — header start to trailer end — which is address-based and immune, and since
+[D091] the port does not consume FSP's `flash_map[]` at all. This is a solution-generation
+defect that a clean TF-M build will not notice.
 
 ---
 

@@ -280,10 +280,13 @@ The image layout is still the Solution's: `FLASH_AREA_*_OFFSET/SIZE` derive from
 `BSP_PARTITION_*` regardless of which backend reads them. Layout ownership and backend ownership
 are separable, and conflating them is what made this take three attempts.
 
-**The flash controller is handed over, not shared.** `boot_platform_init()` opens `g_mram0_ctrl`,
-and FSP's `flash_area_open()` then opens the same controller and returns −1 on
-`FSP_ERR_ALREADY_OPEN` — a bootloader panic. `ra8m2_flash_release_for_mcuboot()` calls
-`R_MRAM_Close()` and is the first thing `boot_platform_post_init()` does.
+**The flash controller is no longer handed over.** That paragraph described the FSP-backend
+arrangement [D091] removed: `boot_platform_init()` opened `g_mram0_ctrl`, FSP's
+`flash_area_open()` then opened the same controller and returned −1 on `FSP_ERR_ALREADY_OPEN`,
+so `ra8m2_flash_release_for_mcuboot()` had to close it first. **No such function exists in the
+port now**, and FSP's `flash_area_open()` is not built. Today `Driver_FLASH0` owns `g_mram0`,
+`Driver_Flash.c` handles `FSP_ERR_ALREADY_OPEN` by close-and-reopen, and the first thing
+`boot_platform_post_init()` does is `bl2_sau_init()`.
 
 ---
 

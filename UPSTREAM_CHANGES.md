@@ -15,7 +15,8 @@ git diff --stat $(git merge-base HEAD upstream/main) -- \
     toolchain_GNUARM.cmake toolchain_IARARM.cmake
 ```
 
-21 files differ. Each is accounted for below.
+20 files differ. Each is accounted for below. (It was 21 until [D091] withdrew item 13 and
+returned `bl2/CMakeLists.txt` to byte-identical with TF-Mv2.2.0.)
 
 ---
 

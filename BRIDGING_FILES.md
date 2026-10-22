@@ -20,7 +20,8 @@ This has already happened more than once:
 - An 87-line Protected Storage comment in `ra8m2/config_tfm_target.h` was RA6M5's arithmetic
   verbatim, opening "the RA8M2's 8 KB data flash" — a part with no data flash ([D086]).
 
-Verified 2026-10-04 against both live parts.
+Verified 2026-10-04 against both live parts. §3 and the `rm_mcuboot_port` row were
+re-checked and corrected 2026-10-22 for [D091], which postdates that verification.
 
 ---
 
@@ -90,19 +91,27 @@ complete types, the link succeeds, and the only symptom is a bootloader rejectin
 image ([D090]). An FSP uprev that adds a member, or a TF-M bump that changes its struct, breaks
 this again with no warning.
 
-**The check** - every linked object must report 12:
+**Since [D091] the expected size is 16, not 12.** Both parts now compile TF-M's struct and
+never build `rm_mcuboot_port` (`FSP_MODULES_NEVER_BUILT` at `ra6m5/CMakeLists.txt:252` and
+`ra8m2/CMakeLists.txt:299`), so FSP's header reaches no include path and the collision is
+structurally impossible. The check below was written when FSP's 12-byte struct was expected;
+**run unchanged it now flags every live `bootutil`/`flash_map` object as a failure**, and
+acting on that would mean putting FSP's header back.
+
+**The check** - every linked object must report **16**:
 
 ```sh
 for o in $(find <build>/bl2 <build>/platform -name '*.o'); do
   arm-none-eabi-readelf --debug-dump=info "$o" 2>/dev/null |     awk -v f="$o" '/DW_TAG_structure_type/{s=1;n="";b=""}
          s&&/DW_AT_name.*: flash_area$/{n=1}
          s&&/DW_AT_byte_size/{b=$NF}
-         n&&b{if(b!=12)print b" bytes: "f; exit}'
+         n&&b{if(b!=16)print b" bytes: "f; exit}'
 done
 ```
 
-Objects reporting 16 are only acceptable if they are TF-M's own backend files left stale on
-disk - confirm with `grep -c <object> build.ninja` returning 0.
+**Objects reporting 12 are the failure now** - FSP's header has been reintroduced somewhere.
+A stale on-disk object can report either size; confirm with `grep -c <object> build.ninja`
+returning 0 before chasing it.
 
 ### 4. The rm_psa_crypto tree — the cheapest canary found so far
 
@@ -169,9 +178,11 @@ changed semantics.
 `rm_mcuboot_port`, `rm_psa_crypto` + `ra/arm/mbedtls`, `r_sce`, `bsp_linker.c`, and
 `startup.c` / `ra_gen/main.c`. Each carries a stated reason.
 
-**`rm_mcuboot_port` is no longer shadowed on RA8M2** — it supplies the flash map and backend
-there ([D079]), which is what removed the running cost that [D073] / [D074] paid. RA6M5 is back
-on TF-M's ([D085]), so this row differs per part.
+**`rm_mcuboot_port` is shadowed on both parts** — [D091]. It briefly supplied the flash map
+and backend on RA8M2 ([D079]), which is what removed the running cost [D073]/[D074] paid, and
+RA6M5 returned to TF-M's at [D085]; [D091] then settled both parts on TF-M's map and backend
+with FSP's HAL behind `fa_driver`. This row no longer differs per part - both `CMakeLists.txt`
+list `rm_mcuboot_port` in `FSP_MODULES_NEVER_BUILT`.
 
 ---
 
@@ -185,7 +196,7 @@ rebuilds, and expects the new value to be programmed.
 | OFS **values** | the **bootloader** project's `ra_cfg/.../bsp_mcu_ofs_cfg.h` | Edited in the **secure** project instead — no effect, no warning. `bl2_option_setting.c` compiles into `platform_bl2`, so only `FSP_BL2_APP_DIR` is on the path. Both projects define the same groups |
 | OFS **addresses** | the bootloader project's generated `Debug/memory_regions.*`, filtered into `option_settings.h` at configure time | Hand-transcribed until 2026-09-24, and they were RA6M5's: OFS0 linked at `0x0100A100` instead of `0x02c9f040`. **RA6M5 and RA6E1 still transcribe theirs** — the open back-port in [D077] |
 | which **groups** exist | the device; FSP emits a `BSP_CFG_OPTION_SETTING_*` only for what the user set | A group enabled in e2 that the port does not place is **dropped with no diagnostic.** OFS2, OFS3_SEC and OFS3_SEL were dropped exactly this way |
-| **placement** | `<part>_bl2.ld` MEMORY + sections, `<part>_bl2.icf` region + keep + place | One coalesced `PT_LOAD` zero-fills the gaps and programs block protect to 0 → **permanent brick** ([D002]). Invisible in the srec |
+| **placement** | `<part>_bl2.ld` MEMORY + sections, `<part>_bl2.icf` region + keep + place | One coalesced `PT_LOAD` zero-fills the gaps across option/config memory → **permanent brick** ([D002], [D094] — the mechanism is proven, the field responsible is unidentified). Invisible in the srec |
 
 ### The checks that exist, and the pattern to follow
 
