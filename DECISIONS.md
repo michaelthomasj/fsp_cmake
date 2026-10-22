@@ -6419,3 +6419,77 @@ report how many items it compared, and a count of zero is a failure, not a pass.
 now print `compared N/M`. This is the same family as [D113]'s "read the compile line" and
 [D120]'s "ask which target compiles the file" - the tooling will happily confirm whatever you
 forgot to ask it.
+---
+
+## D122 — the `tfm_spm` move is MPU-neutral on silicon, and RA6M5 L1+IPC is green for the first time — cause unexplained
+
+**Date:** 2026-10-22 · **Status:** Accepted · partially discharges [D121]'s "not yet re-run" · RA6M5 measured
+
+Two runs on the post-move binaries ([D121], banner `a3472cc47`).
+
+### 1. Isolation 2 — the prediction holds, byte for byte
+
+**RA6M5 at isolation 2, GNUARM — secure 9/9 PASSED.** The post-partition dump:
+
+```
+  idx 0  0x000A0400 - 0x000A5640      idx 3  0x20000400 - 0x200018A0
+  idx 1  0x000A5660 - 0x000D82E0      idx 4  0x200018C0 - 0x20011480
+  idx 2  0x000D8300 - 0x000E5BC0      idx 5  0x400E8000 - 0x400E80E0   AGT0
+```
+
+**Identical to [D113]'s dump in all six regions**, including AGT0's MMIO entry. [D121] predicted
+exactly this from the `PT_*` boundary symbols; silicon agrees. Moving the HAL from `platform_s`
+to `tfm_spm` changes which archive the object comes from and nothing the MPU sees.
+
+### 2. Isolation 1 + IPC on RA6M5 — green, and that is the surprise
+
+**Secure 9/9 PASSED**, `TF-M isolation level is: 0x00000001`, no `[MPU]` lines (correct - the
+dump is inside `CONFIG_TFM_ENABLE_MEMORY_PROTECT`, which is undefined at level 1).
+
+This configuration has never passed on this part. Its history:
+
+| When | Build | Result |
+|---|---|---|
+| pre-[D113] | no isolation macros at all | HardFault in `arch_attempt_schedule`, BFAR `0xE000ED04` |
+| [D117], 2026-10-21 | macros via `target_compile_definitions(platform_s)` | **still failed** - parked in BL2's weak `HardFault_Handler` at `0xa84`, nothing on RTT |
+| this entry | macros via `tfm_spm` ([D121]) | **passes** |
+
+**The honest position: the cause is not established.** The failing build of 2026-10-21 already
+had `-DTFM_ISOLATION_LEVEL=1` on the HAL's compile line - that was verified at the time - so the
+macro was *not* what changed. The only source delta between that build and this one is the
+target move, and **no mechanism is known by which compiling the same file into a different
+archive cures a fault that parks in BL2's handler before any TF-M output appears.**
+
+Two readings, and the evidence does not separate them:
+
+- the move fixed something real, by a route nobody has traced;
+- the 2026-10-21 failure was transient - a stale or partial flash - and was never a code fault
+  at all. The launch was proved identical to the working L2 one, `bl2.bin` proved byte-identical
+  to the L2 tree's, and the build was clean, which is consistent with this reading.
+
+The second is the more economical explanation and the port should not bank on the first. What
+would settle it: reflash the pre-move `m5gl1i` image and see whether it still parks at `0xa84`.
+That image has been overwritten, so settling it means rebuilding at the previous commit.
+
+**Either way, L1+IPC remains a configuration this port does not ship.** It was kept alive as a
+diagnostic, and as a diagnostic it has now produced everything it is going to.
+
+### Coverage after these two runs
+
+| | L1 SFN | L1 IPC | L2 | L3 |
+|---|---|---|---|---|
+| RA6M5 GNUARM | green | **green (new)** | **green, re-confirmed post-move** | re-run owed |
+| RA8M2 GNUARM | green | green (pre-move) | green (pre-move) | green (pre-move) |
+| RA6M5 IAR | green | - | **never run** | **never run** |
+| RA8M2 IAR | green | - | green (pre-move) | green (pre-move) |
+
+### Carried
+
+- **`m5gl3` is the one tree whose MPU table should change** - [D121] predicts
+  `PT_PSA_ROT_CODE_END` and `PT_RO_DATA_START` at `0x000D8420` and `PT_RO_DATA_END` at
+  `0x000E5DA0`, each one 32-byte granule above [D114]'s values. Unrun, and the most
+  informative remaining.
+- **`m5il2`, `m5il3`** - RA6M5 under IAR has never run at either level, on any build.
+- The five RA8M2 trees are green pre-move and their region symbols are provably unchanged; a
+  re-run is confirmation, not discovery.
+- `ra6e1` is built with the move and will not be run ([D121]).

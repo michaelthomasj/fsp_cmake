@@ -167,6 +167,7 @@
           <li><a href="#d119">D119 — [D114]&#x27;s second macro confirmed under IAR; RA8M2 is complete at every level on both toolchains</a></li>
           <li><a href="#d120">D120 — the isolation-macro gap is this port&#x27;s, not upstream&#x27;s; [D113]&#x27;s root cause was wrong and upstream item 15 is withdrawn</a></li>
           <li><a href="#d121">D121 — the shared isolation HAL moves to tfm_spm; [D113]&#x27;s workaround is deleted, not documented</a></li>
+          <li><a href="#d122">D122 — the tfm_spm move is MPU-neutral on silicon, and RA6M5 L1+IPC is green for the first time — cause unexplained</a></li>
         </ol>
       </li>
     </ol>
@@ -5094,6 +5095,64 @@ report how many items it compared, and a count of zero is a failure, not a pass.
 now print <code>compared N/M</code>. This is the same family as <a href="DECISIONS.html#d113">D113</a>&#x27;s &quot;read the compile line&quot; and
 <a href="DECISIONS.html#d120">D120</a>&#x27;s &quot;ask which target compiles the file&quot; - the tooling will happily confirm whatever you
 forgot to ask it.</p>
+<hr>
+<h2 id="d122">D122 — the <code>tfm_spm</code> move is MPU-neutral on silicon, and RA6M5 L1+IPC is green for the first time — cause unexplained</h2>
+<p><strong>Date:</strong> 2026-10-22 · <strong>Status:</strong> Accepted · partially discharges <a href="DECISIONS.html#d121">D121</a>&#x27;s &quot;not yet re-run&quot; · RA6M5 measured</p>
+<p>Two runs on the post-move binaries (<a href="DECISIONS.html#d121">D121</a>, banner <code>a3472cc47</code>).</p>
+<h3 id="s1_6">1. Isolation 2 — the prediction holds, byte for byte</h3>
+<p><strong>RA6M5 at isolation 2, GNUARM — secure 9/9 PASSED.</strong> The post-partition dump:</p>
+<pre><code>  idx 0  0x000A0400 - 0x000A5640      idx 3  0x20000400 - 0x200018A0
+  idx 1  0x000A5660 - 0x000D82E0      idx 4  0x200018C0 - 0x20011480
+  idx 2  0x000D8300 - 0x000E5BC0      idx 5  0x400E8000 - 0x400E80E0   AGT0</code></pre>
+<p><strong>Identical to <a href="DECISIONS.html#d113">D113</a>&#x27;s dump in all six regions</strong>, including AGT0&#x27;s MMIO entry. <a href="DECISIONS.html#d121">D121</a> predicted
+exactly this from the <code>PT_*</code> boundary symbols; silicon agrees. Moving the HAL from <code>platform_s</code>
+to <code>tfm_spm</code> changes which archive the object comes from and nothing the MPU sees.</p>
+<h3 id="s2_6">2. Isolation 1 + IPC on RA6M5 — green, and that is the surprise</h3>
+<p><strong>Secure 9/9 PASSED</strong>, <code>TF-M isolation level is: 0x00000001</code>, no <code>[MPU]</code> lines (correct - the
+dump is inside <code>CONFIG_TFM_ENABLE_MEMORY_PROTECT</code>, which is undefined at level 1).</p>
+<p>This configuration has never passed on this part. Its history:</p>
+<div class="table-wrap"><table>
+<tr><th>When</th><th>Build</th><th>Result</th></tr>
+<tr><td>pre-<a href="DECISIONS.html#d113">D113</a></td><td>no isolation macros at all</td><td>HardFault in <code>arch_attempt_schedule</code>, BFAR <code>0xE000ED04</code></td></tr>
+<tr><td><a href="DECISIONS.html#d117">D117</a>, 2026-10-21</td><td>macros via <code>target_compile_definitions(platform_s)</code></td><td><strong>still failed</strong> - parked in BL2&#x27;s weak <code>HardFault_Handler</code> at <code>0xa84</code>, nothing on RTT</td></tr>
+<tr><td>this entry</td><td>macros via <code>tfm_spm</code> (<a href="DECISIONS.html#d121">D121</a>)</td><td><strong>passes</strong></td></tr>
+</table></div>
+<p><strong>The honest position: the cause is not established.</strong> The failing build of 2026-10-21 already
+had <code>-DTFM_ISOLATION_LEVEL=1</code> on the HAL&#x27;s compile line - that was verified at the time - so the
+macro was <em>not</em> what changed. The only source delta between that build and this one is the
+target move, and **no mechanism is known by which compiling the same file into a different
+archive cures a fault that parks in BL2&#x27;s handler before any TF-M output appears.**</p>
+<p>Two readings, and the evidence does not separate them:</p>
+<ul>
+<li>the move fixed something real, by a route nobody has traced;</li>
+<li>the 2026-10-21 failure was transient - a stale or partial flash - and was never a code fault
+at all. The launch was proved identical to the working L2 one, <code>bl2.bin</code> proved byte-identical
+to the L2 tree&#x27;s, and the build was clean, which is consistent with this reading.</li>
+</ul>
+<p>The second is the more economical explanation and the port should not bank on the first. What
+would settle it: reflash the pre-move <code>m5gl1i</code> image and see whether it still parks at <code>0xa84</code>.
+That image has been overwritten, so settling it means rebuilding at the previous commit.</p>
+<p><strong>Either way, L1+IPC remains a configuration this port does not ship.</strong> It was kept alive as a
+diagnostic, and as a diagnostic it has now produced everything it is going to.</p>
+<h3 id="coverage-after-these-two-runs">Coverage after these two runs</h3>
+<div class="table-wrap"><table>
+<tr><th></th><th>L1 SFN</th><th>L1 IPC</th><th>L2</th><th>L3</th></tr>
+<tr><td>RA6M5 GNUARM</td><td>green</td><td><strong>green (new)</strong></td><td><strong>green, re-confirmed post-move</strong></td><td>re-run owed</td></tr>
+<tr><td>RA8M2 GNUARM</td><td>green</td><td>green (pre-move)</td><td>green (pre-move)</td><td>green (pre-move)</td></tr>
+<tr><td>RA6M5 IAR</td><td>green</td><td>-</td><td><strong>never run</strong></td><td><strong>never run</strong></td></tr>
+<tr><td>RA8M2 IAR</td><td>green</td><td>-</td><td>green (pre-move)</td><td>green (pre-move)</td></tr>
+</table></div>
+<h3 id="carried_8">Carried</h3>
+<ul>
+<li><strong><code>m5gl3</code> is the one tree whose MPU table should change</strong> - <a href="DECISIONS.html#d121">D121</a> predicts
+<code>PT_PSA_ROT_CODE_END</code> and <code>PT_RO_DATA_START</code> at <code>0x000D8420</code> and <code>PT_RO_DATA_END</code> at
+<code>0x000E5DA0</code>, each one 32-byte granule above <a href="DECISIONS.html#d114">D114</a>&#x27;s values. Unrun, and the most
+informative remaining.</li>
+<li><strong><code>m5il2</code>, <code>m5il3</code></strong> - RA6M5 under IAR has never run at either level, on any build.</li>
+<li>The five RA8M2 trees are green pre-move and their region symbols are provably unchanged; a
+re-run is confirmation, not discovery.</li>
+<li><code>ra6e1</code> is built with the move and will not be run (<a href="DECISIONS.html#d121">D121</a>).</li>
+</ul>
 </main>
 </div>
 </body>
