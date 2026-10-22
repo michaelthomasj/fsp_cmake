@@ -6881,3 +6881,37 @@ checked against `secure_fw/spm/CMakeLists.txt`, which would have taken one grep.
 [D125] said "checking a claim means checking the claim, not the number it sits next to". The
 narrower version: **when an entry explains why something failed, check the explanation against
 the build files, not against the symptom it was written to explain.**
+
+---
+
+## D127 — the CMake target graph gets its own document, drawn in ASCII rather than mermaid
+
+**Date:** 2026-10-22 · **Status:** Accepted · **Builds on:** [D121], [D126] · **Evidence:** generator and renderer read; four reviewed facts corrected against source
+
+Nothing in the document set drew the build graph. `DESIGN.md` §1 says *why* the port consumes
+RASC, `ADDING_FSP_MODULES.md` says how to add one module, and `UPSTREAM_CHANGES.md` lists the
+patches — but which target links which, with what scope, was only ever reconstructed by grep.
+That reconstruction is exactly what [D113] through [D126] spent ~990 log lines on, and it had
+to be done three times before it came out right. `BUILD_ARCHITECTURE.md` records it.
+
+**Why ASCII and not mermaid.** `docs/learning/` is plain HTML opened from disk, and
+`build_doc_html.py` deliberately escapes every `<` and has no raw-HTML passthrough (its
+docstring: stdlib only, so the hook has no dependency to install). Supporting mermaid means
+either a CDN script in pages meant to work offline, or vendoring megabytes of
+`mermaid.min.js`. Fenced ASCII renders correctly in the course HTML, on GitHub, in VSCode and
+in a terminal, with no renderer change. The pretty version exists as a published artifact; the
+repo copy is the one that cannot rot.
+
+**Four claims corrected against source while writing it** — each had been stated from memory
+and each was wrong:
+
+| Claim | Actually |
+|---|---|
+| `bl2` links `platform_bl2` | it does not. `bl2 → bootutil → platform_bl2`, both PUBLIC (`bl2/ext/mcuboot/CMakeLists.txt:70`, `:30`). The executable never names it |
+| BL2 is signed like the other two images | BL2 is the root of trust and is flashed raw. Only `tfm_s` and `tfm_ns` go through `imgtool` |
+| the FSP module libraries are PRIVATE on the platform targets | **PUBLIC** — `ra6m5/CMakeLists.txt:371` and `:665` |
+| `FSP_MODULES_NEVER_BUILT` excludes modules from the build | it is the **allowlist for the unclaimed-directory audit** (`:278`), which emits a `WARNING`. The hard failure is a name in `FSP_MODULES_*` with no `cmake/modules/fsp_<name>.cmake`, because `include()` is not `OPTIONAL`. Two different mistakes, two different outcomes |
+
+Consistent with [D126]'s method note: all four were memory restating a plausible shape, and
+all four took one grep to settle. The new document cites file and line on every edge for that
+reason — a reader who doubts a line can check it without rebuilding the graph.

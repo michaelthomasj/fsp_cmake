@@ -6,8 +6,8 @@
 
 | | |
 |---|---|
-| Entries | **126** |
-| Standing | **115** |
+| Entries | **127** |
+| Standing | **116** |
 | Superseded | **11** |
 | Standing but corrected on some point | **25** |
 | Supersede lineages | **8** |
@@ -31,7 +31,7 @@ A later entry **supersedes** an earlier one: same question, newer answer. Citing
 
 ---
 
-## Standing (115)
+## Standing (116)
 
 Nothing supersedes these. The title is the position. Where a later entry corrects one, the correction is named - the entry stands apart from that.
 
@@ -152,6 +152,7 @@ Nothing supersedes these. The title is the position. Where a later entry correct
 | `D124` | 2026-10-22 | the matrix is complete: every part, toolchain and isolation level has now run | Accepted | — |
 | `D125` | 2026-10-22 | six corrections to [D120]–[D123] from the second documentation review; the HAL never left the PSA-RoT code region | Accepted | `D126` |
 | `D126` | 2026-10-22 | eighteen corrections to [D110]–[D125] from the second review; two carried items closed, and [D115]'s "three of four corners" was wrong | Accepted | — |
+| `D127` | 2026-10-22 | the CMake target graph gets its own document, drawn in ASCII rather than mermaid | Accepted | — |
 
 ---
 

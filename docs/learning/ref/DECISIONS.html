@@ -20,6 +20,7 @@
         <ol>
       <li><a href="ADDING_FSP_MODULES.html">ADDING_FSP_MODULES.md</a></li>
       <li><a href="BRIDGING_FILES.html">BRIDGING_FILES.md</a></li>
+      <li><a href="BUILD_ARCHITECTURE.html">BUILD_ARCHITECTURE.md</a></li>
       <li><a href="CONFIGURATION.html">CONFIGURATION.md</a></li>
       <li><a href="DECISIONS.html" aria-current="page">DECISIONS.md</a></li>
       <li><a href="DESIGN.html">DESIGN.md</a></li>
@@ -173,6 +174,7 @@
           <li><a href="#d124">D124 — the matrix is complete: every part, toolchain and isolation level has now run</a></li>
           <li><a href="#d125">D125 — six corrections to [D120]–[D123] from the second documentation review; the HAL never left the PSA-RoT code region</a></li>
           <li><a href="#d126">D126 — eighteen corrections to [D110]–[D125] from the second review; two carried items closed, and [D115]&#x27;s &quot;three of four corners&quot; was wrong</a></li>
+          <li><a href="#d127">D127 — the CMake target graph gets its own document, drawn in ASCII rather than mermaid</a></li>
         </ol>
       </li>
     </ol>
@@ -5466,6 +5468,33 @@ checked against <code>secure_fw/spm/CMakeLists.txt</code>, which would have take
 <p><a href="DECISIONS.html#d125">D125</a> said &quot;checking a claim means checking the claim, not the number it sits next to&quot;. The
 narrower version: **when an entry explains why something failed, check the explanation against
 the build files, not against the symptom it was written to explain.**</p>
+<hr>
+<h2 id="d127">D127 — the CMake target graph gets its own document, drawn in ASCII rather than mermaid</h2>
+<p><strong>Date:</strong> 2026-10-22 · <strong>Status:</strong> Accepted · <strong>Builds on:</strong> <a href="DECISIONS.html#d121">D121</a>, <a href="DECISIONS.html#d126">D126</a> · <strong>Evidence:</strong> generator and renderer read; four reviewed facts corrected against source</p>
+<p>Nothing in the document set drew the build graph. <code>DESIGN.md</code> §1 says <em>why</em> the port consumes
+RASC, <code>ADDING_FSP_MODULES.md</code> says how to add one module, and <code>UPSTREAM_CHANGES.md</code> lists the
+patches — but which target links which, with what scope, was only ever reconstructed by grep.
+That reconstruction is exactly what <a href="DECISIONS.html#d113">D113</a> through <a href="DECISIONS.html#d126">D126</a> spent ~990 log lines on, and it had
+to be done three times before it came out right. <code>BUILD_ARCHITECTURE.md</code> records it.</p>
+<p><strong>Why ASCII and not mermaid.</strong> <code>docs/learning/</code> is plain HTML opened from disk, and
+<code>build_doc_html.py</code> deliberately escapes every <code>&lt;</code> and has no raw-HTML passthrough (its
+docstring: stdlib only, so the hook has no dependency to install). Supporting mermaid means
+either a CDN script in pages meant to work offline, or vendoring megabytes of
+<code>mermaid.min.js</code>. Fenced ASCII renders correctly in the course HTML, on GitHub, in VSCode and
+in a terminal, with no renderer change. The pretty version exists as a published artifact; the
+repo copy is the one that cannot rot.</p>
+<p><strong>Four claims corrected against source while writing it</strong> — each had been stated from memory
+and each was wrong:</p>
+<div class="table-wrap"><table>
+<tr><th>Claim</th><th>Actually</th></tr>
+<tr><td><code>bl2</code> links <code>platform_bl2</code></td><td>it does not. <code>bl2 → bootutil → platform_bl2</code>, both PUBLIC (<code>bl2/ext/mcuboot/CMakeLists.txt:70</code>, <code>:30</code>). The executable never names it</td></tr>
+<tr><td>BL2 is signed like the other two images</td><td>BL2 is the root of trust and is flashed raw. Only <code>tfm_s</code> and <code>tfm_ns</code> go through <code>imgtool</code></td></tr>
+<tr><td>the FSP module libraries are PRIVATE on the platform targets</td><td><strong>PUBLIC</strong> — <code>ra6m5/CMakeLists.txt:371</code> and <code>:665</code></td></tr>
+<tr><td><code>FSP_MODULES_NEVER_BUILT</code> excludes modules from the build</td><td>it is the <strong>allowlist for the unclaimed-directory audit</strong> (<code>:278</code>), which emits a <code>WARNING</code>. The hard failure is a name in <code>FSP_MODULES_*</code> with no <code>cmake/modules/fsp_&lt;name&gt;.cmake</code>, because <code>include()</code> is not <code>OPTIONAL</code>. Two different mistakes, two different outcomes</td></tr>
+</table></div>
+<p>Consistent with <a href="DECISIONS.html#d126">D126</a>&#x27;s method note: all four were memory restating a plausible shape, and
+all four took one grep to settle. The new document cites file and line on every edge for that
+reason — a reader who doubts a line can check it without rebuilding the graph.</p>
 </main>
 </div>
 </body>
