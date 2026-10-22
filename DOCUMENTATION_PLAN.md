@@ -30,10 +30,11 @@ reconfiguring this port would find it. That pattern repeats across the port: the
 and it is written down, but it is organised by *where the bug was fixed* rather than by *what a
 reader needs to do*.
 
-Two more found while surveying:
+Two more found while surveying (**both since resolved**; the line counts in the table below
+are the 2026-10-04 snapshot and have moved a long way - `DECISIONS.md` alone is now past 6,500
+lines, and `MACHINE_HANDOFF.md` was deleted on 2026-10-09):
 
-- **`README.md` is two lines.** 5,992 lines of markdown at this root and the entry point names none
-  of it.
+- **~~`README.md` is two lines.~~ Fixed** - it is 126 lines and carries the document map.
 - **`RA6M4_BL2_HALT_AT_MAIN` is not a cache option.** `MACHINE_HANDOFF.md` §4 tells you to pass
   `-DRA6M4_BL2_HALT_AT_MAIN=ON`, and it works, but it is a bare `if()` in `CMakeLists.txt` — invisible
   to `ccmake`/`cmake-gui` and undiscoverable from the build. RA6E1's equivalents *are* declared
@@ -53,7 +54,6 @@ Regenerated 2026-10-04. Live top-level documents only; `archive/ra6m4/` holds ei
 | `DOCUMENTATION_PLAN.md` | 215 | 2026-10-02 |
 | `RA6M5_SOLUTION.md` | 213 | 2026-09-23 |
 | `RA6E1_TEMPLATE_CHECKLIST.md` | 208 | 2026-10-04 |
-| `MACHINE_HANDOFF.md` | 196 | 2026-09-30 |
 | `RA8M2_SOLUTION.md` | 193 | 2026-10-04 |
 | `RA8x2_DUAL_CORE_DESIGN.md` | 185 | 2026-07-28 |
 | `README.md` | 109 | 2026-10-04 |

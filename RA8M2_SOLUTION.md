@@ -56,8 +56,13 @@ bounds imported from FSP's `flash_map.c`. `DESIGN.md` §4 carries the reasoning.
 | `RAM_CPU0_C` | RAM | c | 0xE9C00 | 0x400 | NSC RAM (1 KB) |
 | `RAM_CPU0_N` | RAM | n | 0xEA000 | 0xEA000 | NS RAM (936 KB) |
 | `RAM_BL_CPU0_S` | RAM | s | 0x0 | 0x1200 | BL2 RAM |
-| `FLASH_BL_CPU0_S` | MRAM | s | 0x00000 | 0x10000 | BL2 (64 KB) |
-| `DF_EMULATION` | MRAM | s | 0x10000 | 0x10000 | ITS + PS + NV counters (64 KB) |
+| `FLASH_BL_CPU0_S` | `FLASH` | s | 0x00000 | 0x10000 | BL2 (64 KB) |
+| `DF_EMULATION` | `FLASH` | s | 0x10000 | 0x10000 | ITS + PS + NV counters (64 KB) |
+
+> **Names in this table are `bsp_linker_info.h`'s**, and the parent column is the *solution's*
+> (`FLASH`, `FLASH_N`, `RAM`, ...), not the invented "MRAM". When you repartition you edit
+> `solution.xml`, where the same regions appear under the solution names - `FLASH_CPU0_B`,
+> `FLASH_NS_CPU0_N` and so on. Map one to the other before editing.
 | `__BL_0_S_H` | MRAM | s | 0x20000 | 0x200 | image 0 secondary header |
 | `__BL_0_S_I` | MRAM | s | 0x20200 | 0x47E00 | image 0 secondary |
 | `__BL_0_S_T` | MRAM | s | 0x68000 | 0x0 | |

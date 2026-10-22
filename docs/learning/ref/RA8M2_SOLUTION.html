@@ -103,22 +103,26 @@ bounds imported from FSP&#x27;s <code>flash_map.c</code>. <code>DESIGN.md</code>
 <tr><td><code>RAM_CPU0_C</code></td><td>RAM</td><td>c</td><td>0xE9C00</td><td>0x400</td><td>NSC RAM (1 KB)</td></tr>
 <tr><td><code>RAM_CPU0_N</code></td><td>RAM</td><td>n</td><td>0xEA000</td><td>0xEA000</td><td>NS RAM (936 KB)</td></tr>
 <tr><td><code>RAM_BL_CPU0_S</code></td><td>RAM</td><td>s</td><td>0x0</td><td>0x1200</td><td>BL2 RAM</td></tr>
-<tr><td><code>FLASH_BL_CPU0_S</code></td><td>MRAM</td><td>s</td><td>0x00000</td><td>0x10000</td><td>BL2 (64 KB)</td></tr>
-<tr><td><code>DF_EMULATION</code></td><td>MRAM</td><td>s</td><td>0x10000</td><td>0x10000</td><td>ITS + PS + NV counters (64 KB)</td></tr>
-<tr><td><code>__BL_0_S_H</code></td><td>MRAM</td><td>s</td><td>0x20000</td><td>0x200</td><td>image 0 secondary header</td></tr>
-<tr><td><code>__BL_0_S_I</code></td><td>MRAM</td><td>s</td><td>0x20200</td><td>0x47E00</td><td>image 0 secondary</td></tr>
-<tr><td><code>__BL_0_S_T</code></td><td>MRAM</td><td>s</td><td>0x68000</td><td>0x0</td><td></td></tr>
-<tr><td><code>__BL_0_P_H</code></td><td>MRAM</td><td>s</td><td>0x68000</td><td>0x200</td><td>image 0 primary header</td></tr>
-<tr><td><code>FLASH_CPU0_S</code></td><td>MRAM</td><td>s</td><td>0x68200</td><td>0x47A00</td><td>secure code</td></tr>
-<tr><td><code>FLASH_CPU0_C</code></td><td>MRAM</td><td>c</td><td>0xAFC00</td><td>0x400</td><td>NSC veneers (1 KB)</td></tr>
-<tr><td><code>__BL_0_P_T</code></td><td>MRAM</td><td>s</td><td>0xB0000</td><td>0x0</td><td></td></tr>
-<tr><td><code>__BL_1_P_H</code></td><td>MRAM</td><td>n</td><td>0xB0000</td><td>0x200</td><td>image 1 primary header</td></tr>
-<tr><td><code>FLASH_CPU0_N</code></td><td>MRAM</td><td>n</td><td>0xB0200</td><td>0x27E00</td><td>NS code</td></tr>
-<tr><td><code>__BL_1_P_T</code></td><td>MRAM</td><td>n</td><td>0xD8000</td><td>0x0</td><td></td></tr>
-<tr><td><code>__BL_1_S_H</code></td><td>MRAM</td><td>n</td><td>0xD8000</td><td>0x200</td><td>image 1 secondary header</td></tr>
-<tr><td><code>__BL_1_S_I</code></td><td>MRAM</td><td>n</td><td>0xD8200</td><td>0x27E00</td><td>image 1 secondary</td></tr>
-<tr><td><code>__BL_1_S_T</code></td><td>MRAM</td><td>n</td><td>0x100000</td><td>0x0</td><td></td></tr>
+<tr><td><code>FLASH_BL_CPU0_S</code></td><td><code>FLASH</code></td><td>s</td><td>0x00000</td><td>0x10000</td><td>BL2 (64 KB)</td></tr>
+<tr><td><code>DF_EMULATION</code></td><td><code>FLASH</code></td><td>s</td><td>0x10000</td><td>0x10000</td><td>ITS + PS + NV counters (64 KB)</td></tr>
 </table></div>
+<blockquote><p><strong>Names in this table are <code>bsp_linker_info.h</code>&#x27;s</strong>, and the parent column is the <em>solution&#x27;s</em>
+(<code>FLASH</code>, <code>FLASH_N</code>, <code>RAM</code>, ...), not the invented &quot;MRAM&quot;. When you repartition you edit
+<code>solution.xml</code>, where the same regions appear under the solution names - <code>FLASH_CPU0_B</code>,
+<code>FLASH_NS_CPU0_N</code> and so on. Map one to the other before editing.</p></blockquote>
+<p>| <code>__BL_0_S_H</code> | MRAM | s | 0x20000 | 0x200 | image 0 secondary header |</p>
+<p>| <code>__BL_0_S_I</code> | MRAM | s | 0x20200 | 0x47E00 | image 0 secondary |</p>
+<p>| <code>__BL_0_S_T</code> | MRAM | s | 0x68000 | 0x0 | |</p>
+<p>| <code>__BL_0_P_H</code> | MRAM | s | 0x68000 | 0x200 | image 0 primary header |</p>
+<p>| <code>FLASH_CPU0_S</code> | MRAM | s | 0x68200 | 0x47A00 | secure code |</p>
+<p>| <code>FLASH_CPU0_C</code> | MRAM | c | 0xAFC00 | 0x400 | NSC veneers (1 KB) |</p>
+<p>| <code>__BL_0_P_T</code> | MRAM | s | 0xB0000 | 0x0 | |</p>
+<p>| <code>__BL_1_P_H</code> | MRAM | n | 0xB0000 | 0x200 | image 1 primary header |</p>
+<p>| <code>FLASH_CPU0_N</code> | MRAM | n | 0xB0200 | 0x27E00 | NS code |</p>
+<p>| <code>__BL_1_P_T</code> | MRAM | n | 0xD8000 | 0x0 | |</p>
+<p>| <code>__BL_1_S_H</code> | MRAM | n | 0xD8000 | 0x200 | image 1 secondary header |</p>
+<p>| <code>__BL_1_S_I</code> | MRAM | n | 0xD8200 | 0x27E00 | image 1 secondary |</p>
+<p>| <code>__BL_1_S_T</code> | MRAM | n | 0x100000 | 0x0 | |</p>
 <p>In 32 KB units: BL2 2, DF_EMULATION 2, secure slots 9 each, NS slots 5 each — 32 units, no
 remainder. <code>flash_layout.h:196-197</code> states the same sum as
 <code>64 K BL2 + 64 K DF_EMULATION + 2 x 288 K secure + 2 x 160 K non-secure = 1024 K</code>.</p>

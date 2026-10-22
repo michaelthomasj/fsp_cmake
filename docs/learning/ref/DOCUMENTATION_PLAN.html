@@ -84,10 +84,11 @@ answer is split across places you can only find if you already know they exist:<
 reconfiguring this port would find it. That pattern repeats across the port: the knowledge is good
 and it is written down, but it is organised by <em>where the bug was fixed</em> rather than by *what a
 reader needs to do*.</p>
-<p>Two more found while surveying:</p>
+<p>Two more found while surveying (<strong>both since resolved</strong>; the line counts in the table below
+are the 2026-10-04 snapshot and have moved a long way - <code>DECISIONS.md</code> alone is now past 6,500
+lines, and <code>MACHINE_HANDOFF.md</code> was deleted on 2026-10-09):</p>
 <ul>
-<li><strong><code>README.md</code> is two lines.</strong> 5,992 lines of markdown at this root and the entry point names none
-of it.</li>
+<li><strong><del><code>README.md</code> is two lines.</del> Fixed</strong> - it is 126 lines and carries the document map.</li>
 <li><strong><code>RA6M4_BL2_HALT_AT_MAIN</code> is not a cache option.</strong> <code>MACHINE_HANDOFF.md</code> §4 tells you to pass
 <code>-DRA6M4_BL2_HALT_AT_MAIN=ON</code>, and it works, but it is a bare <code>if()</code> in <code>CMakeLists.txt</code> — invisible
 to <code>ccmake</code>/<code>cmake-gui</code> and undiscoverable from the build. RA6E1&#x27;s equivalents <em>are</em> declared
@@ -105,7 +106,6 @@ to <code>ccmake</code>/<code>cmake-gui</code> and undiscoverable from the build.
 <tr><td><code>DOCUMENTATION_PLAN.md</code></td><td>215</td><td>2026-10-02</td></tr>
 <tr><td><code>RA6M5_SOLUTION.md</code></td><td>213</td><td>2026-09-23</td></tr>
 <tr><td><code>RA6E1_TEMPLATE_CHECKLIST.md</code></td><td>208</td><td>2026-10-04</td></tr>
-<tr><td><code>MACHINE_HANDOFF.md</code></td><td>196</td><td>2026-09-30</td></tr>
 <tr><td><code>RA8M2_SOLUTION.md</code></td><td>193</td><td>2026-10-04</td></tr>
 <tr><td><code>RA8x2_DUAL_CORE_DESIGN.md</code></td><td>185</td><td>2026-07-28</td></tr>
 <tr><td><code>README.md</code></td><td>109</td><td>2026-10-04</td></tr>
