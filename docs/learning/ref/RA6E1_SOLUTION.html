@@ -59,7 +59,7 @@
 <p class="src">Rendered from <a href="../../../RA6E1_SOLUTION.md"><code>RA6E1_SOLUTION.md</code></a>. Edit the Markdown, not this page.</p>
 <h1 id="ra6e1-solution-project--standalone-bring-up-pre-tf-m">RA6E1 Solution Project — standalone bring-up (pre-TF-M)</h1>
 <p>Status of the RASC <strong>solution</strong> project set, being brought up <strong>independently of TF-M</strong> first.
-Device <strong>R7FA6E10F2CFP</strong>. FSP <strong>6.6.0-beta2</strong>, MCUboot <strong>2.4.0+renesas.0</strong>, RASC <code>sc_v2026-04.2</code>.</p>
+Device <strong>R7FA6E10F2CFP</strong>. FSP <strong>6.6.0-rc1</strong>, MCUboot <strong>2.4.0+renesas.1</strong>, RASC <code>sc_v2026-04.2</code>.</p>
 <div class="table-wrap"><table>
 <tr><th>Project</th><th>Role</th></tr>
 <tr><td><code>ra6e1</code></td><td>the solution — owns the shared flash layout</td></tr>
@@ -149,7 +149,9 @@ Both (1) and (2) were present in the RA6M4 port too and are fixed there as well.
 programmed. Root cause: nothing in the firmware ever sets them (DESIGN.md §7.1)</li>
 <li><input type="checkbox" disabled checked> <strong>Non-secure application exercised beyond the jump</strong> — all 13 services smoke-tested from
 NS (2026-08-30), then the full <code>tf-m-tests</code> NS regression suite, 5/5 suites (2026-09-02)</li>
-<li><input type="checkbox" disabled checked> <strong>Re-partition for TF-M sizing</strong> — done; secure slot is now 255.25K (see Layout)</li>
+<li><input type="checkbox" disabled checked> <strong>Re-partition for TF-M sizing</strong> — done; secure code is <code>0x3FE00</code> (255.5K: <code>FLASH_CPU0_S</code>
+<code>0x3F600</code> + NSC <code>0x800</code>) and NS code <code>0x2FE00</code> (191.5K). See Layout. The 255.25K figure was
+the pre-2026-08-29 layout.</li>
 <li><input type="checkbox" disabled checked> <strong>TF-M port builds against this project set</strong> — 2026-08-26, all three images signed</li>
 </ul>
 <h3 id="before-flashing-the-tf-m-images-to-a-partitioned-board">Before flashing the TF-M images to a partitioned board</h3>
@@ -514,7 +516,7 @@ have broken NS signing.</p>
 <ul>
 <li><code>FSP_Project_ra6e1_bl2/</code> (718 files) — the standalone FSP 6.1 BL2 project from the original
 machine&#x27;s bring-up. The live project set is the <strong>solution</strong>: <code>ra6e1_solution</code>, <code>ra6e1_mcuboot</code>,
-<code>ra6e1_secure</code>, <code>ra6e1_nonsecure</code> at FSP 6.6.0-beta2. A standalone BL2 project cannot produce the
+<code>ra6e1_secure</code>, <code>ra6e1_nonsecure</code> at FSP 6.6.0-rc1. A standalone BL2 project cannot produce the
 <code>__BL_0/1_*</code> partition symbols the layout depends on, which is the whole reason for the solution.</li>
 <li><code>bringup/ra6e1_hand_edits/</code> — existed only to re-apply hand edits to that project after a RASC
 regen. Its preserved <code>hal_entry.c</code> is FSP&#x27;s stock <code>rm_mcuboot_port</code> template, superseded by
@@ -541,7 +543,7 @@ applies to the working project set in <code>fsp_cmake/</code>.</p>
 <div class="table-wrap"><table>
 <tr><th>Image</th><th><code>text</code></th><th>Slot code region</th><th>Used</th></tr>
 <tr><td>bl2</td><td>55 540</td><td><code>0x18000</code> (96K)</td><td>57%</td></tr>
-<tr><td>tfm_s</td><td>167 916</td><td><code>0x3FD00</code> (255.25K)</td><td><strong>64%</strong></td></tr>
+<tr><td>tfm_s</td><td>167 916</td><td><code>0x3FE00</code> (255.5K)</td><td><strong>64%</strong></td></tr>
 <tr><td>tfm_ns</td><td>3 334</td><td><code>0x2FD00</code> (191.25K)</td><td>2%</td></tr>
 </table></div>
 <p>Beware <code>ld --print-memory-usage</code> on the secure image: it reports <strong>99.85%</strong> because the veneers are
@@ -555,8 +557,11 @@ section below.</p>
 <p>Any further repartition changes the Code Secure boundary, so the Partition Manager values above must
 be recomputed <strong>and re-checked against the 32 KB / 8 KB granularity rule</strong>.</p>
 <h3 id="divergences-from-the-current-tf-m-port-config">Divergences from the current TF-M port config</h3>
-<p>Signature ECDSA-P256 vs RSA-3072 · overwrite-only vs swap+256K scratch · MCUboot 2.4.0 vs 2.1.0 ·
-FSP 6.6.0-beta2 here vs 6.1.0 vendored in the port.</p>
+<p><strong>None of substance any more.</strong> This section listed ECDSA-P256 vs RSA-3072, overwrite-only vs
+swap+256K scratch, MCUboot 2.4.0 vs 2.1.0 and FSP 6.6.0-beta2 vs 6.1.0 — all of which described
+the RA6M4-era port. The live port signs <strong>EC-P256</strong>, is <strong>OVERWRITE_ONLY with no scratch</strong>, and
+builds on FSP 6.7.0-beta0; the Status line above says so. Kept as a heading so the question is
+visibly answered rather than missing.</p>
 </main>
 </div>
 </body>

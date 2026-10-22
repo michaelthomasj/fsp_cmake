@@ -112,8 +112,10 @@ tree, not the config file. This has cost real debugging time twice (<a href="DEC
 <p><code>FSP_MODULES_NEVER_BUILT</code> lists modules whose sources the port supplies or compiles by another
 route; naming one here keeps the generic module glob from also building it.</p>
 <p><strong>Adding an FSP module you enabled in e2.</strong> e2 does not emit CMake modules, so a new module
-needs one line in <code>FSP_MODULES_S</code> (or <code>_BL2</code>) and one <code>FSP_MODULE_DIRS_&lt;name&gt;</code> giving its source
-directories. This is the known gap in goal 3 (<code>DESIGN.md</code> §0) and is bridged by documentation
+needs <strong>three</strong> things, not two: a line in <code>FSP_MODULES_S</code> (or <code>_BL2</code>), an
+<code>FSP_MODULE_DIRS_&lt;name&gt;</code> giving its source directories, **and a <code>cmake/modules/fsp_&lt;name&gt;.cmake</code>
+file**. <code>fsp_add_modules()</code> <code>include()</code>s that file for every module listed, so naming a module
+without creating it aborts the configure. <code>ADDING_FSP_MODULES.md</code> is the step-by-step. This is the known gap in goal 3 (<code>DESIGN.md</code> §0) and is bridged by documentation
 rather than by code.</p>
 <p><strong>Do not use a recursive glob for a module directory.</strong> <code>rm_mcuboot_port</code> is the cautionary
 case: <code>fsp_module_glob</code> is <code>GLOB_RECURSE</code> and would pull in <code>custom_crypto_stacks/</code>, <code>os/</code> and
@@ -191,7 +193,7 @@ hashes) and the trailer, which overstated RA8M2&#x27;s headroom by 30%.</p>
 <tr><td><code>&lt;PART&gt;_STDOUT_RTT</code></td><td>ON</td><td>SEGGER RTT over J-Link, no UART wiring. OFF selects <code>PLATFORM_DEFAULT_UART_STDOUT</code></td></tr>
 <tr><td><code>&lt;PART&gt;_RTT_BLOCKING</code></td><td>OFF</td><td>ON blocks rather than dropping output</td></tr>
 <tr><td><code>TFM_EXCEPTION_INFO_DUMP</code></td><td>ON</td><td>secure text ~3.4 KB. The one worth reconsidering for production</td></tr>
-<tr><td><code>TFM_SPM_DEBUG_TRACE</code></td><td>ON</td><td>a handful of bytes. <strong>Must stay off at isolation 3 + IPC</strong></td></tr>
+<tr><td><code>TFM_SPM_DEBUG_TRACE</code></td><td>ON</td><td>a handful of bytes. <strong>ON requires <code>TFM_SPM_LOG_LEVEL</code> above <code>_SILENCE</code></strong> - <code>check_config.cmake:119</code> rejects the pair, and <code>MinSizeRel</code>/<code>Release</code> set <code>_SILENCE</code>. Pass <code>-DTFM_SPM_LOG_LEVEL=TFM_SPM_LOG_LEVEL_DEBUG</code> or <code>-DTFM_SPM_DEBUG_TRACE=OFF</code>. Nothing to do with isolation or IPC (<a href="DECISIONS.html#d007">D007</a>)</td></tr>
 <tr><td><code>&lt;PART&gt;_BL2_HALT_AT_MAIN</code></td><td>OFF</td><td>BL2 spins at <code>main()</code> for debugger attach</td></tr>
 <tr><td><code>&lt;PART&gt;_ORPHAN_CHECK_STRICT</code></td><td>OFF</td><td>makes an orphan section fatal; intended for CI</td></tr>
 <tr><td><code>&lt;PART&gt;_NS_IN_SPE_BUILD</code></td><td>OFF</td><td>builds the NS image inside the secure build</td></tr>

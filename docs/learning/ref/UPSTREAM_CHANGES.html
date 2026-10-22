@@ -175,7 +175,9 @@ Verified from a clean IAR NS build.</p>
 there needs <code>nm</code> on the ELF. Worth folding in before submitting.</p>
 <h3 id="s9">9. BL2 signing depends on the target, not the image file</h3>
 <p><code>bl2/ext/mcuboot/CMakeLists.txt</code> — commit <code>b78618497</code></p>
-<p>A target named in <code>DEPENDS</code> becomes an order-only edge — &quot;build this first&quot;, not &quot;re-run me
+<p>A <strong>custom</strong> target named in <code>DEPENDS</code> becomes an order-only edge (CMake adds a file-level
+dependency when the named target is an executable or library; <code>tfm_s_bin</code> is a custom target,
+which is why this bites) — &quot;build this first&quot;, not &quot;re-run me
 when it changes&quot; — so the signed image was produced once and never regenerated. Every
 incremental build then shipped a signed image of an earlier <code>tfm_s.bin</code>. Depends on
 <code>$&lt;TARGET_FILE_DIR:tfm_s&gt;/tfm_s.bin</code> instead.</p>

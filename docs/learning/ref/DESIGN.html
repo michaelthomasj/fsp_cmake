@@ -148,7 +148,8 @@ define simply keeps winning, silently, and the deviation outlives its reason.</p
 <ul>
 <li><code>fsp_cmake</code> — RASC-generated FSP projects (bl2 / s / ns / …) + modular CMake + this doc + status doc
 <ul>
-<li>bring-up scripts. FSP 6.1.0 / RASC <code>sc_v2025-07</code>.</li>
+<li>bring-up scripts. FSP <strong>6.7.0-beta0</strong> (<a href="DECISIONS.html#d045">D045</a>, <a href="DECISIONS.html#d047">D047</a>); <code>GETTING_STARTED.md</code> §2 is the
+authority for tool versions.</li>
 </ul></li>
 <li><code>trusted-firmware-m</code> — the port under <code>platform/ext/target/renesas/&lt;part&gt;/</code>. Base <code>TF-Mv2.2.0</code>.</li>
 </ul>
@@ -168,7 +169,7 @@ in <code>RA6M5_SOLUTION.md</code> and <code>RA8M2_SOLUTION.md</code>, generated 
 <div class="table-wrap"><table>
 <tr><th></th><th>RA6M5</th><th>RA8M2</th></tr>
 <tr><td>Memory</td><td>HP code flash</td><td>MRAM</td></tr>
-<tr><td>Block size under the slots</td><td>32 KB (region 1, <code>0x10000+</code>; region 0 is 8 KB)</td><td>32 KB uniform</td></tr>
+<tr><td>Block size under the slots</td><td>32 KB (region 1, <code>0x10000+</code>; region 0 is 8 KB)</td><td><strong>no physical erase block</strong> - MRAM&#x27;s write unit is 32 B and its erase is simulated. 32 KB is FSP&#x27;s <code>RM_MCUBOOT_MRAM_BLOCK_SIZE</code> layout choice, which the port mirrors</td></tr>
 <tr><td><code>FLASH_AREA_IMAGE_SECTOR_SIZE</code></td><td><code>0x8000</code></td><td><code>0x8000</code></td></tr>
 </table></div>
 <p>The hazard is restating a block size that FSP already generates. <code>FLASH_AREA_IMAGE_SECTOR_SIZE</code>
@@ -273,8 +274,10 @@ ra6e1, ra6m5, ra8m2), so this block in FSP&#x27;s <code>R_BSP_SecurityInit()</co
     R_PSCU-&gt;SSAMONA  = ...  R_PSCU-&gt;SSAMONB  = ...  R_PSCU-&gt;DFSAMON = ...
 #endif</code></pre>
 <p><code>R_BSP_SAUInit()</code> still runs, but the <strong>SAU only refines the IDAU</strong> — an address is secure if <em>either</em>
-says so — and <code>BSP_FEATURE_TZ_NS_OFFSET = 0x00</code> means there is no separate non-secure alias for code
-flash. So IDAU attribution, burned into the device, is the only thing that makes the NS slot
+says so — and - <strong>on RA6M5</strong> - <code>BSP_FEATURE_TZ_NS_OFFSET = 0x00</code> means there is no separate non-secure
+alias for code flash. (<strong>RA8M2 differs</strong>: <code>TZ_NS_OFFSET</code> is <code>0x10000000</code>, giving the NS alias at
+<code>0x12000000</code>, and the SAU must be programmed as well - <code>R_BSP_SAUInit</code> in the secure image,
+<code>bl2_sau_init()</code> in BL2. See the §7 table.) So IDAU attribution, burned into the device, is the only thing that makes the NS slot
 non-secure. An unprogrammed part faults on the S→NS <code>BLXNS</code> with <strong>SecureFault / <code>INVEP</code></strong>
 (<code>SCB-&gt;SFSR</code> @ <code>0xE000EDE4</code>, bit 0) — the S→NS jump is the first thing that can possibly notice.</p>
 <p><strong>Register granularities differ, and two are coarse.</strong> A layout is only programmable if the sums land
@@ -367,9 +370,14 @@ per device and on <code>FSP_ERR_ALREADY_OPEN</code>) for one-time system state.<
 (IAR) — six files across RA6M5 and RA8M2. <code>&lt;part&gt;_bl2.ld</code> is a copy of TF-M&#x27;s
 <code>tfm_common_bl2.ld</code> plus §8.1 and §8.4; it is forked because GNU ld <code>INSERT</code> cannot augment a
 <code>-T</code> main script from a second <code>-T</code> fragment. Keep them in sync with TF-M on version bumps. The
-secure and non-secure sides stay on FSP&#x27;s generated linker scripts (§7), unforked.</p>
+<strong>secure</strong> side uses <strong>TF-M&#x27;s own generated linker</strong> with the <code>region_defs.h</code> hooks (plus the
+<code>&lt;part&gt;_fsp_sections.icf</code> fragment under IAR) - not FSP&#x27;s; only the <strong>non-secure</strong> side stays on
+FSP&#x27;s generated script, unforked (<a href="DECISIONS.html#d006">D006</a>, and the §7 statement &quot;no custom secure linker&quot;).</p>
 <h3 id="s8-3">8.3 BL2 lives at the base of flash</h3>
-<p><code>BL2_CODE_START</code> derives from <code>FLASH_BASE_ADDRESS</code>, <strong>not</strong> <code>S_ROM_ALIAS_BASE</code>. The latter is the
+<p><code>BL2_CODE_START</code> derives from the <strong><code>FLASH_BL</code> partition start</strong>
+(<code>BSP_PARTITION_FLASH_BL_CPU0_S_START</code>), <strong>not</strong> <code>S_ROM_ALIAS_BASE</code> - which is <code>0xA0000</code> on
+RA6M5 (its <code>0x20000</code> is the secure <em>secondary</em> slot) and <code>0x02068000</code> on RA8M2. Check <code>__Vectors</code>
+at the part&#x27;s flash base: <code>0x0</code> on RA6M5, <code>0x02000000</code> on RA8M2. The latter is the
 <em>secure image</em> base (<code>0x20000</code> when BL2 is on), so it linked the bootloader into the secure slot:
 nothing at the reset vector, and the flash step for <code>tfm_s_signed.bin</code> landed on top of the
 misplaced bootloader. The device never ran BL2 at all — which is why a run of earlier fixes

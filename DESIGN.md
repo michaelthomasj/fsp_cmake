@@ -97,7 +97,8 @@ The trap: nothing in the build warns if the generated value later becomes correc
 define simply keeps winning, silently, and the deviation outlives its reason.
 ## 2. Repositories
 - `fsp_cmake` — RASC-generated FSP projects (bl2 / s / ns / …) + modular CMake + this doc + status doc
-  + bring-up scripts. FSP 6.1.0 / RASC `sc_v2025-07`.
+  + bring-up scripts. FSP **6.7.0-beta0** ([D045], [D047]); `GETTING_STARTED.md` §2 is the
+  authority for tool versions.
 - `trusted-firmware-m` — the port under `platform/ext/target/renesas/<part>/`. Base `TF-Mv2.2.0`.
 
 ## 3. Memory map — authoritative source
@@ -116,7 +117,7 @@ Per-part, and the one place where getting a constant wrong fails only on hardwar
 | | RA6M5 | RA8M2 |
 |---|---|---|
 | Memory | HP code flash | MRAM |
-| Block size under the slots | 32 KB (region 1, `0x10000+`; region 0 is 8 KB) | 32 KB uniform |
+| Block size under the slots | 32 KB (region 1, `0x10000+`; region 0 is 8 KB) | **no physical erase block** - MRAM's write unit is 32 B and its erase is simulated. 32 KB is FSP's `RM_MCUBOOT_MRAM_BLOCK_SIZE` layout choice, which the port mirrors |
 | `FLASH_AREA_IMAGE_SECTOR_SIZE` | `0x8000` | `0x8000` |
 
 The hazard is restating a block size that FSP already generates. `FLASH_AREA_IMAGE_SECTOR_SIZE`
@@ -227,8 +228,10 @@ ra6e1, ra6m5, ra8m2), so this block in FSP's `R_BSP_SecurityInit()` is
 ```
 
 `R_BSP_SAUInit()` still runs, but the **SAU only refines the IDAU** — an address is secure if *either*
-says so — and `BSP_FEATURE_TZ_NS_OFFSET = 0x00` means there is no separate non-secure alias for code
-flash. So IDAU attribution, burned into the device, is the only thing that makes the NS slot
+says so — and - **on RA6M5** - `BSP_FEATURE_TZ_NS_OFFSET = 0x00` means there is no separate non-secure
+alias for code flash. (**RA8M2 differs**: `TZ_NS_OFFSET` is `0x10000000`, giving the NS alias at
+`0x12000000`, and the SAU must be programmed as well - `R_BSP_SAUInit` in the secure image,
+`bl2_sau_init()` in BL2. See the §7 table.) So IDAU attribution, burned into the device, is the only thing that makes the NS slot
 non-secure. An unprogrammed part faults on the S→NS `BLXNS` with **SecureFault / `INVEP`**
 (`SCB->SFSR` @ `0xE000EDE4`, bit 0) — the S→NS jump is the first thing that can possibly notice.
 
@@ -334,10 +337,15 @@ Each part forks three: `<part>_bl2.ld` (GNU), `<part>_bl2.icf` and `<part>_fsp_s
 (IAR) — six files across RA6M5 and RA8M2. `<part>_bl2.ld` is a copy of TF-M's
 `tfm_common_bl2.ld` plus §8.1 and §8.4; it is forked because GNU ld `INSERT` cannot augment a
 `-T` main script from a second `-T` fragment. Keep them in sync with TF-M on version bumps. The
-secure and non-secure sides stay on FSP's generated linker scripts (§7), unforked.
+**secure** side uses **TF-M's own generated linker** with the `region_defs.h` hooks (plus the
+`<part>_fsp_sections.icf` fragment under IAR) - not FSP's; only the **non-secure** side stays on
+FSP's generated script, unforked ([D006], and the §7 statement "no custom secure linker").
 
 ### 8.3 BL2 lives at the base of flash
-`BL2_CODE_START` derives from `FLASH_BASE_ADDRESS`, **not** `S_ROM_ALIAS_BASE`. The latter is the
+`BL2_CODE_START` derives from the **`FLASH_BL` partition start**
+(`BSP_PARTITION_FLASH_BL_CPU0_S_START`), **not** `S_ROM_ALIAS_BASE` - which is `0xA0000` on
+RA6M5 (its `0x20000` is the secure *secondary* slot) and `0x02068000` on RA8M2. Check `__Vectors`
+at the part's flash base: `0x0` on RA6M5, `0x02000000` on RA8M2. The latter is the
 *secure image* base (`0x20000` when BL2 is on), so it linked the bootloader into the secure slot:
 nothing at the reset vector, and the flash step for `tfm_s_signed.bin` landed on top of the
 misplaced bootloader. The device never ran BL2 at all — which is why a run of earlier fixes

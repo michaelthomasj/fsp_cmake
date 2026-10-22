@@ -1,7 +1,7 @@
 # RA6E1 Solution Project — standalone bring-up (pre-TF-M)
 
 Status of the RASC **solution** project set, being brought up **independently of TF-M** first.
-Device **R7FA6E10F2CFP**. FSP **6.6.0-beta2**, MCUboot **2.4.0+renesas.0**, RASC `sc_v2026-04.2`.
+Device **R7FA6E10F2CFP**. FSP **6.6.0-rc1**, MCUboot **2.4.0+renesas.1**, RASC `sc_v2026-04.2`.
 
 | Project | Role |
 |---|---|
@@ -100,7 +100,9 @@ boundary is bound by the 32 KB rule.
       programmed. Root cause: nothing in the firmware ever sets them (DESIGN.md §7.1)
 - [x] **Non-secure application exercised beyond the jump** — all 13 services smoke-tested from
       NS (2026-08-30), then the full `tf-m-tests` NS regression suite, 5/5 suites (2026-09-02)
-- [x] **Re-partition for TF-M sizing** — done; secure slot is now 255.25K (see Layout)
+- [x] **Re-partition for TF-M sizing** — done; secure code is `0x3FE00` (255.5K: `FLASH_CPU0_S`
+      `0x3F600` + NSC `0x800`) and NS code `0x2FE00` (191.5K). See Layout. The 255.25K figure was
+      the pre-2026-08-29 layout.
 - [x] **TF-M port builds against this project set** — 2026-08-26, all three images signed
 
 ### Before flashing the TF-M images to a partitioned board
@@ -558,7 +560,7 @@ have broken NS signing.
 
 * `FSP_Project_ra6e1_bl2/` (718 files) — the standalone FSP 6.1 BL2 project from the original
   machine's bring-up. The live project set is the **solution**: `ra6e1_solution`, `ra6e1_mcuboot`,
-  `ra6e1_secure`, `ra6e1_nonsecure` at FSP 6.6.0-beta2. A standalone BL2 project cannot produce the
+  `ra6e1_secure`, `ra6e1_nonsecure` at FSP 6.6.0-rc1. A standalone BL2 project cannot produce the
   `__BL_0/1_*` partition symbols the layout depends on, which is the whole reason for the solution.
 * `bringup/ra6e1_hand_edits/` — existed only to re-apply hand edits to that project after a RASC
   regen. Its preserved `hal_entry.c` is FSP's stock `rm_mcuboot_port` template, superseded by
@@ -589,7 +591,7 @@ The repartition fixed this. Measured from the first clean TF-M build (Debug, 202
 | Image | `text` | Slot code region | Used |
 |---|---|---|---|
 | bl2 | 55 540 | `0x18000` (96K) | 57% |
-| tfm_s | 167 916 | `0x3FD00` (255.25K) | **64%** |
+| tfm_s | 167 916 | `0x3FE00` (255.5K) | **64%** |
 | tfm_ns | 3 334 | `0x2FD00` (191.25K) | 2% |
 
 Beware `ld --print-memory-usage` on the secure image: it reports **99.85%** because the veneers are
@@ -606,5 +608,8 @@ Any further repartition changes the Code Secure boundary, so the Partition Manag
 be recomputed **and re-checked against the 32 KB / 8 KB granularity rule**.
 
 ### Divergences from the current TF-M port config
-Signature ECDSA-P256 vs RSA-3072 · overwrite-only vs swap+256K scratch · MCUboot 2.4.0 vs 2.1.0 ·
-FSP 6.6.0-beta2 here vs 6.1.0 vendored in the port.
+**None of substance any more.** This section listed ECDSA-P256 vs RSA-3072, overwrite-only vs
+swap+256K scratch, MCUboot 2.4.0 vs 2.1.0 and FSP 6.6.0-beta2 vs 6.1.0 — all of which described
+the RA6M4-era port. The live port signs **EC-P256**, is **OVERWRITE_ONLY with no scratch**, and
+builds on FSP 6.7.0-beta0; the Status line above says so. Kept as a heading so the question is
+visibly answered rather than missing.

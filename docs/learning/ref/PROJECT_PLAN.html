@@ -139,10 +139,11 @@ e2 generator fix (D093), and FWU on RA6M5.</li>
 <li>Note the part is <strong>RA8M2</strong> (R7KA8M2JFLCAC) with <strong>RSIP-E50D</strong>, not SCE9; earlier revisions
 of this plan said RSIP-E51A.</li>
 </ul>
-<p><strong>Primary goal — RA8M2 single-core (~late Nov)</strong></p>
+<p><strong><del>Primary goal — RA8M2 single-core (~late Nov)</del> — done 2026-10-09</strong> (<a href="DECISIONS.html#d106">D106</a>)</p>
 <ul>
-<li>TrustZone configuration + BSP update on FSP 6.7, GNUARM + IAR. Both toolchains now build;
-what remains is hardware bring-up and the PSA Arch suites.</li>
+<li>TrustZone configuration + BSP update on FSP 6.7, GNUARM + IAR. Both toolchains build, the
+full chain runs on hardware, and the PSA Arch suites pass on both. Isolation 1+IPC, 2 and 3
+followed on 2026-10-22 (<a href="DECISIONS.html#d124">D124</a>).</li>
 </ul>
 <p><strong>Future — TF-M 2.3 / TF-PSA-Crypto (after the rsip7 update)</strong></p>
 <ul>
@@ -225,7 +226,7 @@ from the record, MCUboot upgrade proven. 49 days early. Evidence table in D106.<
 <ul>
 <li><strong>Submission is via Gerrit</strong> (<code>review.trustedfirmware.org</code>), not a GitHub PR —
 <code>docs/contributing/contributing_process.rst</code>. The GitHub repo is a mirror.</li>
-<li>The 12 shared-file fixes as individual Gerrit changes; several
+<li>The shared-file fixes as individual Gerrit changes - 10 live defect fixes plus 2 additions per <a href="DECISIONS.html#d117">D117</a>; several
 (BL2 signing dependency, <code>MCUBOOT_ALIGN_VAL</code> cap) are platform-independent and
 can go early.</li>
 <li><code>psa-arch-tests</code> target via GitHub PR — that repo <em>does</em> take PRs.</li>
@@ -346,7 +347,9 @@ QCBOR, t_cose) as a single regression variant. FPU only if soft-float is revisit
 <h2 id="todo">TODO</h2>
 <ul>
 <li><p><strong>FSP pack uprev for both ports, once both are ready.</strong> RA6M5 and RA8M2 are each
-pinned to a dated 6.7.0-beta0 pack — RA6M5 on <code>12e48ca1</code>, RA8M2 on <code>9abf2155</code>.
+on the <strong>same</strong> 6.7.0-beta0 pack, <code>+20260925.818e720c</code>, since the regeneration in <a href="DECISIONS.html#d057">D057</a>
+— all twelve projects and all four solutions. The &quot;do it as one change&quot; rationale still holds
+for the next uprev.
 When both ports are green, regenerate every project against the then-current FSP
 and re-run the suites on hardware. Do it as one change across both parts, not
 per-port: the two share <code>fsp_mbedtls.cmake</code>, the ALT overlay and the TF-M patch
@@ -374,7 +377,7 @@ FSP also generates. <code>MCUBOOT_ALIGN_VAL</code> / <code>MCUBOOT_BOOT_MAX_ALIG
 legitimately differs, since TF-M has its own flash map, and that distinction should
 be recorded rather than left to be rediscovered.</li>
 </ul></li>
-<li><p><strong>Write <code>BRIDGING_FILES.md</code> — before the pack uprev above, not after.</strong> A number of files
+<li><p><strong><del>Write <code>BRIDGING_FILES.md</code></del> — done (<a href="DECISIONS.html#d089">D089</a>); still run its checks before the pack uprev above, not after.</strong> A number of files
 carry all or part of FSP&#x27;s code, or restate FSP-generated configuration, but are not FSP
 files and do not move when the packs do. Nothing in the build compares them against their
 origin, so they drift silently into constants that link cleanly and are wrong at run time —
@@ -389,7 +392,7 @@ part of it. Deferred past P7 deliberately: TF-M 2.3 reworks the platform NV-coun
 interface, so doing it first means doing it twice.</p></li>
 </ul>
 <hr>
-<p><em>Revised 2026-09-21 · RA6E1 done · RA6M5 ~2026-10-16 · RA8x2 single-core ~2026-11-27 · TF-M 2.3 after rsip7 · NS-in-OSPI last</em></p>
+<p><em>Revised 2026-10-22 · RA6E1 done · RA6M5 done · RA8M2 single-core done 2026-10-09 · TF-M 2.3 after rsip7 · NS-in-OSPI last</em></p>
 </main>
 </div>
 </body>

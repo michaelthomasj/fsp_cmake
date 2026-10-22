@@ -69,7 +69,7 @@ Protected Storage capacity is a **sum**, not a per-asset limit, and the cap is p
 RA6M5 (1,536 B PS block) against **155** on RA8M2 (15,872 B). Resizing the storage area changes
 it. The formula is in `config_tfm_target.h`; assert the result in `<part>_layout_checks.c`.
 
-**Erase data flash before the first boot after any storage change** — a stale area survives a
+**Erase the storage area - data flash on RA6M5, the DF_EMULATION region in MRAM on RA8M2 - before the first boot after any storage change** — a stale area survives a
 reflash and the storage suites then fail in ways that look like code faults.
 
 ### 2.3 The NSC window LMA budget *fails at link, obscurely*

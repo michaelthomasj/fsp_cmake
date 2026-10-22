@@ -85,9 +85,10 @@ dates rather than cutting scope.
 - Note the part is **RA8M2** (R7KA8M2JFLCAC) with **RSIP-E50D**, not SCE9; earlier revisions
   of this plan said RSIP-E51A.
 
-**Primary goal — RA8M2 single-core (~late Nov)**
-- TrustZone configuration + BSP update on FSP 6.7, GNUARM + IAR. Both toolchains now build;
-  what remains is hardware bring-up and the PSA Arch suites.
+**~~Primary goal — RA8M2 single-core (~late Nov)~~ — done 2026-10-09** ([[D106]])
+- TrustZone configuration + BSP update on FSP 6.7, GNUARM + IAR. Both toolchains build, the
+  full chain runs on hardware, and the PSA Arch suites pass on both. Isolation 1+IPC, 2 and 3
+  followed on 2026-10-22 ([[D124]]).
 
 **Future — TF-M 2.3 / TF-PSA-Crypto (after the rsip7 update)**
 - Rebase from the v2.2.0 fork point; SCE9 redone as a PSA transparent driver.
@@ -169,7 +170,7 @@ rebase that sat ahead of RA8x2 is now future work. P7 is undated.
 ### P6 · Stretch — upstream to the Arm TF-M repository (Jan 11 – Mar 26, 2027)
 - **Submission is via Gerrit** (`review.trustedfirmware.org`), not a GitHub PR —
   `docs/contributing/contributing_process.rst`. The GitHub repo is a mirror.
-- The 12 shared-file fixes as individual Gerrit changes; several
+- The shared-file fixes as individual Gerrit changes - 10 live defect fixes plus 2 additions per [[D117]]; several
   (BL2 signing dependency, `MCUBOOT_ALIGN_VAL` cap) are platform-independent and
   can go early.
 - `psa-arch-tests` target via GitHub PR — that repo *does* take PRs.
@@ -305,7 +306,9 @@ QCBOR, t_cose) as a single regression variant. FPU only if soft-float is revisit
 ## TODO
 
 - **FSP pack uprev for both ports, once both are ready.** RA6M5 and RA8M2 are each
-  pinned to a dated 6.7.0-beta0 pack — RA6M5 on `12e48ca1`, RA8M2 on `9abf2155`.
+  on the **same** 6.7.0-beta0 pack, `+20260925.818e720c`, since the regeneration in [[D057]]
+  — all twelve projects and all four solutions. The "do it as one change" rationale still holds
+  for the next uprev.
   When both ports are green, regenerate every project against the then-current FSP
   and re-run the suites on hardware. Do it as one change across both parts, not
   per-port: the two share `fsp_mbedtls.cmake`, the ALT overlay and the TF-M patch
@@ -331,7 +334,7 @@ QCBOR, t_cose) as a single regression variant. FPU only if soft-float is revisit
     legitimately differs, since TF-M has its own flash map, and that distinction should
     be recorded rather than left to be rediscovered.
 
-- **Write `BRIDGING_FILES.md` — before the pack uprev above, not after.** A number of files
+- **~~Write `BRIDGING_FILES.md`~~ — done ([[D089]]); still run its checks before the pack uprev above, not after.** A number of files
   carry all or part of FSP's code, or restate FSP-generated configuration, but are not FSP
   files and do not move when the packs do. Nothing in the build compares them against their
   origin, so they drift silently into constants that link cleanly and are wrong at run time —
@@ -348,4 +351,4 @@ QCBOR, t_cose) as a single regression variant. FPU only if soft-float is revisit
 
 ---
 
-*Revised 2026-09-21 · RA6E1 done · RA6M5 ~2026-10-16 · RA8x2 single-core ~2026-11-27 · TF-M 2.3 after rsip7 · NS-in-OSPI last*
+*Revised 2026-10-22 · RA6E1 done · RA6M5 done · RA8M2 single-core done 2026-10-09 · TF-M 2.3 after rsip7 · NS-in-OSPI last*

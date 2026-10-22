@@ -8,8 +8,14 @@ layout is a separate question with a separate answer, and conflating the two is 
 > TF-M's MCUboot map and backend, with FSP's HAL behind `fa_driver` via the port's own
 > `Driver_Flash.c` - the same shape ST uses for STM32Cube. The full RA6M5 regression suite
 > passes, secure and non-secure. Upstream item 13 is withdrawn and `bl2/CMakeLists.txt` is
-> byte-identical to TF-Mv2.2.0. The analysis below stands as written; §7 records the options as
-> they were weighed.
+> byte-identical to TF-Mv2.2.0.
+>
+> **One correction to §7 before you follow it.** What was adopted is Option 3's *driver*
+> arrangement with `DEFAULT_MCUBOOT_FLASH_MAP` left **ON** - TF-M's `default_flash_map.c`, the
+> ST model of §6a. §7's Option 3 inherits Option 2's `MAP=OFF` with a generated `flash_map[]`
+> (the corstone1000 model), and following it would have you switch the map off, which is not
+> what shipped. The analysis below otherwise stands as written; §7 records the options as they
+> were weighed, not the final shape.
 
 Design review, 2026-10-05. Written to answer four questions: what MCUboot's porting contract
 actually is, whether TF-M's BL2 breaks it, what other vendors do, and where this port is

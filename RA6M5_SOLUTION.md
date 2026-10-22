@@ -200,7 +200,7 @@ real build: see [[D031]].
   port uses them; they appear in the generated partition list.
 - Everything else transfers: same 8 KB / 32 KB flash block geometry, same 128-byte write
   size, same 64-byte data-flash block, same 112-entry vector table, same 13 OFS groups,
-  same SCE9 source tree (181 files, byte-identical layout).
+  same SCE9 source tree (byte-identical layout).
 
 ---
 
@@ -219,8 +219,9 @@ real build: see [[D031]].
   `template/cmake/iar.cmake` in the SC 2026-07 plugin set) — set the solution toolchain to
   IAR before doing the IAR leg, so the flags come from RASC rather than being carried over
   from RA6E1 by hand.
-- **FSP version drift.** `ra6m5_gcc` is now on 6.7.0-beta0, matching the RA6E1 solutions. The
-  plan targets 6.6, so either the plan or the projects should move.
+- **~~FSP version drift.~~ Closed.** RA6M5 and RA8M2 are both on 6.7.0-beta0, which has been the
+  plan's baseline since [[D047]]. RA6E1 stays on **6.6.0-rc1** and is dormant - [[D047]]'s claim
+  that "the RA6E1 solutions were already on 6.7.0-beta0" does not match the tree.
 - **CCM associated-data limit.** FSP's SCE9 CCM caps associated data at 110 B, and reports the
   overflow as a plain `PSA_ERROR_INVALID_ARGUMENT`. A software fallback above the threshold, or a
   documented limit, would make SCE9 CCM usable from PSA ([[D043]]). The two session-leak fixes are

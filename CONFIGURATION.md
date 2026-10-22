@@ -66,8 +66,10 @@ These decide which FSP sources are compiled into which image. They live in
 route; naming one here keeps the generic module glob from also building it.
 
 **Adding an FSP module you enabled in e2.** e2 does not emit CMake modules, so a new module
-needs one line in `FSP_MODULES_S` (or `_BL2`) and one `FSP_MODULE_DIRS_<name>` giving its source
-directories. This is the known gap in goal 3 (`DESIGN.md` §0) and is bridged by documentation
+needs **three** things, not two: a line in `FSP_MODULES_S` (or `_BL2`), an
+`FSP_MODULE_DIRS_<name>` giving its source directories, **and a `cmake/modules/fsp_<name>.cmake`
+file**. `fsp_add_modules()` `include()`s that file for every module listed, so naming a module
+without creating it aborts the configure. `ADDING_FSP_MODULES.md` is the step-by-step. This is the known gap in goal 3 (`DESIGN.md` §0) and is bridged by documentation
 rather than by code.
 
 **Do not use a recursive glob for a module directory.** `rm_mcuboot_port` is the cautionary
@@ -166,7 +168,7 @@ hashes) and the trailer, which overstated RA8M2's headroom by 30%.
 | `<PART>_STDOUT_RTT` | ON | SEGGER RTT over J-Link, no UART wiring. OFF selects `PLATFORM_DEFAULT_UART_STDOUT` |
 | `<PART>_RTT_BLOCKING` | OFF | ON blocks rather than dropping output |
 | `TFM_EXCEPTION_INFO_DUMP` | ON | secure text ~3.4 KB. The one worth reconsidering for production |
-| `TFM_SPM_DEBUG_TRACE` | ON | a handful of bytes. **Must stay off at isolation 3 + IPC** |
+| `TFM_SPM_DEBUG_TRACE` | ON | a handful of bytes. **ON requires `TFM_SPM_LOG_LEVEL` above `_SILENCE`** - `check_config.cmake:119` rejects the pair, and `MinSizeRel`/`Release` set `_SILENCE`. Pass `-DTFM_SPM_LOG_LEVEL=TFM_SPM_LOG_LEVEL_DEBUG` or `-DTFM_SPM_DEBUG_TRACE=OFF`. Nothing to do with isolation or IPC ([D007]) |
 | `<PART>_BL2_HALT_AT_MAIN` | OFF | BL2 spins at `main()` for debugger attach |
 | `<PART>_ORPHAN_CHECK_STRICT` | OFF | makes an orphan section fatal; intended for CI |
 | `<PART>_NS_IN_SPE_BUILD` | OFF | builds the NS image inside the secure build |

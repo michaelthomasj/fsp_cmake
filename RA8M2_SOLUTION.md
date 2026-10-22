@@ -1,6 +1,6 @@
 # RA8M2 Solution Project — layout, TrustZone boundaries, project requirements
 
-Device: **R7KA8M2JF** on the **EK-RA8M2** (`board.ra8m2ek`) — 1 MB MRAM, 1 MB SRAM, no data
+Device: **R7KA8M2JF** on the **EK-RA8M2** (`board.ra8m2ek`) — 1 MB MRAM, 1,872 KB SRAM (plus 64 KB ITCM / 64 KB DTCM per core-0 partition), no data
 flash, RSIP-E50D, Cortex-M85. FSP 6.7.0-beta0.
 
 Companion docs: `RA6M5_SOLUTION.md` (the port this is derived from), `DESIGN.md` (why — §4 for
@@ -169,7 +169,7 @@ every `BSP_PARTITION_*` match.
 |---|---|---|
 | `ra8m2_iar_mcuboot` | Measured Boot disabled - the only bootloader project where it was | `measured_boot.enabled`, record `0x64`; `MCUBOOT_MEASURED_BOOT` emitted |
 | `ra8m2_iar_CPU0_secure` | `RAM_CPU0_C` 128 B against GCC's 1 KB | `0x400` at `0x220E9C00` |
-| `ra8m2_iar_CPU0_secure` | no `r_agt`, so the IAR PSA Arch tree (`m2pa`) could not configure | `module.driver.timer.ipl = priority4`; `agt_int_isr` and 2 AGT events in the vector table |
+| `ra8m2_iar_CPU0_secure` | no `r_agt`, so the IAR PSA Arch tree (`m2pa`) could not configure | `module.driver.timer.ipl = priority4`; `agt_int_isr` allocated to one AGT0_INT vector (the second AGT name is the IRQn alias of the same entry) in the vector table |
 
 **On the last one: adding the module is not enough.** An intermediate regenerate had `r_agt`
 present with `ipl = _disabled`, which emits *no vector entry at all* - `vector_data.h` declared
@@ -270,7 +270,7 @@ secure primary (`0x02068000`); image 1 is the usual way round (`0x120B0000` prim
 reading of a `boot_rsp` must account for this. D100.
 
 The secure slot is nearly full. `README.md` §"Freeing space in the secure image" lists what can
-be turned off; at 960 B of headroom the PSA Arch logging options cannot be enabled globally here.
+be turned off; at 670 B of headroom ([D087]) the PSA Arch logging options cannot be enabled globally here.
 
 **Measured boot is on** (`MCUBOOT_MEASURED_BOOT` + `MCUBOOT_DATA_SHARING` in `config.cmake`) and
 statically verified. It had never been enabled anywhere until 2026-10-02, and the attestation

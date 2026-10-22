@@ -112,7 +112,7 @@ Device Partition Manager. Nothing in the build knows what you set. RA8M2 is <cod
 <p>Protected Storage capacity is a <strong>sum</strong>, not a per-asset limit, and the cap is per part: <strong>5</strong> on
 RA6M5 (1,536 B PS block) against <strong>155</strong> on RA8M2 (15,872 B). Resizing the storage area changes
 it. The formula is in <code>config_tfm_target.h</code>; assert the result in <code>&lt;part&gt;_layout_checks.c</code>.</p>
-<p><strong>Erase data flash before the first boot after any storage change</strong> — a stale area survives a
+<p><strong>Erase the storage area - data flash on RA6M5, the DF_EMULATION region in MRAM on RA8M2 - before the first boot after any storage change</strong> — a stale area survives a
 reflash and the storage suites then fail in ways that look like code faults.</p>
 <h3 id="s2-3">2.3 The NSC window LMA budget <em>fails at link, obscurely</em></h3>
 <p>The non-secure callable veneers sit at a fixed address at the top of the secure region, and the

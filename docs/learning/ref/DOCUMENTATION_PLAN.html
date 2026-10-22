@@ -60,8 +60,10 @@
 <main id="top" class="ref-doc">
 <p class="src">Rendered from <a href="../../../DOCUMENTATION_PLAN.md"><code>DOCUMENTATION_PLAN.md</code></a>. Edit the Markdown, not this page.</p>
 <h1 id="todo--a-self-contained-documentation-set">TODO — a self-contained documentation set</h1>
-<p><strong>Status: partly done (2026-10-04).</strong> This file is the plan and the gap list, not the
-documentation.</p>
+<p><strong>Status: complete (2026-10-09).</strong> Every document this file called for now exists, and the
+2026-10-09 table below marks them done. What is kept here is the plan and the reasoning, not a
+gap list - the &quot;Still missing&quot; text that follows is the 2026-10-04 snapshot, left for the
+record.</p>
 <p>Done since it was written: <code>README.md</code> is no longer a stub and carries the document map;
 <code>RA8M2_SOLUTION.md</code> exists; the eight RA6M4-era documents are under <code>archive/ra6m4/</code> with an
 index; <code>DESIGN.md</code> has been corrected to the live parts (DECISIONS D086). **Still missing, and
@@ -127,7 +129,7 @@ and three retirements**, not a programme of writing.</p>
 <tr><td>6</td><td><code>PORTING.md</code></td><td><strong>done 2026-10-09</strong> — the checklist covers the RASC half only; this is the TF-M platform half, sized by diffing the two live ports (8 files to author, 31 to copy)</td></tr>
 <tr><td>7</td><td><code>TROUBLESHOOTING.md</code></td><td><strong>done</strong></td></tr>
 <tr><td>+</td><td><code>BRIDGING_FILES.md</code></td><td><strong>done</strong> (<a href="DECISIONS.html#d089">D089</a>) — was the highest-value item on the original list</td></tr>
-<tr><td>+</td><td><code>UPSTREAM_CHANGES.md</code></td><td><strong>done</strong>, 14 items (<a href="DECISIONS.html#d108">D108</a> added the IAR toolchain defect)</td></tr>
+<tr><td>+</td><td><code>UPSTREAM_CHANGES.md</code></td><td><strong>done</strong>, 16 items - 10 live defect fixes, 2 additions, 2 withdrawn, 2 report-only (<a href="DECISIONS.html#d117">D117</a>, <a href="DECISIONS.html#d120">D120</a>, <a href="DECISIONS.html#d125">D125</a>)</td></tr>
 </table></div>
 <h3 id="why-buildingmd-became-getting_startedmd">Why <code>BUILDING.md</code> became <code>GETTING_STARTED.md</code></h3>
 <p>The original plan split &quot;one-page orientation&quot; (README) from &quot;real build procedures&quot;
@@ -147,7 +149,7 @@ such section, and item 6 as &quot;covered by the checklist&quot; when the checkl
 describe.** That is the argument for item 3 below.</p>
 <h3 id="remaining-work-in-order">Remaining work, in order</h3>
 <ol>
-<li><p><del><strong>A <code>## Settled questions</code> banner table</strong></del> <strong>in place 2026-10-09, 12 of 23 rows written.</strong>
+<li><p><del><strong>A <code>## Settled questions</code> banner table</strong></del> <strong>in place 2026-10-09, 12 of 22 rows written.</strong>
 At the top of <code>DECISIONS.md</code>, one row per QUESTION rather than per thread. The remaining
 <code>_TBD_</code> rows are the owner&#x27;s to write. Two supporting findings:</p>
 <ul>

@@ -165,7 +165,9 @@ there needs `nm` on the ELF. Worth folding in before submitting.
 
 `bl2/ext/mcuboot/CMakeLists.txt` — commit `b78618497`
 
-A target named in `DEPENDS` becomes an order-only edge — "build this first", not "re-run me
+A **custom** target named in `DEPENDS` becomes an order-only edge (CMake adds a file-level
+dependency when the named target is an executable or library; `tfm_s_bin` is a custom target,
+which is why this bites) — "build this first", not "re-run me
 when it changes" — so the signed image was produced once and never regenerated. Every
 incremental build then shipped a signed image of an earlier `tfm_s.bin`. Depends on
 `$<TARGET_FILE_DIR:tfm_s>/tfm_s.bin` instead.

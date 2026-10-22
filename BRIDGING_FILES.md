@@ -141,7 +141,7 @@ complains.
 
 | File | Stands in for | Check |
 |---|---|---|
-| `<part>_ddsc.c` | `bsp_linker.c`'s `gp_ddsc_*` definitions | `#error`s on empty partitions. Lives in the `fsp_bsp` module, not `platform_s` — GNU ld does not revisit archives |
+| `ra8m2_ddsc.c` (**RA8M2 only** - RA6M5 has no DDSC bridge and needs none) | `bsp_linker.c`'s `gp_ddsc_*` definitions | `#error`s on empty partitions. Lives in the `fsp_bsp` module, not `platform_s` — GNU ld does not revisit archives |
 | `bsp_init_stub.c` | FSP's init / copy / nocache tables, and the `g_main_stack` alias | the alias is asserted via `S_MSP_STACK_SIZE == BSP_CFG_STACK_MAIN_BYTES + STACKSEAL_SIZE` |
 | `bl2_option_setting.c` | the OFS sections `bsp_linker.c` emits | **has the best guard in the port** — see below |
 
@@ -155,7 +155,7 @@ The generated value changes; the restatement does not.
 | accelerator `<engine>_fsp_cfg.h` | `ra_cfg/arm/mbedtls/config.h` | diff after regenerate |
 | `mbedtls_accelerator_config.h`, `crypto_accelerator_config.h`, and the `bl2_*` variants | FSP's mbedTLS config | diff after regenerate |
 | `MCUBOOT_ALIGN_VAL` | `BSP_FEATURE_MRAM_PROGRAMMING_SIZE_BYTES` (32 on RA8M2) | not asserted — `MCUBOOT_ALIGN_VAL` is not visible in `platform_s`, where the checks live |
-| `RA8M2_VECTOR_TABLE_ENTRIES` (112) | `BSP_VECTOR_TABLE_MAX_ENTRIES` | **now asserted** via `S_CODE_VECTOR_TABLE_SIZE >= entries * 4` in both parts ([D086]) |
+| `RA8M2_VECTOR_TABLE_ENTRIES` (112) | `BSP_VECTOR_TABLE_MAX_ENTRIES` | **partly asserted** via `S_CODE_VECTOR_TABLE_SIZE >= entries * 4` in both parts ([D086]). The assert compares the linker **region** (`0x200` = 128 entries) with `BSP_VECTOR_TABLE_MAX_ENTRIES`; it never sees the startup literal, which appears only in the message text. If FSP grew the table to 113-128 entries the assert would still pass while `__VECTOR_TABLE` stayed at 112 |
 | the RDPM KB figures | the generated partition sizes | **no build-time check is possible** — provisioning does not come back. Derived rather than transcribed in the per-part solution docs |
 
 ### Depends on FSP INTERNALS, not its public API

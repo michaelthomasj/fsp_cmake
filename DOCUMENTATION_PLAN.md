@@ -1,7 +1,9 @@
 # TODO — a self-contained documentation set
 
-**Status: partly done (2026-10-04).** This file is the plan and the gap list, not the
-documentation.
+**Status: complete (2026-10-09).** Every document this file called for now exists, and the
+2026-10-09 table below marks them done. What is kept here is the plan and the reasoning, not a
+gap list - the "Still missing" text that follows is the 2026-10-04 snapshot, left for the
+record.
 
 Done since it was written: `README.md` is no longer a stub and carries the document map;
 `RA8M2_SOLUTION.md` exists; the eight RA6M4-era documents are under `archive/ra6m4/` with an
@@ -79,7 +81,7 @@ and three retirements**, not a programme of writing.
 | 6 | `PORTING.md` | **done 2026-10-09** — the checklist covers the RASC half only; this is the TF-M platform half, sized by diffing the two live ports (8 files to author, 31 to copy) |
 | 7 | `TROUBLESHOOTING.md` | **done** |
 | + | `BRIDGING_FILES.md` | **done** ([D089]) — was the highest-value item on the original list |
-| + | `UPSTREAM_CHANGES.md` | **done**, 14 items ([D108] added the IAR toolchain defect) |
+| + | `UPSTREAM_CHANGES.md` | **done**, 16 items - 10 live defect fixes, 2 additions, 2 withdrawn, 2 report-only ([D117], [D120], [D125]) |
 
 ### Why `BUILDING.md` became `GETTING_STARTED.md`
 
@@ -105,7 +107,7 @@ describe.** That is the argument for item 3 below.
 
 ### Remaining work, in order
 
-1. ~~**A `## Settled questions` banner table**~~ **in place 2026-10-09, 12 of 23 rows written.**
+1. ~~**A `## Settled questions` banner table**~~ **in place 2026-10-09, 12 of 22 rows written.**
    At the top of `DECISIONS.md`, one row per QUESTION rather than per thread. The remaining
    `_TBD_` rows are the owner's to write. Two supporting findings:
 

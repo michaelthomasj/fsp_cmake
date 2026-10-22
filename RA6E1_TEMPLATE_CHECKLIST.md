@@ -150,9 +150,11 @@ boot under the other. A mismatch is not a build error.
       like it validated. This project set ran that way until 2026-08-26. Does not affect TF-M's
       BL2 (see the note above), but it is the wrong default to ship.
 - [ ] Upgrade mode **overwrite-only** (hence no scratch area)
-- [ ] **Validate primary slot** enabled — the secure image's trailer is NS-writable by
-      construction (RA has one secure region and it precedes the NSC), so this is what bounds
-      that to a DoS. Do not turn it off.
+- [ ] **Validate primary slot** enabled. Keep it, but **not for the reason this line used to
+      give**: with zero-size trailer partitions the secure trailer occupies the last `0x180`
+      bytes of the slot, which lie **inside the NSC window** — Secure memory that Non-secure
+      code cannot write. The NS-writable argument holds only for a layout whose trailer falls
+      outside the NSC. Validate-primary still earns its place as a corruption check.
 - [ ] Header **`0x200`** / **trailer partitions size `0`** (end markers, not real trailers).
       A real `0x100` `__BL_0_P_T` after `FLASH_CPU0_C` would put 256 secure bytes between the
       NSC and the non-secure boundary, which breaks §3's "NSC ends exactly on the NS boundary"
@@ -173,7 +175,7 @@ Measured from the current build; leave headroom rather than fitting exactly.
 | Image | `text` | Slot code region | Used |
 |---|---|---|---|
 | bl2 | 55 540 | `0x18000` (96K) | 57% |
-| tfm_s | 175 838 | `0x3FD00` (255.25K) | 67% |
+| tfm_s | 175 838 | `0x3FE00` (255.5K) | 67% |  *(figures dated 2026-08-26; `RA6E1_SOLUTION.md` has 167 916 for what it labels the same layout - re-measure before relying on either)*
 | tfm_ns | 3 334 | `0x2FD00` (191.25K) | 2% |
 
 - [ ] Secure slot **≥ 256K**. TF-M's secure image is the binding constraint, and the current 67%
@@ -181,7 +183,8 @@ Measured from the current build; leave headroom rather than fitting exactly.
 - [ ] Bootloader **96K** is comfortable at 57%.
 - [ ] **Data flash: give the secure side more than 4 KB if the template can.** This is the one
       genuinely tight resource. The RA6M4 port uses ~7 KB of 8 KB (NV counters 2K + PS 3K +
-      ITS 2K); the current solution gives the secure side 4 KB and the rest to NS. `flash_layout.h`
+      ITS 2K); the current solution gives **all 8 KB to the secure side** (NV counters 2K + PS 3K + ITS 3K),
+      as `RA6E1_SOLUTION.md` records. `flash_layout.h`
       splits what it has proportionally and `#error`s below 4 KB, but there is no wear-levelling
       headroom at that size.
 

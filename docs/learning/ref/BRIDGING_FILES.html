@@ -157,7 +157,7 @@ list FSP&#x27;s <code>*_alt.c</code> files and compare against the list.</p>
 complains.</p>
 <div class="table-wrap"><table>
 <tr><th>File</th><th>Stands in for</th><th>Check</th></tr>
-<tr><td><code>&lt;part&gt;_ddsc.c</code></td><td><code>bsp_linker.c</code>&#x27;s <code>gp_ddsc_*</code> definitions</td><td><code>#error</code>s on empty partitions. Lives in the <code>fsp_bsp</code> module, not <code>platform_s</code> — GNU ld does not revisit archives</td></tr>
+<tr><td><code>ra8m2_ddsc.c</code> (<strong>RA8M2 only</strong> - RA6M5 has no DDSC bridge and needs none)</td><td><code>bsp_linker.c</code>&#x27;s <code>gp_ddsc_*</code> definitions</td><td><code>#error</code>s on empty partitions. Lives in the <code>fsp_bsp</code> module, not <code>platform_s</code> — GNU ld does not revisit archives</td></tr>
 <tr><td><code>bsp_init_stub.c</code></td><td>FSP&#x27;s init / copy / nocache tables, and the <code>g_main_stack</code> alias</td><td>the alias is asserted via <code>S_MSP_STACK_SIZE == BSP_CFG_STACK_MAIN_BYTES + STACKSEAL_SIZE</code></td></tr>
 <tr><td><code>bl2_option_setting.c</code></td><td>the OFS sections <code>bsp_linker.c</code> emits</td><td><strong>has the best guard in the port</strong> — see below</td></tr>
 </table></div>
@@ -169,7 +169,7 @@ complains.</p>
 <tr><td>accelerator <code>&lt;engine&gt;_fsp_cfg.h</code></td><td><code>ra_cfg/arm/mbedtls/config.h</code></td><td>diff after regenerate</td></tr>
 <tr><td><code>mbedtls_accelerator_config.h</code>, <code>crypto_accelerator_config.h</code>, and the <code>bl2_*</code> variants</td><td>FSP&#x27;s mbedTLS config</td><td>diff after regenerate</td></tr>
 <tr><td><code>MCUBOOT_ALIGN_VAL</code></td><td><code>BSP_FEATURE_MRAM_PROGRAMMING_SIZE_BYTES</code> (32 on RA8M2)</td><td>not asserted — <code>MCUBOOT_ALIGN_VAL</code> is not visible in <code>platform_s</code>, where the checks live</td></tr>
-<tr><td><code>RA8M2_VECTOR_TABLE_ENTRIES</code> (112)</td><td><code>BSP_VECTOR_TABLE_MAX_ENTRIES</code></td><td><strong>now asserted</strong> via <code>S_CODE_VECTOR_TABLE_SIZE &gt;= entries * 4</code> in both parts (<a href="DECISIONS.html#d086">D086</a>)</td></tr>
+<tr><td><code>RA8M2_VECTOR_TABLE_ENTRIES</code> (112)</td><td><code>BSP_VECTOR_TABLE_MAX_ENTRIES</code></td><td><strong>partly asserted</strong> via <code>S_CODE_VECTOR_TABLE_SIZE &gt;= entries * 4</code> in both parts (<a href="DECISIONS.html#d086">D086</a>). The assert compares the linker <strong>region</strong> (<code>0x200</code> = 128 entries) with <code>BSP_VECTOR_TABLE_MAX_ENTRIES</code>; it never sees the startup literal, which appears only in the message text. If FSP grew the table to 113-128 entries the assert would still pass while <code>__VECTOR_TABLE</code> stayed at 112</td></tr>
 <tr><td>the RDPM KB figures</td><td>the generated partition sizes</td><td><strong>no build-time check is possible</strong> — provisioning does not come back. Derived rather than transcribed in the per-part solution docs</td></tr>
 </table></div>
 <h3 id="depends-on-fsp-internals-not-its-public-api">Depends on FSP INTERNALS, not its public API</h3>

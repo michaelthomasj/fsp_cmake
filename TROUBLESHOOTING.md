@@ -36,7 +36,8 @@ precisely so an empty inspection reports as a failure rather than a pass.
 
 - One `MEMORY` region per option word, never a shared span.
 - `readelf -l` on the linked ELF is **the only place the coalescing is visible.** The pre-flash
-  checklist in `MACHINE_HANDOFF.md` §4 runs it.
+  checklist in `GETTING_STARTED.md` §6 "Pre-flash verification" runs it. (`MACHINE_HANDOFF.md`
+  was deleted 2026-10-09; `check_docs.py` does not catch a backticked filename.)
 - `check_ofs.py` now **requires** its region and BL2 passes `--require-segments`, so an empty
   result fails rather than reading as a pass.
 
@@ -57,7 +58,7 @@ gets them wrong. `DESIGN.md` §7.2.
 
 ## Boot failures
 
-### `R_FLASH_HP_Open` / `R_MRAM_Open` returns `FSP_ERR_FCLK`
+### `R_FLASH_HP_Open` returns `FSP_ERR_FCLK` (RA6M5)
 
 **Cause.** `BSP_CFG_EARLY_INIT` is 0 in the e2 project. TF-M's `Reset_Handler` runs
 `SystemInit()` *before* the C runtime zeroes `.bss`; with early init off, FSP leaves

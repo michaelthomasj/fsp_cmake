@@ -85,7 +85,8 @@ precisely so an empty inspection reports as a failure rather than a pass.</p>
 <ul>
 <li>One <code>MEMORY</code> region per option word, never a shared span.</li>
 <li><code>readelf -l</code> on the linked ELF is <strong>the only place the coalescing is visible.</strong> The pre-flash
-checklist in <code>MACHINE_HANDOFF.md</code> §4 runs it.</li>
+checklist in <code>GETTING_STARTED.md</code> §6 &quot;Pre-flash verification&quot; runs it. (<code>MACHINE_HANDOFF.md</code>
+was deleted 2026-10-09; <code>check_docs.py</code> does not catch a backticked filename.)</li>
 <li><code>check_ofs.py</code> now <strong>requires</strong> its region and BL2 passes <code>--require-segments</code>, so an empty
 result fails rather than reading as a pass.</li>
 </ul>
@@ -100,7 +101,7 @@ otherwise derives boundaries from the launched project&#x27;s symbols, and launc
 gets them wrong. <code>DESIGN.md</code> §7.2.</p>
 <hr>
 <h2 id="boot-failures">Boot failures</h2>
-<h3 id="r_flash_hp_open--r_mram_open-returns-fsp_err_fclk"><code>R_FLASH_HP_Open</code> / <code>R_MRAM_Open</code> returns <code>FSP_ERR_FCLK</code></h3>
+<h3 id="r_flash_hp_open-returns-fsp_err_fclk-ra6m5"><code>R_FLASH_HP_Open</code> returns <code>FSP_ERR_FCLK</code> (RA6M5)</h3>
 <p><strong>Cause.</strong> <code>BSP_CFG_EARLY_INIT</code> is 0 in the e2 project. TF-M&#x27;s <code>Reset_Handler</code> runs
 <code>SystemInit()</code> <em>before</em> the C runtime zeroes <code>.bss</code>; with early init off, FSP leaves
 <code>SystemCoreClock</code> in <code>.bss</code>, so it is wiped immediately after <code>SystemInit()</code> computed it,

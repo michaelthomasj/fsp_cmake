@@ -221,7 +221,7 @@ Wrong lengths here are in brick territory — the values come from the generated
 port uses them; they appear in the generated partition list.</li>
 <li>Everything else transfers: same 8 KB / 32 KB flash block geometry, same 128-byte write
 size, same 64-byte data-flash block, same 112-entry vector table, same 13 OFS groups,
-same SCE9 source tree (181 files, byte-identical layout).</li>
+same SCE9 source tree (byte-identical layout).</li>
 </ul>
 <hr>
 <h2 id="open-items">Open items</h2>
@@ -238,8 +238,9 @@ RASC can generate an IAR CMake project (<code>ToolchainIarCMakeGenerator</code>,
 <code>template/cmake/iar.cmake</code> in the SC 2026-07 plugin set) — set the solution toolchain to
 IAR before doing the IAR leg, so the flags come from RASC rather than being carried over
 from RA6E1 by hand.</p></li>
-<li><p><strong>FSP version drift.</strong> <code>ra6m5_gcc</code> is now on 6.7.0-beta0, matching the RA6E1 solutions. The
-plan targets 6.6, so either the plan or the projects should move.</p></li>
+<li><p><strong><del>FSP version drift.</del> Closed.</strong> RA6M5 and RA8M2 are both on 6.7.0-beta0, which has been the
+plan&#x27;s baseline since <a href="DECISIONS.html#d047">D047</a>. RA6E1 stays on <strong>6.6.0-rc1</strong> and is dormant - <a href="DECISIONS.html#d047">D047</a>&#x27;s claim
+that &quot;the RA6E1 solutions were already on 6.7.0-beta0&quot; does not match the tree.</p></li>
 <li><p><strong>CCM associated-data limit.</strong> FSP&#x27;s SCE9 CCM caps associated data at 110 B, and reports the
 overflow as a plain <code>PSA_ERROR_INVALID_ARGUMENT</code>. A software fallback above the threshold, or a
 documented limit, would make SCE9 CCM usable from PSA (<a href="DECISIONS.html#d043">D043</a>). The two session-leak fixes are
