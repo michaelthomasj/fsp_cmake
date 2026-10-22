@@ -239,7 +239,7 @@ wins. Nothing above supersedes anything; the entries carry their own <code>Statu
 </table></div>
 <hr>
 <h2 id="d001">D001 — Option-setting (OFS) memory must never be linked into an image</h2>
-<p><strong>Date:</strong> 2026-07-21 · <strong>Status:</strong> Superseded by D002 · <strong>Back-filled</strong> from commit <code>c78602fff</code> and
+<p><strong>Date:</strong> 2026-07-21 · <strong>Status:</strong> Superseded by D002 · <strong>Evidence:</strong> Back-filled from commit <code>c78602fff</code> and
 <code>TFM_RA6M4_STATUS.md</code>.</p>
 <p><strong>Context.</strong> Two EK-RA6M4 boards were permanently bricked by a BL2 image carrying the thirteen
 option-setting words at <code>0x0100A100</code>–<code>0x0100A2CC</code>. After flashing, the parts read back <code>0xDA</code> and
@@ -254,7 +254,7 @@ cost of another wrong guess was another board.</p>
 Cost about three weeks of carrying a false lesson in the source.</p>
 <hr>
 <h2 id="d002">D002 — Each OFS group gets its own linker <code>MEMORY</code> region</h2>
-<p><strong>Date:</strong> 2026-08-10 · <strong>Status:</strong> Accepted · <strong>Supersedes:</strong> D001 · <strong>Back-filled</strong> from
+<p><strong>Date:</strong> 2026-08-10 · <strong>Status:</strong> Accepted · <strong>Supersedes:</strong> <a href="DECISIONS.html#d001">D001</a> · <strong>Evidence:</strong> Back-filled from
 <code>DESIGN.md</code> §8.4 and <code>MACHINE_HANDOFF.md</code> §1.1.</p>
 <p><strong>Context.</strong> Re-examination of the brick found the real mechanism. <code>ra6m4_bl2.ld</code> emitted the option
 words as bare addressed sections with <strong>no <code>&gt; REGION</code> assignment</strong>, so GNU ld coalesced all of them
@@ -275,7 +275,7 @@ automatic: <code>check_ofs.py</code> runs post-link on <code>bl2</code> and <cod
 longer depends on someone remembering <code>readelf</code>.</p>
 <hr>
 <h2 id="d003">D003 — RA6E1 replaces RA6M4 as the RA6 development vehicle</h2>
-<p><strong>Date:</strong> 2026-08-25 · <strong>Status:</strong> Accepted · <strong>Back-filled</strong> from <code>RA6E1_SOLUTION.md</code> and
+<p><strong>Date:</strong> 2026-08-25 · <strong>Status:</strong> Accepted · <strong>Evidence:</strong> Back-filled from <code>RA6E1_SOLUTION.md</code> and
 <code>PROJECT_PLAN.md</code>.</p>
 <p><strong>Context.</strong> Both EK-RA6M4 boards were destroyed by D001&#x27;s root cause. No replacement was to hand;
 an EK-RA6E1 was.</p>
@@ -287,7 +287,7 @@ and a passing regression suite, while RA6M4 has none of them. Every RA6M4 defect
 been found by reading, not by running.</p>
 <hr>
 <h2 id="d004">D004 — Drive the flash layout from a RASC <em>solution</em>, not standalone projects</h2>
-<p><strong>Date:</strong> 2026-08-25 · <strong>Status:</strong> Accepted · <strong>Back-filled</strong> from <code>RA6E1_SOLUTION.md</code>.</p>
+<p><strong>Date:</strong> 2026-08-25 · <strong>Status:</strong> Accepted · <strong>Evidence:</strong> Back-filled from <code>RA6E1_SOLUTION.md</code></p>
 <p><strong>Context.</strong> MCUboot needs a shared, consistent view of the slots across bootloader, secure and
 non-secure images. The partition symbols (<code>__BL_0/1_P/S_*</code>) that express it are emitted into each
 project&#x27;s generated <code>bsp_linker_info.h</code> and <code>memory_regions.ld</code> <strong>by the solution</strong>.</p>
@@ -301,7 +301,7 @@ lives in <code>&lt;project&gt;/Debug/</code>, which is not committed. Accepted d
 bundle a default project set inside the port is what removes it.</p>
 <hr>
 <h2 id="d005">D005 — Build the NS image in its own CMake project against the installed <code>api_ns/</code></h2>
-<p><strong>Date:</strong> 2026-08-30 · <strong>Status:</strong> Accepted · <strong>Back-filled</strong> from <code>RA6E1_SOLUTION.md</code>.</p>
+<p><strong>Date:</strong> 2026-08-30 · <strong>Status:</strong> Accepted · <strong>Evidence:</strong> Back-filled from <code>RA6E1_SOLUTION.md</code></p>
 <p><strong>Context.</strong> The NS application could not call a PSA API. <code>tfm_api_ns</code> is created by the NSPE build
 from the installed tree and cannot exist in the SPE build, so linking it there yields
 <code>cannot find -ltfm_api_ns</code>.</p>
@@ -314,7 +314,7 @@ calls, and it is what the official <code>tf-m-tests</code> and <code>tests_psa_a
 exactly why it cannot run any test suite today (D009).</p>
 <hr>
 <h2 id="d006">D006 — Use TF-M&#x27;s shared isolation HAL and generated secure linker, not port-owned copies</h2>
-<p><strong>Date:</strong> 2026-08-26 · <strong>Status:</strong> Accepted · <strong>Back-filled</strong> from the port&#x27;s <code>CMakeLists.txt</code> and
+<p><strong>Date:</strong> 2026-08-26 · <strong>Status:</strong> Accepted · <strong>Evidence:</strong> Back-filled from the port&#x27;s <code>CMakeLists.txt</code> and
 <code>region_defs.h</code>; the rationale below was made explicit on 2026-09-08 after the L3 work, but the
 decision itself is what the port has always done.</p>
 <p><strong>Context.</strong> Two related choices. First, whether to implement <code>tfm_hal_isolation.c</code> in the port or
@@ -430,7 +430,7 @@ whenever BL2 is enabled, so guarding on it deletes the same symbols from <code>t
 BL2 can get it without the rest of the file, at which point the guard and the macro both go.</p>
 <hr>
 <h2 id="d012">D012 — When the generated linker lacks a hook, add a generic one upstream rather than fork</h2>
-<p><strong>Date:</strong> 2026-08-30 · <strong>Status:</strong> Accepted · <strong>Refines:</strong> D006 · <strong>Back-filled</strong> from commits
+<p><strong>Date:</strong> 2026-08-30 · <strong>Status:</strong> Accepted · <strong>Builds on:</strong> <a href="DECISIONS.html#d006">D006</a> · <strong>Evidence:</strong> Back-filled from commits
 <code>fbc84be86</code> and <code>103520f23</code>.</p>
 <p><strong>Context.</strong> D006 chose TF-M&#x27;s generated secure linker. Two FSP sections then needed placement it
 did not provide. <code>.ram_from_flash</code> was already covered — <code>S_RAM_CODE_START</code> /
@@ -511,7 +511,7 @@ writes <code>BUILDING.md</code> should record the patch step; whoever revisits t
 rejected option once the target settles.</p>
 <hr>
 <h2 id="d015">D015 — Isolation 3 + IPC confirmed on hardware; D008 is no longer provisional</h2>
-<p><strong>Date:</strong> 2026-09-08 · <strong>Status:</strong> Accepted · <strong>Confirms:</strong> D008</p>
+<p><strong>Date:</strong> 2026-09-08 · <strong>Status:</strong> Accepted · <strong>Builds on:</strong> <a href="DECISIONS.html#d008">D008</a></p>
 <p><strong>Context.</strong> D008 declared <code>PLATFORM_HAS_ISOLATION_L3_SUPPORT</code> on the strength of a build and a
 static region count, and said explicitly that the flag asserts the port has been built <em>and run</em> at
 L3 while only the first was true. Two things were unproven: the MPU region budget, checked at runtime
@@ -531,7 +531,7 @@ a single unexplained BL2 stop was observed between runs and has not been reprodu
 the diagnostic BL2 built with <code>MCUBOOT_LOG_LEVEL=INFO</code> exists to catch it if it recurs.</p>
 <hr>
 <h2 id="d016">D016 — RA6M5 is the upstream target; RA6M4 is skipped</h2>
-<p><strong>Date:</strong> 2026-09-09 · <strong>Status:</strong> Accepted · <strong>Changes the plan recorded in</strong> D003, D009</p>
+<p><strong>Date:</strong> 2026-09-09 · <strong>Status:</strong> Accepted · <strong>Corrects:</strong> <a href="DECISIONS.html#d003">D003</a>, <a href="DECISIONS.html#d009">D009</a></p>
 <p><strong>Context.</strong> D003 made RA6E1 the development vehicle after both EK-RA6M4 boards were destroyed,
 keeping RA6M4 as the intended deliverable. Surveying what RA6M4 actually needs changed that: its
 <code>flash_layout.h</code> contains <strong>zero</strong> <code>BSP_PARTITION</code> references against RA6E1&#x27;s 24, so D004 —
@@ -552,7 +552,7 @@ anticipated is not going to happen. Anything RA6M4-specific in the status docs s
 historical.</p>
 <hr>
 <h2 id="d017">D017 — The PSA Arch target stays a local patch for RA6E1; the RA6M5 one goes upstream</h2>
-<p><strong>Date:</strong> 2026-09-09 · <strong>Status:</strong> Accepted · <strong>Resolves the open question in</strong> D014</p>
+<p><strong>Date:</strong> 2026-09-09 · <strong>Status:</strong> Accepted · <strong>Builds on:</strong> <a href="DECISIONS.html#d014">D014</a> · <strong>Evidence:</strong> Resolves the open question in D014</p>
 <p><strong>Context.</strong> D014 left open whether <code>tgt_dev_apis_tfm_ra6e1</code> should be contributed to
 ARM-software/psa-arch-tests or carried as an eleventh patch in <code>tf-m-tests/tests_psa_arch/fetch_repo/</code>
 beside the three platform additions already there (Corstone-315/320, rp2350, Musca S1/B1).</p>
@@ -567,7 +567,7 @@ patches applied by hand, exactly as D014 describes. That reproduction gap is acc
 development vehicle and must not be carried into the RA6M5 contribution.</p>
 <hr>
 <h2 id="d018">D018 — One RA-family PSA Arch target, named <code>tgt_dev_apis_tfm_renesas_ra</code></h2>
-<p><strong>Date:</strong> 2026-09-09 · <strong>Status:</strong> Accepted · <strong>Refines:</strong> D017</p>
+<p><strong>Date:</strong> 2026-09-09 · <strong>Status:</strong> Accepted · <strong>Builds on:</strong> <a href="DECISIONS.html#d017">D017</a></p>
 <p><strong>Context.</strong> The target was first written as <code>tgt_dev_apis_tfm_ra6e1</code>, matching the name
 <code>tests_psa_arch</code> derives from the TF-M platform basename. Reviewing it for upstreaming showed
 nothing in it is device-specific: UART and watchdog are declared unused, nvmem is a runtime
@@ -589,6 +589,7 @@ rejected because a second RA device would then need a duplicate directory or a r
 the <code>Verified on:</code> line in <code>target.cfg</code> is the place that records which parts have actually been
 run — RA6E1 today, RA6M5 to be added.</p>
 <h2 id="d019">D019 — The IAR secure image reaches FSP&#x27;s sections through an included ICF fragment, not a section-name macro</h2>
+<p><strong>Date:</strong> 2026-09-14 · <strong>Status:</strong> Accepted</p>
 <p><strong>Context.</strong> The GNU secure template takes vendor section names as preprocessor macros:
 <code>S_RAM_CODE_EXTRA_SECTION_NAME</code> (upstream, 53c10c111) expands into <code>KEEP(*(...))</code>, and
 <code>S_DATA_EXTRA_NOINIT_SECTION_NAME</code> (added here, fbc84be86) into <code>.TFM_NOINIT</code>. The obvious move was
@@ -634,6 +635,7 @@ all at <code>S_RAM_CODE_START</code> with flash veneers branching to them, the i
 <code>0x7397c</code>, and all five <code>.ram_noinit</code> contributors <code>uninit</code> at <code>0x2000ca38</code>, where <code>SystemCoreClock</code>
 also resolves. The RA6M5 port needs the same fragment.</p>
 <h2 id="d020">D020 — <code>g_main_stack</code> is redirected, not defined, under IAR; one response file serves both images</h2>
+<p><strong>Date:</strong> 2026-09-14 · <strong>Status:</strong> Accepted</p>
 <p><strong>Context.</strong> D010 records why FSP&#x27;s <code>g_main_stack</code> is aliased to TF-M&#x27;s stack with a GNU <code>--defsym</code>
 through a response file. IAR needs the same result by a different route: ILINK has no block-address
 expression, so there is nothing in the <code>.icf</code> to alias a symbol <em>to</em>, and the link fails with
@@ -648,6 +650,7 @@ The response file is defined once, next to the GNU one, and applied to both <cod
 TF-M&#x27;s own <code>cmsis_override.h</code> uses for IAR, so the two agree on which stack the CPU is running on.</p>
 <p><strong>Consequence.</strong> D010 stands for GNU and is unchanged. Both mechanisms now cover both images.</p>
 <h2 id="d021">D021 — FSP 6.6 <code>.icf</code> files need <code>with alignment preservation</code> removed to build under IAR 9.50.2</h2>
+<p><strong>Date:</strong> 2026-09-14 · <strong>Status:</strong> Accepted</p>
 <p><strong>Context.</strong> The RASC solution generates <code>initialize manually with alignment preservation {rw};</code> in
 <code>fsp_gen.icf</code>. IAR 9.50.2&#x27;s ILINK rejects it: <code>Error[Lc003]: expected "copy routine", "packing",
 "complex", or "simple"</code>. The clause is newer than that toolchain.</p>
@@ -657,6 +660,7 @@ TF-M&#x27;s own <code>cmsis_override.h</code> uses for IAR, so the two agree on 
 files written here, which do not use the clause. Anyone regenerating from RASC on a newer FSP with an
 older IAR hits it again.</p>
 <h2 id="d022">D022 — The non-secure image under IAR: four toolchain branches, not a fork</h2>
+<p><strong>Date:</strong> 2026-09-14 · <strong>Status:</strong> Accepted</p>
 <p><strong>Context.</strong> The NS image is the only one of the three that links FSP&#x27;s own generated linker
 script (D005), so it is the only one where the toolchain difference reaches outside TF-M. Four
 things differ between GNU and IAR, and each could have been &quot;solved&quot; by forking the NS build.</p>
@@ -693,6 +697,7 @@ image on top of BL2 and emitted option words from the NS image. The regenerated 
 <code>RAM 0x20020000/0x20000</code>, <code>FLASH 0x00098200/0x2fe00</code>, all option lengths 0. Verified: NS image
 at <code>0x00098200</code>, NS RAM at <code>0x20020000</code>, zero symbols in secure RAM, OFS guard passes.</p>
 <h2 id="d023">D023 — The IAR stack-seal block must name a section, not merely reserve space</h2>
+<p><strong>Date:</strong> 2026-09-14 · <strong>Status:</strong> Accepted</p>
 <p><strong>Context.</strong> With the seal misplaced, the secure image reset in a loop before <code>main()</code> with
 nothing on the console. <code>Reset_Handler</code> seals <code>&amp;__STACK_SEAL</code>, an ordinary C object the port
 places in <code>.msp_stack_seal_res</code>. The GNU script anchors that section immediately above the
@@ -715,6 +720,7 @@ before the first line of output.</p>
 <code>ER_TFM_SP_ITS_RWZI 0x20001768</code>, and <code>Reset_Handler</code>&#x27;s seal literal now reads <code>0x20001760</code>
 instead of <code>0x20009ca0</code>. Filed in <a href="UPSTREAM_CHANGES.html">UPSTREAM_CHANGES.md</a> item 1.</p>
 <h2 id="d024">D024 — CMSE veneers are pinned at the NSC window under IAR too</h2>
+<p><strong>Date:</strong> 2026-09-14 · <strong>Status:</strong> Accepted</p>
 <p><strong>Context.</strong> With the seal fixed the secure image booted and handed off, and the first
 non-secure PSA call hard-faulted: <code>SFSR = 0x1</code> (INVEP - a Non-secure to Secure call that did
 not land on an <code>SG</code>), <code>PC = 0x00058418</code>, called from NS at <code>0x00098EC9</code>. The veneers were
@@ -737,6 +743,7 @@ against the regenerated import library and calling <code>0x97801</code>/<code>0x
 LOAD segments, code ending at <code>0x75fe0</code> with ~134 KB before the window, and 64 of the 2048
 NSC bytes used. Filed in <a href="UPSTREAM_CHANGES.html">UPSTREAM_CHANGES.md</a> item 2.</p>
 <h2 id="d025">D025 — RTT under IAR needs <code>--keep __write</code>, and each image has its own control block</h2>
+<p><strong>Date:</strong> 2026-09-14 · <strong>Status:</strong> Accepted</p>
 <p><strong>Context.</strong> Two separate reasons the console was silent under IAR, found while chasing the
 above.</p>
 <p><code>rtt_stdout.c</code> defined <code>_write()</code> under <code>#if defined(__GNUC__)</code> only. IAR&#x27;s DLIB calls
@@ -926,7 +933,7 @@ alone costs 8.9 KB in the RA6M5 secure image, consistent with the ~8 KB measured
 order of magnitude. Noted in <code>fsp_sce.cmake</code>.</p>
 <hr>
 <h2 id="d033">D033 — RA6M5 builds against the real e2 projects</h2>
-<p><strong>Date:</strong> 2026-09-21 · <strong>Status:</strong> Accepted · <strong>Supersedes:</strong> D031</p>
+<p><strong>Date:</strong> 2026-09-21 · <strong>Status:</strong> Accepted · <strong>Supersedes:</strong> <a href="DECISIONS.html#d031">D031</a></p>
 <p>The four project-side gaps D031 listed were fixed in e2 — <code>r_flash_hp</code> and <code>r_sce</code> added to
 <code>ra6m5_gcc_secure</code>, <code>BSP_CFG_STACK_MAIN_BYTES</code> raised to 0x1000, the bootloader&#x27;s flash
 instance renamed to <code>g_flash0</code>, and the solution repartitioned to the 2 MB layout of <a href="DECISIONS.html#d030">D030</a>
@@ -1042,7 +1049,7 @@ be able to reach the SCE registers, not yet checked.</p>
 <p><em>ECC hold-back superseded by D037.</em></p>
 <hr>
 <h2 id="d037">D037 — SCE9 ECC enabled; P-521, Curve25519 and deterministic ECDSA removed from RA6M5</h2>
-<p><strong>Date:</strong> 2026-09-21 · <strong>Status:</strong> Provisional - builds; not yet run on silicon · <strong>Supersedes:</strong> D036 (ECC hold-back only)</p>
+<p><strong>Date:</strong> 2026-09-21 · <strong>Status:</strong> Provisional - builds; not yet run on silicon · <strong>Supersedes:</strong> <a href="DECISIONS.html#d036">D036</a> · <strong>Evidence:</strong> Supersedes: D036 (ECC hold-back only)</p>
 <p><strong>Decision (option 1 of the three put in D036).</strong> Enable <code>MBEDTLS_ECP_ALT</code>,
 <code>MBEDTLS_ECDSA_SIGN_ALT</code> and <code>MBEDTLS_ECDSA_VERIFY_ALT</code> with FSP&#x27;s <code>ecp_alt</code>, <code>ecp_curves_alt</code>
 and <code>ecdsa_alt</code> sources, and remove from the RA6M5 PSA configuration what SCE9 cannot do
@@ -1179,7 +1186,7 @@ patch.</p>
 <code>hw_sce_ra_private.h</code>) for the <code>FinalSub</code> calls D041 added - they were implicitly declared. Part of
 what goes back into rm_psa_crypto.</p>
 <h2 id="d043">D043 — SCE9 CCM stays in software; a third rm_psa_crypto session leak; crypto suite 63/64</h2>
-<p><strong>Date:</strong> 2026-09-22 · <strong>Status:</strong> Accepted · Supersedes nothing; extends <a href="DECISIONS.html#d041">D041</a>, <a href="DECISIONS.html#d042">D042</a></p>
+<p><strong>Date:</strong> 2026-09-22 · <strong>Status:</strong> Accepted · <strong>Supersedes:</strong> <a href="DECISIONS.html#d041">D041</a>, <a href="DECISIONS.html#d042">D042</a> · <strong>Evidence:</strong> Supersedes nothing; extends <a href="DECISIONS.html#d041">D041</a>, <a href="DECISIONS.html#d042">D042</a></p>
 <p><strong>Result.</strong> PSA Arch crypto on RA6M5 with SCE9 and FSP&#x27;s Mbed TLS: **63 passed, 0 failed,
 1 skipped** of 64. The skip is the deterministic-ECDSA gate (D040). 261 and 263 - the multi-part
 GCM failures that motivated the move to FSP&#x27;s Mbed TLS - now pass, which is the confirmation D042
@@ -1220,7 +1227,7 @@ so <code>TFM_SPM_LOG_LEVEL</code> defaults to SILENCE and the panic is silent - 
 the next attempt.</li>
 </ul>
 <h2 id="d044">D044 — The CTR fix is dropped; <code>mbedtls_aes_crypt_ctr()</code> is not an FSP API</h2>
-<p><strong>Date:</strong> 2026-09-22 · <strong>Status:</strong> Accepted · Supersedes the second fix in <a href="DECISIONS.html#d041">D041</a></p>
+<p><strong>Date:</strong> 2026-09-22 · <strong>Status:</strong> Accepted · <strong>Supersedes:</strong> <a href="DECISIONS.html#d041">D041</a> · <strong>Evidence:</strong> Supersedes the second fix in <a href="DECISIONS.html#d041">D041</a></p>
 <p><strong>Decision (rm_psa_crypto owner).</strong> FSP supports the PSA APIs only; <code>mbedtls_aes_crypt_ctr()</code> is
 not public. Fixes 1 and 3 of <a href="DECISIONS.html#d041">D041</a>/<a href="DECISIONS.html#d043">D043</a> go into FSP and reach this port through regenerated
 packs. Fix 2 - the CTR partial-block rewrite - does not, and has been reverted in
@@ -1240,7 +1247,7 @@ its own. Neither is reachable from a PSA-only application.</p>
 in the earlier build that had no <code>cipher_alt.c</code> in the ALT set. Adding <code>cipher_alt.c</code> is what put
 the caching back in front of it.</p>
 <h2 id="d045">D045 — Confirmed on FSP 6.7.0-beta0: 63/64 with no port-local rm_psa_crypto patches</h2>
-<p><strong>Date:</strong> 2026-09-22 · <strong>Status:</strong> Accepted · Confirms <a href="DECISIONS.html#d043">D043</a>, <a href="DECISIONS.html#d044">D044</a></p>
+<p><strong>Date:</strong> 2026-09-22 · <strong>Status:</strong> Accepted · <strong>Builds on:</strong> <a href="DECISIONS.html#d043">D043</a>, <a href="DECISIONS.html#d044">D044</a></p>
 <p><strong>Result.</strong> PSA Arch crypto on RA6M5 with SCE9: <strong>63 passed, 0 failed, 1 skipped</strong> of 64, with</p>
 <ul>
 <li><strong>FSP 6.7.0-beta0</strong> (<code>6.7.0-beta0+20260922.be8f27e2</code>), up from 6.6.0-rc1; Mbed TLS unchanged at
@@ -1262,7 +1269,7 @@ whole tests missing from the transcript while the final report counts them as pa
 of that run, pasted later, showed 236 and 237 passing before a reflash interrupted it at 238. A
 truncated RTT capture is not evidence of a hang; wait for the suite report.</p>
 <h2 id="d046">D046 — RA6M5 PSA Arch on GCC and IAR: crypto, attestation, storage; RTT made lossless</h2>
-<p><strong>Date:</strong> 2026-09-23 · <strong>Status:</strong> Accepted · Extends <a href="DECISIONS.html#d045">D045</a></p>
+<p><strong>Date:</strong> 2026-09-23 · <strong>Status:</strong> Accepted · <strong>Builds on:</strong> <a href="DECISIONS.html#d045">D045</a></p>
 <p><strong>Result.</strong> All three PSA Arch suites run on hardware from both toolchains, on FSP 6.7.0-beta0
 with the SCE9 accelerator and FSP&#x27;s Mbed TLS. Identical results, zero failures:</p>
 <div class="table-wrap"><table>
@@ -1303,7 +1310,7 @@ first write past 4 KB blocks forever. The define has to be applied in <code>ns/C
 well as the main one - <code>platform_ns</code> compiles <code>SEGGER_RTT.c</code> there, and patching only the
 secure-side list leaves the NS transcript still lossy.</p>
 <h2 id="d047">D047 — FSP 6.7 is the baseline</h2>
-<p><strong>Date:</strong> 2026-09-23 · <strong>Status:</strong> Accepted · Supersedes the FSP 6.6 target in the plan</p>
+<p><strong>Date:</strong> 2026-09-23 · <strong>Status:</strong> Accepted · <strong>Evidence:</strong> Supersedes the FSP 6.6 target in the plan</p>
 <p>The RA6E1 solutions were already on 6.7.0-beta0 and the RA6M5 projects moved there on
 2026-09-22, where M4 was met: full chain on both toolchains, SCE9 active, all three PSA Arch
 suites passing. Carrying a plan that names 6.6 while every project is on 6.7 invites a third
@@ -1311,7 +1318,7 @@ version when RA8x2 projects are generated in P5.</p>
 <p>6.7 is therefore the baseline for the remaining work. Mbed TLS is unchanged at 3.6.6 between
 the two, so the FSP Mbed TLS overlay (<a href="DECISIONS.html#d042">D042</a>) is unaffected.</p>
 <h2 id="d048">D048 — <code>.ram_from_flash</code> is copied by the platform, not by ILINK — closes <a href="DECISIONS.html#d029">D029</a></h2>
-<p><strong>Date:</strong> 2026-09-23 · <strong>Status:</strong> Accepted · Resolves the open defect in <a href="DECISIONS.html#d029">D029</a></p>
+<p><strong>Date:</strong> 2026-09-23 · <strong>Status:</strong> Accepted · <strong>Builds on:</strong> <a href="DECISIONS.html#d029">D029</a> · <strong>Evidence:</strong> Resolves the open defect in <a href="DECISIONS.html#d029">D029</a></p>
 <p><strong>The defect, reproduced on RA6M5.</strong> IAR at isolation 3 left FSP&#x27;s code-flash program/erase
 routines in flash: <code>.ram_from_flash</code> at <code>0x000B0120</code>, listed under &quot;No sections matched&quot;, with
 <code>ER_CODE_SRAM</code> empty. Isolation 1 relocated them correctly from the same sources. GNUARM was
@@ -1365,7 +1372,7 @@ then be done twice.</p>
 duplication is a decision rather than an oversight.</p>
 <hr>
 <h2 id="d051">D051 — E50D ALT selection: SCE9&#x27;s module set, CCM still out, P-521 and Curve25519 kept in</h2>
-<p><strong>Date:</strong> 2026-09-24 · <strong>Status:</strong> Accepted · Refines <a href="DECISIONS.html#d043">D043</a></p>
+<p><strong>Date:</strong> 2026-09-24 · <strong>Status:</strong> Accepted · <strong>Builds on:</strong> <a href="DECISIONS.html#d043">D043</a></p>
 <p><strong>Module set held to SCE9&#x27;s.</strong> E50D is a superset — the pack also ships <code>sha512_alt</code>,
 <code>sha3_alt</code>, <code>chacha20_alt</code>, <code>chachapoly_alt</code>, <code>mlkem_alt</code> and <code>mldsa_alt</code>, none of which SCE9
 has. All are left off, matching the e2 solution&#x27;s own configuration, so the first RA8M2
@@ -1385,7 +1392,7 @@ yet; if either misbehaves, <code>#undef</code> it there rather than editing the 
 ECDSA on either engine, by design.</p>
 <hr>
 <h2 id="d052">D052 — The E50D pack is missing both session-leak fixes; RA8M2 bring-up proceeds anyway</h2>
-<p><strong>Date:</strong> 2026-09-24 · <strong>Status:</strong> Superseded by D053 · Known-failing, deliberately</p>
+<p><strong>Date:</strong> 2026-09-24 · <strong>Status:</strong> Superseded by D053 · <strong>Evidence:</strong> Known-failing, deliberately</p>
 <p><strong>The gap.</strong> Of the 35 <code>rm_psa_crypto</code> ALT sources, the only two that differ between the SCE9
 and E50D packs are <code>aes_alt.c</code> and <code>cipher_alt.c</code> — and the E50D copies are the <strong>unfixed</strong>
 versions. Both session-closes added for SCE9 are absent:</p>
@@ -1408,7 +1415,7 @@ the P7 rebase for a defect that is not the port&#x27;s.</p>
 RA6M5 did at 28/64, and AES multi-part leaking sessions. If RA8M2 shows <em>different</em> crypto
 failures, they are not this and should be diagnosed on their own.</p>
 <h2 id="d053">D053 — The E50D pack ships both session-leak fixes — supersedes <a href="DECISIONS.html#d052">D052</a></h2>
-<p><strong>Date:</strong> 2026-09-24 · <strong>Status:</strong> Accepted · <strong>Supersedes <a href="DECISIONS.html#d052">D052</a></strong></p>
+<p><strong>Date:</strong> 2026-09-24 · <strong>Status:</strong> Accepted · <strong>Supersedes:</strong> <a href="DECISIONS.html#d052">D052</a></p>
 <p><a href="DECISIONS.html#d052">D052</a> recorded that the RA8M2 pack was missing the two <code>rm_psa_crypto</code> session-leak fixes
 the SCE9 pack had, and accepted a known-failing bring-up on that basis. **That is no longer
 true.** The <code>6.7.0-beta0+20260924.4dfe9b7f</code> pack carries both:</p>
@@ -1429,7 +1436,7 @@ sequencing artefact. It was a same-day pack difference, not a missing fix.</p>
 the cheapest possible canary — <code>git diff</code> on <code>rm_psa_crypto/</code> after a regenerate.</p>
 <hr>
 <h2 id="d054">D054 — DF_EMULATION is 64 KB because FSP&#x27;s MRAM sector size forces it</h2>
-<p><strong>Date:</strong> 2026-09-24 · <strong>Status:</strong> Accepted · Refines <a href="DECISIONS.html#d051">D051</a></p>
+<p><strong>Date:</strong> 2026-09-24 · <strong>Status:</strong> Accepted · <strong>Builds on:</strong> <a href="DECISIONS.html#d051">D051</a></p>
 <p><strong>The constraint.</strong> FSP&#x27;s generated <code>mcuboot_config.h</code> defines
 <code>FLASH_AREA_IMAGE_SECTOR_SIZE</code> as <code>RM_MCUBOOT_MRAM_BLOCK_SIZE</code>, <strong>0x8000 (32 KB)</strong>. Every
 MCUboot area&#x27;s offset and size must be a whole multiple of it, and DF_EMULATION sits between
@@ -1461,7 +1468,7 @@ bring-up, so the first RA8M2 run is comparable to the validated one. They are no
 conservative than the space requires and can be raised; the headroom is documented for the
 user in the platform&#x27;s configuration notes.</p>
 <h2 id="d055">D055 — RA8M2 full chain builds and links on IAR; four defects found by building it</h2>
-<p><strong>Date:</strong> 2026-09-24 · <strong>Status:</strong> Accepted · Not yet run on hardware</p>
+<p><strong>Date:</strong> 2026-09-24 · <strong>Status:</strong> Accepted · <strong>Evidence:</strong> Not yet run on hardware</p>
 <p>BL2, <code>tfm_s</code> and <code>tfm_ns</code> all build and link for RA8M2, at the application configuration
 (Debug / isolation 1 / SFN / SPM trace on). Measured placement:</p>
 <div class="table-wrap"><table>
@@ -1495,7 +1502,7 @@ QUICKSTART&#x27;s GNUARM section named <code>ra8m2_gcc_*</code> projects that ha
 RA6M5; corrected, and <code>scripts/app_build_ra8m2_iar.bat</code> now captures the working recipe.</p>
 <hr>
 <h2 id="d056">D056 — OFS addresses are generated, and a guard that reports PASS on the wrong window is worse than none</h2>
-<p><strong>Date:</strong> 2026-09-24 · <strong>Status:</strong> Accepted · Extends <a href="DECISIONS.html#d002">D002</a></p>
+<p><strong>Date:</strong> 2026-09-24 · <strong>Status:</strong> Accepted · <strong>Builds on:</strong> <a href="DECISIONS.html#d002">D002</a></p>
 <p><strong>The transcription defect.</strong> <code>region_defs.h</code> hand-wrote the thirteen RA6 option-setting
 addresses, and because the RA8M2 port was seeded from RA6M5 they were RA6M5&#x27;s:
 <code>.option_setting_ofs0</code> linked at <code>0x0100A100</code> when this part&#x27;s OFS0 is at <code>0x02c9f040</code>. The
@@ -1533,6 +1540,7 @@ mistake easy and invisible.</p>
 <code>readelf -l</code>: six 4-byte LOAD segments at <code>0x02c9f040/044/0c0/0c4/120/124</code>, gaps untouched.</p>
 <hr>
 <h2 id="d057">D057 — The GCC leg is the reference; the IAR solution&#x27;s RAM split is stale</h2>
+<p><strong>Date:</strong> 2026-09-25 · <strong>Status:</strong> Accepted</p>
 <p><strong>Context.</strong> Both project sets were regenerated on pack <code>6.7.0-beta0+20260925.818e720c</code>. Diffing
 all ~55 memory partitions in the two <code>solution.xml</code> files, they agree everywhere except two lines:</p>
 <pre><code>-RAM_CPU0_C 0xE9C00 0x400    (gcc, fixed)
@@ -1567,6 +1575,7 @@ built by hand. It pins <code>MinSizeRel</code> (Debug does not fit on GNUARM, <a
 everywhere, the <code>(x86)</code> paren bug from <code>psa_arch_spe.bat</code>.</p>
 <hr>
 <h2 id="d058">D058 — The flat <code>.bin</code> is a second route to the brick, and the ELF guard never saw it</h2>
+<p><strong>Date:</strong> 2026-09-25 · <strong>Status:</strong> Accepted</p>
 <p><strong>Found while listing the GCC artifacts to flash.</strong> <code>bl2.bin</code> was <strong>13,234,472 bytes</strong>. The MRAM
 image is 27,552.</p>
 <p><code>objcopy -O binary</code> lays the flat image out from the lowest load address to the highest and
@@ -1606,6 +1615,7 @@ Guard negative-tested five ways, including with the <code>.bin</code> deleted.</
 option settings, so a <code>.bin</code>-only flash silently leaves the OFS unprogrammed.</p>
 <hr>
 <h2 id="d059">D059 — P-521 and Curve25519 come out of the E50D config until after TF-M 2.3</h2>
+<p><strong>Date:</strong> 2026-09-25 · <strong>Status:</strong> Accepted</p>
 <p><strong>Decision.</strong> <code>rsip_e50d/crypto_accelerator_config.h</code> now <code>#undef</code>s <code>PSA_WANT_ECC_SECP_R1_521</code>
 and <code>PSA_WANT_ECC_MONTGOMERY_255</code>, matching the SCE9 configuration. **To be restored after the
 TF-M 2.3 migration** — deleting the two <code>#undef</code>s is the whole change.</p>
@@ -1645,6 +1655,7 @@ is pinned at the top of the region.** Measure the gap between the end of the mai
 and <code>.gnu.sgstubs</code>.</p>
 <hr>
 <h2 id="d060">D060 — RA6M5 execution-path audit: what the boot trace turned up</h2>
+<p><strong>Date:</strong> 2026-09-25 · <strong>Status:</strong> Accepted</p>
 <p>Traced RA6M5 reset&amp;rarr;runtime to build an execution map
 (<a href="https://claude.ai/artifact/6x3gWcieKoCZj3SbfGHrvh">https://claude.ai/artifact/6x3gWcieKoCZj3SbfGHrvh</a>). Everything below is verified against the
 built image or the link map, not read off source. No change made to the RA6M5 port — these are
@@ -1705,6 +1716,7 @@ the NS smoke test proves nothing about the boundary; steps 4/5 are the first rea
 </ul>
 <hr>
 <h2 id="d061">D061 — Secure interrupts on RA: delete the dead HAL, and write down why the upstream recipe does not apply</h2>
+<p><strong>Date:</strong> 2026-09-26 · <strong>Status:</strong> Accepted</p>
 <p><strong>Trigger.</strong> <a href="DECISIONS.html#d060">D060</a> found <code>tfm_interrupts.c</code> in no build. Following that up showed the RA ports
 cannot service a secure peripheral interrupt at all, and that the mechanism they document for
 adding one does not work.</p>
@@ -1773,6 +1785,7 @@ own SFN services, because <code>psa_wait(PSA_BLOCK)</code> is a <code>__WFI</cod
 (<code>tfm_s</code> 293,564 / <code>bl2</code> 27,552 / <code>tfm_ns</code> 6,916) — the deleted files were never compiled.</p>
 <hr>
 <h2 id="d062">D062 — RA declares test capabilities; ra6m4 could not build TEST_S at all</h2>
+<p><strong>Date:</strong> 2026-09-27 · <strong>Status:</strong> Accepted</p>
 <p><strong>Two blockers found by the test-surface audit, both fixed.</strong></p>
 <p><strong>No RA part had a <code>tests/</code> directory.</strong> tf-m-tests reads platform capabilities from the
 <em>installed</em> tree — <code>tests_reg/CMakeLists.txt:38</code> includes
@@ -1813,6 +1826,7 @@ into the internal <code>TFM_S_REG_TEST</code>/<code>TFM_NS_REG_TEST</code>, and 
 <code>-S &lt;tf-m-tests&gt;/tests_reg -DCONFIG_SPE_PATH=&lt;spe&gt;/api_ns</code>.</p>
 <hr>
 <h2 id="d063">D063 — Pinned CMSE veneers get their own MEMORY region; the regression suite now links</h2>
+<p><strong>Date:</strong> 2026-09-28 · <strong>Status:</strong> Accepted</p>
 <p><strong>The defect.</strong> <code>VENEERS()</code> places <code>.gnu.sgstubs</code> at <code>TFM_LINKER_VENEERS_START</code> into the <code>FLASH</code>
 region. When that start is an <strong>absolute</strong> address at the top of the secure partition — which is
 what RA does, because the solution fixes the NSC window there — ld advances FLASH&#x27;s allocation
@@ -1867,6 +1881,7 @@ without <code>cmake --install</code> the NS attestation suite fails on a missing
 backend that ships by default and had never been tested. Still to do: run them on hardware.</p>
 <hr>
 <h2 id="d064">D064 — BL2 masking interrupts is sound and complete; the SPMON hazard does not exist on these parts</h2>
+<p><strong>Date:</strong> 2026-09-29 · <strong>Status:</strong> Accepted</p>
 <p><strong>Question raised:</strong> does it make sense for BL2 to disable interrupts, both because it uses none and
 because there is a window during secure init — before VTOR is set — where an interrupt would be
 undefined behaviour?</p>
@@ -1927,7 +1942,7 @@ after verification and before <code>do_boot()</code>, so it is the last port-own
 verification.</p>
 <hr>
 <h2 id="d065">D065 — the flat-binary brick guard is now on all four ports, and a stale <code>.bin</code> is as lethal as a fresh one</h2>
-<p><strong>Date:</strong> 2026-09-29 · <strong>Status:</strong> Accepted · Extends <a href="DECISIONS.html#d002">D002</a>, <a href="DECISIONS.html#d058">D058</a></p>
+<p><strong>Date:</strong> 2026-09-29 · <strong>Status:</strong> Accepted · <strong>Builds on:</strong> <a href="DECISIONS.html#d002">D002</a>, <a href="DECISIONS.html#d058">D058</a></p>
 <p><strong>What was still exposed.</strong> <a href="DECISIONS.html#d058">D058</a> added the flat-binary strip and <code>check_ofs.py --check-flat-bin</code>
 to <strong>RA8M2 only</strong>. RA6M5, RA6E1 and RA6M4 kept the ELF-level guard alone, which structurally
 cannot see this failure. Measured on the RA6M5 regression build, 2026-09-28:</p>
@@ -1955,7 +1970,7 @@ build dir, or an unguarded toolchain path all still produce the brick.</p>
 two of the three copies.</p>
 <hr>
 <h2 id="d066">D066 — RA8M2&#x27;s partition comments described RA6M5, including the values that get provisioned</h2>
-<p><strong>Date:</strong> 2026-09-29 · <strong>Status:</strong> Accepted · Extends <a href="DECISIONS.html#d056">D056</a>, <a href="DECISIONS.html#d057">D057</a></p>
+<p><strong>Date:</strong> 2026-09-29 · <strong>Status:</strong> Accepted · <strong>Builds on:</strong> <a href="DECISIONS.html#d056">D056</a>, <a href="DECISIONS.html#d057">D057</a></p>
 <p><strong>The dangerous one.</strong> <code>ra8m2/region_defs.h</code> carried a <strong>verbatim copy</strong> of
 <code>ra6m5/region_defs.h</code>&#x27;s NSC paragraph: window <code>0x800 at 0x11F800</code>, boundary <code>0x120000</code>, and
 &quot;the Partition Manager takes the SECURE size in KB (1150) and the NSC size in KB (2)&quot;. Every
@@ -1985,7 +2000,7 @@ comment. Seeding a port by copying another part&#x27;s files puts those numbers 
 already wrong, and nothing in the build checks them.</p>
 <hr>
 <h2 id="d067">D067 — first full tf-m-tests regression pass on hardware, and two suites that report PASSED without testing</h2>
-<p><strong>Date:</strong> 2026-09-29 · <strong>Status:</strong> Accepted · Closes the open item from <a href="DECISIONS.html#d062">D062</a>, validates <a href="DECISIONS.html#d063">D063</a></p>
+<p><strong>Date:</strong> 2026-09-29 · <strong>Status:</strong> Accepted · <strong>Builds on:</strong> <a href="DECISIONS.html#d062">D062</a>, <a href="DECISIONS.html#d063">D063</a> · <strong>Evidence:</strong> Closes the open item from <a href="DECISIONS.html#d062">D062</a>, validates <a href="DECISIONS.html#d063">D063</a></p>
 <p><strong>Result.</strong> RA6M5 (CK-RA6M5 v2), GCC, <code>MinSizeRel</code>, SFN backend, isolation 1, SCE9, dummy
 provisioning. Launch config <code>ra6m5_TFM_regression_gcc</code>, images from <code>C:\b\m5rs</code> and <code>C:\b\m5rn</code>.
 <strong>14 suites, zero failures.</strong></p>
@@ -2035,7 +2050,7 @@ for non-deterministic ECDSA and shows the RNG is live on both paths rather than 
 constant.</p>
 <hr>
 <h2 id="d068">D068 — the FLIH/SLIH fixture, and two silent defects the IAR build found in D065</h2>
-<p><strong>Date:</strong> 2026-09-30 · <strong>Status:</strong> Accepted · Closes the TODO in <a href="DECISIONS.html#d062">D062</a>, fixes <a href="DECISIONS.html#d065">D065</a></p>
+<p><strong>Date:</strong> 2026-09-30 · <strong>Status:</strong> Accepted · <strong>Builds on:</strong> <a href="DECISIONS.html#d062">D062</a>, <a href="DECISIONS.html#d065">D065</a> · <strong>Evidence:</strong> Closes the TODO in <a href="DECISIONS.html#d062">D062</a>, fixes <a href="DECISIONS.html#d065">D065</a></p>
 <h3 id="the-interrupt-fixture">The interrupt fixture</h3>
 <p><a href="DECISIONS.html#d062">D062</a> left a four-item TODO in <code>ra6m5/tests/tfm_tests_config.cmake</code> and
 <code>PLATFORM_{FLIH,SLIH}_IRQ_TEST_SUPPORT</code> unset. All four are now done, on RA6M5:</p>
@@ -2114,7 +2129,7 @@ enough for a regression NS build. <code>attest_token.h</code> is installed by th
 The GCC leg hit this too.</p>
 <hr>
 <h2 id="d069">D069 — a weak symbol in a static library silently unrouted every secure interrupt</h2>
-<p><strong>Date:</strong> 2026-09-30 · <strong>Status:</strong> Accepted · Completes <a href="DECISIONS.html#d068">D068</a>, extends <a href="DECISIONS.html#d061">D061</a></p>
+<p><strong>Date:</strong> 2026-09-30 · <strong>Status:</strong> Accepted · <strong>Builds on:</strong> <a href="DECISIONS.html#d068">D068</a>, <a href="DECISIONS.html#d061">D061</a> · <strong>Evidence:</strong> Completes <a href="DECISIONS.html#d068">D068</a>, extends <a href="DECISIONS.html#d061">D061</a></p>
 <p><strong>Result first.</strong> RA6M5 IAR, SFN, isolation 1: <code>TFM_NS_IRQ_TEST_FLIH_1101</code> and <code>_1102</code>
 <strong>PASS on hardware</strong> - 7 non-secure suites and 8 secure, zero failures. First working
 secure interrupt on this port.</p>
@@ -2177,7 +2192,7 @@ image - which is now the first thing to check whenever a configured RA interrupt
 arrive.</p>
 <hr>
 <h2 id="d070">D070 — FLIH verified on both toolchains; the fixture is portable, and RTT addresses are per-build</h2>
-<p><strong>Date:</strong> 2026-09-30 · <strong>Status:</strong> Accepted · Confirms <a href="DECISIONS.html#d068">D068</a>, <a href="DECISIONS.html#d069">D069</a></p>
+<p><strong>Date:</strong> 2026-09-30 · <strong>Status:</strong> Accepted · <strong>Builds on:</strong> <a href="DECISIONS.html#d068">D068</a>, <a href="DECISIONS.html#d069">D069</a></p>
 <p><strong>Hardware results.</strong> RA6M5, SFN, isolation 1, <code>TFM_NS_IRQ_TEST_FLIH_1101</code> and <code>_1102</code>:</p>
 <div class="table-wrap"><table>
 <tr><th>Build</th><th>Suites</th><th>Result</th></tr>
@@ -2217,7 +2232,7 @@ that sent me looking at the AGT for a second time - should have been checked aga
 address before anything else. Two of the three were the address, not the firmware.</p>
 <hr>
 <h2 id="d071">D071 — SLIH passes too; both FF-M handling models work, with one fixture</h2>
-<p><strong>Date:</strong> 2026-09-30 · <strong>Status:</strong> Accepted · Completes the arc from <a href="DECISIONS.html#d061">D061</a> to <a href="DECISIONS.html#d070">D070</a></p>
+<p><strong>Date:</strong> 2026-09-30 · <strong>Status:</strong> Accepted · <strong>Builds on:</strong> <a href="DECISIONS.html#d061">D061</a>, <a href="DECISIONS.html#d070">D070</a> · <strong>Evidence:</strong> Completes the arc from <a href="DECISIONS.html#d061">D061</a> to <a href="DECISIONS.html#d070">D070</a></p>
 <p><strong>Result.</strong> RA6M5 GCC, SFN, isolation 1, <code>TF-M v2.2.0+ca55cf5c1</code>:
 <code>TFM_NS_IRQ_TEST_SLIH_1001</code> <strong>PASSES</strong>, alongside all 8 secure and the other 6 non-secure
 suites. Zero failures.</p>
@@ -2247,7 +2262,7 @@ configuration - the generator is RA6M5-specific and RA8M2&#x27;s slots are at 0x
 primary) and 0xB0000 (non-secure primary), not 0xA0000/0x120000.</p>
 <hr>
 <h2 id="d072">D072 — RA6M5 interrupt matrix complete; and an RTT capture can truncate silently</h2>
-<p><strong>Date:</strong> 2026-10-01 · <strong>Status:</strong> Accepted · Closes <a href="DECISIONS.html#d071">D071</a></p>
+<p><strong>Date:</strong> 2026-10-01 · <strong>Status:</strong> Accepted · <strong>Builds on:</strong> <a href="DECISIONS.html#d071">D071</a></p>
 <p><strong>The matrix is full.</strong> RA6M5, SFN, isolation 1, <code>TF-M v2.2.0+ca55cf5c1</code>, 15 suites each,
 zero failures:</p>
 <div class="table-wrap"><table>
@@ -2352,8 +2367,7 @@ should have been the first move. The <code>0xFF</code> filler images left in <co
 the discarded ECC theory and are not needed.</p>
 <hr>
 <h2 id="d074">D074 — where MRAM_ADDR&#x27;s two constants come from; refines <a href="DECISIONS.html#d073">D073</a></h2>
-<p><strong>Date:</strong> 2026-10-01 · <strong>Status:</strong> Accepted · Refines <a href="DECISIONS.html#d073">D073</a>, which described the threshold
-as <code>FLASH_AREA_1_OFFSET</code></p>
+<p><strong>Date:</strong> 2026-10-01 · <strong>Status:</strong> Accepted · <strong>Builds on:</strong> <a href="DECISIONS.html#d073">D073</a> · <strong>Evidence:</strong> Refines <a href="DECISIONS.html#d073">D073</a>, which described the threshold as <code>FLASH_AREA_1_OFFSET</code></p>
 <p><strong>Raised by the rm_psa_crypto owner:</strong> why not use <code>BSP_FEATURE_TZ_NS_OFFSET</code>, which is fixed
 per device family, instead of <code>FLASH_AREA_1_OFFSET</code>, which moves if the slots move?</p>
 <p><strong>They are not interchangeable.</strong> <code>MRAM_ADDR()</code> needs two different things:</p>
@@ -2387,8 +2401,7 @@ authoritative source and a wrong one fails the build instead of the board.</li>
 </ul>
 <hr>
 <h2 id="d075">D075 — BL2 must enable the SAU on RA8M2; the right alias is not enough</h2>
-<p><strong>Date:</strong> 2026-10-01 · <strong>Status:</strong> Superseded by D076 · Completes <a href="DECISIONS.html#d073">D073</a>/<a href="DECISIONS.html#d074">D074</a>, which were necessary
-but not sufficient</p>
+<p><strong>Date:</strong> 2026-10-01 · <strong>Status:</strong> Superseded by D076 · <strong>Builds on:</strong> <a href="DECISIONS.html#d073">D073</a>, <a href="DECISIONS.html#d074">D074</a> · <strong>Evidence:</strong> Completes <a href="DECISIONS.html#d073">D073</a>/<a href="DECISIONS.html#d074">D074</a>, which were necessary but not sufficient</p>
 <p><strong>Symptom after <a href="DECISIONS.html#d073">D073</a>.</strong> With <code>MRAM_ADDR()</code> fixed and verified in the disassembly, BL2
 still HardFaulted at the same instruction. Register state at the fault, from the target:</p>
 <pre><code>r4 0x000b0000   offset                  r0 0x22002bac   dst
@@ -2441,7 +2454,7 @@ hardware state: the backtrace, then the register dump. <code>objdump -d</code> o
 and the register file should be the first two steps on a HardFault, not the fourth.</p>
 <hr>
 <h2 id="d076">D076 — <a href="DECISIONS.html#d075">D075</a> describes code that was reverted; BL2 still has no SAU</h2>
-<p><strong>Date:</strong> 2026-10-01 · <strong>Status:</strong> Accepted · <strong>Supersedes <a href="DECISIONS.html#d075">D075</a></strong></p>
+<p><strong>Date:</strong> 2026-10-01 · <strong>Status:</strong> Accepted · <strong>Supersedes:</strong> <a href="DECISIONS.html#d075">D075</a></p>
 <p><a href="DECISIONS.html#d075">D075</a> is marked Accepted and states that <code>bl2_boot_hal.c</code> enables an SAU region in
 <code>boot_platform_post_init()</code>, with register writes, disassembly and a new <code>bl2.bin</code> size. That
 change was reverted the same day (<code>299b03039</code>, reverted by <code>848f27180</code>) and **is not in the
@@ -2543,7 +2556,7 @@ SAU programming (<a href="DECISIONS.html#d076">D076</a>).</p>
 three missing assertions are real work, not edits, and are recorded here rather than done.</p>
 <hr>
 <h2 id="d078">D078 — the RA8M2 secure primary slot generated as 0x200; cause was partition ORDER, not geometry</h2>
-<p><strong>Date:</strong> 2026-10-02 · <strong>Status:</strong> Accepted · Unblocks the open question in <a href="DECISIONS.html#d076">D076</a></p>
+<p><strong>Date:</strong> 2026-10-02 · <strong>Status:</strong> Accepted · <strong>Builds on:</strong> <a href="DECISIONS.html#d076">D076</a> · <strong>Evidence:</strong> Unblocks the open question in <a href="DECISIONS.html#d076">D076</a></p>
 <p><strong>What was wrong.</strong> FSP&#x27;s generated <code>flash_map[]</code> in <code>&lt;project&gt;/Debug/bsp_linker_info.h</code> gave
 the secure primary slot</p>
 <pre><code class="language-c">.fa_id   = FLASH_AREA_0P_ID,
@@ -2598,8 +2611,7 @@ and one not, with identical geometry - the diff between them was the whole diagn
 for the other port before theorising about the tool.</p>
 <hr>
 <h2 id="d079">D079 — BL2 takes its MCUboot flash backend from FSP; closes <a href="DECISIONS.html#d076">D076</a></h2>
-<p><strong>Date:</strong> 2026-10-02 · <strong>Status:</strong> Superseded by D091 · Closes <a href="DECISIONS.html#d076">D076</a>, supersedes the <code>rm_mcuboot_port</code>
-exclusion in DESIGN.md 4</p>
+<p><strong>Date:</strong> 2026-10-02 · <strong>Status:</strong> Superseded by D091 · <strong>Supersedes:</strong> <a href="DECISIONS.html#d076">D076</a> · <strong>Evidence:</strong> Closes <a href="DECISIONS.html#d076">D076</a>, supersedes the <code>rm_mcuboot_port</code> exclusion in DESIGN.md 4</p>
 <p><strong>Decision.</strong> BL2 links FSP&#x27;s <code>ra/fsp/src/rm_mcuboot_port/flash_map.c</code> instead of TF-M&#x27;s
 <code>bl2/src/flash_map.c</code>, <code>flash_map_extended.c</code> and <code>flash_map_legacy.c</code>. <code>DEFAULT_MCUBOOT_FLASH_MAP</code>
 and a new <code>DEFAULT_MCUBOOT_FLASH_BACKEND</code> are both OFF for this platform.</p>
@@ -2668,8 +2680,7 @@ to FSP&#x27;s header set, of which the <code>struct flash_area</code> layout mat
 build-time guard.</p>
 <hr>
 <h2 id="d080">D080 — every recorded attestation pass was on a token with no measurements</h2>
-<p><strong>Date:</strong> 2026-10-02 · <strong>Status:</strong> Accepted · Qualifies <a href="DECISIONS.html#d026">D026</a>, <a href="DECISIONS.html#d067">D067</a> and the verification
-notes in <code>UPSTREAM_CHANGES.md</code></p>
+<p><strong>Date:</strong> 2026-10-02 · <strong>Status:</strong> Accepted · <strong>Builds on:</strong> <a href="DECISIONS.html#d026">D026</a>, <a href="DECISIONS.html#d067">D067</a> · <strong>Evidence:</strong> Qualifies <a href="DECISIONS.html#d026">D026</a>, <a href="DECISIONS.html#d067">D067</a> and the verification notes in <code>UPSTREAM_CHANGES.md</code></p>
 <p><strong>The claim being corrected.</strong> <code>DECISIONS.md:752</code> and <code>UPSTREAM_CHANGES.md:293</code> record PSA Arch
 <strong>attestation 1/1</strong> on EK-RA6E1 under both toolchains, cited as the strongest evidence the
 linker-template changes were correct. The RA6M5 regression matrix (<a href="DECISIONS.html#d072">D072</a>, 15 suites, zero
@@ -2718,7 +2729,7 @@ confirming it carries <code>IAT_SW_COMPONENTS</code> rather than <code>IAT_NO_SW
 &quot;attestation N/N&quot; line in this log should say which of the two it saw.</p>
 <hr>
 <h2 id="d081">D081 — measured boot confirmed on RA6M5 hardware, by reading the boot record</h2>
-<p><strong>Date:</strong> 2026-10-02 · <strong>Status:</strong> Accepted · Closes the RA6M5 half of <a href="DECISIONS.html#d080">D080</a></p>
+<p><strong>Date:</strong> 2026-10-02 · <strong>Status:</strong> Accepted · <strong>Builds on:</strong> <a href="DECISIONS.html#d080">D080</a> · <strong>Evidence:</strong> Closes the RA6M5 half of <a href="DECISIONS.html#d080">D080</a></p>
 <p><strong>Verified the only way that means anything.</strong> <a href="DECISIONS.html#d080">D080</a> established that a passing attestation
 suite cannot distinguish working measured boot from none at all, because
 <code>ATTEST_TOKEN_PROFILE_PSA_IOT_1</code> lets a token with no measurements emit <code>IAT_NO_SW_COMPONENTS</code>
@@ -2769,7 +2780,7 @@ masked by FSP&#x27;s <code>sysflash.h</code> shadowing TF-M&#x27;s. **Check the 
 when a platform option appears not to take.**</p>
 <hr>
 <h2 id="d082">D082 — RA6M5 follows <a href="DECISIONS.html#d079">D079</a>: BL2 takes its MCUboot flash backend from FSP</h2>
-<p><strong>Date:</strong> 2026-10-02 · <strong>Status:</strong> Superseded by D091 · Extends <a href="DECISIONS.html#d079">D079</a> to the second active part</p>
+<p><strong>Date:</strong> 2026-10-02 · <strong>Status:</strong> Superseded by D091 · <strong>Builds on:</strong> <a href="DECISIONS.html#d079">D079</a> · <strong>Evidence:</strong> Extends <a href="DECISIONS.html#d079">D079</a> to the second active part</p>
 <p><strong>Same change, one motivation missing.</strong> RA6M5 now links FSP&#x27;s
 <code>rm_mcuboot_port/flash_map.c</code> instead of TF-M&#x27;s <code>bl2/src/flash_map.c</code>,
 <code>flash_map_extended.c</code> and <code>flash_map_legacy.c</code>, with <code>DEFAULT_MCUBOOT_FLASH_MAP</code> and
@@ -2904,8 +2915,7 @@ either way - read the boot record at <code>0x20000000</code> instead.</p>
 proves the two builds byte-identical.</p>
 <hr>
 <h2 id="d084">D084 — the shared PSA-arch SPE is NOT a defect; the debug settings in it were cache residue</h2>
-<p><strong>Date:</strong> 2026-10-02 · <strong>Status:</strong> Accepted · <strong>Retracts</strong> the &quot;each suite needs its own SPE&quot;
-claim made in <a href="DECISIONS.html#d083">D083</a> and in the RA8M2 notes</p>
+<p><strong>Date:</strong> 2026-10-02 · <strong>Status:</strong> Accepted · <strong>Supersedes:</strong> <a href="DECISIONS.html#d083">D083</a> · <strong>Evidence:</strong> Retracts the &quot;each suite needs its own SPE&quot; claim made in <a href="DECISIONS.html#d083">D083</a> and in the RA8M2 notes</p>
 <p><strong>The claim, withdrawn.</strong> One SPE serving all three PSA Arch suites was flagged as a defect
 twice, for RA8M2 and RA6M5, on the reasoning that an SPE built with <code>TEST_PSA_API=CRYPTO</code>
 cannot be right for the storage and attestation runs. That was asserted without checking.
@@ -2962,7 +2972,7 @@ experiment took one rebuild and five seconds of comparison, and it should have c
 first claim, not after the second.</p>
 <hr>
 <h2 id="d085">D085 — RA6M5 reverts to TF-M&#x27;s MCUboot flash backend; <a href="DECISIONS.html#d082">D082</a> is withdrawn</h2>
-<p><strong>Date:</strong> 2026-10-04 · <strong>Status:</strong> Superseded by D090 · <strong>Supersedes</strong> <a href="DECISIONS.html#d082">D082</a></p>
+<p><strong>Date:</strong> 2026-10-04 · <strong>Status:</strong> Superseded by D090 · <strong>Supersedes:</strong> <a href="DECISIONS.html#d082">D082</a></p>
 <p><a href="DECISIONS.html#d082">D082</a> switched RA6M5 to FSP&#x27;s MCUboot flash backend for consistency with <a href="DECISIONS.html#d079">D079</a>. It is
 reverted. BL2 reached MCUboot and then could not validate the non-secure image:</p>
 <pre><code>[INF] Secondary image of image pair (1.) is unreachable. Treat it as empty
@@ -3085,7 +3095,7 @@ produce an unverified claim, which is the thing <a href="DECISIONS.html#d080">D0
 on both parts, and the RA6M5 FLIH RTT addresses are unmoved.</p>
 <hr>
 <h2 id="d087">D087 — the secure-slot headroom figures were overstated; CONFIGURATION.md written</h2>
-<p><strong>Date:</strong> 2026-10-04 · <strong>Status:</strong> Accepted · <strong>Corrects</strong> the figures stated in <a href="DECISIONS.html#d084">D084</a> and
+<p><strong>Date:</strong> 2026-10-04 · <strong>Status:</strong> Accepted · <strong>Corrects:</strong> <a href="DECISIONS.html#d084">D084</a> · <strong>Evidence:</strong> Corrects the figures stated in <a href="DECISIONS.html#d084">D084</a> and
 <code>README.md</code></p>
 <p>Writing <code>CONFIGURATION.md</code> meant restating the slot budget, and restating it meant measuring it
 rather than copying it forward. The published figures were wrong in the unsafe direction.</p>
@@ -3180,7 +3190,7 @@ now produces a <code>bl2.bin</code> byte-for-byte the same size as <code>m2gflih
 <p>Remaining from the plan: <code>RECONFIGURING_THE_LAYOUT.md</code>.</p>
 <hr>
 <h2 id="d090">D090 — the RA6M5 FSP-backend failure was a struct flash_area mismatch; <a href="DECISIONS.html#d085">D085</a> is superseded</h2>
-<p><strong>Date:</strong> 2026-10-05 · <strong>Status:</strong> Superseded by D091 · <strong>Supersedes</strong> <a href="DECISIONS.html#d085">D085</a>, <strong>restores</strong> <a href="DECISIONS.html#d082">D082</a></p>
+<p><strong>Date:</strong> 2026-10-05 · <strong>Status:</strong> Superseded by D091 · <strong>Supersedes:</strong> <a href="DECISIONS.html#d085">D085</a>, <a href="DECISIONS.html#d082">D082</a> · <strong>Evidence:</strong> Supersedes <a href="DECISIONS.html#d085">D085</a>, restores <a href="DECISIONS.html#d082">D082</a></p>
 <p><a href="DECISIONS.html#d085">D085</a> reverted RA6M5 to TF-M&#x27;s MCUboot flash backend and recorded the failure as unexplained
 after eliminating nine hypotheses. The cause is now known, fixed, and **verified on hardware:
 the full regression suite passes with FSP&#x27;s backend**, secure and non-secure, including the
@@ -3246,8 +3256,7 @@ its canary.</li>
 </ul>
 <hr>
 <h2 id="d091">D091 — Option 3 adopted: both parts take TF-M&#x27;s MCUboot backend, FSP&#x27;s HAL behind fa_driver</h2>
-<p><strong>Date:</strong> 2026-10-05 · <strong>Status:</strong> Accepted · <strong>Supersedes</strong> <a href="DECISIONS.html#d079">D079</a>, <a href="DECISIONS.html#d082">D082</a> and <a href="DECISIONS.html#d090">D090</a>&#x27;s
-configuration (not its mechanism); withdraws upstream item 13</p>
+<p><strong>Date:</strong> 2026-10-05 · <strong>Status:</strong> Accepted · <strong>Supersedes:</strong> <a href="DECISIONS.html#d079">D079</a>, <a href="DECISIONS.html#d082">D082</a>, <a href="DECISIONS.html#d090">D090</a> · <strong>Evidence:</strong> Supersedes <a href="DECISIONS.html#d079">D079</a>, <a href="DECISIONS.html#d082">D082</a> and <a href="DECISIONS.html#d090">D090</a>&#x27;s configuration (not its mechanism); withdraws upstream item 13</p>
 <p><strong>Verified on hardware.</strong> <code>ra6m5_TFM_flih_gcc</code>, banner <code>TF-M v2.2.0+e75582eac</code>: the full
 regression suite passes, secure and non-secure, including the FLIH IRQ tests. Zero failures.</p>
 <h3 id="what-settled-it">What settled it</h3>
@@ -3315,7 +3324,7 @@ files as orphans. Nothing reads them; worth sweeping before merge.</li>
 </ul>
 <hr>
 <h2 id="d092">D092 — RA8M2&#x27;s first boot: BL2 works; the secure image needs Clocks set Secure in e2</h2>
-<p><strong>Date:</strong> 2026-10-05 · <strong>Status:</strong> Accepted · <strong>Corrects</strong> a claim made about <a href="DECISIONS.html#d091">D091</a>&#x27;s
+<p><strong>Date:</strong> 2026-10-05 · <strong>Status:</strong> Accepted · <strong>Corrects:</strong> <a href="DECISIONS.html#d091">D091</a> · <strong>Evidence:</strong> Corrects a claim made about <a href="DECISIONS.html#d091">D091</a>&#x27;s
 <code>bsp_security.c</code> reading</p>
 <h3 id="bl2-worked-on-the-first-attempt">BL2 worked on the first attempt</h3>
 <p>RA8M2 had never run. With <a href="DECISIONS.html#d091">D091</a>&#x27;s configuration it reached the secure image: the banner
@@ -3367,7 +3376,7 @@ SAU/IDAU difference between the parts. The genuine RA6/RA8 split lives a few lin
 line of code is not evidence that it is compiled, and this file is full of feature guards.</p>
 <hr>
 <h2 id="d093">D093 — <code>BSP_TZ_CFG_MSAR=0</code> on RA8M2: a workaround for an e2 generator defect, to be removed</h2>
-<p><strong>Date:</strong> 2026-10-06 · <strong>Status:</strong> Accepted, <strong>temporary</strong> · Follows <a href="DECISIONS.html#d092">D092</a></p>
+<p><strong>Date:</strong> 2026-10-06 · <strong>Status:</strong> Accepted, <strong>temporary · **Builds on:</strong> <a href="DECISIONS.html#d092">D092</a></p>
 <p><a href="DECISIONS.html#d092">D092</a> traced RA8M2&#x27;s first-boot HardFault to <code>MSAR</code> marking MRAM&#x27;s <code>MRCPFB</code> non-secure, and
 said the fix was setting Clocks to Secure in e2. <strong>That instruction was wrong</strong>, and the
 correction is the substance of this entry.</p>
@@ -3423,7 +3432,7 @@ is compiled, and a setting is not evidence of what it emits** - both need the gu
 generated artifact diffed.</p>
 <hr>
 <h2 id="d094">D094 — the RA6M4 brick: coalescing is proven, the killed field is not; <a href="DECISIONS.html#d093">D093</a>&#x27;s attribution corrected</h2>
-<p><strong>Date:</strong> 2026-10-06 · <strong>Status:</strong> Accepted · <strong>Corrects</strong> <a href="DECISIONS.html#d093">D093</a> and commit <code>7b99ce397</code>;
+<p><strong>Date:</strong> 2026-10-06 · <strong>Status:</strong> Accepted · <strong>Corrects:</strong> <a href="DECISIONS.html#d093">D093</a> · <strong>Evidence:</strong> Corrects <a href="DECISIONS.html#d093">D093</a> and commit <code>7b99ce397</code>;
 <strong>qualifies</strong> <a href="DECISIONS.html#d002">D002</a></p>
 <p>Measured from <code>bringup/bricking_evidence/bl2_BRICKED.elf</code>, the exact image flashed to the two
 EK-RA6M4 boards, rather than from recollection or from either commit message.</p>
@@ -3511,7 +3520,7 @@ removal test is whether <code>ra_gen/bsp_clock_cfg.h</code> emits <code>BSP_CFG_
 </ul>
 <hr>
 <h2 id="d096">D096 — measured boot confirmed on RA8M2 by decoding the boot record; <a href="DECISIONS.html#d095">D095</a> had assumed it</h2>
-<p><strong>Date:</strong> 2026-10-06 · <strong>Status:</strong> Accepted · <strong>Corrects</strong> <a href="DECISIONS.html#d095">D095</a></p>
+<p><strong>Date:</strong> 2026-10-06 · <strong>Status:</strong> Accepted · <strong>Corrects:</strong> <a href="DECISIONS.html#d095">D095</a></p>
 <p><a href="DECISIONS.html#d095">D095</a> listed measured boot among the things RA8M2&#x27;s regression run proved. <strong>It did not.</strong>
 <a href="DECISIONS.html#d080">D080</a> is explicit that a passing attestation suite cannot detect measured boot - with
 <code>component_cnt == 0</code> the token carries <code>IAT_NO_SW_COMPONENTS</code> and the test still passes - which
@@ -3588,7 +3597,7 @@ is unknown. What is known: test 216 FAILED, test 252 (<code>psa_sign_message</co
 one. The tail is worth capturing before this is reported as a final result.</p>
 <hr>
 <h2 id="d098">D098 — refines <a href="DECISIONS.html#d097">D097</a>: the RSA-2048 keygen failure is the PLAINTEXT path, and the config selects it</h2>
-<p><strong>Date:</strong> 2026-10-08 · <strong>Status:</strong> Superseded by D111 · <strong>Corrects the reasoning in</strong> <a href="DECISIONS.html#d097">D097</a></p>
+<p><strong>Date:</strong> 2026-10-08 · <strong>Status:</strong> Superseded by D111 · <strong>Corrects:</strong> <a href="DECISIONS.html#d097">D097</a> · <strong>Evidence:</strong> Corrects the reasoning in <a href="DECISIONS.html#d097">D097</a></p>
 <p><a href="DECISIONS.html#d097">D097</a> concluded &quot;the RSIP-E50D does not implement RSA-2048 key generation&quot;. The observation
 was right and the reason was not. The precise position, from three independent sources:</p>
 <h3 id="s1_2">1. The code</h3>
@@ -3645,7 +3654,7 @@ lesson from <a href="DECISIONS.html#d094">D094</a> applies again: when the proje
 inferring one from behaviour.</p>
 <hr>
 <h2 id="d099">D099 — closes <a href="DECISIONS.html#d097">D097</a>&#x27;s gap: RA8M2 crypto is 62/1/1, and the sole delta from RA6M5 is test 216</h2>
-<p><strong>Date:</strong> 2026-10-08 · <strong>Status:</strong> Accepted · Completes the record left open by <a href="DECISIONS.html#d097">D097</a></p>
+<p><strong>Date:</strong> 2026-10-08 · <strong>Status:</strong> Accepted · <strong>Builds on:</strong> <a href="DECISIONS.html#d097">D097</a> · <strong>Evidence:</strong> Completes the record left open by <a href="DECISIONS.html#d097">D097</a></p>
 <h3 id="the-tally">The tally</h3>
 <pre><code>************ Crypto Suite Report **********
 TOTAL TESTS     : 64
@@ -3701,7 +3710,7 @@ cipher layer evidently never reaches <code>mbedtls_aes_crypt_ctr()</code> with a
 <a href="DECISIONS.html#d097">D097</a> or <a href="DECISIONS.html#d098">D098</a>&#x27;s conclusions, and the one factual claim it corrects is the skip comparison above.</p>
 <hr>
 <h2 id="d100">D100 — the MCUboot upgrade path runs on RA8M2: both images installed, secondary erased</h2>
-<p><strong>Date:</strong> 2026-10-08 · <strong>Status:</strong> Accepted · First execution of this path on any part in the port</p>
+<p><strong>Date:</strong> 2026-10-08 · <strong>Status:</strong> Accepted · <strong>Evidence:</strong> First execution of this path on any part in the port</p>
 <p><code>ra8m2_TFM_update_gcc</code>, GCC, on silicon. Primary slots flashed at 2.2.0, secondary slots at
 2.3.0 by <code>scripts/sign_secondary.py</code>. Two consecutive boots:</p>
 <pre><code>[INF] Image index: 1, Swap type: test          [INF] Image index: 1, Swap type: none
@@ -3773,7 +3782,7 @@ proven here is the bootloader half: BL2 correctly installs an image someone else
 secondary slot. Who places it there is the part FWU covers.</p>
 <hr>
 <h2 id="d101">D101 — the three RA8M2 IAR project gaps are closed; IAR and GCC are now configuration-identical</h2>
-<p><strong>Date:</strong> 2026-10-08 · <strong>Status:</strong> Accepted · Closes the project-side half of <a href="DECISIONS.html#d095">D095</a>&#x27;s open item</p>
+<p><strong>Date:</strong> 2026-10-08 · <strong>Status:</strong> Accepted · <strong>Builds on:</strong> <a href="DECISIONS.html#d095">D095</a> · <strong>Evidence:</strong> Closes the project-side half of <a href="DECISIONS.html#d095">D095</a>&#x27;s open item</p>
 <p>Fixed in RASC and verified against the GCC trees:</p>
 <div class="table-wrap"><table>
 <tr><th>Project</th><th>Gap</th><th>Verified</th></tr>
@@ -3807,7 +3816,7 @@ trees have 10 components and neither instantiates those modules; the rows are e2
 project side is outstanding now; what remains is building and running them.</p>
 <hr>
 <h2 id="d102">D102 — RA8M2 IAR: all six trees build, five launches generated; the ewarm staleness was already gone</h2>
-<p><strong>Date:</strong> 2026-10-08 · <strong>Status:</strong> Superseded by D103 · Follows <a href="DECISIONS.html#d101">D101</a> (project gaps) and <a href="DECISIONS.html#d089">D089</a> (the path fix)</p>
+<p><strong>Date:</strong> 2026-10-08 · <strong>Status:</strong> Superseded by D103 · <strong>Builds on:</strong> <a href="DECISIONS.html#d101">D101</a>, <a href="DECISIONS.html#d089">D089</a> · <strong>Evidence:</strong> Follows <a href="DECISIONS.html#d101">D101</a> (project gaps) and <a href="DECISIONS.html#d089">D089</a> (the path fix)</p>
 <h3 id="d089s-sweep-was-already-complete-the-remaining-matches-are-not-defects"><a href="DECISIONS.html#d089">D089</a>&#x27;s sweep was already complete; the remaining matches are not defects</h3>
 <p>Re-checked before building, because <a href="DECISIONS.html#d089">D089</a> closed on &quot;<code>m2ns</code> and <code>m2pans</code> now build&quot; and
 <a href="DECISIONS.html#d083">D083</a> had already been found incomplete once. **No live configuration carries the stale
@@ -3879,7 +3888,7 @@ still needs.</p>
 given one). <code>reg_build_iar.bat C:\b\m2islih C:\b\m2islihns ra8m2 slih</code> would add the pair.</p>
 <hr>
 <h2 id="d103">D103 — supersedes <a href="DECISIONS.html#d102">D102</a> on the IAR launch host project: it is the IAR project, and auto-config is false</h2>
-<p><strong>Date:</strong> 2026-10-08 · <strong>Status:</strong> Accepted · Corrects two attribute choices in <a href="DECISIONS.html#d102">D102</a></p>
+<p><strong>Date:</strong> 2026-10-08 · <strong>Status:</strong> Accepted · <strong>Corrects:</strong> <a href="DECISIONS.html#d102">D102</a> · <strong>Evidence:</strong> Corrects two attribute choices in <a href="DECISIONS.html#d102">D102</a></p>
 <p><a href="DECISIONS.html#d102">D102</a> generated the five RA8M2 IAR launches by copying the GCC twins and swapping build-tree
 paths only, on the evidence that the RA6M5 GCC/IAR pair differs in exactly nine lines, all
 paths. That evidence was sound and the conclusion drawn from it was still wrong in two places,
@@ -3917,7 +3926,7 @@ consistent with <code>PROJECT_ATTR</code>, and all 27 referenced files present.<
 <p>The build trees, sizes and RTT addresses. Still nothing run on hardware.</p>
 <hr>
 <h2 id="d104">D104 — first RA8M2 IAR run on silicon: PSA Arch crypto is identical to GCC, test for test</h2>
-<p><strong>Date:</strong> 2026-10-08 · <strong>Status:</strong> Accepted · First hardware execution of any IAR image on this part</p>
+<p><strong>Date:</strong> 2026-10-08 · <strong>Status:</strong> Accepted · <strong>Evidence:</strong> First hardware execution of any IAR image on this part</p>
 <p><code>ra8m2_TFM_test_crypto_iar</code>, <code>m2icry</code> + <code>m2icryns</code>, banner <code>TF-M v2.2.0+94dbaa08f</code> - the same
 revision the GCC runs used, so the Option 3 merge did not move the tested code.</p>
 <pre><code>************ Crypto Suite Report **********
@@ -3952,7 +3961,7 @@ on connect, which wipes <code>DF_EMULATION</code>.</p>
 launches and trees for all four exist.</p>
 <hr>
 <h2 id="d105">D105 — RA8M2 IAR matches GCC on every suite, and measured boot is verified from the boot record</h2>
-<p><strong>Date:</strong> 2026-10-09 · <strong>Status:</strong> Accepted · Completes the IAR test evidence begun in <a href="DECISIONS.html#d104">D104</a></p>
+<p><strong>Date:</strong> 2026-10-09 · <strong>Status:</strong> Accepted · <strong>Builds on:</strong> <a href="DECISIONS.html#d104">D104</a> · <strong>Evidence:</strong> Completes the IAR test evidence begun in <a href="DECISIONS.html#d104">D104</a></p>
 <p>Three more runs on silicon, all from the launches <a href="DECISIONS.html#d102">D102</a>/<a href="DECISIONS.html#d103">D103</a> generated.</p>
 <div class="table-wrap"><table>
 <tr><th>Run</th><th>Result</th><th>GCC</th></tr>
@@ -3997,7 +4006,7 @@ deterministic ECDSA as unsupported for signing under both, consistent with <a hr
 <p>Only <code>ra8m2_TFM_update_iar</code> is unrun. Everything else on this part passes on both toolchains.</p>
 <hr>
 <h2 id="d106">D106 — the MCUboot upgrade installs under IAR too; M5 is met on both toolchains</h2>
-<p><strong>Date:</strong> 2026-10-09 · <strong>Status:</strong> Accepted · Last of the five IAR runs; closes M5</p>
+<p><strong>Date:</strong> 2026-10-09 · <strong>Status:</strong> Accepted · <strong>Evidence:</strong> Last of the five IAR runs; closes M5</p>
 <p><code>ra8m2_TFM_update_iar</code>. Primary slots flashed at 2.2.0 / 0.0.0, secondary at 2.3.0 / 0.1.0 by
 <code>scripts/sign_secondary.py</code>. From the debugger after <code>boot_go</code>:</p>
 <div class="table-wrap"><table>
@@ -4043,7 +4052,7 @@ both toolchains.</p>
 fixed (<a href="DECISIONS.html#d093">D093</a>), and the never-run suites in <code>PROJECT_PLAN.md</code> (FWU foremost).</p>
 <hr>
 <h2 id="d107">D107 — BL2 is silent under IAR because DLIB buffers stdout; <code>rtt_stdout.c</code> now makes it unbuffered</h2>
-<p><strong>Date:</strong> 2026-10-09 · <strong>Status:</strong> Superseded by D108 · Affects <strong>both</strong> parts; explains a symptom that looked like a wrong RTT address</p>
+<p><strong>Date:</strong> 2026-10-09 · <strong>Status:</strong> Superseded by D108 · <strong>Evidence:</strong> Affects both parts; explains a symptom that looked like a wrong RTT address</p>
 <h3 id="the-symptom-and-what-it-was-not">The symptom and what it was not</h3>
 <p>BL2 produced no RTT output under IAR on RA8M2 while the secure and non-secure images printed
 normally. The obvious reading - stale or wrong control-block address - was wrong. Measured
@@ -4101,7 +4110,7 @@ confirmed from a <code>boot_rsp</code> watch rather than from the swap lines.</p
 still exact slot fits and the secondaries have been re-signed.</p>
 <hr>
 <h2 id="d108">D108 — supersedes <a href="DECISIONS.html#d107">D107</a>&#x27;s fix: the real hook is <code>__dwrite</code>, because TF-M redirects <code>__write</code></h2>
-<p><strong>Date:</strong> 2026-10-09 · <strong>Status:</strong> Accepted · <a href="DECISIONS.html#d107">D107</a>&#x27;s diagnosis was half right and its fix made the symptom worse</p>
+<p><strong>Date:</strong> 2026-10-09 · <strong>Status:</strong> Accepted · <strong>Supersedes:</strong> <a href="DECISIONS.html#d107">D107</a> · <strong>Evidence:</strong> <a href="DECISIONS.html#d107">D107</a>&#x27;s diagnosis was half right and its fix made the symptom worse</p>
 <h3 id="what-d107-got-wrong">What <a href="DECISIONS.html#d107">D107</a> got wrong</h3>
 <p><a href="DECISIONS.html#d107">D107</a> found BL2&#x27;s RTT control block correctly initialised with <code>WrOff == 0</code>, concluded DLIB
 stdout buffering was holding the text, and added <code>setvbuf(stdout, NULL, _IONBF, 0)</code>. The
@@ -4164,7 +4173,7 @@ that is equally dead under the stock toolchain file.</p>
 <p>Slightly smaller than <a href="DECISIONS.html#d107">D107</a>&#x27;s build - the semihosting modules are gone. Secondaries re-signed.</p>
 <hr>
 <h2 id="d109">D109 — the IAR BL2 log works; it closes <a href="DECISIONS.html#d106">D106</a>&#x27;s open item and refines <a href="DECISIONS.html#d099">D099</a>&#x27;s <code>%zx</code> finding</h2>
-<p><strong>Date:</strong> 2026-10-09 · <strong>Status:</strong> Accepted · Confirms <a href="DECISIONS.html#d108">D108</a> on hardware</p>
+<p><strong>Date:</strong> 2026-10-09 · <strong>Status:</strong> Accepted · <strong>Builds on:</strong> <a href="DECISIONS.html#d108">D108</a> · <strong>Evidence:</strong> Confirms <a href="DECISIONS.html#d108">D108</a> on hardware</p>
 <p><code>ra8m2_TFM_update_iar</code>, BL2 RTT at <code>0x22002d68</code>. The full log, first boot then second:</p>
 <pre><code>[INF] Image index: 1, Swap type: test            [INF] Image index: 1, Swap type: none
 [INF] Image 1 upgrade secondary slot -&gt; primary slot
@@ -4211,7 +4220,7 @@ in this one line, and the GCC one is the degraded one.</p>
 available under both. Nothing is outstanding against M5.</p>
 <hr>
 <h2 id="d110">D110 — corrects the framing of <a href="DECISIONS.html#d107">D107</a>/<a href="DECISIONS.html#d108">D108</a>: the root cause is the call route, not the buffering</h2>
-<p><strong>Date:</strong> 2026-10-09 · <strong>Status:</strong> Accepted · Correction from the rm_psa_crypto owner</p>
+<p><strong>Date:</strong> 2026-10-09 · <strong>Status:</strong> Accepted · <strong>Evidence:</strong> Correction from the rm_psa_crypto owner</p>
 <p>The owner&#x27;s summary, which is the right one: *the issue was not that IAR buffered BL2&#x27;s 400
 bytes and failed to flush them - it was that BL2 printed by a different call than the secure
 image.* Both earlier entries led with buffering and buried that.</p>
@@ -4249,7 +4258,7 @@ the lesson, not &quot;IAR buffers stdout&quot;.</p>
 carry the three-build table.</p>
 <hr>
 <h2 id="d111">D111 — supersedes <a href="DECISIONS.html#d098">D098</a>: there is no config switch for the RSA-2048 keygen gap; the guard is on the engine</h2>
-<p><strong>Date:</strong> 2026-10-09 · <strong>Status:</strong> Accepted · Corrects <a href="DECISIONS.html#d098">D098</a>, and the wording it put into <a href="DECISIONS.html#d099">D099</a>, <a href="DECISIONS.html#d104">D104</a> and the management milestone page</p>
+<p><strong>Date:</strong> 2026-10-09 · <strong>Status:</strong> Accepted · <strong>Corrects:</strong> <a href="DECISIONS.html#d098">D098</a>, <a href="DECISIONS.html#d099">D099</a>, <a href="DECISIONS.html#d104">D104</a> · <strong>Evidence:</strong> Corrects <a href="DECISIONS.html#d098">D098</a>, and the wording it put into <a href="DECISIONS.html#d099">D099</a>, <a href="DECISIONS.html#d104">D104</a> and the management milestone page</p>
 <h3 id="what-d098-claimed-and-why-it-was-wrong">What <a href="DECISIONS.html#d098">D098</a> claimed, and why it was wrong</h3>
 <p><a href="DECISIONS.html#d098">D098</a> concluded the plaintext RSA-2048 keygen failure was &quot;a key-format limitation **selected by
 our own config**&quot;, named <code>PSA_CRYPTO_CFG_RSA_FORMAT</code> as &quot;where to change it&quot;, and cited
@@ -4299,7 +4308,7 @@ is <code>grep PSA_CRYPTO_CFG_RSA_FORMAT ra_cfg/arm/mbedtls/config.h</code> on th
 failing run - one command against generated output, rather than reasoning from module sources.</p>
 <hr>
 <h2 id="d112">D112 — <a href="DECISIONS.html#d101">D101</a>&#x27;s parity method cannot read the azone; one regenerate produced different TrustZone assignments per toolchain</h2>
-<p><strong>Date:</strong> 2026-10-12 · <strong>Status:</strong> Accepted · <strong>Refines</strong> <a href="DECISIONS.html#d101">D101</a> · RA8M2, both toolchains</p>
+<p><strong>Date:</strong> 2026-10-12 · <strong>Status:</strong> Accepted · <strong>Builds on:</strong> <a href="DECISIONS.html#d101">D101</a> · <strong>Evidence:</strong> RA8M2, both toolchains</p>
 <p><a href="DECISIONS.html#d101">D101</a> declared the RA8M2 IAR and GCC projects configuration-identical on the strength of &quot;a
 full <code>&lt;property id=... value=...&gt;</code> diff of all three pairs&quot;. That diff reads
 <code>configuration.xml</code>. <strong>Peripheral-to-zone assignments are not in that file</strong> - they live in
@@ -4348,7 +4357,7 @@ parity finding holds; what this entry corrects is the sufficiency of the <em>met
 for the next port (<code>PORTING.md</code>) rather than for RA8M2.</p>
 <hr>
 <h2 id="d113">D113 — isolation 2 on silicon: <code>TFM_ISOLATION_LEVEL</code> never reached the isolation HAL, and was hiding four port defects</h2>
-<p><strong>Date:</strong> 2026-10-21 · <strong>Status:</strong> Accepted · RA6M5 measured, RA8M2 changed in step · <strong>Refines</strong> <a href="DECISIONS.html#d061">D061</a>, <a href="DECISIONS.html#d068">D068</a>, <a href="DECISIONS.html#d101">D101</a></p>
+<p><strong>Date:</strong> 2026-10-21 · <strong>Status:</strong> Accepted · <strong>Builds on:</strong> <a href="DECISIONS.html#d061">D061</a>, <a href="DECISIONS.html#d068">D068</a>, <a href="DECISIONS.html#d101">D101</a> · <strong>Evidence:</strong> RA6M5 measured, RA8M2 changed in step</p>
 <p>The TF-M regression suite had never been run above isolation 1. Every <code>tests_reg</code> build in
 <code>C:\b</code> is L1/SFN and every L3 build is PSA Arch, which has no MMIO partitions and no IRQ
 suite. Running it at isolation 2 took <strong>five</strong> rounds, each fault hidden behind the previous.</p>
@@ -4446,7 +4455,7 @@ partition, including the PSA-RoT escape hatch, which is the answer for most user
 </ul>
 <hr>
 <h2 id="d114">D114 — isolation 3 green too; the missing macro was not one macro, it is that <code>platform_s</code> never links <code>psa_interface</code></h2>
-<p><strong>Date:</strong> 2026-10-21 · <strong>Status:</strong> Accepted · <strong>Refines</strong> <a href="DECISIONS.html#d113">D113</a> · RA6M5 measured</p>
+<p><strong>Date:</strong> 2026-10-21 · <strong>Status:</strong> Accepted · <strong>Builds on:</strong> <a href="DECISIONS.html#d113">D113</a> · <strong>Evidence:</strong> RA6M5 measured</p>
 <p><a href="DECISIONS.html#d113">D113</a> was written after the isolation-2 run and attributed the whole chain to one absent
 compile definition, <code>TFM_ISOLATION_LEVEL</code>. The isolation-3 run found a second one
 immediately, which reframes the finding: the problem is not a macro, it is that
@@ -4514,7 +4523,7 @@ but they are diagnostics and should be reviewed before the port is called done.<
 </ul>
 <hr>
 <h2 id="d115">D115 — RA8M2&#x27;s MPU measured at 8 regions; corrects <a href="DECISIONS.html#d114">D114</a> on PXN; the diagnostic hook itself broke L1+IPC</h2>
-<p><strong>Date:</strong> 2026-10-21 · <strong>Status:</strong> Accepted · <strong>Corrects</strong> <a href="DECISIONS.html#d114">D114</a> · RA8M2 measured</p>
+<p><strong>Date:</strong> 2026-10-21 · <strong>Status:</strong> Accepted · <strong>Corrects:</strong> <a href="DECISIONS.html#d114">D114</a> · <strong>Evidence:</strong> RA8M2 measured</p>
 <p>Three findings, in descending order of how wrong the prior entry was.</p>
 <h3 id="s1_3">1. RA8M2&#x27;s region count, finally read off the silicon</h3>
 <p><a href="DECISIONS.html#d113">D113</a> and <a href="DECISIONS.html#d114">D114</a> both carried &quot;RA8M2&#x27;s hardware MPU region count is still unread&quot;. It is 8.</p>
@@ -4630,7 +4639,7 @@ produced <a href="DECISIONS.html#d113">D113</a>, <a href="DECISIONS.html#d114">D
 </ul>
 <hr>
 <h2 id="d116">D116 — the L1+IPC HardFault was the same undefined macro; closes <a href="DECISIONS.html#d113">D113</a>/<a href="DECISIONS.html#d114">D114</a>/<a href="DECISIONS.html#d115">D115</a>&#x27;s carried items</h2>
-<p><strong>Date:</strong> 2026-10-21 · <strong>Status:</strong> Accepted · <strong>Closes</strong> carried items in <a href="DECISIONS.html#d113">D113</a>, <a href="DECISIONS.html#d114">D114</a>, <a href="DECISIONS.html#d115">D115</a> · RA8M2 measured</p>
+<p><strong>Date:</strong> 2026-10-21 · <strong>Status:</strong> Accepted · <strong>Builds on:</strong> <a href="DECISIONS.html#d113">D113</a>, <a href="DECISIONS.html#d114">D114</a>, <a href="DECISIONS.html#d115">D115</a> · <strong>Evidence:</strong> Closes carried items in <a href="DECISIONS.html#d113">D113</a>, <a href="DECISIONS.html#d114">D114</a>, <a href="DECISIONS.html#d115">D115</a>; RA8M2 measured</p>
 <p>Two runs, both of which were explicitly listed as unproven in <a href="DECISIONS.html#d115">D115</a>.</p>
 <h3 id="s1_4">1. L1 + IPC is green, and the hypothesis was right</h3>
 <p>**RA8M2 at isolation 1 with the IPC backend, GNUARM — secure 9/9, non-secure 7/7, both FLIH
@@ -4690,7 +4699,7 @@ decision before the port is called done.</li>
 </ul>
 <hr>
 <h2 id="d117">D117 — six corrections from an external review: <a href="DECISIONS.html#d113">D113</a> overstated FLIH, <a href="DECISIONS.html#d116">D116</a> closed a question that was answerable, and three ports deny the IDAU exists</h2>
-<p><strong>Date:</strong> 2026-10-21 · <strong>Status:</strong> Accepted · <strong>Corrects</strong> <a href="DECISIONS.html#d113">D113</a>, <a href="DECISIONS.html#d115">D115</a>, <a href="DECISIONS.html#d116">D116</a> · source- and configure-verified</p>
+<p><strong>Date:</strong> 2026-10-21 · <strong>Status:</strong> Accepted · <strong>Corrects:</strong> <a href="DECISIONS.html#d113">D113</a>, <a href="DECISIONS.html#d115">D115</a>, <a href="DECISIONS.html#d116">D116</a> · <strong>Evidence:</strong> source- and configure-verified</p>
 <p>An outside read of the port and of <a href="DECISIONS.html#d113">D113</a>-<a href="DECISIONS.html#d116">D116</a> produced seven claims. Six held. They are
 recorded together because the pattern behind them matters more than any one of them: every
 one is a case of **a true observation written down as a more general statement than the
@@ -4832,7 +4841,7 @@ is to a comment or a document, except the PXN configure, which was done in a thr
 </ul>
 <hr>
 <h2 id="d118">D118 — first IAR run above isolation 1: RA8M2 L2 green, and the MMIO region is the only toolchain-invariant in the table</h2>
-<p><strong>Date:</strong> 2026-10-21 · <strong>Status:</strong> Accepted · RA8M2 measured · partially closes the IAR item carried since <a href="DECISIONS.html#d113">D113</a></p>
+<p><strong>Date:</strong> 2026-10-21 · <strong>Status:</strong> Accepted · <strong>Builds on:</strong> <a href="DECISIONS.html#d113">D113</a> · <strong>Evidence:</strong> RA8M2 measured; partially closes the IAR item carried since <a href="DECISIONS.html#d113">D113</a></p>
 <p>**Result: RA8M2 at isolation 2, IAR 10.10.2 — secure 9/9, non-secure 7/7, both FLIH tests
 PASSED.** Every entry from <a href="DECISIONS.html#d113">D113</a> to <a href="DECISIONS.html#d117">D117</a> carried &quot;the four IAR trees are rebuilt but not
 yet run&quot; as the substantive open item, on the grounds that IAR has produced defects GNUARM did
@@ -4877,7 +4886,7 @@ untested arm of <a href="DECISIONS.html#d114">D114</a>&#x27;s fix.</li>
 </ul>
 <hr>
 <h2 id="d119">D119 — <a href="DECISIONS.html#d114">D114</a>&#x27;s second macro confirmed under IAR; RA8M2 is complete at every level on both toolchains</h2>
-<p><strong>Date:</strong> 2026-10-21 · <strong>Status:</strong> Accepted · closes the gap <a href="DECISIONS.html#d118">D118</a> named · RA8M2 measured</p>
+<p><strong>Date:</strong> 2026-10-21 · <strong>Status:</strong> Accepted · <strong>Builds on:</strong> <a href="DECISIONS.html#d118">D118</a> · <strong>Evidence:</strong> closes the gap <a href="DECISIONS.html#d118">D118</a> named; RA8M2 measured</p>
 <p>**Result: RA8M2 at isolation 3, IAR 10.10.2 — secure 9/9, non-secure 7/7, both FLIH tests
 PASSED.** <a href="DECISIONS.html#d118">D118</a> identified <code>m2il3</code> as &quot;the single most informative tree still unrun&quot; because
 level 2 takes the <code>!= 3</code> branch and therefore cannot exercise <code>CONFIG_TFM_PARTITION_META</code>. It
@@ -4931,7 +4940,7 @@ mattered before: <code>__SAUREGION_PRESENT</code>, MRAM versus flash, and <code>
 </ul>
 <hr>
 <h2 id="d120">D120 — the isolation-macro gap is this port&#x27;s, not upstream&#x27;s; <a href="DECISIONS.html#d113">D113</a>&#x27;s root cause was wrong and upstream item 15 is withdrawn</h2>
-<p><strong>Date:</strong> 2026-10-22 · <strong>Status:</strong> Accepted · <strong>Corrects</strong> <a href="DECISIONS.html#d113">D113</a>, <a href="DECISIONS.html#d114">D114</a>, <a href="DECISIONS.html#d117">D117</a> · <strong>Withdraws</strong> <code>UPSTREAM_CHANGES.md</code> item 15 · an519 measured</p>
+<p><strong>Date:</strong> 2026-10-22 · <strong>Status:</strong> Accepted · <strong>Corrects:</strong> <a href="DECISIONS.html#d113">D113</a>, <a href="DECISIONS.html#d114">D114</a>, <a href="DECISIONS.html#d117">D117</a> · <strong>Evidence:</strong> Withdraws <code>UPSTREAM_CHANGES.md</code> item 15; an519 measured</p>
 <p>An external documentation review (findings F014, F196, F200) challenged the root cause
 recorded in <a href="DECISIONS.html#d113">D113</a> and repeated in <a href="DECISIONS.html#d114">D114</a>, <a href="DECISIONS.html#d117">D117</a>, upstream item 15 and four port comments.
 It was right, and verifying it produced a sharper answer than the review itself reached.</p>
@@ -5019,7 +5028,7 @@ this the object upstream builds&quot;. Checking that needed one question nobody 
 rounds - <em>which target do the other platforms add this source to?</em> - and it is a single grep.</p>
 <hr>
 <h2 id="d121">D121 — the shared isolation HAL moves to <code>tfm_spm</code>; <a href="DECISIONS.html#d113">D113</a>&#x27;s workaround is deleted, not documented</h2>
-<p><strong>Date:</strong> 2026-10-22 · <strong>Status:</strong> Accepted · <strong>Implements</strong> the option <a href="DECISIONS.html#d120">D120</a> left open · ra6m5, ra8m2, ra6e1 · built, not yet re-run</p>
+<p><strong>Date:</strong> 2026-10-22 · <strong>Status:</strong> Accepted · <strong>Builds on:</strong> <a href="DECISIONS.html#d120">D120</a> · <strong>Evidence:</strong> Implements the option <a href="DECISIONS.html#d120">D120</a> left open; ra6m5, ra8m2, ra6e1; built, not yet re-run</p>
 <p><a href="DECISIONS.html#d120">D120</a> established that the isolation HAL missed <code>TFM_ISOLATION_LEVEL</code> and
 <code>CONFIG_TFM_PARTITION_META</code> because this port compiles it into <code>platform_s</code>, while all nine
 upstream users compile it into <code>tfm_spm</code>. That entry left the obvious consequence as an open
@@ -5102,7 +5111,7 @@ now print <code>compared N/M</code>. This is the same family as <a href="DECISIO
 forgot to ask it.</p>
 <hr>
 <h2 id="d122">D122 — the <code>tfm_spm</code> move is MPU-neutral on silicon, and RA6M5 L1+IPC is green for the first time — cause unexplained</h2>
-<p><strong>Date:</strong> 2026-10-22 · <strong>Status:</strong> Accepted · partially discharges <a href="DECISIONS.html#d121">D121</a>&#x27;s &quot;not yet re-run&quot; · RA6M5 measured</p>
+<p><strong>Date:</strong> 2026-10-22 · <strong>Status:</strong> Accepted · <strong>Builds on:</strong> <a href="DECISIONS.html#d121">D121</a> · <strong>Evidence:</strong> partially discharges <a href="DECISIONS.html#d121">D121</a>&#x27;s &quot;not yet re-run&quot;; RA6M5 measured</p>
 <p>Two runs on the post-move binaries (<a href="DECISIONS.html#d121">D121</a>, banner <code>a3472cc47</code>).</p>
 <h3 id="s1_6">1. Isolation 2 — the prediction holds, byte for byte</h3>
 <p><strong>RA6M5 at isolation 2, GNUARM — secure 9/9 PASSED.</strong> The post-partition dump:</p>
@@ -5160,7 +5169,7 @@ re-run is confirmation, not discovery.</li>
 </ul>
 <hr>
 <h2 id="d123">D123 — RA6M5 isolation 3 confirms <a href="DECISIONS.html#d121">D121</a>&#x27;s predicted boundary shift to the byte; RA6M5 IAR runs above isolation 1 for the first time</h2>
-<p><strong>Date:</strong> 2026-10-22 · <strong>Status:</strong> Accepted · completes <a href="DECISIONS.html#d121">D121</a>&#x27;s verification on RA6M5 · measured</p>
+<p><strong>Date:</strong> 2026-10-22 · <strong>Status:</strong> Accepted · <strong>Builds on:</strong> <a href="DECISIONS.html#d121">D121</a> · <strong>Evidence:</strong> completes <a href="DECISIONS.html#d121">D121</a>&#x27;s verification on RA6M5; measured</p>
 <h3 id="s1_7">1. Isolation 3, GNUARM — the one tree whose MPU table was predicted to change</h3>
 <p><strong>Secure 9/9, non-secure 7/7 PASSED, both FLIH tests included.</strong> The dump:</p>
 <pre><code>  idx 0  0x000A0400 - 0x000A5640      idx 3  0x20000400 - 0x20000400   TFM_SP_META_PTR
@@ -5210,7 +5219,7 @@ and unresolvable without rebuilding at the previous commit.</li>
 </ul>
 <hr>
 <h2 id="d124">D124 — the matrix is complete: every part, toolchain and isolation level has now run</h2>
-<p><strong>Date:</strong> 2026-10-22 · <strong>Status:</strong> Accepted · closes the last unrun tree · RA6M5 measured</p>
+<p><strong>Date:</strong> 2026-10-22 · <strong>Status:</strong> Accepted · <strong>Evidence:</strong> closes the last unrun tree; RA6M5 measured</p>
 <p><strong>RA6M5 at isolation 3, IAR — secure 9/9, non-secure 7/7 PASSED, both FLIH tests.</strong> <code>m5il3</code>
 was the last tree in the matrix never run on any build.</p>
 <h3 id="config_tfm_partition_meta-is-now-confirmed-on-both-parts-and-both-toolchains"><code>CONFIG_TFM_PARTITION_META</code> is now confirmed on both parts and both toolchains</h3>
@@ -5262,7 +5271,7 @@ unresolved, and still only resolvable by rebuilding at the previous commit.</li>
 </ul>
 <hr>
 <h2 id="d125">D125 — six corrections to <a href="DECISIONS.html#d120">D120</a>–<a href="DECISIONS.html#d123">D123</a> from the second documentation review; the HAL never left the PSA-RoT code region</h2>
-<p><strong>Date:</strong> 2026-10-22 · <strong>Status:</strong> Accepted · <strong>Corrects</strong> <a href="DECISIONS.html#d120">D120</a>, <a href="DECISIONS.html#d121">D121</a>, <a href="DECISIONS.html#d122">D122</a>, <a href="DECISIONS.html#d123">D123</a> · source-verified</p>
+<p><strong>Date:</strong> 2026-10-22 · <strong>Status:</strong> Accepted · <strong>Corrects:</strong> <a href="DECISIONS.html#d120">D120</a>, <a href="DECISIONS.html#d121">D121</a>, <a href="DECISIONS.html#d122">D122</a>, <a href="DECISIONS.html#d123">D123</a> · <strong>Evidence:</strong> source-verified</p>
 <p>A second pass of the external documentation review (findings F237, F241, F243, F245-F252) was
 run against <code>fsp_cmake b821e3f</code> and TF-M <code>addc59f54</code>. It also withdrew its own first-pass
 explanation of the macro gap and confirmed <a href="DECISIONS.html#d120">D120</a>&#x27;s. Six of its findings land on entries of
@@ -5347,7 +5356,7 @@ in a wrong sentence.** The measurements were checked; the sentences were not. Ch
 means checking the claim, not the number it sits next to.</p>
 <hr>
 <h2 id="d126">D126 — eighteen corrections to <a href="DECISIONS.html#d110">D110</a>–<a href="DECISIONS.html#d125">D125</a> from the second review; two carried items closed, and <a href="DECISIONS.html#d115">D115</a>&#x27;s &quot;three of four corners&quot; was wrong</h2>
-<p><strong>Date:</strong> 2026-10-22 · <strong>Status:</strong> Accepted · <strong>Corrects</strong> <a href="DECISIONS.html#d110">D110</a>, <a href="DECISIONS.html#d112">D112</a>, <a href="DECISIONS.html#d113">D113</a>, <a href="DECISIONS.html#d114">D114</a>, <a href="DECISIONS.html#d115">D115</a>, <a href="DECISIONS.html#d116">D116</a>, <a href="DECISIONS.html#d117">D117</a>, <a href="DECISIONS.html#d119">D119</a>, <a href="DECISIONS.html#d125">D125</a> · source-verified</p>
+<p><strong>Date:</strong> 2026-10-22 · <strong>Status:</strong> Accepted · <strong>Corrects:</strong> <a href="DECISIONS.html#d110">D110</a>, <a href="DECISIONS.html#d112">D112</a>, <a href="DECISIONS.html#d113">D113</a>, <a href="DECISIONS.html#d114">D114</a>, <a href="DECISIONS.html#d115">D115</a>, <a href="DECISIONS.html#d116">D116</a>, <a href="DECISIONS.html#d117">D117</a>, <a href="DECISIONS.html#d119">D119</a>, <a href="DECISIONS.html#d125">D125</a> · <strong>Evidence:</strong> source-verified</p>
 <p>The second documentation review raised 18 findings against this log. All hold. They are
 collected here rather than as nine entries, because most are one-line factual slips and the
 pattern they form is worth more than any of them.</p>
