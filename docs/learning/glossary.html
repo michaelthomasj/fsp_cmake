@@ -125,8 +125,8 @@
 <tr><td><a href="ref/DECISIONS.html#d069">D069</a></td><td>weak symbol silently unrouting every secure interrupt</td><td>Start, 0, 2, 4</td></tr>
 <tr><td><a href="ref/DECISIONS.html#d073">D073</a></td><td>RA8M2 MRAM alias chosen per offset</td><td>2</td></tr>
 <tr><td><a href="ref/DECISIONS.html#d075">D075</a></td><td>BL2 must enable the SAU on RA8M2</td><td>Start, 4</td></tr>
-<tr><td><a href="ref/DECISIONS.html#d076">D076</a></td><td><a href="ref/DECISIONS.html#d075">D075</a>'s code had been reverted</td><td>2</td></tr>
-<tr><td><a href="ref/DECISIONS.html#d079">D079</a></td><td>BL2 took FSP's MCUboot flash backend (superseded by <a href="ref/DECISIONS.html#d091">D091</a>)</td><td>2</td></tr>
+<tr><td><a href="ref/DECISIONS.html#d076">D076</a></td><td>D075's code had been reverted</td><td>2</td></tr>
+<tr><td><a href="ref/DECISIONS.html#d079">D079</a></td><td>BL2 took FSP's MCUboot flash backend (superseded by D091)</td><td>2</td></tr>
 <tr><td><a href="ref/DECISIONS.html#d080">D080</a></td><td>attestation passing with no measurements</td><td>4</td></tr>
 <tr><td><a href="ref/DECISIONS.html#d081">D081</a></td><td>measured boot confirmed on RA6M5 from the boot record</td><td>4</td></tr>
 <tr><td><a href="ref/DECISIONS.html#d087">D087</a></td><td>secure-slot headroom 1,693 B / 670 B</td><td>3</td></tr>
@@ -139,13 +139,15 @@
 <tr><td><a href="ref/DECISIONS.html#d102">D102</a></td><td>RA8M2 IAR launches; <code>setTZBoundaries</code> appears twice</td><td>4</td></tr>
 <tr><td><a href="ref/DECISIONS.html#d112">D112</a></td><td>azone parity</td><td>2, 4</td></tr>
 <tr><td><strong><a href="ref/DECISIONS.html#d113">D113</a></strong></td><td>isolation 2 on silicon; measured MPU; four port defects; costs</td><td>Start, 0, 1, 2, 3, 4</td></tr>
-<tr><td><strong><a href="ref/DECISIONS.html#d114">D114</a></strong></td><td>isolation 3; the second missing macro</td><td>Start, 1, 3, 4</td></tr>
-<tr><td><strong><a href="ref/DECISIONS.html#d115">D115</a></strong></td><td>RA8M2 MPU measured at 8; corrects <a href="ref/DECISIONS.html#d114">D114</a> on PXN; the hook that broke L1+IPC</td><td>Start, 1, 2, 3, 4</td></tr>
+<tr><td><strong><a href="ref/DECISIONS.html#d114">D114</a></strong></td><td>isolation 3; the second missing macro</td><td>Start, 1, 3</td></tr>
+<tr><td><strong><a href="ref/DECISIONS.html#d115">D115</a></strong></td><td>RA8M2 MPU measured at 8; corrects D114 on PXN; the hook that broke L1+IPC</td><td>Start, 1, 2, 3, 4</td></tr>
 <tr><td><strong><a href="ref/DECISIONS.html#d116">D116</a></strong></td><td>L1+IPC green on RA8M2</td><td>Start, 1, 3, 4</td></tr>
 <tr><td><strong><a href="ref/DECISIONS.html#d117">D117</a></strong></td><td>six corrections: FLIH dispatch, L1+IPC mechanism, IDAU comments, PXN provenance, stale docs, upstream count</td><td>Start, 1, 2, 3, 4</td></tr>
 <tr><td><strong><a href="ref/DECISIONS.html#d118">D118</a></strong></td><td>RA8M2 isolation 2 green under IAR</td><td>Start, 3</td></tr>
 <tr><td><strong><a href="ref/DECISIONS.html#d119">D119</a></strong></td><td>RA8M2 isolation 3 green under IAR; coverage table</td><td>Start, 3</td></tr>
+<tr><td><strong><a href="ref/DECISIONS.html#d120">D120</a></strong></td><td>the isolation-macro gap is this port's, not upstream's; item 15 withdrawn; D065 vs D094 on the brick</td><td>Start, 3, 4</td></tr>
 </table></div>
+<p class="src">Generated from the D-numbers each page cites. "Start" is the landing page; 0–4 are the parts.</p>
 <p class="src">Generated from the D-numbers each page cites. "Start" is the landing page; 0–4 are the parts.</p>
 
 <h2 id="files">Files cited</h2>

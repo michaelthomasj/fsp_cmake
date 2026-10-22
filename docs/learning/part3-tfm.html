@@ -27,7 +27,7 @@
           <li><a href="#spm">The SPM; SFN vs IPC</a></li>
           <li><a href="#flih">Interrupts: FLIH and SLIH</a></li>
           <li><a href="#hal">The isolation HAL</a></li>
-          <li><a href="#d113">Case study: D113–D117</a></li>
+          <li><a href="#d113">Case study: D113–D120</a></li>
           <li><a href="#fsp-drivers">FSP drivers in partitions</a></li>
           <li><a href="#check">Check yourself</a></li>
         </ol>
@@ -546,8 +546,8 @@ private data plus MMIO. RA8M2's measured static set has the same shape at differ
 <code>0x02068400</code> in MRAM, data from <code>0x22000400</code>, AGT0 at <code>0x40221000</code> (<a href="ref/DECISIONS.html#d115">D115</a>).</p>
 
 <!-- ============================================================ -->
-<h2 id="d113">3.8 Case study: the isolation HAL that never knew its level (<a href="ref/DECISIONS.html#d113">D113</a>–<a href="ref/DECISIONS.html#d117">D117</a>)</h2>
-<p>This is the single most instructive episode in the repository. Read <a href="ref/DECISIONS.html#d113">D113 to D117</a> in
+<h2 id="d113">3.8 Case study: the isolation HAL that never knew its level (<a href="ref/DECISIONS.html#d113">D113</a>–<a href="ref/DECISIONS.html#d120">D120</a>)</h2>
+<p>This is the single most instructive episode in the repository. Read <a href="ref/DECISIONS.html#d113">D113 to D120</a> in
 order afterwards: each later entry corrects something an earlier one stated too broadly.</p>
 
 <h3>The defect</h3>
@@ -571,7 +571,7 @@ source</strong>.</p>
 <p>So inside <code>tfm_hal_isolation_v8m.c</code> the macro is undefined, and <strong>C's preprocessor evaluates an
 undefined identifier in <code>#if</code> as 0, without a diagnostic</strong> (unless built with <code>-Wundef</code>).</p>
 <div class="note">
-<p><strong>Not an upstream defect at all — the story was corrected twice.</strong> D113, UPSTREAM_CHANGES item 15 and the
+<p><strong>Not an upstream defect at all — the story was corrected twice.</strong> <a href="ref/DECISIONS.html#d113">D113</a>, UPSTREAM_CHANGES item 15 and the
 first editions of this page said every platform using the shared HAL loses the macro. The accuracy review of 2026-10-22
 blamed the attest-HAL setting instead. The second agent's follow-up found that it too is only a contributor: mps4 sets
 <code>PLATFORM_DEFAULT_ATTEST_HAL</code> OFF and is unaffected, because it compiles the HAL in <code>tfm_spm</code>. The
@@ -579,9 +579,14 @@ trigger is the target.</p>
 <p>Measured, not read: the an519 build at isolation 2 in <code>C:&#92;b&#92;an519chk</code> (2026-10-22) compiles the HAL as
 <code>tfm_spm.dir/…/tfm_hal_isolation_v8m.o</code> with <code>-DTFM_ISOLATION_LEVEL=2</code>,
 <code>-DCONFIG_TFM_PARTITION_META</code> and <code>-DCONFIG_TFM_ENABLE_MEMORY_PROTECT</code>.</p>
-<p>Consequences, none yet recorded in the decision log: UPSTREAM_CHANGES item 15 should be withdrawn, as item 13 was;
-and the cleaner fix is to add the HAL to <code>tfm_spm</code> like the other nine platforms, replacing the port's
-<code>target_compile_definitions(platform_s …)</code> workaround. That move has not been tried on this port.</p>
+<p>Recorded in <a href="ref/DECISIONS.html#d120">D120</a>, which also corrects <a href="ref/DECISIONS.html#d114">D114</a>'s "neither arm fires" wording
+(below). UPSTREAM_CHANGES item 15 is <strong>withdrawn</strong>, as item 13 was. The port's
+<code>target_compile_definitions(platform_s …)</code> fix stays and is still correct; only its explanation was wrong
+(<code>ra6m5/CMakeLists.txt:473-515</code>). The cleaner fix — add the HAL to <code>tfm_spm</code> like the other nine
+platforms — is untried: it touches four ports' build files, so <a href="ref/DECISIONS.html#d120">D120</a> treats it as a decision, not a cleanup.</p>
+<p><strong>Still open (<a href="ref/DECISIONS.html#d120">D120</a>):</strong> ra6e1 and ra6m4 also compile the HAL into <code>platform_s</code> and have
+<em>neither</em> define. Harmless while they only run isolation 1 with SFN, where no MPU region is programmed, but the
+same gap.</p>
 </div>
 <div class="table-wrap"><table>
 <tr><th>Test in the HAL</th><th>Value with the macro undefined</th><th>Effect</th></tr>
@@ -611,7 +616,7 @@ compile the HAL where the macro arrives.</p>
 <tr><th>Round</th><th>Fault</th><th>Cause</th><th>Fix</th></tr>
 <tr><td>1</td><td><code>MMFSR 0x01</code>, PC <code>0x000BA964</code></td><td><code>plat_test.c</code> in <code>platform_s</code> → idx 1, privileged-execute-only</td><td>compile it into <code>tfm_sprt</code> (<code>ra6m5/CMakeLists.txt:416-442</code>)</td></tr>
 <tr><td>2</td><td><code>MMFSR 0x82</code>, <code>0x20011493</code></td><td>a <code>static bool</code> in that file; <code>tfm_sprt</code>'s .bss is in idx 4</td><td>make SPRT code stateless</td></tr>
-<tr><td>3</td><td><code>MMFSR 0x82</code>, <code>0x400E8008</code></td><td>no MMIO region: the undefined macro</td><td>define it on <code>platform_s</code> (<code>ra6m5/CMakeLists.txt:495-499</code>)</td></tr>
+<tr><td>3</td><td><code>MMFSR 0x82</code>, <code>0x400E8008</code></td><td>no MMIO region: the undefined macro</td><td>define it on <code>platform_s</code> (<code>ra6m5/CMakeLists.txt:511-515</code>)</td></tr>
 <tr><td>4</td><td><code>MMFSR 0x82</code>, <code>0x40006300</code></td><td>FLIH in Thread mode, unprivileged, clearing the ICU</td><td>move the ICU/NVIC clear to the vector entry</td></tr>
 <tr><td>L3</td><td><code>MMFSR 0x82</code>, <code>0x20000400</code></td><td><code>CONFIG_TFM_PARTITION_META</code> undefined too</td><td>define it as well (same lines)</td></tr>
 </table></div>
@@ -632,7 +637,7 @@ isolation 2 and 3, confirming both fixes on a second toolchain (<a href="ref/DEC
     fix only finds the ones someone has already been bitten by (<a href="ref/DECISIONS.html#d114">D114</a>). The follow-up
     sharpened this: the HAL always depended on <code>psa_interface</code>, and every upstream platform supplies it by
     compiling the HAL in <code>tfm_spm</code>. The port's own fix is macro-by-macro, chosen to keep the shared-file delta small
-    (<code>ra6m5/CMakeLists.txt:492-494</code>).</li>
+    (<code>ra6m5/CMakeLists.txt:505-507</code>).</li>
   <li><strong>Before calling a gap upstream, compare your port with the platforms that work.</strong> The missing macro
     was attributed to TF-M for four entries and then to a configuration option. One check would have settled it:
     which target does every other platform add this source to? Nine say <code>tfm_spm</code>; this port said
@@ -675,7 +680,7 @@ refers to; the course pages were not yet under version control, so the record ca
 <code>renesas/ra8m2</code> passes the gate at <code>check_config.cmake:91</code> and puts <code>-DTFM_PXN_ENABLE</code> on
 <code>tfm_hal_isolation_v8m.o</code>'s compile line. Its effect — the combined code region splitting in two, six static
 regions — has not been measured. PXN stays OFF on this port. The port's CMake comment now records this
-(<code>ra6m5/CMakeLists.txt:516-535</code>).</p>
+(<code>ra6m5/CMakeLists.txt:531-551</code>).</p>
 </div>
 
 <!-- ============================================================ -->

@@ -53,7 +53,8 @@ and kept in the pages as worked examples:
   defect at all. Every upstream platform compiles the shared isolation HAL in `tfm_spm`, which
   always receives the macro; the RA ports compile it in `platform_s`, which does not. The review
   blamed `PLATFORM_DEFAULT_ATTEST_HAL`, but that is only a contributor: mps4 sets it OFF and is
-  unaffected. Measured on `C:\b\an519chk`. This is not yet in DECISIONS.md.
+  unaffected. Measured on `C:\b\an519chk`; recorded as D120, which withdraws UPSTREAM_CHANGES
+  item 15.
 
 ## Reference documents (`ref/`)
 
