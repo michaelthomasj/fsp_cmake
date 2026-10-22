@@ -81,7 +81,7 @@ draw a wrong conclusion, so every substantive claim carries a tag:</p>
   <code>EXC_RETURN</code>, SVC and PendSV, CFSR/HFSR decoding.</td><td><a href="ref/DECISIONS.html#d113">D113</a>/D114 fault chain, measured MPU dump</td></tr>
 <tr><td><a href="part2-trustzone.html">2 · TrustZone for Armv8-M</a></td>
   <td>Security states, SAU/IDAU, NSC and SG, banked registers, NVIC target state, RA's PSAR/PSCU/ICUSARG.</td>
-  <td>FSP <code>bsp_security.c</code>, <a href="ref/DECISIONS.html#d061">D061</a>, <a href="ref/DECISIONS.html#d069">D069</a>, <a href="ref/DECISIONS.html#d075">D075</a>, <a href="ref/DECISIONS.html#d092">D092</a></td></tr>
+  <td>FSP <code>bsp_security.c</code>, <a href="ref/DECISIONS.html#d061">D061</a>, <a href="ref/DECISIONS.html#d069">D069</a>, <a href="ref/DECISIONS.html#d075">D075</a>–<a href="ref/DECISIONS.html#d076">D076</a>, <a href="ref/DECISIONS.html#d092">D092</a></td></tr>
 <tr><td><a href="part3-tfm.html">3 · TF-M</a></td>
   <td>PSA-FF-M, RoTs, manifests, <code>psa_call</code>, isolation levels 1–3, the SPM, SFN vs IPC, the isolation
   HAL walked line by line.</td><td><code>tfm_hal_isolation_v8m.c</code>, <code>interrupt.c</code>, <a href="ref/DECISIONS.html#d113">D113</a>/D114</td></tr>
@@ -116,7 +116,11 @@ chiefly in Part 2.</p>
 <h2>Citation conventions</h2>
 <ul>
   <li><code>DECISIONS.md D113</code> — an entry in this repository's append-only decision log,
-    <a href="ref/DECISIONS.html">DECISIONS.md</a>. Entries are never edited; a later entry supersedes an earlier one.</li>
+    <a href="ref/DECISIONS.html">DECISIONS.md</a>. Entries are never edited; a later entry supersedes or corrects an earlier
+    one, so the log reads as history. For what stands now, use <a href="ref/SETTLED.html">SETTLED.md</a> (generated from
+    the log: per thread, the entry that stands) and the hand-written
+    <a href="ref/DECISIONS.html#settled-questions">Settled questions</a> table at the top of the log. The
+    <a href="glossary.html#decisions">glossary</a> gives the standing of every entry this course cites.</li>
   <li>Every link to a repository document opens an HTML rendering of it under <a href="ref/index.html"><code>ref/</code></a>,
     regenerated from the Markdown on each commit. A decision number such as <a href="ref/DECISIONS.html#d113">D113</a> links straight to its entry; "DESIGN.md
     §8.4" links to that section.</li>

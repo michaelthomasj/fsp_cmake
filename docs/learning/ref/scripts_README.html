@@ -211,6 +211,10 @@ over <code>docs/learning/</code> does.</li>
 <li><code>--no-verify</code> skips the render too. Run the script by hand afterwards, or the next
 documentation commit will pick it up.</li>
 </ul>
+<p>The glossary&#x27;s &quot;Decisions cited&quot; table is generated too, by <code>scripts/build_course_glossary.py</code>
+(<code>--check</code> to report drift). Its &quot;Standing&quot; column comes from <code>SETTLED.md</code>, so it goes stale
+whenever a new entry supersedes or corrects one the course cites; <code>build_doc_html.py</code> prints a
+warning when it is.</p>
 </main>
 </div>
 </body>

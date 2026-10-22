@@ -26,7 +26,30 @@ if [ -f "$root/scripts/check_docs.py" ] && echo "$changed" | grep -qE '\.md$|\.c
     fi
 fi
 
-# 2. Rendered reference pages, docs/learning/ref/. The Markdown is the source: render from the
+# 2. SETTLED.md, the generated index of which decision stands. Same contract as ref/: the
+#    log is the source, this is derived, and it is regenerated from the INDEX so a partly
+#    staged DECISIONS.md cannot produce an index describing uncommitted text.
+#
+#    Regenerate-and-stage rather than fail-on-stale, matching step 3. The goal is that a
+#    commit can never contain a stale index; making the author re-run a script by hand
+#    achieves the same thing with more friction and one more way to forget. Use
+#    `build_settled.py --check` in CI or by hand when you want the failure instead.
+#
+#    This runs BEFORE step 3 because ref/SETTLED.html is rendered from the staged
+#    SETTLED.md. The other order commits a fresh SETTLED.md beside a stale SETTLED.html.
+if [ -f "$root/scripts/build_settled.py" ] && echo "$changed" | grep -q '^DECISIONS\.md$'; then
+    python "$root/scripts/build_settled.py" --staged
+    status=$?
+    if [ $status -ne 0 ]; then
+        echo
+        echo "pre-commit: could not regenerate SETTLED.md from DECISIONS.md (above)."
+        echo "            A parse failure here usually means an entry's **Date:**/**Status:**"
+        echo "            line is malformed - see the header of scripts/build_settled.py."
+        exit $status
+    fi
+fi
+
+# 3. Rendered reference pages, docs/learning/ref/. The Markdown is the source: render from the
 #    INDEX (--staged), not the working tree, so a partially staged document produces HTML that
 #    matches what is actually being committed. Then stage the result, including removals.
 [ -f "$root/scripts/build_doc_html.py" ] || exit 0
@@ -39,24 +62,4 @@ if [ $status -ne 0 ]; then
     exit $status
 fi
 git -C "$root" add -A docs/learning/ref
-
-# 3. SETTLED.md, the generated index of which decision stands. Same contract as ref/: the
-#    log is the source, this is derived, and it is regenerated from the INDEX so a partly
-#    staged DECISIONS.md cannot produce an index describing uncommitted text.
-#
-#    Regenerate-and-stage rather than fail-on-stale, matching step 2. The goal is that a
-#    commit can never contain a stale index; making the author re-run a script by hand
-#    achieves the same thing with more friction and one more way to forget. Use
-#    `build_settled.py --check` in CI or by hand when you want the failure instead.
-if [ -f "$root/scripts/build_settled.py" ] && echo "$changed" | grep -q '^DECISIONS\.md$'; then
-    python "$root/scripts/build_settled.py" --staged
-    status=$?
-    if [ $status -ne 0 ]; then
-        echo
-        echo "pre-commit: could not regenerate SETTLED.md from DECISIONS.md (above)."
-        echo "            A parse failure here usually means an entry's **Date:**/**Status:**"
-        echo "            line is malformed - see the header of scripts/build_settled.py."
-        exit $status
-    fi
-fi
 exit 0

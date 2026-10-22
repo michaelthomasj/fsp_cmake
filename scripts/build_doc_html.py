@@ -531,6 +531,15 @@ def main():
     # Reported, not fatal: the fix belongs in the Markdown, which may be someone else's document.
     for w in WARNINGS:
         print("  warning: " + w)
+    # The glossary's decisions table takes its "Standing" column from SETTLED.md, which changes
+    # with every new entry. Warn rather than fail: a new DECISIONS entry should not block on it.
+    try:
+        import build_course_glossary as glossary
+        if glossary.render(glossary.read(glossary.GLOSSARY), []) != glossary.read(glossary.GLOSSARY):
+            print("  warning: docs/learning/glossary.html decisions table is stale; "
+                  "run: python scripts/build_course_glossary.py")
+    except (ImportError, OSError, ValueError) as e:
+        print("  warning: could not check the glossary decisions table: %s" % e)
 
     bad_links = course_md_links()
     if args.check:
