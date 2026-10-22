@@ -198,8 +198,8 @@ them is unknown</strong>: the original "permanence word" diagnosis was withdrawn
 (<a href="ref/DECISIONS.html#d094">D094</a>). Beware that the log disagrees with itself here:
 <a href="ref/DECISIONS.html#d065">D065</a> names PBPS at <code>0x0100A1E0</code> as "the exact word" that destroyed the
 boards, while <a href="ref/DECISIONS.html#d094">D094</a>, written a week later, disproves two of three explanations and
-leaves the field open. Read together, PBPS is not excluded, but it is a candidate, not a finding;
-<a href="ref/DECISIONS.html#d120">D120</a> says this, though it credits the ranking to D094. The rules below do not depend on the answer. Rules:</p>
+leaves the field open. Read together, PBPS is not excluded, but it is a candidate, not a finding. That ranking is
+<a href="ref/DECISIONS.html#d120">D120</a>'s inference from D065; <a href="ref/DECISIONS.html#d125">D125</a> §6 withdrew D120's attribution of it to D094. The rules below do not depend on the answer. Rules:</p>
 <ul>
   <li>One linker <code>MEMORY</code> region per OFS group. <code>check_ofs.py</code> enforces it after every link.</li>
   <li>The zero fill is invisible in a <code>.srec</code>. <code>readelf -l</code> is the only place it shows.</li>
@@ -227,7 +227,8 @@ isolation gates added from <a href="ref/DECISIONS.html#d113">D113</a>–<a href=
 <tr><td>Full regression suite</td><td>the port</td></tr>
 <tr><td>PSA Arch crypto</td><td>the engine: 63/0/1 on RA6M5, 62/1/1 on RA8M2</td></tr>
 <tr><td>Measured boot read from the record</td><td>not the attestation suite</td></tr>
-<tr><td>Both toolchains</td><td>IAR has produced defects GNU did not, four times</td></tr>
+<tr><td>Both toolchains</td><td>Four IAR-only failures, all below isolation 1: two IAR's own (<a href="ref/DECISIONS.html#d107">D107</a>, <a href="ref/DECISIONS.html#d108">D108</a>),
+  two a stale install path in CMake caches (<a href="ref/DECISIONS.html#d083">D083</a>, <a href="ref/DECISIONS.html#d089">D089</a>; <a href="ref/DECISIONS.html#d126">D126</a> §6). None at isolation 2 or 3 (<a href="ref/DECISIONS.html#d124">D124</a>)</td></tr>
 <tr><td>Azone parity</td><td>peripheral-to-zone security matches across projects (<a href="ref/DECISIONS.html#d112">D112</a>)</td></tr>
 <tr><td><strong>Regression at isolation 2 and 3</strong>, FLIH/SLIH included</td><td>MMIO grants, code/data placement for ARoT, FLIH privilege. Invisible at level 1, where the MPU is off (<a href="ref/DECISIONS.html#d113">D113</a>)</td></tr>
 <tr><td><strong>MPU dump read once per part</strong></td><td>actual <code>DREGION</code> and the enabled set — 8 on both RA6M5 and RA8M2 (<a href="ref/DECISIONS.html#d113">D113</a>, <a href="ref/DECISIONS.html#d115">D115</a>). Read it on any new part</td></tr>
@@ -238,17 +239,16 @@ isolation gates added from <a href="ref/DECISIONS.html#d113">D113</a>–<a href=
 <!-- ============================================================ -->
 <h2 id="upstream">4.8 Where this port diverges from upstream TF-M, and why</h2>
 <h3>Changes to common TF-M files</h3>
-<p><a href="ref/UPSTREAM_CHANGES.html">UPSTREAM_CHANGES.md</a> lists 15 numbered items against TF-M v2.2.0 (fork point
-<code>dd2b7de19</code>). They are not all defects and not all live: <strong>10 are live upstream defect fixes</strong>
-(1–6, 9–12), per <a href="ref/DECISIONS.html#d117">D117</a> §6. Two are withdrawn: 13 and, since
-<a href="ref/DECISIONS.html#d120">D120</a>, 15.</p>
-<p>The list is also <strong>incomplete</strong> (review, 2026-10-22). Its regenerate command's pathspec misses
-<code>cmake/</code>, <code>lib/ext/mcuboot/</code> and <code>toolchain_ARMCLANG/CLANG.cmake</code> (it does include
-the GNUARM and IAR ones), where <code>cmake/install.cmake</code> and
-<code>lib/ext/mcuboot/CMakeLists.txt</code> do differ from the fork point. And it omits commit <code>4025eedff</code>
-(<a href="ref/DECISIONS.html#d063">D063</a>), which adds <code>TFM_LINKER_VENEERS_OWN_REGION</code> to
-<code>platform/ext/common/gcc/tfm_isolation_s.ld.template</code> — a common-file change every RA port enables. A TF-M uprev
-guided by that document alone would drop it.</p>
+<p><a href="ref/UPSTREAM_CHANGES.html">UPSTREAM_CHANGES.md</a> lists 16 numbered items against TF-M v2.2.0 (fork point
+<code>dd2b7de19</code>). They are not all defects and not all live. <a href="ref/DECISIONS.html#d117">D117</a> §6 counted
+<strong>10 live upstream defect fixes</strong> (1–6, 9–12); item 16, added since, is an eleventh. Two are withdrawn: 13
+and, since <a href="ref/DECISIONS.html#d120">D120</a>, 15.</p>
+<p>The list is also <strong>not yet complete</strong>, and now says so. Its regenerate command used to name specific
+subdirectories and so missed real edits to common files; widened to exclude only the port directory, it returns 39
+files, of which the items account for 20. The rest — <code>cmake/install.cmake</code>,
+<code>lib/ext/mcuboot/CMakeLists.txt</code>, <code>toolchain_ARMCLANG/CLANG.cmake</code>, the accelerator tree and a
+stray <code>tfm_config.log</code> — are listed under "Not yet accounted for". Before a TF-M uprev, re-run that command:
+anything it shows that the document does not list is an untracked divergence.</p>
 <div class="table-wrap"><table>
 <tr><th>Items</th><th>Kind</th><th>Each teaches</th></tr>
 <tr><td>1–3</td><td>IAR linker-template defects</td><td>A silent failure — boot loop, <code>INVEP</code> on every NS→S call — rather than a build error (1: stack seal on live data, Part 1 §1.6; 2: veneers outside NSC, Part 2 §2.3)</td></tr>
@@ -260,6 +260,7 @@ guided by that document alone would drop it.</p>
 <tr><td>13</td><td><strong>withdrawn</strong></td><td>Kept to record why the MCUboot backend did not need replacing (<a href="ref/DECISIONS.html#d091">D091</a>)</td></tr>
 <tr><td>14</td><td>IAR toolchain-file defect, report only</td><td><code>--redirect __write=__write_buffered</code> makes a platform's <code>__write()</code> unreachable</td></tr>
 <tr><td>15</td><td><strong>withdrawn</strong> (<a href="ref/DECISIONS.html#d120">D120</a>)</td><td>Not an upstream defect: every upstream platform compiles the shared isolation HAL in <code>tfm_spm</code>, where the macro arrives. The gap came from this port compiling it in <code>platform_s</code> (Part 3 §3.8)</td></tr>
+<tr><td>16</td><td>GNU linker-template fix, opt-in (<code>4025eedff</code>, <a href="ref/DECISIONS.html#d063">D063</a>)</td><td>Pinning <code>.gnu.sgstubs</code> inside FLASH drags ld's allocation pointer past it. <code>TFM_LINKER_VENEERS_OWN_REGION</code> gives the veneers their own region; every RA port sets it, so an uprev that drops it breaks the regression link</td></tr>
 </table></div>
 <p>Item 14 is worked around inside the RA platform directories, so it does not appear in the file diff. One
 open question (<a href="ref/DECISIONS.html#d117">D117</a>): the submission notes group 7, 8 and 9 together, yet 7 and 8 are additions while 9 reads as a
@@ -278,7 +279,7 @@ defect.</p>
 <tr><td>Veneers placed in the general flash region by the generated linker script</td><td>Veneers in their own
   <code>MEMORY</code> region (<code>TFM_LINKER_VENEERS_OWN_REGION</code>, <code>ra6m5/region_defs.h:202-203</code>)</td>
   <td>The NSC window is pinned at provisioning; without it, load images placed after the veneers overflow the slot
-  (<a href="ref/DECISIONS.html#d063">D063</a>, commit <code>4025eedff</code> — not yet in UPSTREAM_CHANGES)</td></tr>
+  (<a href="ref/DECISIONS.html#d063">D063</a>, commit <code>4025eedff</code>, UPSTREAM_CHANGES item 16)</td></tr>
 <tr><td>Generated secure linker script with no vendor sections</td><td>Hooks for <code>.ram_noinit</code>, <code>.ram_from_flash</code></td><td>FSP state set before the C runtime; RAM-resident flash code (items 3, 4)</td></tr>
 </table></div>
 
@@ -307,8 +308,8 @@ defect.</p>
   <li>Your new RA8 port passes every gate at isolation 1. Name two defects classes that could still be present.
     <details><summary>Answer</summary>Anything the MPU would catch — ARoT code or data in privileged regions, missing MMIO
     grants, FLIH handlers touching unmapped registers — because the MPU is off at level 1; and isolation-HAL macros that
-    do not reach the target compiling the HAL (check it is <code>tfm_spm</code>, as upstream does). And any build-only defect in a configuration you did not build, like the L1+IPC hook link
-    error (<a href="ref/DECISIONS.html#d115">D115</a>).</details></li>
+    do not reach the target compiling the HAL (check it is <code>tfm_spm</code>, as upstream does). And any build-only defect in a configuration you did not build, like the isolation-1 hook link
+    error (<a href="ref/DECISIONS.html#d115">D115</a>, <a href="ref/DECISIONS.html#d126">D126</a> §1).</details></li>
   <li>Why is item 13 in <code>UPSTREAM_CHANGES.md</code> kept although withdrawn?
     <details><summary>Answer</summary>To record the observation behind it: <code>DEFAULT_MCUBOOT_FLASH_MAP=OFF</code>
     replaces only the map data, not the backend, and the port no longer needs to replace the backend because FSP's HAL sits

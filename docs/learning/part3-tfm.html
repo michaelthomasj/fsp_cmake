@@ -27,7 +27,7 @@
           <li><a href="#spm">The SPM; SFN vs IPC</a></li>
           <li><a href="#flih">Interrupts: FLIH and SLIH</a></li>
           <li><a href="#hal">The isolation HAL</a></li>
-          <li><a href="#d113">Case study: D113–D122</a></li>
+          <li><a href="#d113">Case study: D113–D126</a></li>
           <li><a href="#fsp-drivers">FSP drivers in partitions</a></li>
           <li><a href="#check">Check yourself</a></li>
         </ol>
@@ -249,15 +249,16 @@ and calls its function directly on the caller's stack (§3.5).</p>
 PSA Arch builds use 3 with IPC. As of 2026-10-22 the regression suite stands at:</p>
 <div class="table-wrap"><table>
 <tr><th></th><th>L1 SFN</th><th>L1 IPC</th><th>L2</th><th>L3</th></tr>
-<tr><td>RA6M5 GNUARM</td><td>green</td><td>green, secure suites only; cause unexplained (<a href="ref/DECISIONS.html#d122">D122</a>)</td><td>green, re-run after the move (secure suites only)</td><td>green before the move; re-run owed</td></tr>
-<tr><td>RA8M2 GNUARM</td><td>green</td><td>green before the move</td><td>green before the move</td><td>green before the move</td></tr>
-<tr><td>RA6M5 IAR</td><td>green</td><td>—</td><td>never run</td><td>never run</td></tr>
-<tr><td>RA8M2 IAR</td><td>green</td><td>—</td><td>green before the move</td><td>green before the move</td></tr>
+<tr><td>RA6M5 GNUARM</td><td>green</td><td>secure suites only; cause unexplained (<a href="ref/DECISIONS.html#d122">D122</a>)</td><td>green; post-move run secure only</td><td>green</td></tr>
+<tr><td>RA6M5 IAR</td><td>green</td><td>—</td><td>green</td><td>green</td></tr>
+<tr><td>RA8M2 GNUARM</td><td>green</td><td>green</td><td>green</td><td>green</td></tr>
+<tr><td>RA8M2 IAR</td><td>green</td><td>—</td><td>green</td><td>green</td></tr>
 </table></div>
-<p class="src"><a href="ref/DECISIONS.html#d122">D122</a> "Coverage"; earlier cells from <a href="ref/DECISIONS.html#d116">D116</a>–<a href="ref/DECISIONS.html#d119">D119</a>.
-"The move" is <a href="ref/DECISIONS.html#d121">D121</a>, which recompiled the isolation HAL in a different target (§3.8). Earlier "green" meant
-secure 9/9 <em>and</em> non-secure 7/7, FLIH tests included; the two post-move RA6M5 runs report only the secure half.
-RA6M5 under IAR above isolation 1 is the open cell; RA6M5 L3 is the one tree whose MPU table the move should change.</p>
+<p class="src"><a href="ref/DECISIONS.html#d124">D124</a> "Coverage — complete", qualified by <a href="ref/DECISIONS.html#d125">D125</a> §4 and <a href="ref/DECISIONS.html#d126">D126</a> §4.
+"Green" means secure 9/9 <em>and</em> non-secure 7/7, FLIH tests included. Two RA6M5 captures after the move
+(<a href="ref/DECISIONS.html#d121">D121</a>, §3.8) lost their non-secure half; the L2 cell rests on the full pre-move run
+(<a href="ref/DECISIONS.html#d113">D113</a>). RA6M5's cells are against the post-move build; RA8M2's are pre-move, with region symbols proven
+unchanged. The SLIH suite has never run on RA8M2, so "complete" means regression + FLIH at every level.</p>
 
 <h3>What each level costs — measured</h3>
 <div class="table-wrap"><table>
@@ -434,7 +435,7 @@ while the code below it uses bare <code>AGTCR</code> writes only. The page refle
 <code>tfm_hal_post_partition_init_hook()</code> (the port's MPU dump, called from <code>spm_ipc.c:440</code>) and
 <code>tfm_hal_verify_static_boundaries()</code> (FIH profiles only, <code>main.c:42</code>). Every Armv8-M platform without special hardware — including both RA ports — uses the
 shared implementation in <code>platform/ext/common/tfm_hal_isolation_v8m.c</code>, compiled into
-<code>tfm_spm</code> (<code>ra6m5/CMakeLists.txt:494-497</code>, <code>ra8m2/CMakeLists.txt:625-628</code>).</p>
+<code>tfm_spm</code> (<code>ra6m5/CMakeLists.txt:503-506</code>, <code>ra8m2/CMakeLists.txt:634-637</code>).</p>
 <div class="table-wrap"><table>
 <tr><th>Function</th><th>Called</th><th>Does</th></tr>
 <tr><td><code>tfm_hal_set_up_static_boundaries()</code></td><td>once, at boot</td><td>SAU/MPC/PPC hooks; programs the static MPU table; enables the MPU</td></tr>
@@ -548,8 +549,8 @@ private data plus MMIO. RA8M2's measured static set has the same shape at differ
 <code>0x02068400</code> in MRAM, data from <code>0x22000400</code>, AGT0 at <code>0x40221000</code> (<a href="ref/DECISIONS.html#d115">D115</a>).</p>
 
 <!-- ============================================================ -->
-<h2 id="d113">3.8 Case study: the isolation HAL that never knew its level (<a href="ref/DECISIONS.html#d113">D113</a>–<a href="ref/DECISIONS.html#d122">D122</a>)</h2>
-<p>This is the single most instructive episode in the repository. Read <a href="ref/DECISIONS.html#d113">D113 to D122</a> in
+<h2 id="d113">3.8 Case study: the isolation HAL that never knew its level (<a href="ref/DECISIONS.html#d113">D113</a>–<a href="ref/DECISIONS.html#d126">D126</a>)</h2>
+<p>This is the single most instructive episode in the repository. Read <a href="ref/DECISIONS.html#d113">D113 to D126</a> in
 order afterwards: each later entry corrects something an earlier one stated too broadly.</p>
 
 <h3>The defect</h3>
@@ -568,7 +569,7 @@ shared source</strong>.</p>
 <div class="table-wrap"><table>
 <tr><th>Platforms using <code>tfm_hal_isolation_v8m.c</code></th><th>Target the source is added to</th><th>Gets <code>psa_interface</code>'s definitions?</th></tr>
 <tr><td>an519, an524, corstone300/310, mps4, musca_b1/s1, rse, alcor</td><td><code>tfm_spm</code> (e.g. <code>arm/mps2/an519/CMakeLists.txt:116-119</code>)</td><td>yes — <code>tfm_spm</code> links <code>tfm_sprt</code> unconditionally (<code>secure_fw/spm/CMakeLists.txt:105</code>), and <code>tfm_sprt</code> links <code>psa_interface</code> PUBLIC (<code>secure_fw/partitions/lib/runtime/CMakeLists.txt:39-41</code>)</td></tr>
-<tr><td>ra6m5, ra8m2, ra6e1 since <a href="ref/DECISIONS.html#d121">D121</a></td><td><code>tfm_spm</code> (<code>ra6m5/CMakeLists.txt:494-497</code>, <code>ra8m2/CMakeLists.txt:625-628</code>, <code>ra6e1/CMakeLists.txt:415-418</code>)</td><td>yes, as above</td></tr>
+<tr><td>ra6m5, ra8m2, ra6e1 since <a href="ref/DECISIONS.html#d121">D121</a></td><td><code>tfm_spm</code> (<code>ra6m5/CMakeLists.txt:503-506</code>, <code>ra8m2/CMakeLists.txt:634-637</code>, <code>ra6e1/CMakeLists.txt:415-418</code>)</td><td>yes, as above</td></tr>
 <tr><td>ra6m4 (dormant); all four RA ports before <a href="ref/DECISIONS.html#d121">D121</a></td><td><code>platform_s</code> (<code>ra6m4/CMakeLists.txt:71</code>)</td><td>only if <code>PLATFORM_DEFAULT_ATTEST_HAL</code> is ON, which makes <code>platform_s</code> link <code>tfm_sprt</code> (<code>platform/CMakeLists.txt:109</code>). The RA ports set it OFF because they supply their own <code>attest_hal.c</code> (<code>ra6m5/config.cmake:199</code>)</td></tr>
 </table></div>
 <p>So inside <code>tfm_hal_isolation_v8m.c</code> the macro was undefined, and <strong>C's preprocessor evaluates an
@@ -588,19 +589,22 @@ was about its own run, where <code>TFM_ISOLATION_LEVEL</code> was already define
 said "with both undefined".</p>
 <p><strong>Fixed by <a href="ref/DECISIONS.html#d121">D121</a>.</strong> The HAL is now added to <code>tfm_spm</code>, as upstream does, and the
 port's <code>target_compile_definitions(platform_s …)</code> workaround is deleted
-(<code>ra6m5/CMakeLists.txt:472-497</code>). Every definition <code>psa_interface</code> carries now arrives, including
+(<code>ra6m5/CMakeLists.txt:472-506</code>). Every definition <code>psa_interface</code> carries now arrives, including
 any it gains later. What remains:</p>
 <ul>
   <li><strong>ra6m4</strong> is untouched: both boards are dead, so a change could not be verified. It keeps the gap.</li>
   <li><strong>ra6e1</strong> moved too. It had neither define, so at isolation 1 it de-privileged ARoT partitions; it
     now takes the <code>== 1</code> arm. Asserted from source; it will not be run.</li>
-  <li>On silicon (<a href="ref/DECISIONS.html#d122">D122</a>), RA6M5 L2's MPU dump is identical to <a href="ref/DECISIONS.html#d113">D113</a>'s in all six regions.
-    RA6M5 L3 and the RA8M2 trees still owe a post-move run.</li>
+  <li>On silicon, RA6M5 L2's MPU dump is identical to <a href="ref/DECISIONS.html#d113">D113</a>'s in all six regions (<a href="ref/DECISIONS.html#d122">D122</a>), and
+    RA6M5 L3 moved exactly the three boundaries <a href="ref/DECISIONS.html#d121">D121</a> predicted from symbols, +32 B each
+    (<a href="ref/DECISIONS.html#d123">D123</a>). The five RA8M2 trees are built with the move but not re-run.</li>
+  <li>The object moved from <code>.ER_PSA_ROT_CODE</code> to <code>.ER_TFM_CODE</code>. Both lie between
+    <code>PT_PSA_ROT_CODE_START</code> and <code>_END</code> (<code>platform/ext/common/gcc/tfm_isolation_s.ld.template:215,
+    250, 320</code>), so it never left the PSA RoT code region; that region grew by one granule on RA6M5 L3. D121 said
+    it had left the region; <a href="ref/DECISIONS.html#d125">D125</a> §1–2 corrected it.</li>
 </ul>
-<p>Beware: the port comment just above the move (<code>ra6m5/CMakeLists.txt:484-489</code>, and the same text in ra8m2
-and ra6e1) still says that "with them undefined" isolation 3 builds four static regions. That is the precondition D120
-corrected: with both undefined it builds five. Four was measured with only <code>CONFIG_TFM_PARTITION_META</code>
-missing.</p>
+<p>The port comment above the move now states the two failures as sequential states, and why "neither arm fires"
+needs the first one already fixed (<code>ra6m5/CMakeLists.txt:482-498</code>; <a href="ref/DECISIONS.html#d125">D125</a>).</p>
 </div>
 <div class="table-wrap"><table>
 <tr><th>Test in the HAL</th><th>Value with the macro undefined</th><th>Effect</th></tr>
@@ -666,8 +670,11 @@ recorded at the time: <a href="ref/DECISIONS.html#d117">D117</a>–<a href="ref/
     plumbed" (<a href="ref/DECISIONS.html#d115">D115</a>; box below).</li>
   <li><strong>An unconditional <code>#define</code> of a config macro whose implementation is conditionally compiled is a
     latent link error.</strong> The port enabled <code>CONFIG_TFM_POST_PARTITION_INIT_HOOK</code> unconditionally, but the
-    hook body sits inside <code>#ifdef CONFIG_TFM_ENABLE_MEMORY_PROTECT</code>. Only L1+IPC has the call site
-    (<code>spm_ipc.c:435-440</code>) without the body — the one configuration nobody had rebuilt. Now gated on the same
+    hook body sits inside <code>#ifdef CONFIG_TFM_ENABLE_MEMORY_PROTECT</code>. Every isolation-1 build has the call
+    site (<code>spm_ipc.c:435-440</code>) without the body: <code>spm_ipc.c</code> is compiled unconditionally
+    (<code>secure_fw/spm/CMakeLists.txt:54</code>) and SFN reaches it through <code>BACKEND_SPM_INIT()</code>
+    (<code>include/ffm/backend_sfn.h:14</code>). L1+IPC failed only because it was the one level-1 tree rebuilt in
+    between. <a href="ref/DECISIONS.html#d115">D115</a> said SFN had no call site; <a href="ref/DECISIONS.html#d126">D126</a> §1 corrected it. Now gated on the same
     macro (<code>ra6m5/config_tfm_target.h:130-132</code>; <a href="ref/DECISIONS.html#d115">D115</a>).</li>
   <li><strong>A question closed because the symptom went away is not answered.</strong> <a href="ref/DECISIONS.html#d116">D116</a> closed the L1+IPC
     boot-order question "by irrelevance"; <a href="ref/DECISIONS.html#d117">D117</a> found the mechanism in the same two files.</li>
@@ -682,7 +689,7 @@ static table were "unreachable on every platform". <code>platform/CMakeLists.txt
         ...
         $&lt;$&lt;OR:$&lt;VERSION_GREATER:${TFM_ISOLATION_LEVEL},1&gt;,...&gt;:CONFIG_TFM_ENABLE_MEMORY_PROTECT&gt;
         $&lt;$&lt;BOOL:${TFM_PXN_ENABLE}&gt;:TFM_PXN_ENABLE&gt;</code></pre>
-<p>and the isolation HAL, now a <code>tfm_spm</code> source (<code>ra6m5/CMakeLists.txt:494-497</code>), inherits
+<p>and the isolation HAL, now a <code>tfm_spm</code> source (<code>ra6m5/CMakeLists.txt:503-506</code>), inherits
 <code>platform_s</code>'s PUBLIC definitions because <code>tfm_spm</code> links <code>platform_s</code>
 (<code>secure_fw/spm/CMakeLists.txt:100</code>). Before <a href="ref/DECISIONS.html#d121">D121</a> it was a <code>platform_s</code> source and got
 them directly. <a href="ref/DECISIONS.html#d115">D115</a> corrected <a href="ref/DECISIONS.html#d114">D114</a>. History of that line (<a href="ref/DECISIONS.html#d117">D117</a> §4):</p>
@@ -700,10 +707,10 @@ refers to; the course pages were not yet under version control, so the record ca
 <p><strong>Status:</strong> confirmed by configuring — a <code>TFM_PXN_ENABLE=ON</code> configure of
 <code>renesas/ra8m2</code> passes the gate at <code>check_config.cmake:91</code> and puts <code>-DTFM_PXN_ENABLE</code> on
 <code>tfm_hal_isolation_v8m.o</code>'s compile line. Its effect — the combined code region splitting in two, six static
-regions — has not been measured. That configure predates <a href="ref/DECISIONS.html#d121">D121</a>; D121 verified
-<code>CONFIG_TFM_ENABLE_MEMORY_PROTECT</code>, from the same PUBLIC block, on the moved object's compile line. PXN stays
-OFF on this port. The port's CMake comment records this (<code>ra6m5/CMakeLists.txt:499-519</code>), though its line
-<code>:514</code> still has the old "only added the check" description of <code>d90aa0c44</code>.</p>
+regions — has not been measured, and is deliberately parked (<a href="ref/DECISIONS.html#d126">D126</a> §5). Re-confirmed after
+<a href="ref/DECISIONS.html#d121">D121</a> at isolation 3, on the now <code>tfm_spm</code>-owned object (<a href="ref/DECISIONS.html#d125">D125</a>). PXN stays OFF on this
+port. The port's CMake comment records all of this, including both halves of <code>d90aa0c44</code>
+(<code>ra6m5/CMakeLists.txt:508-538</code>).</p>
 </div>
 
 <!-- ============================================================ -->
@@ -718,7 +725,8 @@ OFF on this port. The port's CMake comment records this (<code>ra6m5/CMakeLists.
 </table></div>
 <p>The third is architectural. <code>R_AGT_Open()</code> calls <code>R_BSP_IrqCfgEnable()</code>; the same pattern
 appears in <code>r_spi</code> (12 call sites), <code>r_iic_master</code> (7), <code>r_sci_uart</code> (5),
-<code>r_canfd</code> (5) (<a href="ref/DECISIONS.html#d113">D113</a>). It is a collision of models, not an FSP defect: TF-M takes NVIC ownership away from
+<code>r_canfd</code> (5) (<a href="ref/DECISIONS.html#d113">D113</a>; the counts are not reproducible from these
+trees, <a href="ref/DECISIONS.html#d126">D126</a> §6 — the point stands on <code>R_AGT_Open()</code> alone). It is a collision of models, not an FSP defect: TF-M takes NVIC ownership away from
 partitions (they declare <code>irqs</code> and use <code>psa_irq_enable()</code>, an SVC); FSP assumes the driver owns the
 interrupt controller. They disagree at <code>_Open()</code> and nowhere else.</p>
 <p><span class="tag port">This port</span> splits the driver's lifetime by privilege:</p>

@@ -481,7 +481,7 @@ finished. The switch therefore never happens underneath another handler's feet.<
 <p><span class="tag arch">Armv8-M</span> Four configurable fault exceptions report cause through status registers in
 the SCB. <strong>MemManage, BusFault, UsageFault and SecureFault must each be enabled in <code>SHCSR</code></strong>,
 or they escalate to HardFault. <span class="tag port">This port</span> enables all four in
-<code>enable_fault_handlers()</code> (<code>ra6m5/target_cfg.c:99-110</code>).</p>
+<code>enable_fault_handlers()</code> (<code>ra6m5/target_cfg.c:110-121</code>).</p>
 
 <h3>CFSR, decomposed</h3>
 <p><code>CFSR</code> at <code>0xE000ED28</code> is three registers in one word:</p>

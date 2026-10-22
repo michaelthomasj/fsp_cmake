@@ -22,7 +22,7 @@ Open `index.html` in a browser. Plain HTML, no build step, no server, no network
 | `part0-primer.html` | Cortex-M from scratch, with RA addresses; forward links to where each idea is tested |
 | `part1-privilege-mpu-faults.html` | privilege, MSP/PSP, MPU encoding, stacking, EXC_RETURN, SVC/PendSV, fault decoding with real dumps |
 | `part2-trustzone.html` | security states, SAU/IDAU, NSC/SG, banking, NVIC target state, RA's ICUSARG/PSAR/PSCU |
-| `part3-tfm.html` | PSA-FF-M, `psa_call`, isolation levels, SPM, SFN vs IPC, FLIH, the isolation HAL, the D113–D122 case study |
+| `part3-tfm.html` | PSA-FF-M, `psa_call`, isolation levels, SPM, SFN vs IPC, FLIH, the isolation HAL, the D113–D126 case study |
 | `part4-porting.html` | platform contract, RASC/FSP inputs, MCUboot layout, hazards, verification gates, upstream divergence |
 | `glossary.html` | terms, decisions cited, files cited |
 
@@ -54,7 +54,8 @@ and kept in the pages as worked examples:
   always receives the macro; the RA ports compile it in `platform_s`, which does not. The review
   blamed `PLATFORM_DEFAULT_ATTEST_HAL`, but that is only a contributor: mps4 sets it OFF and is
   unaffected. Measured on `C:\b\an519chk`; recorded as D120, which withdraws UPSTREAM_CHANGES
-  item 15. D121 then moved the HAL to `tfm_spm`; D122 ran RA6M5 after the move.
+  item 15. D121 then moved the HAL to `tfm_spm`; D122–D124 ran every tree; D125/D126 corrected
+  the prose around those results.
 - The rerun review (`docs/artifacts_v2/`, F222–F252) found the course stale against D121/D122 and
   five smaller errors (F224, F227, F228, F240, F242); all fixed. Findings against DECISIONS.md and the
   TF-M port comments are outside the course and left to those owners.
@@ -75,11 +76,11 @@ through HTML renderings in `ref/`, not the raw Markdown.
 
 ## Maintenance
 
-- Line numbers: TF-M `addc59f54`, fsp_cmake `b821e3f` (2026-10-22).
+- Line numbers: TF-M `c75693277`, fsp_cmake `47be18a` (2026-10-22).
 - Upstream TF-M citations drift only on a TF-M uprev. Port citations
   (`platform/ext/target/renesas/…`) move with port commits — recheck those first. An FSP bump moves
   only the FSP citations.
-- Run status (Part 3 §3.3 coverage table, Part 1 §1.9 status) is a snapshot of D122; update it when
-  RA6M5 L3, the RA8M2 trees and RA6M5 IAR L2/L3 are run after the D121 move.
+- Run status (Part 3 §3.3 coverage table, Part 1 §1.9 status) is a snapshot of D124–D126; update it
+  when the RA8M2 trees are re-run after the D121 move, or SLIH runs on RA8M2.
 - Assets: `assets/style.css` (light/dark tokens), `assets/site.js` (theme toggle, narrow-screen menu;
   the pages work without it).

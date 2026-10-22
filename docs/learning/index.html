@@ -150,6 +150,10 @@ them as worked examples, in boxes like this one where they come up:</p>
     always receives the macro; the RA ports compiled it in <code>platform_s</code>, which does not. Measured on an519;
     corrected by <a href="ref/DECISIONS.html#d120">D120</a>, which withdraws upstream item 15, and fixed by
     <a href="ref/DECISIONS.html#d121">D121</a>, which moves the HAL to <code>tfm_spm</code> (ra6m4 untouched) — <a href="part3-tfm.html#d113">Part 3</a>.</li>
+  <li><a href="ref/DECISIONS.html#d121">D121</a> said the moved code left the PSA RoT code region. It did not: both linker sections lie inside
+    it, and the region grew by 32 bytes. Corrected by <a href="ref/DECISIONS.html#d125">D125</a> — <a href="part3-tfm.html#d113">Part 3</a>.</li>
+  <li><a href="ref/DECISIONS.html#d115">D115</a> said only L1+IPC could hit the hook link error, because SFN has no call site. SFN does call it.
+    Corrected by <a href="ref/DECISIONS.html#d126">D126</a> — <a href="part3-tfm.html#d113">Part 3</a>.</li>
 </ul>
 <p><a href="ref/DECISIONS.html#d117">D117</a>'s own summary of the pattern: <em>a true observation written down as a more general statement than the
 evidence supported.</em></p>
