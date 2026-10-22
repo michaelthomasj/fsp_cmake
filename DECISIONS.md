@@ -6317,3 +6317,105 @@ from *unplumbed*, after the PXN error. This entry adds the third member of the f
 target at all.** The compile line answers "what did this object get"; it cannot answer "is
 this the object upstream builds". Checking that needed one question nobody asked for five
 rounds - *which target do the other platforms add this source to?* - and it is a single grep.
+---
+
+## D121 — the shared isolation HAL moves to `tfm_spm`; [D113]'s workaround is deleted, not documented
+
+**Date:** 2026-10-22 · **Status:** Accepted · **Implements** the option [D120] left open · ra6m5, ra8m2, ra6e1 · built, not yet re-run
+
+[D120] established that the isolation HAL missed `TFM_ISOLATION_LEVEL` and
+`CONFIG_TFM_PARTITION_META` because this port compiles it into `platform_s`, while all nine
+upstream users compile it into `tfm_spm`. That entry left the obvious consequence as an open
+decision. Taken:
+
+```cmake
+target_sources(tfm_spm
+    PRIVATE
+        ${PLATFORM_DIR}/ext/common/tfm_hal_isolation_v8m.c
+)
+```
+
+and the `target_compile_definitions(platform_s PRIVATE ...)` workaround from [D113]/[D114] is
+**deleted**. Net -122/+84 lines across three ports, most of it comment that no longer needs to
+exist.
+
+### Why this and not the two defines
+
+The defines fixed the two macros someone had already been bitten by. [D114]'s own lesson -
+"enumerate what else the translation unit depends on" - exists only because the first fix was
+instance-shaped. Linking the file where upstream links it fixes the **class**: every definition
+`psa_interface` carries arrives, including any it gains later, and nobody has to re-audit this
+file's `#if`s on an uprev.
+
+### Scope, and the part left out
+
+| Port | Moved | Rebuilt | Run |
+|---|---|---|---|
+| ra6m5 | yes | 5 trees (L1i/L2/L3 GNUARM, L2/L3 IAR) | **not yet** |
+| ra8m2 | yes | 4 trees (L1i/L2/L3 GNUARM, L2/L3 IAR) | **not yet** |
+| ra6e1 | yes | fresh GNUARM build | **no - and not planned** |
+| ra6m4 | **no** | - | - |
+
+`ra6m4` is deliberately untouched: both EK-RA6M4 boards are dead ([D094]), so a change there
+could not be verified even in principle. It keeps the gap, and keeps no defines either.
+
+**`ra6e1` is a behavioural change that will not be tested.** It had neither define, so its HAL
+took `privileged = IS_PSA_ROT()` at isolation 1, de-privileging ARoT partitions where upstream
+intends `true` for every partition - the same mis-evaluation behind the L1+IPC fault in [D117].
+It now receives `TFM_ISOLATION_LEVEL=1` and takes the `== 1` arm. That should be a correction,
+and it is the configuration upstream ships, but it is asserted from source, not measured.
+
+### What was verified, and what was not
+
+Verified, all nine regression trees plus a fresh ra6e1 configure:
+
+- the HAL object is `tfm_spm.dir/.../tfm_hal_isolation_v8m.o` in every one;
+- `TFM_ISOLATION_LEVEL`, `CONFIG_TFM_PARTITION_META` and `CONFIG_TFM_ENABLE_MEMORY_PROTECT`
+  are all on its compile line, with nothing hand-defined;
+- every tree builds and links clean, GNUARM and IAR.
+
+**The programmed MPU table is unchanged, with one exception.** Comparing the `PT_*` boundary
+symbols the static table is built from:
+
+| Tree | `PT_*` boundaries |
+|---|---|
+| m5gl2, m2gl2, m2gl3 | identical, 36 symbols each |
+| m2il2, m2il3 | match the values read off the hardware runs in [D118]/[D119] |
+| **m5gl3** | `PT_PSA_ROT_CODE_END` and `PT_RO_DATA_START` `0x000D8400`→`0x000D8420`, `PT_RO_DATA_END` `0x000E5D80`→`0x000E5DA0` |
+
+Same region sizes; three boundaries moved one 32-byte granule because the net code-size change
+crossed an alignment boundary in that configuration only. **RA6M5 at isolation 3 will therefore
+print two different numbers than [D114] recorded.** That is expected, not a regression.
+
+The code itself moved from `.ER_PSA_ROT_CODE` (-16 B) to `.ER_TFM_CODE` (+24 B) - out of the
+PSA-RoT code region into the SPM's own. Both are privileged and `MPU_CTRL.PRIVDEFENA` is set
+(CTRL reads 7), so privileged execution is unaffected, and it is where upstream puts it.
+
+**Not verified: anything on silicon.** Nine green runs ([D113]-[D119]) were made against the old
+arrangement. The symbol evidence says the MPU programming is unchanged on three of four GNUARM
+trees and on both RA8M2 IAR trees, which makes a re-run confirmation rather than discovery - but
+it is still owed before this is called done.
+
+### Consequences for the record
+
+- `UPSTREAM_CHANGES.md` item 15 was already WITHDRAWN by [D120]; this removes the last reason
+  anyone would reopen it. The port no longer deviates here at all.
+- The long "a PORT gap, NOT an upstream one" comment in `ra6m5`/`ra8m2` is replaced by a short
+  note on why the placement is load-bearing, with the measured symptoms kept as the reason not
+  to move it back.
+
+### Method note - two false passes in one verification
+
+Both of this entry's comparisons initially reported success while comparing **nothing**:
+
+1. a `grep -E` pattern for `PT_[A-Z_]*_(START|END)\$\$Base` died on shell quoting
+   (`grep: Trailing backslash`), so `diff` compared two empty sets and printed no differences;
+2. the rewritten Python check normalised GCC's `Image$$PT_x$$Base` but not IAR's `PT_x$$Base`,
+   so every expected key landed in "missing" while the script still printed `MATCHES`.
+
+Both were caught only because the output carried a warning or an oddly-shaped field, not because
+the check failed. The rule this earns: **a comparison that reports "no differences" must also
+report how many items it compared, and a count of zero is a failure, not a pass.** Both checks
+now print `compared N/M`. This is the same family as [D113]'s "read the compile line" and
+[D120]'s "ask which target compiles the file" - the tooling will happily confirm whatever you
+forgot to ask it.

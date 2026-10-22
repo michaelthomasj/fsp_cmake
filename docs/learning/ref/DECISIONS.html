@@ -166,6 +166,7 @@
           <li><a href="#d118">D118 — first IAR run above isolation 1: RA8M2 L2 green, and the MMIO region is the only toolchain-invariant in the table</a></li>
           <li><a href="#d119">D119 — [D114]&#x27;s second macro confirmed under IAR; RA8M2 is complete at every level on both toolchains</a></li>
           <li><a href="#d120">D120 — the isolation-macro gap is this port&#x27;s, not upstream&#x27;s; [D113]&#x27;s root cause was wrong and upstream item 15 is withdrawn</a></li>
+          <li><a href="#d121">D121 — the shared isolation HAL moves to tfm_spm; [D113]&#x27;s workaround is deleted, not documented</a></li>
         </ol>
       </li>
     </ol>
@@ -5010,6 +5011,89 @@ from <em>unplumbed</em>, after the PXN error. This entry adds the third member o
 target at all.** The compile line answers &quot;what did this object get&quot;; it cannot answer &quot;is
 this the object upstream builds&quot;. Checking that needed one question nobody asked for five
 rounds - <em>which target do the other platforms add this source to?</em> - and it is a single grep.</p>
+<hr>
+<h2 id="d121">D121 — the shared isolation HAL moves to <code>tfm_spm</code>; <a href="DECISIONS.html#d113">D113</a>&#x27;s workaround is deleted, not documented</h2>
+<p><strong>Date:</strong> 2026-10-22 · <strong>Status:</strong> Accepted · <strong>Implements</strong> the option <a href="DECISIONS.html#d120">D120</a> left open · ra6m5, ra8m2, ra6e1 · built, not yet re-run</p>
+<p><a href="DECISIONS.html#d120">D120</a> established that the isolation HAL missed <code>TFM_ISOLATION_LEVEL</code> and
+<code>CONFIG_TFM_PARTITION_META</code> because this port compiles it into <code>platform_s</code>, while all nine
+upstream users compile it into <code>tfm_spm</code>. That entry left the obvious consequence as an open
+decision. Taken:</p>
+<pre><code class="language-cmake">target_sources(tfm_spm
+    PRIVATE
+        ${PLATFORM_DIR}/ext/common/tfm_hal_isolation_v8m.c
+)</code></pre>
+<p>and the <code>target_compile_definitions(platform_s PRIVATE ...)</code> workaround from <a href="DECISIONS.html#d113">D113</a>/<a href="DECISIONS.html#d114">D114</a> is
+<strong>deleted</strong>. Net -122/+84 lines across three ports, most of it comment that no longer needs to
+exist.</p>
+<h3 id="why-this-and-not-the-two-defines">Why this and not the two defines</h3>
+<p>The defines fixed the two macros someone had already been bitten by. <a href="DECISIONS.html#d114">D114</a>&#x27;s own lesson -
+&quot;enumerate what else the translation unit depends on&quot; - exists only because the first fix was
+instance-shaped. Linking the file where upstream links it fixes the <strong>class</strong>: every definition
+<code>psa_interface</code> carries arrives, including any it gains later, and nobody has to re-audit this
+file&#x27;s <code>#if</code>s on an uprev.</p>
+<h3 id="scope-and-the-part-left-out">Scope, and the part left out</h3>
+<div class="table-wrap"><table>
+<tr><th>Port</th><th>Moved</th><th>Rebuilt</th><th>Run</th></tr>
+<tr><td>ra6m5</td><td>yes</td><td>5 trees (L1i/L2/L3 GNUARM, L2/L3 IAR)</td><td><strong>not yet</strong></td></tr>
+<tr><td>ra8m2</td><td>yes</td><td>4 trees (L1i/L2/L3 GNUARM, L2/L3 IAR)</td><td><strong>not yet</strong></td></tr>
+<tr><td>ra6e1</td><td>yes</td><td>fresh GNUARM build</td><td><strong>no - and not planned</strong></td></tr>
+<tr><td>ra6m4</td><td><strong>no</strong></td><td>-</td><td>-</td></tr>
+</table></div>
+<p><code>ra6m4</code> is deliberately untouched: both EK-RA6M4 boards are dead (<a href="DECISIONS.html#d094">D094</a>), so a change there
+could not be verified even in principle. It keeps the gap, and keeps no defines either.</p>
+<p><strong><code>ra6e1</code> is a behavioural change that will not be tested.</strong> It had neither define, so its HAL
+took <code>privileged = IS_PSA_ROT()</code> at isolation 1, de-privileging ARoT partitions where upstream
+intends <code>true</code> for every partition - the same mis-evaluation behind the L1+IPC fault in <a href="DECISIONS.html#d117">D117</a>.
+It now receives <code>TFM_ISOLATION_LEVEL=1</code> and takes the <code>== 1</code> arm. That should be a correction,
+and it is the configuration upstream ships, but it is asserted from source, not measured.</p>
+<h3 id="what-was-verified-and-what-was-not">What was verified, and what was not</h3>
+<p>Verified, all nine regression trees plus a fresh ra6e1 configure:</p>
+<ul>
+<li>the HAL object is <code>tfm_spm.dir/.../tfm_hal_isolation_v8m.o</code> in every one;</li>
+<li><code>TFM_ISOLATION_LEVEL</code>, <code>CONFIG_TFM_PARTITION_META</code> and <code>CONFIG_TFM_ENABLE_MEMORY_PROTECT</code>
+are all on its compile line, with nothing hand-defined;</li>
+<li>every tree builds and links clean, GNUARM and IAR.</li>
+</ul>
+<p><strong>The programmed MPU table is unchanged, with one exception.</strong> Comparing the <code>PT_*</code> boundary
+symbols the static table is built from:</p>
+<div class="table-wrap"><table>
+<tr><th>Tree</th><th><code>PT_*</code> boundaries</th></tr>
+<tr><td>m5gl2, m2gl2, m2gl3</td><td>identical, 36 symbols each</td></tr>
+<tr><td>m2il2, m2il3</td><td>match the values read off the hardware runs in <a href="DECISIONS.html#d118">D118</a>/<a href="DECISIONS.html#d119">D119</a></td></tr>
+<tr><td><strong>m5gl3</strong></td><td><code>PT_PSA_ROT_CODE_END</code> and <code>PT_RO_DATA_START</code> <code>0x000D8400</code>→<code>0x000D8420</code>, <code>PT_RO_DATA_END</code> <code>0x000E5D80</code>→<code>0x000E5DA0</code></td></tr>
+</table></div>
+<p>Same region sizes; three boundaries moved one 32-byte granule because the net code-size change
+crossed an alignment boundary in that configuration only. **RA6M5 at isolation 3 will therefore
+print two different numbers than <a href="DECISIONS.html#d114">D114</a> recorded.** That is expected, not a regression.</p>
+<p>The code itself moved from <code>.ER_PSA_ROT_CODE</code> (-16 B) to <code>.ER_TFM_CODE</code> (+24 B) - out of the
+PSA-RoT code region into the SPM&#x27;s own. Both are privileged and <code>MPU_CTRL.PRIVDEFENA</code> is set
+(CTRL reads 7), so privileged execution is unaffected, and it is where upstream puts it.</p>
+<p><strong>Not verified: anything on silicon.</strong> Nine green runs (<a href="DECISIONS.html#d113">D113</a>-<a href="DECISIONS.html#d119">D119</a>) were made against the old
+arrangement. The symbol evidence says the MPU programming is unchanged on three of four GNUARM
+trees and on both RA8M2 IAR trees, which makes a re-run confirmation rather than discovery - but
+it is still owed before this is called done.</p>
+<h3 id="consequences-for-the-record_2">Consequences for the record</h3>
+<ul>
+<li><code>UPSTREAM_CHANGES.md</code> item 15 was already WITHDRAWN by <a href="DECISIONS.html#d120">D120</a>; this removes the last reason
+anyone would reopen it. The port no longer deviates here at all.</li>
+<li>The long &quot;a PORT gap, NOT an upstream one&quot; comment in <code>ra6m5</code>/<code>ra8m2</code> is replaced by a short
+note on why the placement is load-bearing, with the measured symptoms kept as the reason not
+to move it back.</li>
+</ul>
+<h3 id="method-note---two-false-passes-in-one-verification">Method note - two false passes in one verification</h3>
+<p>Both of this entry&#x27;s comparisons initially reported success while comparing <strong>nothing</strong>:</p>
+<ol>
+<li>a <code>grep -E</code> pattern for <code>PT_[A-Z_]*_(START|END)\$\$Base</code> died on shell quoting
+(<code>grep: Trailing backslash</code>), so <code>diff</code> compared two empty sets and printed no differences;</li>
+<li>the rewritten Python check normalised GCC&#x27;s <code>Image$$PT_x$$Base</code> but not IAR&#x27;s <code>PT_x$$Base</code>,
+so every expected key landed in &quot;missing&quot; while the script still printed <code>MATCHES</code>.</li>
+</ol>
+<p>Both were caught only because the output carried a warning or an oddly-shaped field, not because
+the check failed. The rule this earns: **a comparison that reports &quot;no differences&quot; must also
+report how many items it compared, and a count of zero is a failure, not a pass.** Both checks
+now print <code>compared N/M</code>. This is the same family as <a href="DECISIONS.html#d113">D113</a>&#x27;s &quot;read the compile line&quot; and
+<a href="DECISIONS.html#d120">D120</a>&#x27;s &quot;ask which target compiles the file&quot; - the tooling will happily confirm whatever you
+forgot to ask it.</p>
 </main>
 </div>
 </body>
