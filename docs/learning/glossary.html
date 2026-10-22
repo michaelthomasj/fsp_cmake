@@ -89,7 +89,8 @@
   different set of words). <a href="part4-porting.html#hazards">4.6</a></dd>
   <dt>PendSV</dt><dd>Pendable service exception, 14; TF-M's context switch. <a href="part1-privilege-mpu-faults.html#svc-pendsv">1.7</a></dd>
   <dt>PPB</dt><dd>Private Peripheral Bus, <code>0xE0000000–0xE00FFFFF</code>; privileged-only. <a href="part0-primer.html#ppb">0.10</a></dd>
-  <dt>PRIMASK / BASEPRI / FAULTMASK</dt><dd>Exception masks: all configurable exceptions; those at or below a priority; everything but NMI. Banked per security state. <a href="part0-primer.html#exceptions">0.6</a></dd>
+  <dt>PRIMASK / BASEPRI / FAULTMASK</dt><dd>Exception masks: all configurable exceptions; those at or below a priority; everything but NMI. Banked per security state; with <code>AIRCR.BFHFNMINS</code> = 0 the Non-secure copies boost
+priority only to 0 (0x80 with <code>AIRCR.PRIS</code>), so they never mask Secure exceptions (<a href="part2-trustzone.html#nvic">2.5</a>). <a href="part0-primer.html#exceptions">0.6</a></dd>
   <dt>PRIVDEFENA</dt><dd>MPU_CTRL bit 2: privileged background map. <a href="part1-privilege-mpu-faults.html#mpu">1.4</a></dd>
   <dt>PRIS</dt><dd>AIRCR bit: Secure exceptions prioritised over Non-secure. <a href="part2-trustzone.html#nvic">2.5</a></dd>
   <dt>PSA RoT</dt><dd>PSA Root of Trust: SPM plus core security services; privileged at every isolation level. <a href="part3-tfm.html#ffm">3.1</a></dd>
@@ -103,7 +104,7 @@
   <dt>SG</dt><dd>Secure Gateway instruction. <a href="part2-trustzone.html#nsc">2.3</a></dd>
   <dt>SID</dt><dd>Service ID. <a href="part3-tfm.html#ffm">3.1</a></dd>
   <dt>SPM</dt><dd>Secure Partition Manager. <a href="part3-tfm.html#spm">3.5</a></dd>
-  <dt>SRAMSABARn</dt><dd>RA8M2 CPSCU registers splitting SRAM into Secure and Non-secure; written by FSP at boot, not by RDPM. <a href="part2-trustzone.html#sau-idau">2.2</a></dd>
+  <dt>SRAMSABARn</dt><dd>RA8M2 CPSCU registers splitting SRAM into Secure and Non-secure; written by FSP at boot, whatever RDPM is given. <a href="part2-trustzone.html#sau-idau">2.2</a></dd>
   <dt>SVC</dt><dd>Supervisor Call instruction and exception 11. <a href="part1-privilege-mpu-faults.html#svc-pendsv">1.7</a></dd>
   <dt><code>tfm_sprt</code></dt><dd>Secure Partition Runtime library, linked into the unprivileged code region; its <code>.bss</code> is not. <a href="part3-tfm.html#d113">3.8</a></dd>
   <dt>TT</dt><dd>Test Target instruction: reports MPU and SAU/IDAU attributes of an address. <a href="part2-trustzone.html#states">2.1</a></dd>
@@ -146,8 +147,9 @@
 <tr><td><strong><a href="ref/DECISIONS.html#d118">D118</a></strong></td><td>RA8M2 isolation 2 green under IAR</td><td>Start, 3</td></tr>
 <tr><td><strong><a href="ref/DECISIONS.html#d119">D119</a></strong></td><td>RA8M2 isolation 3 green under IAR; coverage table</td><td>Start, 3</td></tr>
 <tr><td><strong><a href="ref/DECISIONS.html#d120">D120</a></strong></td><td>the isolation-macro gap is this port's, not upstream's; item 15 withdrawn; D065 vs D094 on the brick</td><td>Start, 3, 4</td></tr>
+<tr><td><strong><a href="ref/DECISIONS.html#d121">D121</a></strong></td><td>the isolation HAL moves to <code>tfm_spm</code>; the hand-defines are deleted</td><td>Start, 1, 3, 4</td></tr>
+<tr><td><strong><a href="ref/DECISIONS.html#d122">D122</a></strong></td><td>the move is MPU-neutral on RA6M5 L2; RA6M5 L1+IPC green, cause unexplained</td><td>1, 3</td></tr>
 </table></div>
-<p class="src">Generated from the D-numbers each page cites. "Start" is the landing page; 0–4 are the parts.</p>
 <p class="src">Generated from the D-numbers each page cites. "Start" is the landing page; 0–4 are the parts.</p>
 
 <h2 id="files">Files cited</h2>

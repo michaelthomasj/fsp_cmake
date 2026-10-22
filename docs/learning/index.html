@@ -67,7 +67,7 @@ draw a wrong conclusion, so every substantive claim carries a tag:</p>
 <tr><td><span class="tag ra">RA</span></td><td>Renesas silicon or the FSP does it. True on RA parts.</td>
   <td>An interrupt's security state lives in both <code>NVIC-&gt;ITNS</code> and <code>ICUSARG</code>.</td><td>Per device / FSP release.</td></tr>
 <tr><td><span class="tag port">This port</span></td><td>This repository chose it.</td>
-  <td>The port defines <code>TFM_ISOLATION_LEVEL</code> on <code>platform_s</code> itself.</td><td>Here.</td></tr>
+  <td>The port marks interrupts Secure only through the secure e2 project, never with <code>NVIC_ClearTargetState()</code>.</td><td>Here.</td></tr>
 </table></div>
 
 <h2>The parts</h2>
@@ -147,8 +147,9 @@ them as worked examples, in boxes like this one where they come up:</p>
     <a href="ref/DECISIONS.html#d117">D117</a> — <a href="part1-privilege-mpu-faults.html#dumps">Part 1</a>.</li>
   <li><a href="ref/DECISIONS.html#d113">D113</a>–<a href="ref/DECISIONS.html#d117">D117</a>, and the first editions of this course, called the missing <code>TFM_ISOLATION_LEVEL</code> an upstream
     defect on every platform. It is not: every upstream platform compiles the shared HAL in <code>tfm_spm</code>, which
-    always receives the macro; the RA ports compile it in <code>platform_s</code>, which does not. Measured on an519;
-    corrected by <a href="ref/DECISIONS.html#d120">D120</a>, which withdraws upstream item 15 — <a href="part3-tfm.html#d113">Part 3</a>.</li>
+    always receives the macro; the RA ports compiled it in <code>platform_s</code>, which does not. Measured on an519;
+    corrected by <a href="ref/DECISIONS.html#d120">D120</a>, which withdraws upstream item 15, and fixed by
+    <a href="ref/DECISIONS.html#d121">D121</a>, which moves the HAL to <code>tfm_spm</code> (ra6m4 untouched) — <a href="part3-tfm.html#d113">Part 3</a>.</li>
 </ul>
 <p><a href="ref/DECISIONS.html#d117">D117</a>'s own summary of the pattern: <em>a true observation written down as a more general statement than the
 evidence supported.</em></p>

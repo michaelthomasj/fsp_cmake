@@ -341,7 +341,7 @@ has a number, which is its index into the vector table.</p>
 <tr><th>No.</th><th>CMSIS IRQn</th><th>Exception</th><th>Priority</th><th>Raised by</th></tr>
 <tr><td>1</td><td>—</td><td>Reset</td><td>−4 (fixed)</td><td>power-on, reset pin, software reset</td></tr>
 <tr><td>2</td><td>−14</td><td>NMI</td><td>−2 (fixed)</td><td>non-maskable interrupt</td></tr>
-<tr><td>3</td><td>−13</td><td>HardFault</td><td>−1 (fixed; Secure HardFault is −3 if <code>AIRCR.BFHFNMINS</code> = 1 — TF-M leaves it 0)</td><td>escalated faults, or any fault that cannot be handled at its own priority</td></tr>
+<tr><td>3</td><td>−13</td><td>HardFault</td><td>−1 (fixed; Secure HardFault is −3 if <code>AIRCR.BFHFNMINS</code> = 1 — FSP's <code>R_BSP_SecurityInit()</code> writes 0 from the e2 configuration, <code>bsp_security.c:363-368</code>; TF-M preserves it)</td><td>escalated faults, or any fault that cannot be handled at its own priority</td></tr>
 <tr><td>4</td><td>−12</td><td>MemManage</td><td>configurable</td><td>MPU violation (Part 1)</td></tr>
 <tr><td>5</td><td>−11</td><td>BusFault</td><td>configurable</td><td>error response from the bus</td></tr>
 <tr><td>6</td><td>−10</td><td>UsageFault</td><td>configurable</td><td>undefined instruction, stack limit, divide by zero…</td></tr>

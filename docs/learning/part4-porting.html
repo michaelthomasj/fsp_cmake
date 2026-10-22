@@ -197,9 +197,9 @@ EK-RA6M4 boards were destroyed this way (<a href="ref/DECISIONS.html#d002">D002<
 them is unknown</strong>: the original "permanence word" diagnosis was withdrawn, because RA6M4 has no FSPR
 (<a href="ref/DECISIONS.html#d094">D094</a>). Beware that the log disagrees with itself here:
 <a href="ref/DECISIONS.html#d065">D065</a> names PBPS at <code>0x0100A1E0</code> as "the exact word" that destroyed the
-boards, while <a href="ref/DECISIONS.html#d094">D094</a>, written a week later, leaves the field open and does not name PBPS as the surviving candidate. The
-later entry governs: PBPS is the surviving candidate, not a finding (<a href="ref/DECISIONS.html#d120">D120</a>). The
-rules below do not depend on the answer. Rules:</p>
+boards, while <a href="ref/DECISIONS.html#d094">D094</a>, written a week later, disproves two of three explanations and
+leaves the field open. Read together, PBPS is not excluded, but it is a candidate, not a finding;
+<a href="ref/DECISIONS.html#d120">D120</a> says this, though it credits the ranking to D094. The rules below do not depend on the answer. Rules:</p>
 <ul>
   <li>One linker <code>MEMORY</code> region per OFS group. <code>check_ofs.py</code> enforces it after every link.</li>
   <li>The zero fill is invisible in a <code>.srec</code>. <code>readelf -l</code> is the only place it shows.</li>
@@ -243,7 +243,8 @@ isolation gates added from <a href="ref/DECISIONS.html#d113">D113</a>–<a href=
 (1–6, 9–12), per <a href="ref/DECISIONS.html#d117">D117</a> §6. Two are withdrawn: 13 and, since
 <a href="ref/DECISIONS.html#d120">D120</a>, 15.</p>
 <p>The list is also <strong>incomplete</strong> (review, 2026-10-22). Its regenerate command's pathspec misses
-<code>cmake/</code>, <code>lib/ext/mcuboot/</code> and the toolchain files, where <code>cmake/install.cmake</code> and
+<code>cmake/</code>, <code>lib/ext/mcuboot/</code> and <code>toolchain_ARMCLANG/CLANG.cmake</code> (it does include
+the GNUARM and IAR ones), where <code>cmake/install.cmake</code> and
 <code>lib/ext/mcuboot/CMakeLists.txt</code> do differ from the fork point. And it omits commit <code>4025eedff</code>
 (<a href="ref/DECISIONS.html#d063">D063</a>), which adds <code>TFM_LINKER_VENEERS_OWN_REGION</code> to
 <code>platform/ext/common/gcc/tfm_isolation_s.ld.template</code> — a common-file change every RA port enables. A TF-M uprev
@@ -272,7 +273,7 @@ defect.</p>
 <tr><td><code>ppc_*()</code> program a PPC</td><td>No-ops, never reached</td><td>RA has PSAR, set by FSP from e2 (Part 2 §2.7)</td></tr>
 <tr><td><code>plat_test.c</code> in <code>platform_s</code></td><td>In <code>tfm_sprt</code>, stateless</td><td>Called by unprivileged ARoT partitions (<a href="ref/DECISIONS.html#d113">D113</a> #1–2). Upstream's placement does not work above isolation 1</td></tr>
 <tr><td>Peripheral open in the test fixture</td><td><code>R_AGT_Open()</code> in the privileged IRQ init hook</td><td><code>_Open()</code> writes the NVIC (Part 3 §3.9)</td></tr>
-<tr><td>Shared isolation HAL compiled in <code>tfm_spm</code>, where <code>psa_interface</code>'s macros arrive</td><td>Compiled in <code>platform_s</code>, with <code>TFM_ISOLATION_LEVEL</code> and <code>CONFIG_TFM_PARTITION_META</code> defined there by hand</td><td>Not a deliberate choice; the deviation caused the <a href="ref/DECISIONS.html#d113">D113</a> chain. Moving to <code>tfm_spm</code> is untried (<a href="ref/DECISIONS.html#d120">D120</a>)</td></tr>
+<tr><td>Shared isolation HAL compiled in <code>tfm_spm</code>, where <code>psa_interface</code>'s macros arrive</td><td><strong>No longer differs</strong> (<a href="ref/DECISIONS.html#d121">D121</a>). Was <code>platform_s</code> with two macros defined by hand; ra6m4 still is</td><td>Not a deliberate choice; the deviation caused the <a href="ref/DECISIONS.html#d113">D113</a> chain (Part 3 §3.8)</td></tr>
 <tr><td>No SAU work in BL2</td><td>RA8M2 BL2 programs one SAU region</td><td>Two MRAM aliases (Part 2 §2.2)</td></tr>
 <tr><td>Veneers placed in the general flash region by the generated linker script</td><td>Veneers in their own
   <code>MEMORY</code> region (<code>TFM_LINKER_VENEERS_OWN_REGION</code>, <code>ra6m5/region_defs.h:202-203</code>)</td>
@@ -305,8 +306,8 @@ defect.</p>
     start of secure RAM and match the measurements to the image TLVs.</details></li>
   <li>Your new RA8 port passes every gate at isolation 1. Name two defects classes that could still be present.
     <details><summary>Answer</summary>Anything the MPU would catch — ARoT code or data in privileged regions, missing MMIO
-    grants, FLIH handlers touching unmapped registers — because the MPU is off at level 1; and HAL macros that never reach
-    <code>platform_s</code>. And any build-only defect in a configuration you did not build, like the L1+IPC hook link
+    grants, FLIH handlers touching unmapped registers — because the MPU is off at level 1; and isolation-HAL macros that
+    do not reach the target compiling the HAL (check it is <code>tfm_spm</code>, as upstream does). And any build-only defect in a configuration you did not build, like the L1+IPC hook link
     error (<a href="ref/DECISIONS.html#d115">D115</a>).</details></li>
   <li>Why is item 13 in <code>UPSTREAM_CHANGES.md</code> kept although withdrawn?
     <details><summary>Answer</summary>To record the observation behind it: <code>DEFAULT_MCUBOOT_FLASH_MAP=OFF</code>

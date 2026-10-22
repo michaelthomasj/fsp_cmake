@@ -596,9 +596,13 @@ PendSV write in <code>arch_attempt_schedule</code>" (<a href="ref/DECISIONS.html
 statement of the defect in Part 3 §3.8.</p>
 <div class="note">
 <p><strong>Status.</strong> With the macro defined on <code>platform_s</code>, RA8M2 L1+IPC passes the full regression
-suite, FLIH tests included (<a href="ref/DECISIONS.html#d116">D116</a>). RA6M5 L1+IPC is built but not yet run. The step-by-step mechanism above is a
-reading of the source (<a href="ref/DECISIONS.html#d117">D117</a>): it fits every recorded symptom and the fix, but nobody re-ran the failing binary under
-instrumentation, and that binary no longer exists.</p>
+suite, FLIH tests included (<a href="ref/DECISIONS.html#d116">D116</a>). That define no longer exists: <a href="ref/DECISIONS.html#d121">D121</a> moved
+the HAL to <code>tfm_spm</code>, where the macro arrives. RA6M5 L1+IPC failed once with the define in place, parked in
+BL2's <code>HardFault_Handler</code> before any TF-M output, and passed its secure suites after the move
+(<a href="ref/DECISIONS.html#d122">D122</a>). The cause is unexplained; a bad flash is the more economical reading.</p>
+<p>The step-by-step mechanism above is a reading of the source (<a href="ref/DECISIONS.html#d117">D117</a>). It fits the
+original <code>BFAR 0xE000ED04</code> fault and the RA8M2 pass, not the later RA6M5 failure. Nobody re-ran the failing
+binary under instrumentation, and that binary no longer exists.</p>
 <p><a href="ref/DECISIONS.html#d116">D116</a> had first closed the boot-order question "by irrelevance, not by analysis"; <a href="ref/DECISIONS.html#d117">D117</a> reopened it and supplied
 steps 3–5. A question that looks closed because the symptom went away is not the same as one that was answered.</p>
 </div>

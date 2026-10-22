@@ -225,8 +225,9 @@ would is compiled out (<code>#if 0 == BSP_FEATURE_TZ_HAS_DLM</code>; <code>BSP_F
 (PSCU offsets <code>0x18</code>–<code>0x28</code>)</p>
 <p><span class="tag ra">RA</span> <strong>RA8M2 is different.</strong> Its PSCU has only <code>CFSAMONA</code>, and that
 one is read-only (<code>__IM</code>, offset <code>0x30</code>, <code>R7KA8M2JF_core0.h:3560</code>); RDPM sets the code-MRAM
-boundary <code>CFS2</code>. The SRAM Secure/Non-secure split is <em>not</em> burned at provisioning: FSP's
-<code>R_BSP_SAUInit()</code> writes it at boot into <code>R_CPSCU-&gt;SRAMSABAR0..3</code>, under a comment that says
+boundary <code>CFS2</code>. FSP also writes the SRAM Secure/Non-secure split at boot, whatever RDPM is given (the RDPM
+screen does take SRAM Secure and NSC sizes, <a href="ref/RA8M2_SOLUTION.html">RA8M2_SOLUTION.md</a>; what it does with them
+is not established here): <code>R_BSP_SAUInit()</code> writes it into <code>R_CPSCU-&gt;SRAMSABAR0..3</code>, under a comment that says
 "Configure IDAU to divide SRAM region into NSC/NS" (<code>ra8m2_gcc_CPU0_secure/ra/fsp/src/bsp/mcu/all/bsp_security.c:202-211</code>).
 NSC on RA8M2 comes from SAU regions. <code>BSP_FEATURE_TZ_HAS_DLM</code> is also 1 there
 (<code>…/mcu/ra8m2/bsp_feature.h:597</code>), so the RA6-style block stays compiled out.</p>
