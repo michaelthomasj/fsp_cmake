@@ -265,18 +265,21 @@ This asked upstream to define `TFM_ISOLATION_LEVEL` and `CONFIG_TFM_PARTITION_ME
 every platform using the shared HAL". **That claim was false.** The macros go missing only
 because of how *this port* builds the file.
 
-**What decides it is the target the source is added to.** `psa_interface` carries both
-macros (`interface/CMakeLists.txt:37`). `tfm_spm` links `psa_interface`; `platform_s` links
-`tfm_config` and does not.
+**What decides it is the target the source is added to.** `psa_interface` carries both macros -
+`TFM_ISOLATION_LEVEL` at `interface/CMakeLists.txt:37` and `CONFIG_TFM_PARTITION_META` at `:40`,
+in the same `target_compile_definitions(psa_interface INTERFACE ...)` block. `tfm_spm` links
+`psa_interface`; `platform_s` links `tfm_config` and does not.
 
 | Platform | Adds `tfm_hal_isolation_v8m.c` to | Gets the macros |
 |---|---|---|
 | an519, an524, corstone300/310, mps4, musca_b1/s1, rse, alcor | `tfm_spm` | yes |
-| ra6e1, ra6m4, ra6m5, ra8m2 | `platform_s` | **no** |
+| ra6m5, ra8m2, ra6e1 | `tfm_spm` **since [D121]** | yes |
+| ra6m4 | `platform_s` | **no** - the last one left |
 
-Every one of the nine upstream users adds it to `tfm_spm`. All four RA ports add it to
-`platform_s`. **Measured:** an519 configured at isolation 2 compiles
-`tfm_spm.dir/.../tfm_hal_isolation_v8m.o` with `-DTFM_ISOLATION_LEVEL=2`,
+Every one of the nine upstream users adds it to `tfm_spm`. All four RA ports used to add it to
+`platform_s`; three were moved in [D121] and `ra6m4` was left alone because both its boards are
+dead ([D094]) and the change could not be verified. **Measured:** an519 configured at isolation 2
+compiles `tfm_spm.dir/.../tfm_hal_isolation_v8m.o` with `-DTFM_ISOLATION_LEVEL=2`,
 `-DCONFIG_TFM_PARTITION_META` and `-DCONFIG_TFM_ENABLE_MEMORY_PROTECT` all present.
 
 `PLATFORM_DEFAULT_ATTEST_HAL=OFF` is a second, independent contributor and not the trigger.
@@ -284,10 +287,10 @@ Every one of the nine upstream users adds it to `tfm_spm`. All four RA ports add
 that flag (`platform/CMakeLists.txt:109`); the RA ports set it OFF. So does **mps4**, which
 still gets the macros because it uses `tfm_spm`.
 
-**Nothing is owed upstream.** The port's own fix - `target_compile_definitions(platform_s
-PRIVATE ...)` - still works and still ships. The cleaner fix is to move the source to
-`tfm_spm` and match the other nine, which would delete the deviation instead of documenting
-it; not attempted yet.
+**Nothing is owed upstream.** The port's interim fix was
+`target_compile_definitions(platform_s PRIVATE ...)`; [D121] replaced it on ra6m5, ra8m2 and
+ra6e1 by moving the source to `tfm_spm` and matching the other nine, which deleted the
+deviation rather than documenting it. Those three now carry no hand-defines at all.
 
 Kept rather than deleted because the underlying hazard generalises and cost five rounds of
 debugging: **an `#if` whose value depends on which CMake target happens to compile the file

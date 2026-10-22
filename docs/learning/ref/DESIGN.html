@@ -377,16 +377,24 @@ discrete <code>MEMORY</code> regions, each sized to exactly its group, and assig
 between them.</p></li>
 <li><p><strong>Fatal</strong> (what we did until 2026-07-21): bare addressed sections with no <code>&gt; REGION</code>
 — <code>.option_setting_ofs0 0x0100A100 : { ... }</code>. ld coalesces all thirteen into <strong>one PT_LOAD</strong>
-spanning the full 460 bytes and <strong>zero-fills the gaps</strong>. A debugger loading the ELF writes that
-whole span across config memory that should have been left alone → **the part is permanently
-bricked**. This destroyed two EK-RA6M4 boards.</p>
+spanning every group the image actually emits, and <strong>zero-fills the gaps</strong>. A debugger loading
+the ELF writes that whole span across config memory that should have been left alone → **the
+part is permanently bricked**. This destroyed two EK-RA6M4 boards.</p>
+<p><strong>The measured numbers, from the bricked image itself</strong> (<code>bringup/bricking_evidence/bl2_BRICKED.elf</code>,
+<a href="DECISIONS.html#d094">D094</a>): that BL2 emitted <strong>three</strong> OFS words - <code>0x0100A100</code>, <code>0x0100A200</code>, <code>0x0100A280</code> - and ld
+produced <strong>one <code>PT_LOAD</code> of 388 bytes</strong> (<code>0x184</code>) spanning <code>0x0100A100</code>-<code>0x0100A283</code>, of which
+<strong>376 bytes were zero fill</strong>. The 460-byte figure above is the width of the whole sparse map, not
+what any one image spans; do not quote it as the size of the fatal segment. The guard window
+(<code>0x0100A100</code>-<code>0x0100A2CF</code>) is wider still, because it has to catch any group an image might emit.</p>
 <p><strong>Which zeroed field killed them is not established, and this log disagrees with itself.</strong>
 <a href="DECISIONS.html#d065">D065</a> names <strong>PBPS</strong> at <code>0x0100A1E0</code> (one-time Permanent Block Protect); <a href="DECISIONS.html#d094">D094</a>, which is
 later and is the operative entry, says the field is <strong>unknown</strong>, having disproved FSPR
 permanence (register absent on RA6M4) and OFS1_SEL content (byte-identical on a working
 board). Treat PBPS as the surviving candidate, not a finding. Post-brick readback gave
 <code>DLMMON = 0x2</code> = SSD, an open state, not a DLM lock. Do not read FAWMON. The mechanism above
-is proven byte-exact regardless, and none of the guidance depends on naming the field.</p></li>
+is proven byte-exact regardless - &quot;byte-exact&quot; meaning the 388-byte segment and its 376 zero
+bytes were read out of the preserved image, not that the damaged register is known - and none
+of the guidance depends on naming the field.</p></li>
 </ul>
 <p><strong>The zero fill is invisible in the srec.</strong> It lives in the program header, not in any section, and
 <code>objcopy -O srec</code> emits from sections. This is why the srec-diff approach (the premise of the

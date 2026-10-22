@@ -170,6 +170,7 @@
           <li><a href="#d122">D122 — the tfm_spm move is MPU-neutral on silicon, and RA6M5 L1+IPC is green for the first time — cause unexplained</a></li>
           <li><a href="#d123">D123 — RA6M5 isolation 3 confirms [D121]&#x27;s predicted boundary shift to the byte; RA6M5 IAR runs above isolation 1 for the first time</a></li>
           <li><a href="#d124">D124 — the matrix is complete: every part, toolchain and isolation level has now run</a></li>
+          <li><a href="#d125">D125 — six corrections to [D120]–[D123] from the second documentation review; the HAL never left the PSA-RoT code region</a></li>
         </ol>
       </li>
     </ol>
@@ -5257,6 +5258,91 @@ unresolved, and still only resolvable by rebuilding at the previous commit.</li>
 <li>The diagnostic hook and region dump remain enabled at isolation 2 and above. They produced
 <a href="DECISIONS.html#d113">D113</a> through this entry. Twelve entries later, they are still described as temporary.</li>
 </ul>
+<hr>
+<h2 id="d125">D125 — six corrections to <a href="DECISIONS.html#d120">D120</a>–<a href="DECISIONS.html#d123">D123</a> from the second documentation review; the HAL never left the PSA-RoT code region</h2>
+<p><strong>Date:</strong> 2026-10-22 · <strong>Status:</strong> Accepted · <strong>Corrects</strong> <a href="DECISIONS.html#d120">D120</a>, <a href="DECISIONS.html#d121">D121</a>, <a href="DECISIONS.html#d122">D122</a>, <a href="DECISIONS.html#d123">D123</a> · source-verified</p>
+<p>A second pass of the external documentation review (findings F237, F241, F243, F245-F252) was
+run against <code>fsp_cmake b821e3f</code> and TF-M <code>addc59f54</code>. It also withdrew its own first-pass
+explanation of the macro gap and confirmed <a href="DECISIONS.html#d120">D120</a>&#x27;s. Six of its findings land on entries of
+mine. All six hold.</p>
+<h3 id="s1_8">1. The code did not move out of the PSA-RoT code region — <a href="DECISIONS.html#d121">D121</a> and <a href="DECISIONS.html#d123">D123</a> both say it did</h3>
+<p><a href="DECISIONS.html#d121">D121</a>: *&quot;The code itself moved from <code>.ER_PSA_ROT_CODE</code> (-16 B) to <code>.ER_TFM_CODE</code> (+24 B) - out
+of the PSA-RoT code region into the SPM&#x27;s own.&quot;* The second clause is wrong.
+<code>platform/ext/common/gcc/tfm_isolation_s.ld.template</code>:</p>
+<pre><code>215:    Image$$PT_PSA_ROT_CODE_START$$Base = .;
+250:    .ER_TFM_CODE  ALIGN(4) (READONLY) :      &lt;- inside
+320:    Image$$PT_PSA_ROT_CODE_END$$Base = .;</code></pre>
+<p><strong><code>.ER_TFM_CODE</code> lies between the two boundary symbols</strong>, so both sections are inside the same
+MPU region. The object moved between two sections of one region, and the privileged-execution
+argument <a href="DECISIONS.html#d121">D121</a> made - &quot;both are privileged and PRIVDEFENA is set&quot; - was answering a question
+that does not arise.</p>
+<h3 id="s2_8">2. A region grew; it did not merely shift</h3>
+<p><a href="DECISIONS.html#d121">D121</a> and <a href="DECISIONS.html#d123">D123</a> both say &quot;same region sizes&quot;. Measured on <code>m5gl3</code>:</p>
+<div class="table-wrap"><table>
+<tr><th>Region</th><th>pre-move</th><th>post-move</th><th>size</th></tr>
+<tr><td>PSA RoT code</td><td><code>0x000A5660</code>..<code>0x000D8400</code></td><td><code>0x000A5660</code>..<code>0x000D8420</code></td><td><strong>+32 bytes - GREW</strong></td></tr>
+<tr><td>RO data</td><td><code>0x000D8400</code>..<code>0x000E5D80</code></td><td><code>0x000D8420</code>..<code>0x000E5DA0</code></td><td>+0, shifted</td></tr>
+</table></div>
+<p>The base of PSA RoT code never moves, so the +8 bytes of code landing inside it can only push
+the end out. That follows directly from item 1 and should have been predicted rather than
+contradicted. <a href="DECISIONS.html#d123">D123</a>&#x27;s three measured values are still correct; the sentence explaining them
+is not.</p>
+<h3 id="s3_5">3. <a href="DECISIONS.html#d121">D121</a>&#x27;s tree count</h3>
+<p>Its scope table says <code>ra8m2 | 4 trees</code>. Five were rebuilt: <code>m2gl2</code>, <code>m2gl3</code>, <code>m2gl1i</code>,
+<code>m2il2</code>, <code>m2il3</code>, matching RA6M5&#x27;s five. Ten trees in total, not nine.</p>
+<h3 id="s4_2">4. <a href="DECISIONS.html#d122">D122</a> called two runs &quot;green&quot; on the secure suites alone</h3>
+<p><a href="DECISIONS.html#d122">D122</a> records &quot;RA6M5 at isolation 2 - secure 9/9 PASSED&quot; and the same for L1+IPC, then marks
+both green in its coverage table. Every entry from <a href="DECISIONS.html#d113">D113</a> onward has meant *secure <strong>and</strong>
+non-secure* by &quot;green&quot;. The non-secure halves of those two captures were truncated, so the
+evidence does not reach the bar the word carries elsewhere in this log. <a href="DECISIONS.html#d123">D123</a> and <a href="DECISIONS.html#d124">D124</a>
+report both halves and are unaffected; the L2 and L1+IPC rows in <a href="DECISIONS.html#d122">D122</a> should read
+<strong>secure-only</strong>.</p>
+<h3 id="s5_2">5. The 2026-10-21 <code>m5gl1i</code> failure has no entry of its own</h3>
+<p>It appears only as a row in <a href="DECISIONS.html#d122">D122</a>&#x27;s history table. The run that produced it - PC parked in
+BL2&#x27;s weak <code>HardFault_Handler</code> at <code>0xa84</code>, nothing on RTT, with the launch, <code>bl2.bin</code> and
+build all proved identical or clean - is the single piece of evidence that would decide
+<a href="DECISIONS.html#d122">D122</a>&#x27;s open question, and it is recorded nowhere as a run. Noted here so the absence is at
+least deliberate.</p>
+<h3 id="s6_2">6. Two wrong attributions in <a href="DECISIONS.html#d120">D120</a></h3>
+<ul>
+<li><strong><code>rse</code>.</strong> <a href="DECISIONS.html#d120">D120</a> says it &quot;is not exposed either way - it supplies its own
+<code>tfm_hal_isolation_rse.c</code>&quot;. It does supply one, but that is not why it is safe:
+<code>rse/common/CMakeLists.txt:612-615</code> adds <code>tfm_hal_isolation_v8m.c</code> to <strong><code>tfm_spm</code></strong> like
+every other upstream user. It is unaffected for the same reason they are.</li>
+<li><strong>PBPS.</strong> <a href="DECISIONS.html#d120">D120</a> writes &quot;<strong>PBPS is the surviving candidate, not a finding</strong>&quot; as though
+<a href="DECISIONS.html#d094">D094</a> said so. <a href="DECISIONS.html#d094">D094</a> says three explanations were offered and two disproven, and never
+names the third. Ranking PBPS as the survivor is an inference drawn here from <a href="DECISIONS.html#d065">D065</a>, not a
+finding of <a href="DECISIONS.html#d094">D094</a>.</li>
+</ul>
+<h3 id="what-was-corrected-outside-this-entry">What was corrected outside this entry</h3>
+<ul>
+<li><strong><code>ra6m5</code>/<code>ra8m2</code> <code>CMakeLists.txt</code></strong> - the &quot;with them undefined&quot; precondition repeated the
+error <a href="DECISIONS.html#d120">D120</a> §&quot;Correction to <a href="DECISIONS.html#d114">D114</a>&quot; had already identified, in the one place nobody
+re-read. Now split into the two sequential states. The PXN provenance now records that
+<code>d90aa0c44</code> <strong>removed the architecture test from the generator expression</strong> as well as
+adding <code>tfm_invalid_config()</code>; the old wording said it &quot;only added the check&quot;.</li>
+<li><strong>PXN re-verified after the move</strong>, since the earlier measurement predated it: a
+<code>TFM_PXN_ENABLE=ON</code> configure of <code>renesas/ra8m2</code> at isolation 3 puts <code>-DTFM_PXN_ENABLE</code> on
+the now-<code>tfm_spm</code>-owned <code>tfm_hal_isolation_v8m.o</code>, alongside the other two macros. It
+arrives by a different route - PUBLIC on <code>platform_s</code>, which <code>tfm_spm</code> links.</li>
+<li><strong><code>UPSTREAM_CHANGES.md</code> item 15</strong> - its platform table predated <a href="DECISIONS.html#d121">D121</a> and still listed all
+four RA ports under <code>platform_s</code>; <code>ra6m4</code> is now the only one. The
+<code>interface/CMakeLists.txt:37</code> citation covered only <code>TFM_ISOLATION_LEVEL</code>;
+<code>CONFIG_TFM_PARTITION_META</code> is at <code>:40</code>.</li>
+<li><strong><code>DESIGN.md</code> §8.4</strong> - it called the mechanism &quot;proven byte-exact&quot; while quoting a 460-byte
+span. <a href="DECISIONS.html#d094">D094</a> measured <strong>388 bytes (<code>0x184</code>) with 376 of zero fill</strong>, across the <strong>three</strong>
+OFS words that BL2 actually emitted. 460 is the width of the sparse map, not of any image&#x27;s
+segment, and the guard window is wider than both.</li>
+</ul>
+<h3 id="method-note_10">Method note</h3>
+<p>Item 1 is the one worth keeping. <a href="DECISIONS.html#d121">D121</a> asserted a section had left an MPU region without
+opening the linker script that defines the region&#x27;s bounds - while that same entry was
+congratulating itself on predicting MPU behaviour from symbols. The symbol evidence was right
+and the prose around it was invented. Items 2 and 3 are consequences: a size claim that
+contradicted the entry&#x27;s own numbers, and a count that contradicted the entry&#x27;s own list.</p>
+<p>**Three entries in a row (<a href="DECISIONS.html#d121">D121</a>, <a href="DECISIONS.html#d122">D122</a>, <a href="DECISIONS.html#d123">D123</a>) each carried a correct measurement wrapped
+in a wrong sentence.** The measurements were checked; the sentences were not. Checking a claim
+means checking the claim, not the number it sits next to.</p>
 </main>
 </div>
 </body>

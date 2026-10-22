@@ -348,9 +348,16 @@ open - see below.)
   between them.
 - **Fatal** (what we did until 2026-07-21): bare addressed sections with no `> REGION`
   — `.option_setting_ofs0 0x0100A100 : { ... }`. ld coalesces all thirteen into **one PT_LOAD**
-  spanning the full 460 bytes and **zero-fills the gaps**. A debugger loading the ELF writes that
-  whole span across config memory that should have been left alone → **the part is permanently
-  bricked**. This destroyed two EK-RA6M4 boards.
+  spanning every group the image actually emits, and **zero-fills the gaps**. A debugger loading
+  the ELF writes that whole span across config memory that should have been left alone → **the
+  part is permanently bricked**. This destroyed two EK-RA6M4 boards.
+
+  **The measured numbers, from the bricked image itself** (`bringup/bricking_evidence/bl2_BRICKED.elf`,
+  [D094]): that BL2 emitted **three** OFS words - `0x0100A100`, `0x0100A200`, `0x0100A280` - and ld
+  produced **one `PT_LOAD` of 388 bytes** (`0x184`) spanning `0x0100A100`-`0x0100A283`, of which
+  **376 bytes were zero fill**. The 460-byte figure above is the width of the whole sparse map, not
+  what any one image spans; do not quote it as the size of the fatal segment. The guard window
+  (`0x0100A100`-`0x0100A2CF`) is wider still, because it has to catch any group an image might emit.
 
   **Which zeroed field killed them is not established, and this log disagrees with itself.**
   [D065] names **PBPS** at `0x0100A1E0` (one-time Permanent Block Protect); [D094], which is
@@ -358,7 +365,9 @@ open - see below.)
   permanence (register absent on RA6M4) and OFS1_SEL content (byte-identical on a working
   board). Treat PBPS as the surviving candidate, not a finding. Post-brick readback gave
   `DLMMON = 0x2` = SSD, an open state, not a DLM lock. Do not read FAWMON. The mechanism above
-  is proven byte-exact regardless, and none of the guidance depends on naming the field.
+  is proven byte-exact regardless - "byte-exact" meaning the 388-byte segment and its 376 zero
+  bytes were read out of the preserved image, not that the damaged register is known - and none
+  of the guidance depends on naming the field.
 
 **The zero fill is invisible in the srec.** It lives in the program header, not in any section, and
 `objcopy -O srec` emits from sections. This is why the srec-diff approach (the premise of the

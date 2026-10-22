@@ -6624,3 +6624,109 @@ isolation machinery.
   unresolved, and still only resolvable by rebuilding at the previous commit.
 - The diagnostic hook and region dump remain enabled at isolation 2 and above. They produced
   [D113] through this entry. Twelve entries later, they are still described as temporary.
+---
+
+## D125 — six corrections to [D120]–[D123] from the second documentation review; the HAL never left the PSA-RoT code region
+
+**Date:** 2026-10-22 · **Status:** Accepted · **Corrects** [D120], [D121], [D122], [D123] · source-verified
+
+A second pass of the external documentation review (findings F237, F241, F243, F245-F252) was
+run against `fsp_cmake b821e3f` and TF-M `addc59f54`. It also withdrew its own first-pass
+explanation of the macro gap and confirmed [D120]'s. Six of its findings land on entries of
+mine. All six hold.
+
+### 1. The code did not move out of the PSA-RoT code region — [D121] and [D123] both say it did
+
+[D121]: *"The code itself moved from `.ER_PSA_ROT_CODE` (-16 B) to `.ER_TFM_CODE` (+24 B) - out
+of the PSA-RoT code region into the SPM's own."* The second clause is wrong.
+`platform/ext/common/gcc/tfm_isolation_s.ld.template`:
+
+```
+215:    Image$$PT_PSA_ROT_CODE_START$$Base = .;
+250:    .ER_TFM_CODE  ALIGN(4) (READONLY) :      <- inside
+320:    Image$$PT_PSA_ROT_CODE_END$$Base = .;
+```
+
+**`.ER_TFM_CODE` lies between the two boundary symbols**, so both sections are inside the same
+MPU region. The object moved between two sections of one region, and the privileged-execution
+argument [D121] made - "both are privileged and PRIVDEFENA is set" - was answering a question
+that does not arise.
+
+### 2. A region grew; it did not merely shift
+
+[D121] and [D123] both say "same region sizes". Measured on `m5gl3`:
+
+| Region | pre-move | post-move | size |
+|---|---|---|---|
+| PSA RoT code | `0x000A5660`..`0x000D8400` | `0x000A5660`..`0x000D8420` | **+32 bytes - GREW** |
+| RO data | `0x000D8400`..`0x000E5D80` | `0x000D8420`..`0x000E5DA0` | +0, shifted |
+
+The base of PSA RoT code never moves, so the +8 bytes of code landing inside it can only push
+the end out. That follows directly from item 1 and should have been predicted rather than
+contradicted. [D123]'s three measured values are still correct; the sentence explaining them
+is not.
+
+### 3. [D121]'s tree count
+
+Its scope table says `ra8m2 | 4 trees`. Five were rebuilt: `m2gl2`, `m2gl3`, `m2gl1i`,
+`m2il2`, `m2il3`, matching RA6M5's five. Ten trees in total, not nine.
+
+### 4. [D122] called two runs "green" on the secure suites alone
+
+[D122] records "RA6M5 at isolation 2 - secure 9/9 PASSED" and the same for L1+IPC, then marks
+both green in its coverage table. Every entry from [D113] onward has meant *secure **and**
+non-secure* by "green". The non-secure halves of those two captures were truncated, so the
+evidence does not reach the bar the word carries elsewhere in this log. [D123] and [D124]
+report both halves and are unaffected; the L2 and L1+IPC rows in [D122] should read
+**secure-only**.
+
+### 5. The 2026-10-21 `m5gl1i` failure has no entry of its own
+
+It appears only as a row in [D122]'s history table. The run that produced it - PC parked in
+BL2's weak `HardFault_Handler` at `0xa84`, nothing on RTT, with the launch, `bl2.bin` and
+build all proved identical or clean - is the single piece of evidence that would decide
+[D122]'s open question, and it is recorded nowhere as a run. Noted here so the absence is at
+least deliberate.
+
+### 6. Two wrong attributions in [D120]
+
+- **`rse`.** [D120] says it "is not exposed either way - it supplies its own
+  `tfm_hal_isolation_rse.c`". It does supply one, but that is not why it is safe:
+  `rse/common/CMakeLists.txt:612-615` adds `tfm_hal_isolation_v8m.c` to **`tfm_spm`** like
+  every other upstream user. It is unaffected for the same reason they are.
+- **PBPS.** [D120] writes "**PBPS is the surviving candidate, not a finding**" as though
+  [D094] said so. [D094] says three explanations were offered and two disproven, and never
+  names the third. Ranking PBPS as the survivor is an inference drawn here from [D065], not a
+  finding of [D094].
+
+### What was corrected outside this entry
+
+- **`ra6m5`/`ra8m2` `CMakeLists.txt`** - the "with them undefined" precondition repeated the
+  error [D120] §"Correction to [D114]" had already identified, in the one place nobody
+  re-read. Now split into the two sequential states. The PXN provenance now records that
+  `d90aa0c44` **removed the architecture test from the generator expression** as well as
+  adding `tfm_invalid_config()`; the old wording said it "only added the check".
+- **PXN re-verified after the move**, since the earlier measurement predated it: a
+  `TFM_PXN_ENABLE=ON` configure of `renesas/ra8m2` at isolation 3 puts `-DTFM_PXN_ENABLE` on
+  the now-`tfm_spm`-owned `tfm_hal_isolation_v8m.o`, alongside the other two macros. It
+  arrives by a different route - PUBLIC on `platform_s`, which `tfm_spm` links.
+- **`UPSTREAM_CHANGES.md` item 15** - its platform table predated [D121] and still listed all
+  four RA ports under `platform_s`; `ra6m4` is now the only one. The
+  `interface/CMakeLists.txt:37` citation covered only `TFM_ISOLATION_LEVEL`;
+  `CONFIG_TFM_PARTITION_META` is at `:40`.
+- **`DESIGN.md` §8.4** - it called the mechanism "proven byte-exact" while quoting a 460-byte
+  span. [D094] measured **388 bytes (`0x184`) with 376 of zero fill**, across the **three**
+  OFS words that BL2 actually emitted. 460 is the width of the sparse map, not of any image's
+  segment, and the guard window is wider than both.
+
+### Method note
+
+Item 1 is the one worth keeping. [D121] asserted a section had left an MPU region without
+opening the linker script that defines the region's bounds - while that same entry was
+congratulating itself on predicting MPU behaviour from symbols. The symbol evidence was right
+and the prose around it was invented. Items 2 and 3 are consequences: a size claim that
+contradicted the entry's own numbers, and a count that contradicted the entry's own list.
+
+**Three entries in a row ([D121], [D122], [D123]) each carried a correct measurement wrapped
+in a wrong sentence.** The measurements were checked; the sentences were not. Checking a claim
+means checking the claim, not the number it sits next to.
