@@ -17,11 +17,11 @@ git diff --stat $(git merge-base HEAD upstream/main) -- . ':(exclude)platform/ex
 subdirectories and therefore missed real edits to common files - `cmake/install.cmake`,
 `lib/ext/mcuboot/CMakeLists.txt`, `toolchain_ARMCLANG.cmake` and `toolchain_CLANG.cmake`
 among them - which also meant the "untracked divergence" re-check the Submission notes
-prescribe could never have found them. The wide form returns **39** files; the items below
-account for 20 of them, and the rest are listed under "Not yet accounted for".
+prescribe could never have found them.
 
-20 files differ. Each is accounted for below. (It was 21 until [D091] withdrew item 13 and
-returned `bl2/CMakeLists.txt` to byte-identical with TF-Mv2.2.0.)
+**The wide form returns 39 files.** The items below account for **20** of them - that was 21
+until [D091] withdrew item 13 and returned `bl2/CMakeLists.txt` to byte-identical with
+TF-Mv2.2.0. The remaining **19** are listed under **Not yet accounted for**.
 
 ---
 
@@ -276,8 +276,14 @@ because of how *this port* builds the file.
 
 **What decides it is the target the source is added to.** `psa_interface` carries both macros -
 `TFM_ISOLATION_LEVEL` at `interface/CMakeLists.txt:37` and `CONFIG_TFM_PARTITION_META` at `:40`,
-in the same `target_compile_definitions(psa_interface INTERFACE ...)` block. `tfm_spm` links
-`psa_interface`; `platform_s` links `tfm_config` and does not.
+in the same `target_compile_definitions(psa_interface INTERFACE ...)` block.
+
+`tfm_spm` reaches them **indirectly**: it PRIVATE-links `tfm_sprt`
+(`secure_fw/spm/CMakeLists.txt`), and `tfm_sprt` PUBLIC-links `psa_interface`
+(`secure_fw/partitions/lib/runtime/CMakeLists.txt:41`), so the INTERFACE definitions
+propagate. That edge is **unconditional**, unlike `platform_s`'s own link to `tfm_sprt`,
+which exists only under `PLATFORM_DEFAULT_ATTEST_HAL`. `platform_s` links `tfm_config` and
+reaches `psa_interface` by no route at all when that flag is OFF.
 
 | Platform | Adds `tfm_hal_isolation_v8m.c` to | Gets the macros |
 |---|---|---|
