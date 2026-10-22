@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Settled positions</title>
+<meta name="description" content="Rendered from SETTLED.md by scripts/build_doc_html.py.">
+<link rel="stylesheet" href="../assets/style.css">
+<script src="../assets/site.js"></script>
+</head>
+<body>
+<!-- GENERATED from SETTLED.md by scripts/build_doc_html.py. Do not edit: the next commit touching the Markdown overwrites it. -->
+<div class="layout">
+<aside class="sidebar">
+  <div class="brand"><a href="../index.html">Cortex-M, TrustZone &amp; TF-M on Renesas RA</a><button class="menu-toggle" aria-expanded="false">Menu</button></div>
+  <nav>
+    <ol>
+      <li><a href="../index.html">← Course</a></li>
+      <li><a href="index.html">Reference documents</a>
+        <ol>
+      <li><a href="ADDING_FSP_MODULES.html">ADDING_FSP_MODULES.md</a></li>
+      <li><a href="BRIDGING_FILES.html">BRIDGING_FILES.md</a></li>
+      <li><a href="CONFIGURATION.html">CONFIGURATION.md</a></li>
+      <li><a href="DECISIONS.html">DECISIONS.md</a></li>
+      <li><a href="DESIGN.html">DESIGN.md</a></li>
+      <li><a href="DOCUMENTATION_PLAN.html">DOCUMENTATION_PLAN.md</a></li>
+      <li><a href="FLASH_MAP_OWNERSHIP.html">FLASH_MAP_OWNERSHIP.md</a></li>
+      <li><a href="GETTING_STARTED.html">GETTING_STARTED.md</a></li>
+      <li><a href="PORTING.html">PORTING.md</a></li>
+      <li><a href="PROJECT_PLAN.html">PROJECT_PLAN.md</a></li>
+      <li><a href="RA6E1_SOLUTION.html">RA6E1_SOLUTION.md</a></li>
+      <li><a href="RA6E1_TEMPLATE_CHECKLIST.html">RA6E1_TEMPLATE_CHECKLIST.md</a></li>
+      <li><a href="RA6M5_SOLUTION.html">RA6M5_SOLUTION.md</a></li>
+      <li><a href="RA8M2_SOLUTION.html">RA8M2_SOLUTION.md</a></li>
+      <li><a href="RA8x2_DUAL_CORE_DESIGN.html">RA8x2_DUAL_CORE_DESIGN.md</a></li>
+      <li><a href="README.html">README.md</a></li>
+      <li><a href="RECONFIGURING_THE_LAYOUT.html">RECONFIGURING_THE_LAYOUT.md</a></li>
+      <li><a href="SETTLED.html" aria-current="page">SETTLED.md</a></li>
+      <li><a href="TROUBLESHOOTING.html">TROUBLESHOOTING.md</a></li>
+      <li><a href="UPSTREAM_CHANGES.html">UPSTREAM_CHANGES.md</a></li>
+      <li><a href="scripts_README.html">scripts/README.md</a></li>
+        </ol>
+      </li>
+    </ol>
+    <ol class="doc-toc">
+      <li><a href="#top">SETTLED.md</a>
+        <ol>
+          <li><a href="#threads--read-the-entry-in-bold">Threads — read the entry in bold</a></li>
+          <li><a href="#standing-115">Standing (115)</a></li>
+          <li><a href="#superseded-11">Superseded (11)</a></li>
+        </ol>
+      </li>
+    </ol>
+    <button class="theme-toggle" type="button">Dark theme</button>
+  </nav>
+</aside>
+<main id="top" class="ref-doc">
+<p class="src">Rendered from <a href="../../../SETTLED.md"><code>SETTLED.md</code></a>. Edit the Markdown, not this page.</p>
+<h1 id="settled-positions">Settled positions</h1>
+<p><strong>Generated from <code>DECISIONS.md</code> by <code>scripts/build_settled.py</code>. Do not edit — edits are overwritten and the pre-commit hook fails on drift.</strong></p>
+<p><code>DECISIONS.md</code> is append-only, so the position on any question is stated by the newest entry in its thread and the earlier ones remain as the reasoning. This file says which entry that is. For the handful of questions that need a paragraph rather than a title, read the hand-written <strong>Settled questions</strong> table at the top of <code>DECISIONS.md</code>.</p>
+<div class="table-wrap"><table>
+<tr><th></th><th></th></tr>
+<tr><td>Entries</td><td><strong>126</strong></td></tr>
+<tr><td>Standing</td><td><strong>115</strong></td></tr>
+<tr><td>Superseded</td><td><strong>11</strong></td></tr>
+<tr><td>Standing but corrected on some point</td><td><strong>25</strong></td></tr>
+<tr><td>Supersede lineages</td><td><strong>8</strong></td></tr>
+</table></div>
+<hr>
+<h2 id="threads--read-the-entry-in-bold">Threads — read the entry in bold</h2>
+<p>A later entry <strong>supersedes</strong> an earlier one: same question, newer answer. Citing anything but the bold entry means citing an answer that has been replaced. <em>Corrections</em> are a different thing and do not appear here — they fix a claim without replacing the entry, and are listed against each entry below.</p>
+<div class="table-wrap"><table>
+<tr><th>Thread</th><th>Stands</th><th>What moved</th></tr>
+<tr><td>D001 → <strong>D002</strong></td><td><code>D002</code></td><td>D002 supersedes D001</td></tr>
+<tr><td>D031 → <strong>D033</strong></td><td><code>D033</code></td><td>D033 supersedes D031</td></tr>
+<tr><td>D052 → <strong>D053</strong></td><td><code>D053</code></td><td>D053 supersedes D052</td></tr>
+<tr><td>D075 → <strong>D076</strong></td><td><code>D076</code></td><td>D076 supersedes D075</td></tr>
+<tr><td>D079 → D082 → D085 → D090 → <strong>D091</strong></td><td><code>D091</code></td><td>D085 supersedes D082; D090 supersedes D085, D082; D091 supersedes D079, D082; D091 corrects D090</td></tr>
+<tr><td>D098 → <strong>D111</strong></td><td><code>D111</code></td><td>D098 corrects D097; D111 corrects D098, D099, D104</td></tr>
+<tr><td>D102 → <strong>D103</strong></td><td><code>D103</code></td><td>D103 corrects D102</td></tr>
+<tr><td>D107 → <strong>D108</strong></td><td><code>D108</code></td><td>D108 supersedes D107</td></tr>
+</table></div>
+<hr>
+<h2 id="standing-115">Standing (115)</h2>
+<p>Nothing supersedes these. The title is the position. Where a later entry corrects one, the correction is named - the entry stands apart from that.</p>
+<div class="table-wrap"><table>
+<tr><th>#</th><th>Date</th><th>Position</th><th>Status</th><th>Corrected by</th></tr>
+<tr><td><code>D002</code></td><td>2026-08-10</td><td>Each OFS group gets its own linker <code>MEMORY</code> region</td><td>Accepted</td><td>—</td></tr>
+<tr><td><code>D003</code></td><td>2026-08-25</td><td>RA6E1 replaces RA6M4 as the RA6 development vehicle</td><td>Accepted</td><td><code>D016</code></td></tr>
+<tr><td><code>D004</code></td><td>2026-08-25</td><td>Drive the flash layout from a RASC <em>solution</em>, not standalone projects</td><td>Accepted</td><td>—</td></tr>
+<tr><td><code>D005</code></td><td>2026-08-30</td><td>Build the NS image in its own CMake project against the installed <code>api_ns/</code></td><td>Accepted</td><td>—</td></tr>
+<tr><td><code>D006</code></td><td>2026-08-26</td><td>Use TF-M&#x27;s shared isolation HAL and generated secure linker, not port-owned copies</td><td>Accepted</td><td>—</td></tr>
+<tr><td><code>D007</code></td><td>2026-09-07</td><td>Run the PSA Arch tests at <code>profile_large</code> with the port&#x27;s defaults overridden</td><td>Accepted</td><td>—</td></tr>
+<tr><td><code>D008</code></td><td>2026-09-08</td><td>Declare <code>PLATFORM_HAS_ISOLATION_L3_SUPPORT</code> for RA6E1</td><td><strong>Provisional — builds, not yet run on hardware</strong></td><td>—</td></tr>
+<tr><td><code>D009</code></td><td>2026-09-07</td><td>RA6M4 keeps its in-SPE NS app by default, behind a switch</td><td>Accepted</td><td><code>D016</code></td></tr>
+<tr><td><code>D010</code></td><td>2026-09-07</td><td>Pass the <code>g_main_stack</code> alias through a linker response file</td><td>Accepted</td><td>—</td></tr>
+<tr><td><code>D011</code></td><td>2026-09-07</td><td>Guard the secure-only half of <code>tfm_hal_platform.c</code> on a port-private macro</td><td>Accepted</td><td>—</td></tr>
+<tr><td><code>D012</code></td><td>2026-08-30</td><td>When the generated linker lacks a hook, add a generic one upstream rather than fork</td><td>Accepted</td><td>—</td></tr>
+<tr><td><code>D013</code></td><td>2026-09-08</td><td>Keep TF-M&#x27;s <code>flash_map[]</code> and area IDs; do not adopt the solution&#x27;s</td><td>Accepted</td><td>—</td></tr>
+<tr><td><code>D014</code></td><td>2026-09-08</td><td>The PSA Arch test tree is a local clone with tf-m-tests&#x27; patches applied by hand</td><td><strong>Provisional — works, but the manual step is a known hazard</strong></td><td>—</td></tr>
+<tr><td><code>D015</code></td><td>2026-09-08</td><td>Isolation 3 + IPC confirmed on hardware; D008 is no longer provisional</td><td>Accepted</td><td>—</td></tr>
+<tr><td><code>D016</code></td><td>2026-09-09</td><td>RA6M5 is the upstream target; RA6M4 is skipped</td><td>Accepted</td><td>—</td></tr>
+<tr><td><code>D017</code></td><td>2026-09-09</td><td>The PSA Arch target stays a local patch for RA6E1; the RA6M5 one goes upstream</td><td>Accepted</td><td>—</td></tr>
+<tr><td><code>D018</code></td><td>2026-09-09</td><td>One RA-family PSA Arch target, named <code>tgt_dev_apis_tfm_renesas_ra</code></td><td>Accepted</td><td>—</td></tr>
+<tr><td><code>D019</code></td><td>2026-09-14</td><td>The IAR secure image reaches FSP&#x27;s sections through an included ICF fragment, not a section-name macro</td><td>Accepted</td><td>—</td></tr>
+<tr><td><code>D020</code></td><td>2026-09-14</td><td><code>g_main_stack</code> is redirected, not defined, under IAR; one response file serves both images</td><td>Accepted</td><td>—</td></tr>
+<tr><td><code>D021</code></td><td>2026-09-14</td><td>FSP 6.6 <code>.icf</code> files need <code>with alignment preservation</code> removed to build under IAR 9.50.2</td><td>Accepted</td><td>—</td></tr>
+<tr><td><code>D022</code></td><td>2026-09-14</td><td>The non-secure image under IAR: four toolchain branches, not a fork</td><td>Accepted</td><td>—</td></tr>
+<tr><td><code>D023</code></td><td>2026-09-14</td><td>The IAR stack-seal block must name a section, not merely reserve space</td><td>Accepted</td><td>—</td></tr>
+<tr><td><code>D024</code></td><td>2026-09-14</td><td>CMSE veneers are pinned at the NSC window under IAR too</td><td>Accepted</td><td>—</td></tr>
+<tr><td><code>D025</code></td><td>2026-09-14</td><td>RTT under IAR needs <code>--keep __write</code>, and each image has its own control block</td><td>Accepted</td><td>—</td></tr>
+<tr><td><code>D026</code></td><td>2026-09-14</td><td>Run the PSA Arch suites under IAR with <code>TOOLCHAIN=INHERIT</code>, not an IAR port of psa-arch-tests</td><td>Accepted</td><td>—</td></tr>
+<tr><td><code>D027</code></td><td>2026-09-14</td><td>The NSPE test build must set <code>CMAKE_BUILD_TYPE</code> explicitly</td><td>Accepted</td><td>—</td></tr>
+<tr><td><code>D028</code></td><td>2026-09-14</td><td>Two host-environment constraints on the PSA Arch test builds</td><td>Accepted</td><td>—</td></tr>
+<tr><td><code>D029</code></td><td>2026-09-14</td><td>OPEN DEFECT: <code>.ram_from_flash</code> is excluded from copy-init at <code>profile_large</code> / L3</td><td><strong>Open - diagnosed, not fixed</strong></td><td>—</td></tr>
+<tr><td><code>D030</code></td><td>2026-09-21</td><td>RA6M5 uses the whole 2 MB, with a reserved secure scratch block</td><td>Accepted</td><td>—</td></tr>
+<tr><td><code>D032</code></td><td>2026-09-21</td><td>CORRECTION to the SCE9 size figures quoted on 2026-09-21</td><td>Accepted</td><td>—</td></tr>
+<tr><td><code>D033</code></td><td>2026-09-21</td><td>RA6M5 builds against the real e2 projects</td><td>Accepted</td><td>—</td></tr>
+<tr><td><code>D034</code></td><td>2026-09-21</td><td><code>BSP_CFG_EARLY_INIT</code> is asserted at build time, in both secure and BL2</td><td>Accepted</td><td>—</td></tr>
+<tr><td><code>D035</code></td><td>2026-09-21</td><td>Stay on TF-M 2.2; the TF-M 2.3 rebase is cancelled</td><td>Accepted</td><td>—</td></tr>
+<tr><td><code>D036</code></td><td>2026-09-21</td><td>SCE9 acceleration via FSP <code>*_ALT</code>: AES, AES-GCM, SHA-256 first; ECC held back</td><td><strong>Provisional - builds; not yet run on silicon</strong></td><td><code>D037</code></td></tr>
+<tr><td><code>D037</code></td><td>2026-09-21</td><td>SCE9 ECC enabled; P-521, Curve25519 and deterministic ECDSA removed from RA6M5</td><td><strong>Provisional - builds; not yet run on silicon</strong></td><td>—</td></tr>
+<tr><td><code>D038</code></td><td>2026-09-21</td><td>CORRECTION to D037: deterministic ECDSA is unsupported in FSP by design</td><td>Accepted</td><td>—</td></tr>
+<tr><td><code>D039</code></td><td>2026-09-21</td><td>BL2 SHA-256 on the SCE9; P-256 verify stays on p256-m</td><td><strong>Provisional - builds; not yet run on silicon</strong></td><td>—</td></tr>
+<tr><td><code>D040</code></td><td>2026-09-21</td><td>PSA Arch crypto on RA6M5 SCE9: generic Renesas target, deterministic ECDSA gated</td><td><strong>Provisional - built, not yet run</strong></td><td>—</td></tr>
+<tr><td><code>D041</code></td><td>2026-09-22</td><td>Two FSP <code>aes_alt.c</code> fixes carried in the RA6M5 secure project; PSA Arch crypto 61/64</td><td>Accepted for the TF-M port; the fixes belong in rm_psa_crypto</td><td><code>D044</code></td></tr>
+<tr><td><code>D042</code></td><td>2026-09-22</td><td>TF-M&#x27;s crypto is built from FSP&#x27;s Mbed TLS, not upstream</td><td>Accepted for RA6M5 (<code>RA6M5_FSP_MBEDTLS</code>, default ON)</td><td>—</td></tr>
+<tr><td><code>D043</code></td><td>2026-09-22</td><td>SCE9 CCM stays in software; a third rm_psa_crypto session leak; crypto suite 63/64</td><td>Accepted</td><td>—</td></tr>
+<tr><td><code>D044</code></td><td>2026-09-22</td><td>The CTR fix is dropped; <code>mbedtls_aes_crypt_ctr()</code> is not an FSP API</td><td>Accepted</td><td>—</td></tr>
+<tr><td><code>D045</code></td><td>2026-09-22</td><td>Confirmed on FSP 6.7.0-beta0: 63/64 with no port-local rm_psa_crypto patches</td><td>Accepted</td><td>—</td></tr>
+<tr><td><code>D046</code></td><td>2026-09-23</td><td>RA6M5 PSA Arch on GCC and IAR: crypto, attestation, storage; RTT made lossless</td><td>Accepted</td><td>—</td></tr>
+<tr><td><code>D047</code></td><td>2026-09-23</td><td>FSP 6.7 is the baseline</td><td>Accepted</td><td>—</td></tr>
+<tr><td><code>D048</code></td><td>2026-09-23</td><td><code>.ram_from_flash</code> is copied by the platform, not by ILINK — closes <a href="DECISIONS.html#d029">D029</a></td><td>Accepted</td><td>—</td></tr>
+<tr><td><code>D049</code></td><td>2026-09-23</td><td>The IAR NS toolchain emits <code>.srec</code> — closes the second open defect</td><td>Accepted</td><td>—</td></tr>
+<tr><td><code>D050</code></td><td>2026-09-24</td><td>RSIP-E50D gets its own accelerator directory, consolidated with SCE9 at P7</td><td>Accepted</td><td>—</td></tr>
+<tr><td><code>D051</code></td><td>2026-09-24</td><td>E50D ALT selection: SCE9&#x27;s module set, CCM still out, P-521 and Curve25519 kept in</td><td>Accepted</td><td>—</td></tr>
+<tr><td><code>D053</code></td><td>2026-09-24</td><td>The E50D pack ships both session-leak fixes — supersedes <a href="DECISIONS.html#d052">D052</a></td><td>Accepted</td><td>—</td></tr>
+<tr><td><code>D054</code></td><td>2026-09-24</td><td>DF_EMULATION is 64 KB because FSP&#x27;s MRAM sector size forces it</td><td>Accepted</td><td>—</td></tr>
+<tr><td><code>D055</code></td><td>2026-09-24</td><td>RA8M2 full chain builds and links on IAR; four defects found by building it</td><td>Accepted</td><td>—</td></tr>
+<tr><td><code>D056</code></td><td>2026-09-24</td><td>OFS addresses are generated, and a guard that reports PASS on the wrong window is worse than none</td><td>Accepted</td><td>—</td></tr>
+<tr><td><code>D057</code></td><td>2026-09-25</td><td>The GCC leg is the reference; the IAR solution&#x27;s RAM split is stale</td><td>Accepted</td><td>—</td></tr>
+<tr><td><code>D058</code></td><td>2026-09-25</td><td>The flat <code>.bin</code> is a second route to the brick, and the ELF guard never saw it</td><td>Accepted</td><td>—</td></tr>
+<tr><td><code>D059</code></td><td>2026-09-25</td><td>P-521 and Curve25519 come out of the E50D config until after TF-M 2.3</td><td>Accepted</td><td>—</td></tr>
+<tr><td><code>D060</code></td><td>2026-09-25</td><td>RA6M5 execution-path audit: what the boot trace turned up</td><td>Accepted</td><td>—</td></tr>
+<tr><td><code>D061</code></td><td>2026-09-26</td><td>Secure interrupts on RA: delete the dead HAL, and write down why the upstream recipe does not apply</td><td>Accepted</td><td>—</td></tr>
+<tr><td><code>D062</code></td><td>2026-09-27</td><td>RA declares test capabilities; ra6m4 could not build TEST_S at all</td><td>Accepted</td><td>—</td></tr>
+<tr><td><code>D063</code></td><td>2026-09-28</td><td>Pinned CMSE veneers get their own MEMORY region; the regression suite now links</td><td>Accepted</td><td>—</td></tr>
+<tr><td><code>D064</code></td><td>2026-09-29</td><td>BL2 masking interrupts is sound and complete; the SPMON hazard does not exist on these parts</td><td>Accepted</td><td>—</td></tr>
+<tr><td><code>D065</code></td><td>2026-09-29</td><td>the flat-binary brick guard is now on all four ports, and a stale <code>.bin</code> is as lethal as a fresh one</td><td>Accepted</td><td>—</td></tr>
+<tr><td><code>D066</code></td><td>2026-09-29</td><td>RA8M2&#x27;s partition comments described RA6M5, including the values that get provisioned</td><td>Accepted</td><td>—</td></tr>
+<tr><td><code>D067</code></td><td>2026-09-29</td><td>first full tf-m-tests regression pass on hardware, and two suites that report PASSED without testing</td><td>Accepted</td><td>—</td></tr>
+<tr><td><code>D068</code></td><td>2026-09-30</td><td>the FLIH/SLIH fixture, and two silent defects the IAR build found in D065</td><td>Accepted</td><td>—</td></tr>
+<tr><td><code>D069</code></td><td>2026-09-30</td><td>a weak symbol in a static library silently unrouted every secure interrupt</td><td>Accepted</td><td>—</td></tr>
+<tr><td><code>D070</code></td><td>2026-09-30</td><td>FLIH verified on both toolchains; the fixture is portable, and RTT addresses are per-build</td><td>Accepted</td><td>—</td></tr>
+<tr><td><code>D071</code></td><td>2026-09-30</td><td>SLIH passes too; both FF-M handling models work, with one fixture</td><td>Accepted</td><td>—</td></tr>
+<tr><td><code>D072</code></td><td>2026-10-01</td><td>RA6M5 interrupt matrix complete; and an RTT capture can truncate silently</td><td>Accepted</td><td>—</td></tr>
+<tr><td><code>D073</code></td><td>2026-10-01</td><td>one MRAM alias is not enough: the RA8M2 flash driver must pick it per offset</td><td>Accepted</td><td>—</td></tr>
+<tr><td><code>D074</code></td><td>2026-10-01</td><td>where MRAM_ADDR&#x27;s two constants come from; refines <a href="DECISIONS.html#d073">D073</a></td><td>Accepted</td><td>—</td></tr>
+<tr><td><code>D076</code></td><td>2026-10-01</td><td><a href="DECISIONS.html#d075">D075</a> describes code that was reverted; BL2 still has no SAU</td><td>Accepted</td><td>—</td></tr>
+<tr><td><code>D077</code></td><td>2026-10-01</td><td>FSP replication audit: one live defect, three fixes that never reached the RA6 ports</td><td>Accepted</td><td>—</td></tr>
+<tr><td><code>D078</code></td><td>2026-10-02</td><td>the RA8M2 secure primary slot generated as 0x200; cause was partition ORDER, not geometry</td><td>Accepted</td><td>—</td></tr>
+<tr><td><code>D080</code></td><td>2026-10-02</td><td>every recorded attestation pass was on a token with no measurements</td><td>Accepted</td><td>—</td></tr>
+<tr><td><code>D081</code></td><td>2026-10-02</td><td>measured boot confirmed on RA6M5 hardware, by reading the boot record</td><td>Accepted</td><td>—</td></tr>
+<tr><td><code>D083</code></td><td>2026-10-02</td><td>the PSA-arch builds needed two unrelated fixes, neither of them the MSVC install</td><td>Accepted</td><td><code>D084</code></td></tr>
+<tr><td><code>D084</code></td><td>2026-10-02</td><td>the shared PSA-arch SPE is NOT a defect; the debug settings in it were cache residue</td><td>Accepted</td><td><code>D087</code></td></tr>
+<tr><td><code>D086</code></td><td>2026-10-04</td><td>documentation reorganised around the live parts; DESIGN.md had drifted furthest</td><td>Accepted</td><td>—</td></tr>
+<tr><td><code>D087</code></td><td>2026-10-04</td><td>the secure-slot headroom figures were overstated; CONFIGURATION.md written</td><td>Accepted</td><td>—</td></tr>
+<tr><td><code>D088</code></td><td>2026-10-04</td><td>TROUBLESHOOTING.md written; three of its own cross-references were wrong first</td><td>Accepted</td><td>—</td></tr>
+<tr><td><code>D089</code></td><td>2026-10-04</td><td>BRIDGING_FILES.md written; <a href="DECISIONS.html#d083">D083</a>&#x27;s IAR path fix had only covered RA6M5</td><td>Accepted</td><td>—</td></tr>
+<tr><td><code>D091</code></td><td>2026-10-05</td><td>Option 3 adopted: both parts take TF-M&#x27;s MCUboot backend, FSP&#x27;s HAL behind fa_driver</td><td>Accepted</td><td><code>D092</code></td></tr>
+<tr><td><code>D092</code></td><td>2026-10-05</td><td>RA8M2&#x27;s first boot: BL2 works; the secure image needs Clocks set Secure in e2</td><td>Accepted</td><td>—</td></tr>
+<tr><td><code>D093</code></td><td>2026-10-06</td><td><code>BSP_TZ_CFG_MSAR=0</code> on RA8M2: a workaround for an e2 generator defect, to be removed</td><td>Accepted, **temporary</td><td><code>D094</code></td></tr>
+<tr><td><code>D094</code></td><td>2026-10-06</td><td>the RA6M4 brick: coalescing is proven, the killed field is not; <a href="DECISIONS.html#d093">D093</a>&#x27;s attribution corrected</td><td>Accepted</td><td>—</td></tr>
+<tr><td><code>D095</code></td><td>2026-10-06</td><td>RA8M2 passes the full regression on hardware; both live parts now proven under <a href="DECISIONS.html#d091">D091</a></td><td>Accepted</td><td><code>D096</code></td></tr>
+<tr><td><code>D096</code></td><td>2026-10-06</td><td>measured boot confirmed on RA8M2 by decoding the boot record; <a href="DECISIONS.html#d095">D095</a> had assumed it</td><td>Accepted</td><td>—</td></tr>
+<tr><td><code>D097</code></td><td>2026-10-08</td><td>RA8M2 PSA Arch: storage clean, crypto has one real failure — RSIP-E50D cannot generate RSA-2048 keys</td><td>Accepted</td><td><code>D098</code></td></tr>
+<tr><td><code>D099</code></td><td>2026-10-08</td><td>closes <a href="DECISIONS.html#d097">D097</a>&#x27;s gap: RA8M2 crypto is 62/1/1, and the sole delta from RA6M5 is test 216</td><td>Accepted</td><td><code>D111</code></td></tr>
+<tr><td><code>D100</code></td><td>2026-10-08</td><td>the MCUboot upgrade path runs on RA8M2: both images installed, secondary erased</td><td>Accepted</td><td>—</td></tr>
+<tr><td><code>D101</code></td><td>2026-10-08</td><td>the three RA8M2 IAR project gaps are closed; IAR and GCC are now configuration-identical</td><td>Accepted</td><td>—</td></tr>
+<tr><td><code>D103</code></td><td>2026-10-08</td><td>supersedes <a href="DECISIONS.html#d102">D102</a> on the IAR launch host project: it is the IAR project, and auto-config is false</td><td>Accepted</td><td>—</td></tr>
+<tr><td><code>D104</code></td><td>2026-10-08</td><td>first RA8M2 IAR run on silicon: PSA Arch crypto is identical to GCC, test for test</td><td>Accepted</td><td><code>D111</code></td></tr>
+<tr><td><code>D105</code></td><td>2026-10-09</td><td>RA8M2 IAR matches GCC on every suite, and measured boot is verified from the boot record</td><td>Accepted</td><td>—</td></tr>
+<tr><td><code>D106</code></td><td>2026-10-09</td><td>the MCUboot upgrade installs under IAR too; M5 is met on both toolchains</td><td>Accepted</td><td>—</td></tr>
+<tr><td><code>D108</code></td><td>2026-10-09</td><td>supersedes <a href="DECISIONS.html#d107">D107</a>&#x27;s fix: the real hook is <code>__dwrite</code>, because TF-M redirects <code>__write</code></td><td>Accepted</td><td>—</td></tr>
+<tr><td><code>D109</code></td><td>2026-10-09</td><td>the IAR BL2 log works; it closes <a href="DECISIONS.html#d106">D106</a>&#x27;s open item and refines <a href="DECISIONS.html#d099">D099</a>&#x27;s <code>%zx</code> finding</td><td>Accepted</td><td>—</td></tr>
+<tr><td><code>D110</code></td><td>2026-10-09</td><td>corrects the framing of <a href="DECISIONS.html#d107">D107</a>/<a href="DECISIONS.html#d108">D108</a>: the root cause is the call route, not the buffering</td><td>Accepted</td><td><code>D126</code></td></tr>
+<tr><td><code>D111</code></td><td>2026-10-09</td><td>supersedes <a href="DECISIONS.html#d098">D098</a>: there is no config switch for the RSA-2048 keygen gap; the guard is on the engine</td><td>Accepted</td><td>—</td></tr>
+<tr><td><code>D112</code></td><td>2026-10-12</td><td><a href="DECISIONS.html#d101">D101</a>&#x27;s parity method cannot read the azone; one regenerate produced different TrustZone assignments per toolchain</td><td>Accepted</td><td><code>D126</code></td></tr>
+<tr><td><code>D113</code></td><td>2026-10-21</td><td>isolation 2 on silicon: <code>TFM_ISOLATION_LEVEL</code> never reached the isolation HAL, and was hiding four port defects</td><td>Accepted</td><td><code>D117</code>, <code>D120</code>, <code>D126</code></td></tr>
+<tr><td><code>D114</code></td><td>2026-10-21</td><td>isolation 3 green too; the missing macro was not one macro, it is that <code>platform_s</code> never links <code>psa_interface</code></td><td>Accepted</td><td><code>D115</code>, <code>D120</code>, <code>D126</code></td></tr>
+<tr><td><code>D115</code></td><td>2026-10-21</td><td>RA8M2&#x27;s MPU measured at 8 regions; corrects <a href="DECISIONS.html#d114">D114</a> on PXN; the diagnostic hook itself broke L1+IPC</td><td>Accepted</td><td><code>D117</code>, <code>D126</code></td></tr>
+<tr><td><code>D116</code></td><td>2026-10-21</td><td>the L1+IPC HardFault was the same undefined macro; closes <a href="DECISIONS.html#d113">D113</a>/<a href="DECISIONS.html#d114">D114</a>/<a href="DECISIONS.html#d115">D115</a>&#x27;s carried items</td><td>Accepted</td><td><code>D117</code>, <code>D126</code></td></tr>
+<tr><td><code>D117</code></td><td>2026-10-21</td><td>six corrections from an external review: <a href="DECISIONS.html#d113">D113</a> overstated FLIH, <a href="DECISIONS.html#d116">D116</a> closed a question that was answerable, and three ports deny the IDAU exists</td><td>Accepted</td><td><code>D120</code>, <code>D126</code></td></tr>
+<tr><td><code>D118</code></td><td>2026-10-21</td><td>first IAR run above isolation 1: RA8M2 L2 green, and the MMIO region is the only toolchain-invariant in the table</td><td>Accepted</td><td>—</td></tr>
+<tr><td><code>D119</code></td><td>2026-10-21</td><td><a href="DECISIONS.html#d114">D114</a>&#x27;s second macro confirmed under IAR; RA8M2 is complete at every level on both toolchains</td><td>Accepted</td><td><code>D126</code></td></tr>
+<tr><td><code>D120</code></td><td>2026-10-22</td><td>the isolation-macro gap is this port&#x27;s, not upstream&#x27;s; <a href="DECISIONS.html#d113">D113</a>&#x27;s root cause was wrong and upstream item 15 is withdrawn</td><td>Accepted</td><td><code>D125</code></td></tr>
+<tr><td><code>D121</code></td><td>2026-10-22</td><td>the shared isolation HAL moves to <code>tfm_spm</code>; <a href="DECISIONS.html#d113">D113</a>&#x27;s workaround is deleted, not documented</td><td>Accepted</td><td><code>D125</code></td></tr>
+<tr><td><code>D122</code></td><td>2026-10-22</td><td>the <code>tfm_spm</code> move is MPU-neutral on silicon, and RA6M5 L1+IPC is green for the first time — cause unexplained</td><td>Accepted</td><td><code>D125</code></td></tr>
+<tr><td><code>D123</code></td><td>2026-10-22</td><td>RA6M5 isolation 3 confirms <a href="DECISIONS.html#d121">D121</a>&#x27;s predicted boundary shift to the byte; RA6M5 IAR runs above isolation 1 for the first time</td><td>Accepted</td><td><code>D125</code></td></tr>
+<tr><td><code>D124</code></td><td>2026-10-22</td><td>the matrix is complete: every part, toolchain and isolation level has now run</td><td>Accepted</td><td>—</td></tr>
+<tr><td><code>D125</code></td><td>2026-10-22</td><td>six corrections to <a href="DECISIONS.html#d120">D120</a>–<a href="DECISIONS.html#d123">D123</a> from the second documentation review; the HAL never left the PSA-RoT code region</td><td>Accepted</td><td><code>D126</code></td></tr>
+<tr><td><code>D126</code></td><td>2026-10-22</td><td>eighteen corrections to <a href="DECISIONS.html#d110">D110</a>–<a href="DECISIONS.html#d125">D125</a> from the second review; two carried items closed, and <a href="DECISIONS.html#d115">D115</a>&#x27;s &quot;three of four corners&quot; was wrong</td><td>Accepted</td><td>—</td></tr>
+</table></div>
+<hr>
+<h2 id="superseded-11">Superseded (11)</h2>
+<p>Kept for the reasoning. <strong>Do not cite one of these without reading what replaced it</strong> — in several cases the later entry reverses the earlier claim outright.</p>
+<div class="table-wrap"><table>
+<tr><th>#</th><th>Date</th><th>Position as stated then</th><th>Superseded by</th></tr>
+<tr><td><code>D001</code></td><td>2026-07-21</td><td>Option-setting (OFS) memory must never be linked into an image</td><td><code>D002</code></td></tr>
+<tr><td><code>D031</code></td><td>2026-09-21</td><td>The RA6M5 port was verified against a staged project set, not the e2 projects</td><td><code>D033</code></td></tr>
+<tr><td><code>D052</code></td><td>2026-09-24</td><td>The E50D pack is missing both session-leak fixes; RA8M2 bring-up proceeds anyway</td><td><code>D053</code></td></tr>
+<tr><td><code>D075</code></td><td>2026-10-01</td><td>BL2 must enable the SAU on RA8M2; the right alias is not enough</td><td><code>D076</code></td></tr>
+<tr><td><code>D079</code></td><td>2026-10-02</td><td>BL2 takes its MCUboot flash backend from FSP; closes <a href="DECISIONS.html#d076">D076</a></td><td><code>D091</code></td></tr>
+<tr><td><code>D082</code></td><td>2026-10-02</td><td>RA6M5 follows <a href="DECISIONS.html#d079">D079</a>: BL2 takes its MCUboot flash backend from FSP</td><td><code>D085</code>, <code>D090</code>, <code>D091</code></td></tr>
+<tr><td><code>D085</code></td><td>2026-10-04</td><td>RA6M5 reverts to TF-M&#x27;s MCUboot flash backend; <a href="DECISIONS.html#d082">D082</a> is withdrawn</td><td><code>D090</code></td></tr>
+<tr><td><code>D090</code></td><td>2026-10-05</td><td>the RA6M5 FSP-backend failure was a struct flash_area mismatch; <a href="DECISIONS.html#d085">D085</a> is superseded</td><td><code>D091</code> (also corrected by <code>D091</code>)</td></tr>
+<tr><td><code>D098</code></td><td>2026-10-08</td><td>refines <a href="DECISIONS.html#d097">D097</a>: the RSA-2048 keygen failure is the PLAINTEXT path, and the config selects it</td><td><code>D111</code> (also corrected by <code>D111</code>)</td></tr>
+<tr><td><code>D102</code></td><td>2026-10-08</td><td>RA8M2 IAR: all six trees build, five launches generated; the ewarm staleness was already gone</td><td><code>D103</code> (also corrected by <code>D103</code>)</td></tr>
+<tr><td><code>D107</code></td><td>2026-10-09</td><td>BL2 is silent under IAR because DLIB buffers stdout; <code>rtt_stdout.c</code> now makes it unbuffered</td><td><code>D108</code></td></tr>
+</table></div>
+</main>
+</div>
+</body>
+</html>

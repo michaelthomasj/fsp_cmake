@@ -35,6 +35,7 @@
       <li><a href="RA8x2_DUAL_CORE_DESIGN.html">RA8x2_DUAL_CORE_DESIGN.md</a></li>
       <li><a href="README.html">README.md</a></li>
       <li><a href="RECONFIGURING_THE_LAYOUT.html">RECONFIGURING_THE_LAYOUT.md</a></li>
+      <li><a href="SETTLED.html">SETTLED.md</a></li>
       <li><a href="TROUBLESHOOTING.html">TROUBLESHOOTING.md</a></li>
       <li><a href="UPSTREAM_CHANGES.html">UPSTREAM_CHANGES.md</a></li>
       <li><a href="scripts_README.html">scripts/README.md</a></li>
@@ -1049,7 +1050,7 @@ be able to reach the SCE registers, not yet checked.</p>
 <p><em>ECC hold-back superseded by D037.</em></p>
 <hr>
 <h2 id="d037">D037 — SCE9 ECC enabled; P-521, Curve25519 and deterministic ECDSA removed from RA6M5</h2>
-<p><strong>Date:</strong> 2026-09-21 · <strong>Status:</strong> Provisional - builds; not yet run on silicon · <strong>Supersedes:</strong> <a href="DECISIONS.html#d036">D036</a> · <strong>Evidence:</strong> Supersedes: D036 (ECC hold-back only)</p>
+<p><strong>Date:</strong> 2026-09-21 · <strong>Status:</strong> Provisional - builds; not yet run on silicon · <strong>Corrects:</strong> <a href="DECISIONS.html#d036">D036</a> · <strong>Evidence:</strong> supersedes D036&#x27;s ECC hold-back only, not the rest</p>
 <p><strong>Decision (option 1 of the three put in D036).</strong> Enable <code>MBEDTLS_ECP_ALT</code>,
 <code>MBEDTLS_ECDSA_SIGN_ALT</code> and <code>MBEDTLS_ECDSA_VERIFY_ALT</code> with FSP&#x27;s <code>ecp_alt</code>, <code>ecp_curves_alt</code>
 and <code>ecdsa_alt</code> sources, and remove from the RA6M5 PSA configuration what SCE9 cannot do
@@ -1186,7 +1187,7 @@ patch.</p>
 <code>hw_sce_ra_private.h</code>) for the <code>FinalSub</code> calls D041 added - they were implicitly declared. Part of
 what goes back into rm_psa_crypto.</p>
 <h2 id="d043">D043 — SCE9 CCM stays in software; a third rm_psa_crypto session leak; crypto suite 63/64</h2>
-<p><strong>Date:</strong> 2026-09-22 · <strong>Status:</strong> Accepted · <strong>Supersedes:</strong> <a href="DECISIONS.html#d041">D041</a>, <a href="DECISIONS.html#d042">D042</a> · <strong>Evidence:</strong> Supersedes nothing; extends <a href="DECISIONS.html#d041">D041</a>, <a href="DECISIONS.html#d042">D042</a></p>
+<p><strong>Date:</strong> 2026-09-22 · <strong>Status:</strong> Accepted · <strong>Builds on:</strong> <a href="DECISIONS.html#d041">D041</a>, <a href="DECISIONS.html#d042">D042</a> · <strong>Evidence:</strong> &quot;Supersedes nothing; extends <a href="DECISIONS.html#d041">D041</a>, <a href="DECISIONS.html#d042">D042</a>&quot;</p>
 <p><strong>Result.</strong> PSA Arch crypto on RA6M5 with SCE9 and FSP&#x27;s Mbed TLS: **63 passed, 0 failed,
 1 skipped** of 64. The skip is the deterministic-ECDSA gate (D040). 261 and 263 - the multi-part
 GCM failures that motivated the move to FSP&#x27;s Mbed TLS - now pass, which is the confirmation D042
@@ -1227,7 +1228,7 @@ so <code>TFM_SPM_LOG_LEVEL</code> defaults to SILENCE and the panic is silent - 
 the next attempt.</li>
 </ul>
 <h2 id="d044">D044 — The CTR fix is dropped; <code>mbedtls_aes_crypt_ctr()</code> is not an FSP API</h2>
-<p><strong>Date:</strong> 2026-09-22 · <strong>Status:</strong> Accepted · <strong>Supersedes:</strong> <a href="DECISIONS.html#d041">D041</a> · <strong>Evidence:</strong> Supersedes the second fix in <a href="DECISIONS.html#d041">D041</a></p>
+<p><strong>Date:</strong> 2026-09-22 · <strong>Status:</strong> Accepted · <strong>Corrects:</strong> <a href="DECISIONS.html#d041">D041</a> · <strong>Evidence:</strong> supersedes the second fix in <a href="DECISIONS.html#d041">D041</a> only</p>
 <p><strong>Decision (rm_psa_crypto owner).</strong> FSP supports the PSA APIs only; <code>mbedtls_aes_crypt_ctr()</code> is
 not public. Fixes 1 and 3 of <a href="DECISIONS.html#d041">D041</a>/<a href="DECISIONS.html#d043">D043</a> go into FSP and reach this port through regenerated
 packs. Fix 2 - the CTR partial-block rewrite - does not, and has been reverted in
@@ -2611,7 +2612,7 @@ and one not, with identical geometry - the diff between them was the whole diagn
 for the other port before theorising about the tool.</p>
 <hr>
 <h2 id="d079">D079 — BL2 takes its MCUboot flash backend from FSP; closes <a href="DECISIONS.html#d076">D076</a></h2>
-<p><strong>Date:</strong> 2026-10-02 · <strong>Status:</strong> Superseded by D091 · <strong>Supersedes:</strong> <a href="DECISIONS.html#d076">D076</a> · <strong>Evidence:</strong> Closes <a href="DECISIONS.html#d076">D076</a>, supersedes the <code>rm_mcuboot_port</code> exclusion in DESIGN.md 4</p>
+<p><strong>Date:</strong> 2026-10-02 · <strong>Status:</strong> Superseded by D091 · <strong>Builds on:</strong> <a href="DECISIONS.html#d076">D076</a> · <strong>Evidence:</strong> closes <a href="DECISIONS.html#d076">D076</a>; what it supersedes is the <code>rm_mcuboot_port</code> exclusion in DESIGN.md §4, not <a href="DECISIONS.html#d076">D076</a> itself</p>
 <p><strong>Decision.</strong> BL2 links FSP&#x27;s <code>ra/fsp/src/rm_mcuboot_port/flash_map.c</code> instead of TF-M&#x27;s
 <code>bl2/src/flash_map.c</code>, <code>flash_map_extended.c</code> and <code>flash_map_legacy.c</code>. <code>DEFAULT_MCUBOOT_FLASH_MAP</code>
 and a new <code>DEFAULT_MCUBOOT_FLASH_BACKEND</code> are both OFF for this platform.</p>
@@ -2915,7 +2916,7 @@ either way - read the boot record at <code>0x20000000</code> instead.</p>
 proves the two builds byte-identical.</p>
 <hr>
 <h2 id="d084">D084 — the shared PSA-arch SPE is NOT a defect; the debug settings in it were cache residue</h2>
-<p><strong>Date:</strong> 2026-10-02 · <strong>Status:</strong> Accepted · <strong>Supersedes:</strong> <a href="DECISIONS.html#d083">D083</a> · <strong>Evidence:</strong> Retracts the &quot;each suite needs its own SPE&quot; claim made in <a href="DECISIONS.html#d083">D083</a> and in the RA8M2 notes</p>
+<p><strong>Date:</strong> 2026-10-02 · <strong>Status:</strong> Accepted · <strong>Corrects:</strong> <a href="DECISIONS.html#d083">D083</a> · <strong>Evidence:</strong> retracts the &quot;each suite needs its own SPE&quot; claim made in <a href="DECISIONS.html#d083">D083</a> and in the RA8M2 notes</p>
 <p><strong>The claim, withdrawn.</strong> One SPE serving all three PSA Arch suites was flagged as a defect
 twice, for RA8M2 and RA6M5, on the reasoning that an SPE built with <code>TEST_PSA_API=CRYPTO</code>
 cannot be right for the storage and attestation runs. That was asserted without checking.
@@ -3256,7 +3257,7 @@ its canary.</li>
 </ul>
 <hr>
 <h2 id="d091">D091 — Option 3 adopted: both parts take TF-M&#x27;s MCUboot backend, FSP&#x27;s HAL behind fa_driver</h2>
-<p><strong>Date:</strong> 2026-10-05 · <strong>Status:</strong> Accepted · <strong>Supersedes:</strong> <a href="DECISIONS.html#d079">D079</a>, <a href="DECISIONS.html#d082">D082</a>, <a href="DECISIONS.html#d090">D090</a> · <strong>Evidence:</strong> Supersedes <a href="DECISIONS.html#d079">D079</a>, <a href="DECISIONS.html#d082">D082</a> and <a href="DECISIONS.html#d090">D090</a>&#x27;s configuration (not its mechanism); withdraws upstream item 13</p>
+<p><strong>Date:</strong> 2026-10-05 · <strong>Status:</strong> Accepted · <strong>Supersedes:</strong> <a href="DECISIONS.html#d079">D079</a>, <a href="DECISIONS.html#d082">D082</a> · <strong>Corrects:</strong> <a href="DECISIONS.html#d090">D090</a> · <strong>Evidence:</strong> <a href="DECISIONS.html#d090">D090</a>&#x27;s configuration is superseded, not its mechanism; withdraws upstream item 13</p>
 <p><strong>Verified on hardware.</strong> <code>ra6m5_TFM_flih_gcc</code>, banner <code>TF-M v2.2.0+e75582eac</code>: the full
 regression suite passes, secure and non-secure, including the FLIH IRQ tests. Zero failures.</p>
 <h3 id="what-settled-it">What settled it</h3>

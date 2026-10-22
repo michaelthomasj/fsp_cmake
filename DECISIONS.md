@@ -1150,7 +1150,7 @@ be able to reach the SCE registers, not yet checked.
 
 ## D037 — SCE9 ECC enabled; P-521, Curve25519 and deterministic ECDSA removed from RA6M5
 
-**Date:** 2026-09-21 · **Status:** Provisional - builds; not yet run on silicon · **Supersedes:** [D036] · **Evidence:** Supersedes: D036 (ECC hold-back only)
+**Date:** 2026-09-21 · **Status:** Provisional - builds; not yet run on silicon · **Corrects:** [D036] · **Evidence:** supersedes D036's ECC hold-back only, not the rest
 
 **Decision (option 1 of the three put in D036).** Enable `MBEDTLS_ECP_ALT`,
 `MBEDTLS_ECDSA_SIGN_ALT` and `MBEDTLS_ECDSA_VERIFY_ALT` with FSP's `ecp_alt`, `ecp_curves_alt`
@@ -1323,7 +1323,7 @@ what goes back into rm_psa_crypto.
 
 ## D043 — SCE9 CCM stays in software; a third rm_psa_crypto session leak; crypto suite 63/64
 
-**Date:** 2026-09-22 · **Status:** Accepted · **Supersedes:** [D041], [D042] · **Evidence:** Supersedes nothing; extends [D041], [D042]
+**Date:** 2026-09-22 · **Status:** Accepted · **Builds on:** [D041], [D042] · **Evidence:** "Supersedes nothing; extends [D041], [D042]"
 
 **Result.** PSA Arch crypto on RA6M5 with SCE9 and FSP's Mbed TLS: **63 passed, 0 failed,
 1 skipped** of 64. The skip is the deterministic-ECDSA gate (D040). 261 and 263 - the multi-part
@@ -1369,7 +1369,7 @@ limit surfacing as a generic PSA error with no indication of a size limit.
 
 ## D044 — The CTR fix is dropped; `mbedtls_aes_crypt_ctr()` is not an FSP API
 
-**Date:** 2026-09-22 · **Status:** Accepted · **Supersedes:** [D041] · **Evidence:** Supersedes the second fix in [D041]
+**Date:** 2026-09-22 · **Status:** Accepted · **Corrects:** [D041] · **Evidence:** supersedes the second fix in [D041] only
 
 **Decision (rm_psa_crypto owner).** FSP supports the PSA APIs only; `mbedtls_aes_crypt_ctr()` is
 not public. Fixes 1 and 3 of [D041]/[D043] go into FSP and reach this port through regenerated
@@ -3163,7 +3163,7 @@ for the other port before theorising about the tool.
 
 ## D079 — BL2 takes its MCUboot flash backend from FSP; closes [D076]
 
-**Date:** 2026-10-02 · **Status:** Superseded by D091 · **Supersedes:** [D076] · **Evidence:** Closes [D076], supersedes the `rm_mcuboot_port` exclusion in DESIGN.md 4
+**Date:** 2026-10-02 · **Status:** Superseded by D091 · **Builds on:** [D076] · **Evidence:** closes [D076]; what it supersedes is the `rm_mcuboot_port` exclusion in DESIGN.md §4, not [D076] itself
 
 **Decision.** BL2 links FSP's `ra/fsp/src/rm_mcuboot_port/flash_map.c` instead of TF-M's
 `bl2/src/flash_map.c`, `flash_map_extended.c` and `flash_map_legacy.c`. `DEFAULT_MCUBOOT_FLASH_MAP`
@@ -3541,7 +3541,7 @@ proves the two builds byte-identical.
 
 ## D084 — the shared PSA-arch SPE is NOT a defect; the debug settings in it were cache residue
 
-**Date:** 2026-10-02 · **Status:** Accepted · **Supersedes:** [D083] · **Evidence:** Retracts the "each suite needs its own SPE" claim made in [D083] and in the RA8M2 notes
+**Date:** 2026-10-02 · **Status:** Accepted · **Corrects:** [D083] · **Evidence:** retracts the "each suite needs its own SPE" claim made in [D083] and in the RA8M2 notes
 
 **The claim, withdrawn.** One SPE serving all three PSA Arch suites was flagged as a defect
 twice, for RA8M2 and RA6M5, on the reasoning that an SPE built with `TEST_PSA_API=CRYPTO`
@@ -3992,7 +3992,7 @@ and verified to build; **still untested on hardware**.
 
 ## D091 — Option 3 adopted: both parts take TF-M's MCUboot backend, FSP's HAL behind fa_driver
 
-**Date:** 2026-10-05 · **Status:** Accepted · **Supersedes:** [D079], [D082], [D090] · **Evidence:** Supersedes [D079], [D082] and [D090]'s configuration (not its mechanism); withdraws upstream item 13
+**Date:** 2026-10-05 · **Status:** Accepted · **Supersedes:** [D079], [D082] · **Corrects:** [D090] · **Evidence:** [D090]'s configuration is superseded, not its mechanism; withdraws upstream item 13
 
 **Verified on hardware.** `ra6m5_TFM_flih_gcc`, banner `TF-M v2.2.0+e75582eac`: the full
 regression suite passes, secure and non-secure, including the FLIH IRQ tests. Zero failures.
