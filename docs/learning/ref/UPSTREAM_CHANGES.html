@@ -37,7 +37,6 @@
       <li><a href="README.html">README.md</a></li>
       <li><a href="RECONFIGURING_THE_LAYOUT.html">RECONFIGURING_THE_LAYOUT.md</a></li>
       <li><a href="SETTLED.html">SETTLED.md</a></li>
-      <li><a href="START_REVIEW.html">START_REVIEW.md</a></li>
       <li><a href="TROUBLESHOOTING.html">TROUBLESHOOTING.md</a></li>
       <li><a href="UPSTREAM_CHANGES.html" aria-current="page">UPSTREAM_CHANGES.md</a></li>
       <li><a href="scripts_README.html">scripts/README.md</a></li>
@@ -213,7 +212,7 @@ both populate TF-M&#x27;s struct with <code>.fa_driver = &amp;FLASH_DEV_NAME</co
 <h3 id="s14">14. IAR: <code>--redirect __write=__write_buffered</code> makes a platform <code>__write()</code> unreachable</h3>
 <p><code>toolchain_IARARM.cmake</code> lines 68-70 - report only; no upstream file is modified for
 this item. The port works around it inside <code>platform/ext/target/renesas/</code>, so it does
-not appear in the 21-file diff above.</p>
+not appear in the file list above at all - that list excludes the port directory.</p>
 <pre><code class="language-cmake">add_link_options(
     --silent
     --semihosting

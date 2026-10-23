@@ -92,8 +92,11 @@ image ([D090]). An FSP uprev that adds a member, or a TF-M bump that changes its
 this again with no warning.
 
 Since [D091] the expected size is 16. Both parts compile TF-M's struct. Neither builds
-`rm_mcuboot_port`: `FSP_EXCLUDED_MODULES` filters its sources out of the glob
-(`ra6m5/CMakeLists.txt:112`, `ra8m2/CMakeLists.txt:112`).
+`rm_mcuboot_port` in the secure or BL2 image, because no module declares it: `FSP_MODULES_S`
+and `FSP_MODULES_BL2` are the only things that build FSP sources for those roles, and it is in
+`FSP_MODULES_NEVER_BUILT` so the audit stays quiet about it. `FSP_EXCLUDED_MODULES`
+(`ra6m5/CMakeLists.txt:112`, `ra8m2/CMakeLists.txt:112`) keeps it out of the non-secure glob,
+which is a different image - see `ADDING_FSP_MODULES.md` §2 for the three mechanisms.
 
 FSP's header is still on an include path, so the collision is avoided by scope rather than
 by absence. `fsp_bsp.cmake:106-108` adds FSP's `mcu-tools` MCUboot headers to the BSP

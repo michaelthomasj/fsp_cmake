@@ -106,6 +106,12 @@ UPSTREAM = [
     # FSP_EXCLUDED_MODULES at :159 when it is at :112, and nothing objected.
     ("config/config_base.cmake",                       116, r"PLATFORM_DEFAULT_ATTEST_HAL"),
     ("platform/ext/common/tfm_hal_isolation_v8m.c",     268, r"PLATFORM_STATIC_MPU_REGIONS"),
+]
+
+# Port files cited by full path. These move with a PORT commit, exactly like the
+# CITES rows above; they are listed separately only because the citation gives a
+# path rather than a part name. A TF-M uprev does not move them (F341).
+PORT_PATHS = [
     ("platform/ext/target/renesas/ra6m5/config.cmake",  127, r"CRYPTO_HW_ACCELERATOR\s"),
     ("platform/ext/target/renesas/ra6m5/config.cmake",  199, r"PLATFORM_DEFAULT_ATTEST_HAL"),
     ("platform/ext/target/renesas/ra8m2/config.cmake",  225, r"PLATFORM_DEFAULT_ATTEST_HAL"),
@@ -158,7 +164,7 @@ def main():
                        % (part, n, what, got.strip()[:76],
                           ", ".join(str(h) for h in hits) or "nowhere"))
 
-    for rel, n, pat in UPSTREAM:
+    for rel, n, pat in UPSTREAM + PORT_PATHS:
         p = os.path.join(TFM, rel)
         if not os.path.exists(p):
             bad.append("%s is missing" % rel)

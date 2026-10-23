@@ -7156,7 +7156,7 @@ decision log (`GETTING_STARTED.md`), not here.
 
 ## D131 — the v5 review: two generators were passing against their own faulty output; the RA6M5 PXN correction gets the entry it never had
 
-**Date:** 2026-10-22 · **Status:** Accepted · **Corrects:** [D128], [D129], [D130] · **Evidence:** v5 findings F001, F283, F309, F313–F334; both tool fixes tested against induced failures
+**Date:** 2026-10-22 · **Status:** Accepted · **Corrects:** [D047], [D128], [D129], [D130] · **Evidence:** v5 findings F001, F283, F309, F313–F334; both tool fixes tested against induced failures
 
 The fifth review found no open high-severity items but reported that the previous round
 introduced two tool defects. Both let errors pass the repository's own checks. Those are

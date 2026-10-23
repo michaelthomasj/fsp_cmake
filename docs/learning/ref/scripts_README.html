@@ -37,7 +37,6 @@
       <li><a href="README.html">README.md</a></li>
       <li><a href="RECONFIGURING_THE_LAYOUT.html">RECONFIGURING_THE_LAYOUT.md</a></li>
       <li><a href="SETTLED.html">SETTLED.md</a></li>
-      <li><a href="START_REVIEW.html">START_REVIEW.md</a></li>
       <li><a href="TROUBLESHOOTING.html">TROUBLESHOOTING.md</a></li>
       <li><a href="UPSTREAM_CHANGES.html">UPSTREAM_CHANGES.md</a></li>
       <li><a href="scripts_README.html" aria-current="page">scripts/README.md</a></li>
@@ -211,18 +210,26 @@ review proposes before anyone has written them.</p>
 first half of a rename spanning both repositories.</p>
 <pre><code class="language-sh">python scripts/check_arch_lines.py          # BUILD_ARCHITECTURE.md's line citations
 python scripts/check_arch_lines.py --list   # show what each cited line holds</code></pre>
-<p>72 citations, each paired with a regex the cited line must match: the RA port <code>CMakeLists.txt</code>
-and module files, upstream TF-M, and this repository&#x27;s own build scripts. <code>check_docs.py</code>
+<p>73 citations, each paired with a regex the cited line must match: the RA port <code>CMakeLists.txt</code>
+and module files, upstream TF-M, and this repository&#x27;s own build scripts. The table covers
+<code>BUILD_ARCHITECTURE.md</code>&#x27;s citations only. Line citations in the other documents - <code>DESIGN.md</code>,
+the solution documents, the course pages - are not checked, which is why <code>DESIGN.md</code> §8.4 cites
+<code>ra6m5_add_ofs_check()</code> by function name rather than by line. <code>check_docs.py</code>
 cannot catch this class: the file exists and the D-numbers resolve, so a reference stays
 &quot;valid&quot; while pointing at the wrong line.</p>
 <p>The port citations went stale twice in one day, both times from a comment edit above the
-block with no CMake change. The upstream citations were untouched by both commits; they move
-only on a TF-M uprev.</p>
+block with no CMake change. The table keeps them in two lists for that reason: <code>CITES</code> and
+<code>PORT_PATHS</code> are port files and move with a port commit, <code>UPSTREAM</code> is TF-M&#x27;s own code and
+moves only on a TF-M uprev.</p>
 <p>Fail-on-stale, not regenerate: the numbers sit in prose that explains each block, so a human
 has to look. The pre-commit hook skips it when <code>trusted-firmware-m</code> is not beside this repo;
 run by hand in that case it exits 2. <code>scripts/pre-commit-tfm</code> runs the same check from the
-TF-M side, where the drift originates. Adding a citation to a document means adding a row to
-the table in the script.</p>
+TF-M side, where the drift originates. Adding a citation to <code>BUILD_ARCHITECTURE.md</code> means
+adding a row to the table in the script.</p>
+<p><code>install_hooks.sh</code> installs two hooks, not one: <code>scripts/pre-commit</code> into this repository and
+<code>scripts/pre-commit-tfm</code> into <code>../trusted-firmware-m/.git/hooks/pre-commit</code>. An existing hook
+is copied to <code>&lt;name&gt;.bak</code> first. It is safe to re-run, and it has to be re-run after either
+hook script changes, because the hooks are copies rather than symlinks.</p>
 <h3 id="rendered-documents-for-the-course">Rendered documents for the course</h3>
 <pre><code class="language-sh">python scripts/build_doc_html.py           # regenerate docs/learning/ref/ from the working tree
 python scripts/build_doc_html.py --check   # exit 1 if ref/ is stale, orphaned, or the course links raw .md</code></pre>

@@ -216,7 +216,7 @@ both populate TF-M's struct with `.fa_driver = &FLASH_DEV_NAME`.
 
 `toolchain_IARARM.cmake` lines 68-70 - report only; no upstream file is modified for
 this item. The port works around it inside `platform/ext/target/renesas/`, so it does
-not appear in the 21-file diff above.
+not appear in the file list above at all - that list excludes the port directory.
 
 ```cmake
 add_link_options(

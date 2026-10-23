@@ -9,7 +9,7 @@
 | Entries | **133** |
 | Standing | **120** |
 | Superseded | **13** |
-| Standing but corrected on some point | **34** |
+| Standing but corrected on some point | **35** |
 | Standing, but the question they left open is closed | **3** |
 | Supersede lineages | **10** |
 
@@ -83,7 +83,7 @@ Nothing supersedes these. The title is the position. Where a later entry correct
 | `D044` | 2026-09-22 | The CTR fix is dropped; `mbedtls_aes_crypt_ctr()` is not an FSP API | Accepted | — | — |
 | `D045` | 2026-09-22 | Confirmed on FSP 6.7.0-beta0: 63/64 with no port-local rm_psa_crypto patches | Accepted | — | — |
 | `D046` | 2026-09-23 | RA6M5 PSA Arch on GCC and IAR: crypto, attestation, storage; RTT made lossless | Accepted | — | — |
-| `D047` | 2026-09-23 | FSP 6.7 is the baseline | Accepted | — | — |
+| `D047` | 2026-09-23 | FSP 6.7 is the baseline | Accepted | `D131` | — |
 | `D048` | 2026-09-23 | `.ram_from_flash` is copied by the platform, not by ILINK — closes [D029] | Accepted | — | — |
 | `D049` | 2026-09-23 | The IAR NS toolchain emits `.srec` — closes the second open defect | Accepted | — | — |
 | `D050` | 2026-09-24 | RSIP-E50D gets its own accelerator directory, consolidated with SCE9 at P7 | Accepted | — | — |

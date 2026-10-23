@@ -202,20 +202,29 @@ python scripts/check_arch_lines.py          # BUILD_ARCHITECTURE.md's line citat
 python scripts/check_arch_lines.py --list   # show what each cited line holds
 ```
 
-72 citations, each paired with a regex the cited line must match: the RA port `CMakeLists.txt`
-and module files, upstream TF-M, and this repository's own build scripts. `check_docs.py`
+73 citations, each paired with a regex the cited line must match: the RA port `CMakeLists.txt`
+and module files, upstream TF-M, and this repository's own build scripts. The table covers
+`BUILD_ARCHITECTURE.md`'s citations only. Line citations in the other documents - `DESIGN.md`,
+the solution documents, the course pages - are not checked, which is why `DESIGN.md` §8.4 cites
+`ra6m5_add_ofs_check()` by function name rather than by line. `check_docs.py`
 cannot catch this class: the file exists and the D-numbers resolve, so a reference stays
 "valid" while pointing at the wrong line.
 
 The port citations went stale twice in one day, both times from a comment edit above the
-block with no CMake change. The upstream citations were untouched by both commits; they move
-only on a TF-M uprev.
+block with no CMake change. The table keeps them in two lists for that reason: `CITES` and
+`PORT_PATHS` are port files and move with a port commit, `UPSTREAM` is TF-M's own code and
+moves only on a TF-M uprev.
 
 Fail-on-stale, not regenerate: the numbers sit in prose that explains each block, so a human
 has to look. The pre-commit hook skips it when `trusted-firmware-m` is not beside this repo;
 run by hand in that case it exits 2. `scripts/pre-commit-tfm` runs the same check from the
-TF-M side, where the drift originates. Adding a citation to a document means adding a row to
-the table in the script.
+TF-M side, where the drift originates. Adding a citation to `BUILD_ARCHITECTURE.md` means
+adding a row to the table in the script.
+
+`install_hooks.sh` installs two hooks, not one: `scripts/pre-commit` into this repository and
+`scripts/pre-commit-tfm` into `../trusted-firmware-m/.git/hooks/pre-commit`. An existing hook
+is copied to `<name>.bak` first. It is safe to re-run, and it has to be re-run after either
+hook script changes, because the hooks are copies rather than symlinks.
 
 ### Rendered documents for the course
 

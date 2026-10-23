@@ -3,7 +3,8 @@
 #
 # BUILD_ARCHITECTURE.md cites ~40 line numbers in the RA port CMakeLists. Those numbers
 # move when a TF-M *comment* is edited above them, which is how they drifted twice on
-# 2026-10-22 (D128, D129). fsp_cmake's own pre-commit cannot see it: a TF-M commit never
+# 2026-10-22: the D129 comment pass, and the PXN comment commit recorded in D131 section 4.
+# fsp_cmake's own pre-commit cannot see it: a TF-M commit never
 # runs it, so the drift was caught only at the next fsp_cmake commit that happened to stage
 # the document, or by a manual run (F321).
 #
@@ -16,13 +17,23 @@
 # It only reports. Fixing means editing fsp_cmake/BUILD_ARCHITECTURE.md and the table in
 # check_arch_lines.py together, which is a judgement call about which construct each
 # citation means - not something to regenerate.
+#
+# LIMIT: the checker reads the WORKING TREE, not the index, so a partly staged comment edit
+# is checked against the file on disk rather than against what is being committed. That is
+# the opposite of what fsp_cmake's hook does for the documents, and it is deliberate: the
+# alternative is a temporary checkout of the whole port on every commit. It means the check
+# can report a line that this commit does not move, and can miss one that it does.
 
 changed=$(git diff --cached --name-only --diff-filter=ACMR)
 echo "$changed" | grep -q '^platform/ext/target/renesas/' || exit 0
 
 root=$(git rev-parse --show-toplevel)
 checker="$root/../fsp_cmake/scripts/check_arch_lines.py"
-[ -f "$checker" ] || exit 0          # fsp_cmake not beside this clone; nothing to check
+if [ ! -f "$checker" ]; then
+    echo "pre-commit: no fsp_cmake beside this clone, so BUILD_ARCHITECTURE.md's line"
+    echo "            citations are not checked for this commit."
+    exit 0
+fi
 
 python "$checker"
 status=$?
