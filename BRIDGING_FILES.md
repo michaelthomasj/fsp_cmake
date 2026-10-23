@@ -1,13 +1,12 @@
 # Bridging files — what carries FSP code or FSP values, and the check for each
 
-**The concern.** Some files in the ports exist only to bridge FSP to TF-M. They carry FSP's
-code, restate FSP-generated configuration, or depend on FSP internals — but they are **not**
+The concern. Some files in the ports exist only to bridge FSP to TF-M. They carry FSP's
+code, restate FSP-generated configuration, or depend on FSP internals, but they are not
 FSP files, so regenerating the e2 projects does not update them and nothing in the build
 compares them against their origin. They drift silently on an FSP pack uprev, and the failure
-mode is the worst kind: a stale constant that links cleanly and is wrong at run time.
+is a stale constant that links cleanly and is wrong at run time.
 
-**A list of filenames is not the point. The check is.** Every entry below names something you
-can run or an assertion that fires.
+Every entry below names something you can run or an assertion that fires.
 
 This has already happened more than once:
 
@@ -30,7 +29,7 @@ re-checked and corrected 2026-10-22 for [D091], which postdates that verificatio
 ### 1. The mbedTLS patch set — content comparison
 
 The ports carry five patches in `<part>/mbedtls/`. Four of them (`0003`, `0004`, `0006`,
-`0007`) are **TF-M's own patches, rebased onto FSP's mbedTLS tree.** They are identical in
+`0007`) are TF-M's own patches, rebased onto FSP's mbedTLS tree. They are identical in
 content to `lib/ext/mbedcrypto/` but differ in commit SHA, blob index and hunk offsets, so a
 plain `cmp` always reports a difference and tells you nothing.
 
@@ -52,7 +51,7 @@ All four report `SAME` as of 2026-10-04. A `DRIFT` means TF-M changed the patch 
 rebased copy has not followed — read the diff and rebase it.
 
 `0100-FSP-fit-TF-M-config-file-name-and-owner-key-ids.patch` is port-specific, has no upstream
-counterpart, and **differs between RA6M5 and RA8M2.** Compare it only against the previous
+counterpart, and differs between RA6M5 and RA8M2. Compare it only against the previous
 revision of the same part.
 
 The four shared patches are byte-identical between RA6M5 and RA8M2, so they can be compared to
@@ -67,24 +66,25 @@ grep RM_MCUBOOT_MRAM_BLOCK_SIZE \
 
 Must still be `0x8000`, matching `FLASH_AREA_IMAGE_SECTOR_SIZE` in `ra8m2/flash_layout.h`.
 
-**This one cannot be machine-checked**, which is why it needs a manual step: FSP hardcodes the
+This one cannot be machine-checked, which is why it needs a manual step: FSP hardcodes the
 value rather than deriving it from a `BSP_FEATURE` macro, and the same header also defines
 `FLASH_AREA_IMAGE_SECTOR_SIZE`, so it cannot be included beside the port's to compare. What
-*is* asserted in `<part>_layout_checks.c` is that the part reports MRAM and that the sector is
+is asserted in `<part>_layout_checks.c` is that the part reports MRAM and that the sector is
 a whole number of MRAM write units ([D086]).
 
 ### 3. struct flash_area - the guard collision, checked from DWARF
 
-The highest-consequence drift surface found so far, because **nothing in the build signals it**.
+The highest-consequence drift surface found so far, because nothing in the build signals it.
 
 TF-M's `bl2/ext/mcuboot/include/flash_map/flash_map.h` and FSP's
 `rm_mcuboot_port/flash_map_backend/flash_map_backend.h` both guard with `H_UTIL_FLASH_MAP_`,
-so the first one reached silently suppresses the other. They do not define the same type:
+so the first one reached suppresses the other with no diagnostic. They do not define the same
+type:
 
 | | |
 |---|---|
-| TF-M | **16 bytes** - extra `ARM_DRIVER_FLASH *fa_driver` between `pad16` and `fa_off` |
-| FSP | **12 bytes** - no such member |
+| TF-M | 16 bytes - extra `ARM_DRIVER_FLASH *fa_driver` between `pad16` and `fa_off` |
+| FSP | 12 bytes - no such member |
 
 With the wrong one in bootutil, every member after `pad16` is read one slot late. Both are
 complete types, the link succeeds, and the only symptom is a bootloader rejecting a correct
@@ -97,10 +97,10 @@ Since [D091] the expected size is 16. Both parts compile TF-M's struct. Neither 
 
 FSP's header is still on an include path, so the collision is avoided by scope rather than
 by absence. `fsp_bsp.cmake:106-108` adds FSP's `mcu-tools` MCUboot headers to the BSP
-library, with the reason at `:85-87`: because the bootloader project's `hal_data.h` includes `rm_mcuboot_port.h`, which
-includes `bootutil/image.h`. Those paths are **PRIVATE to `fsp_bsp_bl2`** and never reach
-`bootutil`. One consequence matters for the check: an `fsp_bsp` object may legitimately
-report 12 bytes.
+library, with the reason at `:85-87`: the bootloader project's `hal_data.h` includes
+`rm_mcuboot_port.h`, which includes `bootutil/image.h`. Those paths are PRIVATE to
+`fsp_bsp_bl2` and never reach `bootutil`. One consequence matters for the check: an `fsp_bsp`
+object reporting 12 bytes is correct.
 
 The check. Every `bootutil` and `flash_map` object must report 16. Scope it to those: an
 `fsp_bsp_bl2` object is expected to report 12 and is not a failure.
@@ -118,7 +118,7 @@ done
 path.** A stale on-disk object can report either size; confirm with
 `grep -c <object> build.ninja` returning 0 before chasing it.
 
-### 4. The rm_psa_crypto tree — the cheapest canary found so far
+### 4. The rm_psa_crypto tree — a low-cost diff
 
 ```sh
 cd <peaks-working> && git diff --stat ra/fsp/src/rm_psa_crypto/
@@ -129,8 +129,8 @@ packs, so a diff here is high-signal at near-zero cost ([D053]).
 
 ### 5. The ALT source list
 
-The accelerator `CMakeLists.txt` selects a **subset** of what FSP ships — CCM is deliberately
-excluded ([D043], [D051]). FSP adding, removing or fixing a source does not change the list,
+The accelerator `CMakeLists.txt` selects a subset of what FSP ships; CCM is excluded by
+design ([D043], [D051]). FSP adding, removing or fixing a source does not change the list,
 and this is how two session-leak fixes were nearly missed ([D053], which supersedes [D052] -
 the pack does ship both fixes). After an uprev,
 list FSP's `*_alt.c` files and compare against the list.
@@ -146,9 +146,9 @@ complains.
 
 | File | Stands in for | Check |
 |---|---|---|
-| `ra8m2_ddsc.c` (**RA8M2 only** - RA6M5 has no DDSC bridge and needs none) | `bsp_linker.c`'s `gp_ddsc_*` definitions | `#error`s on empty partitions. Lives in the `fsp_bsp` module, not `platform_s` — GNU ld does not revisit archives |
+| `ra8m2_ddsc.c` (RA8M2 only - RA6M5 has no DDSC bridge and needs none) | `bsp_linker.c`'s `gp_ddsc_*` definitions | `#error`s on empty partitions. Lives in the `fsp_bsp` module, not `platform_s` — GNU ld does not revisit archives |
 | `bsp_init_stub.c` | FSP's init / copy / nocache tables, and the `g_main_stack` alias | the alias is asserted via `S_MSP_STACK_SIZE == BSP_CFG_STACK_MAIN_BYTES + STACKSEAL_SIZE` |
-| `bl2_option_setting.c` | the OFS sections `bsp_linker.c` emits | **has the best guard in the port** — see below |
+| `bl2_option_setting.c` | the OFS sections `bsp_linker.c` emits | the guard described below |
 
 ### Restates an FSP-GENERATED value
 
@@ -160,8 +160,8 @@ The generated value changes; the restatement does not.
 | accelerator `<engine>_fsp_cfg.h` | `ra_cfg/arm/mbedtls/config.h` | diff after regenerate |
 | `mbedtls_accelerator_config.h`, `crypto_accelerator_config.h`, and the `bl2_*` variants | FSP's mbedTLS config | diff after regenerate |
 | `MCUBOOT_ALIGN_VAL` | `BSP_FEATURE_MRAM_PROGRAMMING_SIZE_BYTES` (32 on RA8M2) | not asserted — `MCUBOOT_ALIGN_VAL` is not visible in `platform_s`, where the checks live |
-| `RA8M2_VECTOR_TABLE_ENTRIES` (112) | `BSP_VECTOR_TABLE_MAX_ENTRIES` | **partly asserted** via `S_CODE_VECTOR_TABLE_SIZE >= entries * 4` in both parts ([D086]). The assert compares the linker **region** (`0x200` = 128 entries) with `BSP_VECTOR_TABLE_MAX_ENTRIES`; it never sees the startup literal, which appears only in the message text. If FSP grew the table to 113-128 entries the assert would still pass while `__VECTOR_TABLE` stayed at 112 |
-| the RDPM KB figures | the generated partition sizes | **no build-time check is possible** — provisioning does not come back. Derived rather than transcribed in the per-part solution docs |
+| `RA8M2_VECTOR_TABLE_ENTRIES` (112) | `BSP_VECTOR_TABLE_MAX_ENTRIES` | partly asserted via `S_CODE_VECTOR_TABLE_SIZE >= entries * 4` in both parts ([D086]). The assert compares the linker region (`0x200` = 128 entries) with `BSP_VECTOR_TABLE_MAX_ENTRIES`; it never sees the startup literal, which appears only in the message text. If FSP grew the table to 113-128 entries the assert would still pass while `__VECTOR_TABLE` stayed at 112 |
+| the RDPM KB figures | the generated partition sizes | no build-time check is possible — provisioning does not come back. Derived rather than transcribed in the per-part solution docs |
 
 ### Depends on FSP INTERNALS, not its public API
 
@@ -193,7 +193,7 @@ is correct.
 ([[D129]]). `FSP_EXCLUDED_MODULES` removes it only from the non-secure glob, which is a
 different image.
 
-**`rm_mcuboot_port` is shadowed on both parts** — [D091]. It briefly supplied the flash map
+`rm_mcuboot_port` is shadowed on both parts ([D091]). It briefly supplied the flash map
 and backend on RA8M2 ([D079]), which is what removed the running cost [D073]/[D074] paid, and
 RA6M5 returned to TF-M's at [D085]; [D091] then settled both parts on TF-M's map and backend
 with FSP's HAL behind `fa_driver`. This row no longer differs per part - both `CMakeLists.txt`
@@ -203,45 +203,45 @@ list `rm_mcuboot_port` in `FSP_MODULES_NEVER_BUILT`.
 
 ## The linker and OFS family — the highest-consequence case
 
-**The failure mode is not a build error.** Worked hazard: a user changes an OFS setting in e2,
+The failure mode is not a build error. Worked hazard: a user changes an OFS setting in e2,
 rebuilds, and expects the new value to be programmed.
 
 | Stage | Comes from | What goes wrong silently |
 |---|---|---|
-| OFS **values** | the **bootloader** project's `ra_cfg/.../bsp_mcu_ofs_cfg.h` | Edited in the **secure** project instead — no effect, no warning. `bl2_option_setting.c` compiles into `platform_bl2`, so only `FSP_BL2_APP_DIR` is on the path. Both projects define the same groups |
-| OFS **addresses** | the bootloader project's generated `Debug/memory_regions.*`, filtered into `option_settings.h` at configure time | Hand-transcribed until 2026-09-24, and they were RA6M5's: OFS0 linked at `0x0100A100` instead of `0x02c9f040`. **RA6M5 and RA6E1 still transcribe theirs** — the open back-port in [D077] |
-| which **groups** exist | the device; FSP emits a `BSP_CFG_OPTION_SETTING_*` only for what the user set | A group enabled in e2 that the port does not place is **dropped with no diagnostic.** OFS2, OFS3_SEC and OFS3_SEL were dropped exactly this way |
-| **placement** | `<part>_bl2.ld` MEMORY + sections, `<part>_bl2.icf` region + keep + place | One coalesced `PT_LOAD` zero-fills the gaps across option/config memory → **permanent brick** ([D002], [D094] — the mechanism is proven, the field responsible is unidentified). Invisible in the srec |
+| OFS values | the bootloader project's `ra_cfg/.../bsp_mcu_ofs_cfg.h` | Edited in the secure project instead — no effect, no warning. `bl2_option_setting.c` compiles into `platform_bl2`, so only `FSP_BL2_APP_DIR` is on the path. Both projects define the same groups |
+| OFS addresses | the bootloader project's generated `Debug/memory_regions.*`, filtered into `option_settings.h` at configure time | Hand-transcribed until 2026-09-24, and they were RA6M5's: OFS0 linked at `0x0100A100` instead of `0x02c9f040`. RA6M5 and RA6E1 still transcribe theirs — the open back-port in [D077] |
+| which groups exist | the device; FSP emits a `BSP_CFG_OPTION_SETTING_*` only for what the user set | A group enabled in e2 that the port does not place is dropped with no diagnostic. OFS2, OFS3_SEC and OFS3_SEL were dropped this way |
+| placement | `<part>_bl2.ld` MEMORY + sections, `<part>_bl2.icf` region + keep + place | One coalesced `PT_LOAD` zero-fills the gaps across option/config memory → **permanent brick** ([D002], [D094] — the mechanism is proven, the field responsible is unidentified). Invisible in the srec |
 
 ### The checks that exist, and the pattern to follow
 
 Each hazard gets a mechanism, not a comment:
 
-- **`bl2_option_setting.c` ends in a guard** listing every `BSP_CFG_OPTION_SETTING_*` FSP knows
-  for the part that the port does **not** place. Any of them being set is an `#error` naming the
+- `bl2_option_setting.c` ends in a guard listing every `BSP_CFG_OPTION_SETTING_*` FSP knows
+  for the part that the port does not place. Any of them being set is an `#error` naming the
   three edits needed. Verified to fire for `BPS` and `OTP_PBPS_SEC`, and correctly not to fire
   for the `OFS1_SEC_NO_HOCOFRQ` variant. **RA8M2 has 22 of these guards; RA6M5 and RA6E1 have
   none** ([D077]).
-- **`check_ofs.py` requires its region.** It used to hardcode RA6's `0x0100A100` window and,
-  run against an RA8M2 BL2 carrying six OFS segments, printed *"CLEAN (no OFS segments) … safe
-  to flash"*. **A guard pointed at the wrong window is worse than none, because it reads as
+- `check_ofs.py` requires its region. It used to hardcode RA6's `0x0100A100` window and,
+  run against an RA8M2 BL2 carrying six OFS segments, printed "CLEAN (no OFS segments) … safe
+  to flash". **A guard pointed at the wrong window is worse than none, because it reads as
   verification.** BL2 also passes `--require-segments`, so an empty result fails.
-- **`readelf -l` on the linked ELF** is the only place the coalescing is visible. In the
+- `readelf -l` on the linked ELF is the only place the coalescing is visible. In the
   pre-flash verification, `GETTING_STARTED.md` §6.
 
 ### What the port does with each FSP linker input
 
 | FSP file | Treatment |
 |---|---|
-| `Debug/bsp_linker_info.h` | **consumed**, filtered to `bsp_partitions.h` — macros only, because it also declares C types and a `flash_map[]` that would collide |
-| `Debug/memory_regions.{ld,icf}` | **consumed** on RA8M2, filtered to `option_settings.h` for the OFS addresses |
-| `bsp_linker.c` | **excluded**; its three jobs are reimplemented in `bl2_option_setting.c`, `bsp_init_stub.c` and `<part>_ddsc.c` |
-| `Debug/fsp_gen.{ld,icf}`, `script/fsp.{ld,icf}` | **unused** — TF-M supplies its own. Worth keeping as the reference for what FSP would have done; they were the source for the discrete-region pattern |
+| `Debug/bsp_linker_info.h` | consumed, filtered to `bsp_partitions.h` — macros only, because it also declares C types and a `flash_map[]` that would collide |
+| `Debug/memory_regions.{ld,icf}` | consumed on RA8M2, filtered to `option_settings.h` for the OFS addresses |
+| `bsp_linker.c` | excluded; its three jobs are reimplemented in `bl2_option_setting.c`, `bsp_init_stub.c` and `<part>_ddsc.c` |
+| `Debug/fsp_gen.{ld,icf}`, `script/fsp.{ld,icf}` | unused — TF-M supplies its own. Worth keeping as the reference for what FSP would have done; they were the source for the discrete-region pattern |
 | port-owned | `<part>_bl2.ld`, `<part>_bl2.icf`, `<part>_fsp_sections.icf` |
 
 ---
 
 ## Sequencing
 
-**Read this before the FSP pack uprev in `PROJECT_PLAN.md`, not after.** The uprev is the event
+Read this before the FSP pack uprev in `PROJECT_PLAN.md`, not after. The uprev is the event
 this document exists to survive, and doing it second means auditing from memory.
