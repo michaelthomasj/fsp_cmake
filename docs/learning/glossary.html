@@ -126,7 +126,7 @@ below is taken from it. A <em>superseded</em> entry has been replaced and is cit
 <tr><td><a href="ref/DECISIONS.html#d061">D061</a></td><td>secure interrupts on RA; ITNS + ICUSARG; vector table</td><td>stands</td><td>Start, 2, 4</td></tr>
 <tr><td><a href="ref/DECISIONS.html#d063">D063</a></td><td>pinned CMSE veneers get their own MEMORY region</td><td>stands</td><td>4</td></tr>
 <tr><td><a href="ref/DECISIONS.html#d064">D064</a></td><td>BL2 masking interrupts; masked SVC → <code>HFSR.FORCED</code></td><td>stands</td><td>0, 1</td></tr>
-<tr><td><a href="ref/DECISIONS.html#d065">D065</a></td><td>flat-binary brick guard on every port</td><td>stands; corrected by <a href="ref/DECISIONS.html#d120">D120</a></td><td>4</td></tr>
+<tr><td><a href="ref/DECISIONS.html#d065">D065</a></td><td>flat-binary brick guard on every port</td><td>stands; corrected by <a href="ref/DECISIONS.html#d120">D120</a>, <a href="ref/DECISIONS.html#d132">D132</a></td><td>4</td></tr>
 <tr><td><a href="ref/DECISIONS.html#d069">D069</a></td><td>weak symbol silently unrouting every secure interrupt</td><td>stands</td><td>Start, 0, 2, 4</td></tr>
 <tr><td><a href="ref/DECISIONS.html#d073">D073</a></td><td>RA8M2 MRAM alias chosen per offset</td><td>stands</td><td>2</td></tr>
 <tr><td><a href="ref/DECISIONS.html#d075">D075</a></td><td>BL2 must enable the SAU on RA8M2</td><td><strong>superseded</strong> by <a href="ref/DECISIONS.html#d076">D076</a></td><td>Start, 4</td></tr>
@@ -140,7 +140,7 @@ below is taken from it. A <em>superseded</em> entry has been replaced and is cit
 <tr><td><a href="ref/DECISIONS.html#d091">D091</a></td><td>TF-M's MCUboot backend, FSP's HAL behind <code>fa_driver</code></td><td>stands; corrected by <a href="ref/DECISIONS.html#d092">D092</a></td><td>2, 4</td></tr>
 <tr><td><a href="ref/DECISIONS.html#d092">D092</a></td><td>RA8M2 first boot: the <code>MSAR</code> BusFault</td><td>stands</td><td>Start, 1, 2</td></tr>
 <tr><td><a href="ref/DECISIONS.html#d093">D093</a></td><td><code>BSP_TZ_CFG_MSAR=0</code> workaround</td><td>stands; corrected by <a href="ref/DECISIONS.html#d094">D094</a></td><td>2</td></tr>
-<tr><td><a href="ref/DECISIONS.html#d094">D094</a></td><td>the RA6M4 brick: coalescing proven; the field search is closed by D132</td><td>stands; corrected by <a href="ref/DECISIONS.html#d132">D132</a></td><td>0, 4</td></tr>
+<tr><td><a href="ref/DECISIONS.html#d094">D094</a></td><td>the RA6M4 brick: coalescing proven, the killed field is not</td><td>stands; corrected by <a href="ref/DECISIONS.html#d132">D132</a></td><td>0, 4</td></tr>
 <tr><td><a href="ref/DECISIONS.html#d096">D096</a></td><td>measured boot confirmed on RA8M2</td><td>stands</td><td>4</td></tr>
 <tr><td><a href="ref/DECISIONS.html#d100">D100</a></td><td>secondary slot below primary; BL2 and secure image share RAM</td><td>stands</td><td>4</td></tr>
 <tr><td><a href="ref/DECISIONS.html#d102">D102</a></td><td>RA8M2 IAR launches; <code>setTZBoundaries</code> appears twice</td><td><strong>superseded</strong> by <a href="ref/DECISIONS.html#d103">D103</a></td><td>4</td></tr>
@@ -154,14 +154,14 @@ below is taken from it. A <em>superseded</em> entry has been replaced and is cit
 <tr><td><strong><a href="ref/DECISIONS.html#d117">D117</a></strong></td><td>six corrections: FLIH dispatch, L1+IPC mechanism, IDAU comments, PXN provenance, stale docs, upstream count</td><td>stands; corrected by <a href="ref/DECISIONS.html#d120">D120</a>, <a href="ref/DECISIONS.html#d126">D126</a></td><td>Start, 1, 2, 3, 4</td></tr>
 <tr><td><strong><a href="ref/DECISIONS.html#d118">D118</a></strong></td><td>RA8M2 isolation 2 green under IAR</td><td>stands</td><td>3</td></tr>
 <tr><td><strong><a href="ref/DECISIONS.html#d119">D119</a></strong></td><td>RA8M2 isolation 3 green under IAR; coverage table</td><td>stands; corrected by <a href="ref/DECISIONS.html#d126">D126</a></td><td>3</td></tr>
-<tr><td><strong><a href="ref/DECISIONS.html#d120">D120</a></strong></td><td>the isolation-macro gap is this port's, not upstream's; item 15 withdrawn; D065 vs D094 on the brick</td><td>stands; corrected by <a href="ref/DECISIONS.html#d125">D125</a>, <a href="ref/DECISIONS.html#d128">D128</a></td><td>Start, 3, 4</td></tr>
+<tr><td><strong><a href="ref/DECISIONS.html#d120">D120</a></strong></td><td>the isolation-macro gap is this port's, not upstream's; item 15 withdrawn; D065 vs D094 on the brick</td><td>stands; corrected by <a href="ref/DECISIONS.html#d125">D125</a>, <a href="ref/DECISIONS.html#d128">D128</a>, <a href="ref/DECISIONS.html#d132">D132</a></td><td>Start, 3, 4</td></tr>
 <tr><td><strong><a href="ref/DECISIONS.html#d121">D121</a></strong></td><td>the isolation HAL moves to <code>tfm_spm</code>; the hand-defines are deleted</td><td>stands; corrected by <a href="ref/DECISIONS.html#d125">D125</a></td><td>Start, 1, 3, 4</td></tr>
 <tr><td><strong><a href="ref/DECISIONS.html#d122">D122</a></strong></td><td>the move is MPU-neutral on RA6M5 L2; RA6M5 L1+IPC green, cause unexplained</td><td>stands; corrected by <a href="ref/DECISIONS.html#d125">D125</a></td><td>1, 3</td></tr>
 <tr><td><strong><a href="ref/DECISIONS.html#d123">D123</a></strong></td><td>RA6M5 L3 confirms D121's predicted +32 B shift; RA6M5 IAR L2 green</td><td>stands; corrected by <a href="ref/DECISIONS.html#d125">D125</a></td><td>3</td></tr>
 <tr><td><strong><a href="ref/DECISIONS.html#d124">D124</a></strong></td><td>the run matrix is complete; <code>TFM_SP_META_PTR</code> identical across toolchains</td><td>stands; corrected by <a href="ref/DECISIONS.html#d126">D126</a></td><td>Start, 3, 4</td></tr>
 <tr><td><strong><a href="ref/DECISIONS.html#d125">D125</a></strong></td><td>six corrections to D120–D123; the HAL never left the PSA RoT code region</td><td>stands; corrected by <a href="ref/DECISIONS.html#d128">D128</a></td><td>Start, 3</td></tr>
 <tr><td><strong><a href="ref/DECISIONS.html#d126">D126</a></strong></td><td>eighteen corrections to D110–D125; SFN reaches the hook too; diagnostics stay; PXN parked</td><td>stands; corrected by <a href="ref/DECISIONS.html#d128">D128</a></td><td>Start, 2, 3, 4</td></tr>
-<tr><td><strong><a href="ref/DECISIONS.html#d132">D132</a></strong></td><td>the RA6M4 brick is a write to a reserved area</td><td>stands</td><td>4</td></tr>
+<tr><td><strong><a href="ref/DECISIONS.html#d133">D133</a></strong></td><td>the fill zeroed eight defined option registers; the field is still unnamed</td><td>stands</td><td>4</td></tr>
 </table></div>
 <p class="src">Generated from the D-numbers each page cites by <code>scripts/build_course_glossary.py</code>; "Standing" is from SETTLED.md. "Start" is the landing page; 0–4 are the parts.</p>
 

@@ -69,11 +69,12 @@ away rather than reproduced here.</p>
 <h2 id="brick-hazards">Brick hazards</h2>
 <h3 id="the-part-reads-back-0xda-and-will-not-respond">The part reads back <code>0xDA</code> and will not respond</h3>
 <p><strong>The board is dead and cannot be recovered.</strong> Two EK-RA6M4 boards were lost this way on
-2026-07-21. The cause is a write to a reserved area: the gaps between the option-setting
-groups are reserved, and the hardware manual requires that they are never written (<a href="DECISIONS.html#d132">D132</a>).
-Post-brick readback gave <code>DLMMON = 0x2</code> = SSD, an open state, not a DLM lock.</p>
+2026-07-21. The coalesced segment wrote <code>0x00</code> into eight defined option registers - DUALSEL,
+OFS1, BANKSEL, BPS, PBPS, BANKSEL_SEC, BPS_SEC, PBPS_SEC - and into the reserved bytes between
+them (<a href="DECISIONS.html#d133">D133</a>). Which of the eight killed the boards is not established. Post-brick readback
+gave <code>DLMMON = 0x2</code> = SSD, an open state, not a DLM lock.</p>
 <p><strong>Cause.</strong> A BL2 image whose option-setting words were coalesced by the linker into one
-<code>PT_LOAD</code>, so the fill between them lands on reserved bytes. Measured on the
+<code>PT_LOAD</code>, so the fill between them lands on every option register in the span. Measured on the
 preserved image: a segment at <code>0x0100A100</code> of 388 bytes (<code>0x184</code>, to <code>0x0100A283</code>) holding
 the three words that BL2 emitted, of which 376 bytes were zero fill written across
 configuration memory that should have been left alone.</p>

@@ -26,7 +26,7 @@ this repo (`fsp_cmake`) and consumed by TF-M via `FSP_*_APP_DIR` variables.
 linked into an image. The actual cause was narrower: `ra6m4_bl2.ld` emitted the option words as
 bare addressed sections with **no `> REGION` assignment**, so GNU ld coalesced all of them into one
 PT_LOAD spanning `0x0100A100`–`0x0100A2CC` and **zero-filled the 368 bytes of FCU config in
-between**, which are reserved ([D132]). FSP's generated linker gives each option group its
+between**, which hold eight defined registers and reserved bytes ([D133]). FSP's linker gives each option group its
 own MEMORY region and therefore cannot do this.
 
 OFS emission is **restored**, with thirteen discrete MEMORY regions. Full rationale: **DESIGN.md

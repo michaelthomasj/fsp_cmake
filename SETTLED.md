@@ -6,12 +6,12 @@
 
 | | |
 |---|---|
-| Entries | **132** |
+| Entries | **133** |
 | Standing | **120** |
-| Superseded | **12** |
+| Superseded | **13** |
 | Standing but corrected on some point | **34** |
 | Standing, but the question they left open is closed | **3** |
-| Supersede lineages | **9** |
+| Supersede lineages | **10** |
 
 ---
 
@@ -30,6 +30,7 @@ A later entry **supersedes** an earlier one: same question, newer answer. Citing
 | D098 → **D111** | `D111` | D098 corrects D097; D111 corrects D098, D099, D104 |
 | D102 → **D103** | `D103` | D103 supersedes D102 |
 | D107 → **D108** | `D108` | D108 supersedes D107 |
+| D132 → **D133** | `D133` | D132 corrects D094, D065, D120; D133 supersedes D132; D133 corrects D132 |
 
 ---
 
@@ -99,7 +100,7 @@ Nothing supersedes these. The title is the position. Where a later entry correct
 | `D062` | 2026-09-27 | RA declares test capabilities; ra6m4 could not build TEST_S at all | Accepted | — | — |
 | `D063` | 2026-09-28 | Pinned CMSE veneers get their own MEMORY region; the regression suite now links | Accepted | — | — |
 | `D064` | 2026-09-29 | BL2 masking interrupts is sound and complete; the SPMON hazard does not exist on these parts | Accepted | — | — |
-| `D065` | 2026-09-29 | the flat-binary brick guard is now on all four ports, and a stale `.bin` is as lethal as a fresh one | Accepted | `D120` | — |
+| `D065` | 2026-09-29 | the flat-binary brick guard is now on all four ports, and a stale `.bin` is as lethal as a fresh one | Accepted | `D120`, `D132` | — |
 | `D066` | 2026-09-29 | RA8M2's partition comments described RA6M5, including the values that get provisioned | Accepted | — | — |
 | `D067` | 2026-09-29 | first full tf-m-tests regression pass on hardware, and two suites that report PASSED without testing | Accepted | — | — |
 | `D068` | 2026-09-30 | the FLIH/SLIH fixture, and two silent defects the IAR build found in D065 | Accepted | — | — |
@@ -146,7 +147,7 @@ Nothing supersedes these. The title is the position. Where a later entry correct
 | `D117` | 2026-10-21 | six corrections from an external review: [D113] overstated FLIH, [D116] closed a question that was answerable, and three ports deny the IDAU exists | Accepted | `D120`, `D126` | — |
 | `D118` | 2026-10-21 | first IAR run above isolation 1: RA8M2 L2 green, and the MMIO region is the only toolchain-invariant in the table | Accepted | — | — |
 | `D119` | 2026-10-21 | [D114]'s second macro confirmed under IAR; RA8M2 is complete at every level on both toolchains | Accepted | `D126` | — |
-| `D120` | 2026-10-22 | the isolation-macro gap is this port's, not upstream's; [D113]'s root cause was wrong and upstream item 15 is withdrawn | Accepted | `D125`, `D128` | — |
+| `D120` | 2026-10-22 | the isolation-macro gap is this port's, not upstream's; [D113]'s root cause was wrong and upstream item 15 is withdrawn | Accepted | `D125`, `D128`, `D132` | — |
 | `D121` | 2026-10-22 | the shared isolation HAL moves to `tfm_spm`; [D113]'s workaround is deleted, not documented | Accepted | `D125` | — |
 | `D122` | 2026-10-22 | the `tfm_spm` move is MPU-neutral on silicon, and RA6M5 L1+IPC is green for the first time — cause unexplained | Accepted | `D125` | — |
 | `D123` | 2026-10-22 | RA6M5 isolation 3 confirms [D121]'s predicted boundary shift to the byte; RA6M5 IAR runs above isolation 1 for the first time | Accepted | `D125` | — |
@@ -158,11 +159,11 @@ Nothing supersedes these. The title is the position. Where a later entry correct
 | `D129` | 2026-10-22 | the v4 review of `BUILD_ARCHITECTURE.md`: eight findings, the FSPR attribution withdrawn in eleven more places, and line citations are now checked | Accepted | `D131` | — |
 | `D130` | 2026-10-22 | TF-M 2.3 is deferred, not cancelled: the gate is FSP's Mbed TLS 4.1 migration, expected ~2026-11-12 | Accepted | `D131` | — |
 | `D131` | 2026-10-22 | the v5 review: two generators were passing against their own faulty output; the RA6M5 PXN correction gets the entry it never had | Accepted | — | — |
-| `D132` | 2026-10-22 | the RA6M4 brick is a write to a reserved area; no field needs naming | Accepted | — | — |
+| `D133` | 2026-10-22 | the coalesced fill zeroes eight DEFINED option registers, not only reserved bytes; [D132] overstated the reserved-area reading | Accepted | — | — |
 
 ---
 
-## Superseded (12)
+## Superseded (13)
 
 Kept for the reasoning. **Do not cite one of these without reading what replaced it** — in several cases the later entry reverses the earlier claim outright.
 
@@ -180,4 +181,5 @@ Kept for the reasoning. **Do not cite one of these without reading what replaced
 | `D098` | 2026-10-08 | refines [D097]: the RSA-2048 keygen failure is the PLAINTEXT path, and the config selects it | `D111` |
 | `D102` | 2026-10-08 | RA8M2 IAR: all six trees build, five launches generated; the ewarm staleness was already gone | `D103` |
 | `D107` | 2026-10-09 | BL2 is silent under IAR because DLIB buffers stdout; `rtt_stdout.c` now makes it unbuffered | `D108` (also corrected by `D110`) |
+| `D132` | 2026-10-22 | the RA6M4 brick is a write to a reserved area; no field needs naming | `D133` |
 

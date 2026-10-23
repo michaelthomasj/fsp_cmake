@@ -55,7 +55,7 @@ Rows marked _TBD_ are not yet written.
 | Why was BL2 silent on RTT under IAR? | **Two independent blockers.** TF-M's `toolchain_IARARM.cmake` redirects `__write` to DLIB's buffered writer, so the port's hook is unreachable and output goes to semihosting — fixed by implementing `__dwrite`. DLIB also buffers stdout and BL2 never flushes — fixed by `setvbuf`. Neither alone is sufficient. | D107→D108→**D110** |
 | Does a passing attestation suite prove measured boot? | **No.** With `component_cnt == 0` the token carries `IAT_NO_SW_COMPONENTS` and the suite passes anyway. Read the boot record at the start of secure RAM and match both measurements to the images' SHA-256 TLVs. | D080→**D081** |
 | How must OFS memory be linked? | **One linker `MEMORY` region per OFS group.** ⚠ Coalescing lets the linker gap-fill between words and write values nobody chose. Flash `bl2.elf`/`bl2.hex`, never `bl2.bin`. `check_ofs.py` enforces it. | **D002** (supersedes D001) |
-| What bricked the two EK-RA6M4 boards? | **A write to a reserved area.** The gaps between the OFS groups are reserved, and the hardware manual requires that reserved areas are never written. A coalesced `PT_LOAD` zero-fills them: measured gap fill is `0x00 ×376`, not `0xFF`. No individual field needs naming. | D093→D094→**D132** |
+| What bricked the two EK-RA6M4 boards? | **The coalesced `PT_LOAD` wrote `0x00` into eight defined option registers** - DUALSEL, OFS1, BANKSEL, BPS, PBPS, BANKSEL_SEC, BPS_SEC, PBPS_SEC - as well as the reserved bytes between them. Measured gap fill is `0x00 ×376`, not `0xFF`. **Which of the eight killed the boards is not established**; PBPS is a candidate, not a finding. | D093→D094→D132→**D133** |
 | Why is DF_EMULATION 64 KB on RA8M2? | **FSP's MRAM sector size forces it.** On a 1 MB device with a 64 KB BL2 it is the only value that leaves a workable split. ITS, PS and the NV counters share it; the part has no data flash. | D041→D043→D044→D051→**D054** |
 | Is deterministic ECDSA available? | **No — FSP does not support it, by design.** PSA Arch test 252 skips with code `0x2d` on every part and both toolchains. | D036→D037→**D038** |
 | How much secure-slot headroom is there? | **1,693 B on RA6M5, 670 B on RA8M2.** Earlier figures of 1,984 / 960 omitted ~275 B of imgtool TLVs. Measured from the `0xFF` gap below the trailer. | D084→**D087** |
@@ -7275,7 +7275,7 @@ commits that cause the drift it detects.
 
 ## D132 — the RA6M4 brick is a write to a reserved area; no field needs naming
 
-**Date:** 2026-10-22 · **Status:** Accepted · **Corrects:** [D094] · **Evidence:** the RA6M4
+**Date:** 2026-10-22 · **Status:** Superseded by [D133] · **Corrects:** [D094], [D065], [D120] · **Evidence:** the RA6M4
 hardware manual's option-setting memory map, and the owner's reading of it
 
 The gaps between the option-setting groups are reserved. The hardware manual requires that
@@ -7303,3 +7303,69 @@ per group, `check_ofs.py` on every BL2, flash `.elf`/`.hex` and never `.bin`.
 **Why the hedge was there.** The port reconstructed the cause from a dead board and the image
 that killed it, and treated the hardware manual's reserved-area rule as background rather than
 as the answer. A rule in the manual outranks an inference from two boards.
+
+---
+
+## D133 — the coalesced fill zeroes eight DEFINED option registers, not only reserved bytes; [D132] overstated the reserved-area reading
+
+**Date:** 2026-10-22 · **Status:** Accepted · **Supersedes:** [D132] · **Corrects:** [D132] ·
+**Evidence:** `bringup/bricking_evidence/bl2_BRICKED.elf` program headers and segment contents
+crossed against `ra6m4/region_defs.h`'s thirteen `OPTION_SETTING_*` groups; the v6 review's
+F346, re-verified here rather than taken on report
+
+[D132] said the fill covered reserved bytes and that "PBPS is one reserved word among the many
+the fill covers". Both halves are wrong. PBPS is a defined one-time register, and the fill
+reaches eight defined registers as well as the reserved bytes between them.
+
+**Measured.** The preserved image carries one `R` `PT_LOAD` at `0x0100A100`, `FileSiz 0x184`
+(388 bytes), holding `.option_setting_ofs0`, `.option_setting_ofs1_sec` and
+`.option_setting_ofs1_sel`. Dumping those 388 bytes gives `0x00` everywhere except three words:
+
+| address | value | group |
+|---|---|---|
+| `0x0100A100` | `ffffffff` | OFS0, emitted |
+| `0x0100A200` | `fffdffff` | OFS1_SEC, emitted |
+| `0x0100A280` | `f8f8ffff` | OFS1_SEL, emitted |
+
+Crossing the span `0x0100A100`-`0x0100A283` against the part's option map, eight defined groups
+lie inside it and were written `0x00`:
+
+| group | address | length |
+|---|---|---|
+| DUALSEL | `0x0100A110` | `0x4` |
+| OFS1 | `0x0100A180` | `0x4` |
+| BANKSEL | `0x0100A190` | `0x4` |
+| BPS | `0x0100A1C0` | `0xC` |
+| PBPS | `0x0100A1E0` | `0xC` |
+| BANKSEL_SEC | `0x0100A210` | `0x4` |
+| BPS_SEC | `0x0100A240` | `0xC` |
+| PBPS_SEC | `0x0100A260` | `0xC` |
+
+BANKSEL_SEL (`0x0100A290`) and BPS_SEL (`0x0100A2C0`) sit above the segment and were untouched.
+
+**So the cause is a write the image never intended, to registers it never declared.** Two of the
+eight are the one-time Permanent Block Protect pair. Writing zeros to a reserved area is
+forbidden by the hardware manual and remains a fault in its own right, which is what [D132]
+recorded correctly; what it got wrong was that the fill hits nothing else. It hits eight named
+registers, and PBPS = 0 is a documented permanent effect.
+
+**Which field killed the boards is still not established.** That is [D094]'s position and this
+entry returns to it. [D065] named PBPS; the dump shows PBPS was indeed zeroed, so [D065] is a
+live candidate again rather than a withdrawn one, but a candidate is not a finding: seven other
+defined registers took the same write, and the part never came back to be asked. Do not state a
+single field as the cause in any document.
+
+**Not verified here.** The RA6M4 hardware manual is not in either tree, so this entry does not
+assert what the manual says about reserved areas beyond the owner's statement that they must not
+be written, and it does not assert what `PBPS = 0` does to a part beyond FSP's naming of it as
+permanent.
+
+**The hazard rules are unchanged, and were unchanged by [D132] too.** One linker `MEMORY` region
+per option group; `check_ofs.py` after every BL2 link; `readelf -l` as the only place the
+coalescing shows; flash `.elf` or `.hex` and never the flat `.bin`.
+
+**Process note.** [D132] was written from a one-line statement about reserved areas and was not
+checked against the preserved image, which is in this repository and takes two commands to read.
+The entry then propagated into six documents and three port comments before anything tested it.
+The rule the log already had — check the explanation against the artifact ([D126]), and check
+that your checker can fail ([D131]) — applies to a decision entry as much as to a tool.

@@ -413,9 +413,10 @@ BPS/PBPS and their <code>_SEC</code>/<code>_SEL</code> mirrors are <code>0x10</c
 more protectable blocks — so 112 bytes of data across a 464-byte span to <code>0x0100A2D0</code>, leaving</li>
 </ul>
 <ol start="352">
-<li>**The bytes between the groups are reserved, and the hardware manual requires that
-reserved areas are never written** (<a href="DECISIONS.html#d132">D132</a>). That is the whole of the hazard; no individual
-field has to be named for it.</li>
+<li>**A coalesced segment writes every option register in its span, not only the reserved
+bytes between them** (<a href="DECISIONS.html#d133">D133</a>). The bytes between the groups are reserved and the hardware
+manual requires that reserved areas are never written; the groups themselves are defined
+registers, and two of them are one-time.</li>
 </ol>
 <ul>
 <li><p>Correct (what FSP&#x27;s generated <code>fsp_gen.ld</code> does, and what the port now does): declare one
@@ -433,12 +434,17 @@ produced one <code>PT_LOAD</code> of 388 bytes (<code>0x184</code>) spanning <co
 376 bytes were zero fill. The 460-byte figure above is the width of the whole sparse map, not
 what any one image spans; do not quote it as the size of the fatal segment. The guard window
 (<code>0x0100A100</code>-<code>0x0100A2CF</code>) is wider still, because it has to catch any group an image might emit.</p>
-<p>The fill lands on reserved bytes, and writing a reserved area is itself the fault (<a href="DECISIONS.html#d132">D132</a>).
-Two earlier readings tried to name the field instead: <a href="DECISIONS.html#d065">D065</a> named PBPS at <code>0x0100A1E0</code>
-(one-time Permanent Block Protect), and <a href="DECISIONS.html#d094">D094</a> disproved FSPR permanence (the register is
-absent on RA6M4) and OFS1_SEL content (byte-identical on a working board) and left the
-question open. Neither attribution is needed. Post-brick readback gave <code>DLMMON = 0x2</code> = SSD,
-an open state, not a DLM lock. Do not read FAWMON.</p></li>
+<p>Crossing that span against the part&#x27;s option map, the fill wrote <code>0x00</code> into eight defined
+registers - DUALSEL <code>0x0100A110</code>, OFS1 <code>0x0100A180</code>, BANKSEL <code>0x0100A190</code>, BPS <code>0x0100A1C0</code>,
+PBPS <code>0x0100A1E0</code>, BANKSEL_SEC <code>0x0100A210</code>, BPS_SEC <code>0x0100A240</code>, PBPS_SEC <code>0x0100A260</code> -
+and into the reserved bytes between them (<a href="DECISIONS.html#d133">D133</a>). BANKSEL_SEL and BPS_SEL sit above the
+segment and were untouched.</p>
+<p>Which of the eight killed the boards is not established. <a href="DECISIONS.html#d065">D065</a> named PBPS, and the dump
+confirms PBPS was zeroed, so it is a live candidate rather than a withdrawn one - but seven
+other registers took the same write. <a href="DECISIONS.html#d094">D094</a> separately disproved FSPR permanence (the
+register is absent on RA6M4) and OFS1_SEL content (byte-identical on a working board).
+Post-brick readback gave <code>DLMMON = 0x2</code> = SSD, an open state, not a DLM lock. Do not read
+FAWMON.</p></li>
 </ul>
 <p><strong>The zero fill is invisible in the srec.</strong> It lives in the program header, not in any section, and
 <code>objcopy -O srec</code> emits from sections. This is why the srec-diff approach (the premise of the

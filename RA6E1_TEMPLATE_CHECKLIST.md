@@ -213,8 +213,8 @@ Measured from the current build; leave headroom rather than fitting the figures.
   regions, each `> REGION`. One coalesced `PT_LOAD` zero-fills the option memory between the
   words and permanently bricks the part — invisible in the srec, and it cost two EK-RA6M4 boards
   on 2026-07-21. Measured on the bricked image ([D094]): a 388-byte segment holding three
-  emitted words, of which 376 bytes were zero fill into reserved bytes the hardware manual
-  requires be left alone ([D132]). The FSPR attribution an earlier revision
+  emitted words, of which 376 bytes were zero fill, covering eight defined option registers
+  (BPS and PBPS among them) and the reserved bytes between them ([D133]). The FSPR attribution an earlier revision
   of this line carried is withdrawn — RA6M4 has no Flash Access Window — and which zeroed field
   killed the boards is unknown. This lives in the TF-M port, not the template, but any
   layout change should be re-verified: `arm-none-eabi-readelf -l bin/bl2.axf`.

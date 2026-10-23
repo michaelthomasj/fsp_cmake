@@ -193,12 +193,13 @@ are 92 bytes of real data spread over <code>0x0100A100–0x0100A2CC</code>. On R
 <code>0x0100A100–0x0100A2CF</code> (<code>ra6m5/region_defs.h:287-312</code>). On RA8M2 they sit elsewhere entirely, from
 <code>0x02C9F040</code>. If the linker sees the groups as one region it emits one <code>PT_LOAD</code> segment and
 zero-fills the gaps, and a debugger loading the ELF writes those zeros across option and configuration memory. Two
-EK-RA6M4 boards were destroyed this way (<a href="ref/DECISIONS.html#d002">D002</a>). <strong>The bytes between the
-groups are reserved, and the hardware manual requires that reserved areas are never written</strong>
-(<a href="ref/DECISIONS.html#d132">D132</a>) — that is the cause, and no individual field has to be named for it.
-Two earlier readings tried to name one: <a href="ref/DECISIONS.html#d065">D065</a> named PBPS at
-<code>0x0100A1E0</code>, and <a href="ref/DECISIONS.html#d094">D094</a> disproved the "permanence word" diagnosis
-(RA6M4 has no FSPR) and left the question open. Rules:</p>
+EK-RA6M4 boards were destroyed this way (<a href="ref/DECISIONS.html#d002">D002</a>). <strong>The fill wrote
+<code>0x00</code> into eight defined option registers</strong> — DUALSEL, OFS1, BANKSEL, BPS, PBPS, BANKSEL_SEC,
+BPS_SEC and PBPS_SEC — and into the reserved bytes between them, measured on the preserved image
+(<a href="ref/DECISIONS.html#d133">D133</a>). Which of the eight killed the boards is not established:
+<a href="ref/DECISIONS.html#d065">D065</a> named PBPS at <code>0x0100A1E0</code>, which the dump confirms was zeroed,
+but seven other registers took the same write. <a href="ref/DECISIONS.html#d094">D094</a> disproved the separate
+"permanence word" diagnosis, because RA6M4 has no FSPR. Rules:</p>
 <ul>
   <li>One linker <code>MEMORY</code> region per OFS group. <code>check_ofs.py</code> enforces it after every link.</li>
   <li>The zero fill is invisible in a <code>.srec</code>. <code>readelf -l</code> is the only place it shows.</li>

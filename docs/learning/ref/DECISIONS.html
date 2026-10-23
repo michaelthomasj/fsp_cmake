@@ -181,6 +181,7 @@
           <li><a href="#d130">D130 — TF-M 2.3 is deferred, not cancelled: the gate is FSP&#x27;s Mbed TLS 4.1 migration, expected ~2026-11-12</a></li>
           <li><a href="#d131">D131 — the v5 review: two generators were passing against their own faulty output; the RA6M5 PXN correction gets the entry it never had</a></li>
           <li><a href="#d132">D132 — the RA6M4 brick is a write to a reserved area; no field needs naming</a></li>
+          <li><a href="#d133">D133 — the coalesced fill zeroes eight DEFINED option registers, not only reserved bytes; [D132] overstated the reserved-area reading</a></li>
         </ol>
       </li>
     </ol>
@@ -235,7 +236,7 @@ wins. Nothing above supersedes anything; the entries carry their own <code>Statu
 <tr><td>Why was BL2 silent on RTT under IAR?</td><td><strong>Two independent blockers.</strong> TF-M&#x27;s <code>toolchain_IARARM.cmake</code> redirects <code>__write</code> to DLIB&#x27;s buffered writer, so the port&#x27;s hook is unreachable and output goes to semihosting — fixed by implementing <code>__dwrite</code>. DLIB also buffers stdout and BL2 never flushes — fixed by <code>setvbuf</code>. Neither alone is sufficient.</td><td>D107→D108→<strong>D110</strong></td></tr>
 <tr><td>Does a passing attestation suite prove measured boot?</td><td><strong>No.</strong> With <code>component_cnt == 0</code> the token carries <code>IAT_NO_SW_COMPONENTS</code> and the suite passes anyway. Read the boot record at the start of secure RAM and match both measurements to the images&#x27; SHA-256 TLVs.</td><td>D080→<strong>D081</strong></td></tr>
 <tr><td>How must OFS memory be linked?</td><td><strong>One linker <code>MEMORY</code> region per OFS group.</strong> ⚠ Coalescing lets the linker gap-fill between words and write values nobody chose. Flash <code>bl2.elf</code>/<code>bl2.hex</code>, never <code>bl2.bin</code>. <code>check_ofs.py</code> enforces it.</td><td><strong>D002</strong> (supersedes D001)</td></tr>
-<tr><td>What bricked the two EK-RA6M4 boards?</td><td><strong>A write to a reserved area.</strong> The gaps between the OFS groups are reserved, and the hardware manual requires that reserved areas are never written. A coalesced <code>PT_LOAD</code> zero-fills them: measured gap fill is <code>0x00 ×376</code>, not <code>0xFF</code>. No individual field needs naming.</td><td>D093→D094→<strong>D132</strong></td></tr>
+<tr><td>What bricked the two EK-RA6M4 boards?</td><td><strong>The coalesced <code>PT_LOAD</code> wrote <code>0x00</code> into eight defined option registers</strong> - DUALSEL, OFS1, BANKSEL, BPS, PBPS, BANKSEL_SEC, BPS_SEC, PBPS_SEC - as well as the reserved bytes between them. Measured gap fill is <code>0x00 ×376</code>, not <code>0xFF</code>. <strong>Which of the eight killed the boards is not established</strong>; PBPS is a candidate, not a finding.</td><td>D093→D094→D132→<strong>D133</strong></td></tr>
 <tr><td>Why is DF_EMULATION 64 KB on RA8M2?</td><td><strong>FSP&#x27;s MRAM sector size forces it.</strong> On a 1 MB device with a 64 KB BL2 it is the only value that leaves a workable split. ITS, PS and the NV counters share it; the part has no data flash.</td><td>D041→D043→D044→D051→<strong>D054</strong></td></tr>
 <tr><td>Is deterministic ECDSA available?</td><td><strong>No — FSP does not support it, by design.</strong> PSA Arch test 252 skips with code <code>0x2d</code> on every part and both toolchains.</td><td>D036→D037→<strong>D038</strong></td></tr>
 <tr><td>How much secure-slot headroom is there?</td><td><strong>1,693 B on RA6M5, 670 B on RA8M2.</strong> Earlier figures of 1,984 / 960 omitted ~275 B of imgtool TLVs. Measured from the <code>0xFF</code> gap below the trailer.</td><td>D084→<strong>D087</strong></td></tr>
@@ -5791,7 +5792,7 @@ without testing anything — one compared a generator with itself, the other nev
 commits that cause the drift it detects.</p>
 <hr>
 <h2 id="d132">D132 — the RA6M4 brick is a write to a reserved area; no field needs naming</h2>
-<p><strong>Date:</strong> 2026-10-22 · <strong>Status:</strong> Accepted · <strong>Corrects:</strong> <a href="DECISIONS.html#d094">D094</a> · <strong>Evidence:</strong> the RA6M4
+<p><strong>Date:</strong> 2026-10-22 · <strong>Status:</strong> Superseded by <a href="DECISIONS.html#d133">D133</a> · <strong>Corrects:</strong> <a href="DECISIONS.html#d094">D094</a>, <a href="DECISIONS.html#d065">D065</a>, <a href="DECISIONS.html#d120">D120</a> · <strong>Evidence:</strong> the RA6M4
 hardware manual&#x27;s option-setting memory map, and the owner&#x27;s reading of it</p>
 <p>The gaps between the option-setting groups are reserved. The hardware manual requires that
 reserved areas are not written at all. A coalesced <code>PT_LOAD</code> writes zeros across them, and that
@@ -5814,6 +5815,60 @@ per group, <code>check_ofs.py</code> on every BL2, flash <code>.elf</code>/<code
 <p><strong>Why the hedge was there.</strong> The port reconstructed the cause from a dead board and the image
 that killed it, and treated the hardware manual&#x27;s reserved-area rule as background rather than
 as the answer. A rule in the manual outranks an inference from two boards.</p>
+<hr>
+<h2 id="d133">D133 — the coalesced fill zeroes eight DEFINED option registers, not only reserved bytes; <a href="DECISIONS.html#d132">D132</a> overstated the reserved-area reading</h2>
+<p><strong>Date:</strong> 2026-10-22 · <strong>Status:</strong> Accepted · <strong>Supersedes:</strong> <a href="DECISIONS.html#d132">D132</a> · <strong>Corrects:</strong> <a href="DECISIONS.html#d132">D132</a> ·
+<strong>Evidence:</strong> <code>bringup/bricking_evidence/bl2_BRICKED.elf</code> program headers and segment contents
+crossed against <code>ra6m4/region_defs.h</code>&#x27;s thirteen <code>OPTION_SETTING_*</code> groups; the v6 review&#x27;s
+F346, re-verified here rather than taken on report</p>
+<p><a href="DECISIONS.html#d132">D132</a> said the fill covered reserved bytes and that &quot;PBPS is one reserved word among the many
+the fill covers&quot;. Both halves are wrong. PBPS is a defined one-time register, and the fill
+reaches eight defined registers as well as the reserved bytes between them.</p>
+<p><strong>Measured.</strong> The preserved image carries one <code>R</code> <code>PT_LOAD</code> at <code>0x0100A100</code>, <code>FileSiz 0x184</code>
+(388 bytes), holding <code>.option_setting_ofs0</code>, <code>.option_setting_ofs1_sec</code> and
+<code>.option_setting_ofs1_sel</code>. Dumping those 388 bytes gives <code>0x00</code> everywhere except three words:</p>
+<div class="table-wrap"><table>
+<tr><th>address</th><th>value</th><th>group</th></tr>
+<tr><td><code>0x0100A100</code></td><td><code>ffffffff</code></td><td>OFS0, emitted</td></tr>
+<tr><td><code>0x0100A200</code></td><td><code>fffdffff</code></td><td>OFS1_SEC, emitted</td></tr>
+<tr><td><code>0x0100A280</code></td><td><code>f8f8ffff</code></td><td>OFS1_SEL, emitted</td></tr>
+</table></div>
+<p>Crossing the span <code>0x0100A100</code>-<code>0x0100A283</code> against the part&#x27;s option map, eight defined groups
+lie inside it and were written <code>0x00</code>:</p>
+<div class="table-wrap"><table>
+<tr><th>group</th><th>address</th><th>length</th></tr>
+<tr><td>DUALSEL</td><td><code>0x0100A110</code></td><td><code>0x4</code></td></tr>
+<tr><td>OFS1</td><td><code>0x0100A180</code></td><td><code>0x4</code></td></tr>
+<tr><td>BANKSEL</td><td><code>0x0100A190</code></td><td><code>0x4</code></td></tr>
+<tr><td>BPS</td><td><code>0x0100A1C0</code></td><td><code>0xC</code></td></tr>
+<tr><td>PBPS</td><td><code>0x0100A1E0</code></td><td><code>0xC</code></td></tr>
+<tr><td>BANKSEL_SEC</td><td><code>0x0100A210</code></td><td><code>0x4</code></td></tr>
+<tr><td>BPS_SEC</td><td><code>0x0100A240</code></td><td><code>0xC</code></td></tr>
+<tr><td>PBPS_SEC</td><td><code>0x0100A260</code></td><td><code>0xC</code></td></tr>
+</table></div>
+<p>BANKSEL_SEL (<code>0x0100A290</code>) and BPS_SEL (<code>0x0100A2C0</code>) sit above the segment and were untouched.</p>
+<p><strong>So the cause is a write the image never intended, to registers it never declared.</strong> Two of the
+eight are the one-time Permanent Block Protect pair. Writing zeros to a reserved area is
+forbidden by the hardware manual and remains a fault in its own right, which is what <a href="DECISIONS.html#d132">D132</a>
+recorded correctly; what it got wrong was that the fill hits nothing else. It hits eight named
+registers, and PBPS = 0 is a documented permanent effect.</p>
+<p><strong>Which field killed the boards is still not established.</strong> That is <a href="DECISIONS.html#d094">D094</a>&#x27;s position and this
+entry returns to it. <a href="DECISIONS.html#d065">D065</a> named PBPS; the dump shows PBPS was indeed zeroed, so <a href="DECISIONS.html#d065">D065</a> is a
+live candidate again rather than a withdrawn one, but a candidate is not a finding: seven other
+defined registers took the same write, and the part never came back to be asked. Do not state a
+single field as the cause in any document.</p>
+<p><strong>Not verified here.</strong> The RA6M4 hardware manual is not in either tree, so this entry does not
+assert what the manual says about reserved areas beyond the owner&#x27;s statement that they must not
+be written, and it does not assert what <code>PBPS = 0</code> does to a part beyond FSP&#x27;s naming of it as
+permanent.</p>
+<p><strong>The hazard rules are unchanged, and were unchanged by <a href="DECISIONS.html#d132">D132</a> too.</strong> One linker <code>MEMORY</code> region
+per option group; <code>check_ofs.py</code> after every BL2 link; <code>readelf -l</code> as the only place the
+coalescing shows; flash <code>.elf</code> or <code>.hex</code> and never the flat <code>.bin</code>.</p>
+<p><strong>Process note.</strong> <a href="DECISIONS.html#d132">D132</a> was written from a one-line statement about reserved areas and was not
+checked against the preserved image, which is in this repository and takes two commands to read.
+The entry then propagated into six documents and three port comments before anything tested it.
+The rule the log already had — check the explanation against the artifact (<a href="DECISIONS.html#d126">D126</a>), and check
+that your checker can fail (<a href="DECISIONS.html#d131">D131</a>) — applies to a decision entry as much as to a tool.</p>
 </main>
 </div>
 </body>

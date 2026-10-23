@@ -380,9 +380,10 @@ sparse. On RA6E1/RA6M4: thirteen register groups holding 92 bytes of real data (
 RA6M5 has the same thirteen groups at the same starts but wider block-protect words —
 BPS/PBPS and their `_SEC`/`_SEL` mirrors are `0x10`, not `0xC`, because 2 MB of code flash has
 more protectable blocks — so 112 bytes of data across a 464-byte span to `0x0100A2D0`, leaving
-352. **The bytes between the groups are reserved, and the hardware manual requires that
-reserved areas are never written** ([D132]). That is the whole of the hazard; no individual
-field has to be named for it.
+352. **A coalesced segment writes every option register in its span, not only the reserved
+bytes between them** ([D133]). The bytes between the groups are reserved and the hardware
+manual requires that reserved areas are never written; the groups themselves are defined
+registers, and two of them are one-time.
 
 - Correct (what FSP's generated `fsp_gen.ld` does, and what the port now does): declare one
   discrete `MEMORY` region per group — thirteen in `ra6m5_bl2.ld`, six in `ra8m2_bl2.ld` —
@@ -401,12 +402,18 @@ field has to be named for it.
   what any one image spans; do not quote it as the size of the fatal segment. The guard window
   (`0x0100A100`-`0x0100A2CF`) is wider still, because it has to catch any group an image might emit.
 
-  The fill lands on reserved bytes, and writing a reserved area is itself the fault ([D132]).
-  Two earlier readings tried to name the field instead: [D065] named PBPS at `0x0100A1E0`
-  (one-time Permanent Block Protect), and [D094] disproved FSPR permanence (the register is
-  absent on RA6M4) and OFS1_SEL content (byte-identical on a working board) and left the
-  question open. Neither attribution is needed. Post-brick readback gave `DLMMON = 0x2` = SSD,
-  an open state, not a DLM lock. Do not read FAWMON.
+  Crossing that span against the part's option map, the fill wrote `0x00` into eight defined
+  registers - DUALSEL `0x0100A110`, OFS1 `0x0100A180`, BANKSEL `0x0100A190`, BPS `0x0100A1C0`,
+  PBPS `0x0100A1E0`, BANKSEL_SEC `0x0100A210`, BPS_SEC `0x0100A240`, PBPS_SEC `0x0100A260` -
+  and into the reserved bytes between them ([D133]). BANKSEL_SEL and BPS_SEL sit above the
+  segment and were untouched.
+
+  Which of the eight killed the boards is not established. [D065] named PBPS, and the dump
+  confirms PBPS was zeroed, so it is a live candidate rather than a withdrawn one - but seven
+  other registers took the same write. [D094] separately disproved FSPR permanence (the
+  register is absent on RA6M4) and OFS1_SEL content (byte-identical on a working board).
+  Post-brick readback gave `DLMMON = 0x2` = SSD, an open state, not a DLM lock. Do not read
+  FAWMON.
 
 **The zero fill is invisible in the srec.** It lives in the program header, not in any section, and
 `objcopy -O srec` emits from sections. This is why the srec-diff approach (the premise of the

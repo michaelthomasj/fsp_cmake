@@ -8,7 +8,7 @@ called this an "FSPR=0 permanent lock" — that diagnosis was wrong; see below.)
   original timestamp.
 - `bl2_BRICKED.srec` / `bl2_BRICKED.hex` — same image, S-record / Intel-hex.
 
-## Status: a write to reserved option-setting memory
+## Status: eight defined option registers were zero-filled
 
 The image contains three data records in the RA6M4 option/config memory region
 (`0x0100A100–0x0100A2CF`):
@@ -24,9 +24,10 @@ These were initially blamed for the brick. That was disproven: the field-proven
 working, reprogrammable board. So the option-memory content is not the differentiator.
 
 What is known: both boards won't erase and RDPM `Initialize` returns `0xDA` (RES_PROTECTION_ERROR),
-while `DLMMON @0x400E002C = 0x2` = SSD (open dev state, NOT locked). **The cause is the zero
-fill into reserved option-setting memory**, which the hardware manual requires be left
-unwritten (`fsp_cmake/DECISIONS.md` D132); reversibility is unknown. An earlier "permanent
+while `DLMMON @0x400E002C = 0x2` = SSD (open dev state, NOT locked). **The fill wrote `0x00`
+into eight defined option registers** - DUALSEL, OFS1, BANKSEL, BPS, PBPS, BANKSEL_SEC,
+BPS_SEC, PBPS_SEC - and into the reserved bytes between them (`fsp_cmake/DECISIONS.md` D133).
+Which of them did the damage, and whether it is reversible, is unknown. An earlier "permanent
 FSPR/FAW brick" diagnosis was wrong — RA6M4 does not implement the
 Flash Access Window (`BSP_FEATURE_FLASH_SUPPORTS_ACCESS_WINDOW = 0`), so `FAWMON/FSPR` are meaningless
 here; do not read them. The variable that differs from the working der board is the flashing path
