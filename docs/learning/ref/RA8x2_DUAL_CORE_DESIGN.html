@@ -62,18 +62,18 @@
 <main id="top" class="ref-doc">
 <p class="src">Rendered from <a href="../../../RA8x2_DUAL_CORE_DESIGN.md"><code>RA8x2_DUAL_CORE_DESIGN.md</code></a>. Edit the Markdown, not this page.</p>
 <h1 id="ra8x2-dual-core-tf-m--inter-core-communication-design--implementation-tracker">RA8x2 Dual-Core TF-M — Inter-Core Communication Design &amp; Implementation Tracker</h1>
-<blockquote><p><strong>Status: forward design, not a live plan.</strong> Dual-core was descoped on 2026-09-14 and the
+<blockquote><p>Status: forward design, not a live plan. Dual-core was descoped on 2026-09-14 and the
 phase numbers below (P4-P6) no longer correspond to anything in <code>PROJECT_PLAN.md</code>. Tracker
-item 2, &quot;RA8x2 base port: BL2 + SPE boot on primary core&quot;, is <strong>done</strong> by way of the RA8M2
+item 2, &quot;RA8x2 base port: BL2 + SPE boot on primary core&quot;, is done by way of the RA8M2
 port - what remains genuinely open is CPU1 boot and the mailbox. Read this as the design to
 pick up if dual-core is rescoped, not as work in progress.</p></blockquote>
-<p><strong>Purpose.</strong> Track what it takes to run Trusted Firmware-M across the two cores of
+<p>Purpose. Track what it takes to run Trusted Firmware-M across the two cores of
 a dual-core RA8 (RA8D2 / RA8x2): SPE on one core, NSPE on the other, with PSA
 client calls marshaled over a mailbox. The mailbox transport is backed by the
-<strong>RA8D2 IPC peripheral</strong> through the <strong>FSP IPC driver</strong>.</p>
+RA8D2 IPC peripheral through the FSP IPC driver.</p>
 <p><strong>Which part this targets is unsettled</strong>, and it matters: the IPC peripheral details below
-(FIFO depth, busfault behaviour, the <code>r_ipc</code> API) were written for RA8D2 and are **not
-verified against the RA8M2 manual** — no manual is in these trees and <code>r_ipc</code> is not
+(FIFO depth, busfault behaviour, the <code>r_ipc</code> API) were written for RA8D2 and are not
+verified against the RA8M2 manual — no manual is in these trees and <code>r_ipc</code> is not
 instantiated in any generated RA8M2 project. What was confirmed against <code>R7KA8M2JF_core0.h</code>
 and <code>bsp_ipc.c</code> is the <code>R_IPC</code> base address and the register layout. Re-verify the rest
 before building on it.</p>
@@ -89,59 +89,59 @@ docs (<code>trusted-firmware-m/docs/design_docs/dual-cpu/</code>) and mailbox HA
 <hr>
 <h2 id="layer-1--ra8d2-ipc-peripheral-manual-3">Layer 1 — RA8D2 IPC peripheral (manual §3)</h2>
 <ul>
-<li><strong>Base address:</strong> <code>0x4002_0000</code> (Secure) / <code>0x5002_0000</code> (Non-secure). Security /
+<li>Base address: <code>0x4002_0000</code> (Secure) / <code>0x5002_0000</code> (Non-secure). Security /
 privilege attribution via <code>IPCSAR</code> / <code>IPCPAR</code> (in CPSCU, base <code>0x4000_8000</code> S /
 <code>0x5000_8000</code> NS). <em>The IPC is TZ-attributable — decide which core/world owns it.</em></li>
-<li><strong>Two processors × two FIFO channels.</strong> <code>IPC0*</code> registers carry <strong>CPU1 → CPU0</strong>
-traffic; <code>IPC1*</code> carry <strong>CPU0 → CPU1</strong>. Each processor has two message FIFOs
+<li>Two processors × two FIFO channels. <code>IPC0*</code> registers carry CPU1 → CPU0
+traffic; <code>IPC1*</code> carry CPU0 → CPU1. Each processor has two message FIFOs
 (channel 0 and 1): <code>IPCxTXDy</code> (send), <code>IPCxRXDy</code> (receive), <code>IPCxSTAy</code> (status),
 <code>IPCxISETy</code> (IRQ set), <code>IPCxCLRy</code> (clear).</li>
-<li><strong>Message FIFO:</strong> <strong>4 entries deep, 32-bit only.</strong> &quot;Only writing with a 32-bit
+<li>Message FIFO: 4 entries deep, 32-bit only. &quot;Only writing with a 32-bit
 data size is valid; halfword/byte access is ignored.&quot; Storing a 5th entry
-<strong>raises a busfault</strong>; when full, <code>IPCxSTAy.FULL = 1</code>. Writing any TXD sets
+raises a busfault; when full, <code>IPCxSTAy.FULL = 1</code>. Writing any TXD sets
 <code>IPCxSTAy.RDY = 1</code> and generates an interrupt. <code>RST</code> bit resets a FIFO.</li>
-<li><strong>Maskable interrupt (IRQ):</strong> 8 events (<code>IRQ0..7</code>) but **one shared interrupt
-line per channel** — the handler must read <code>IPCxSTAy</code> to see the cause. Status
+<li>Maskable interrupt (IRQ): 8 events (<code>IRQ0..7</code>) but one shared interrupt
+line per channel — the handler must read <code>IPCxSTAy</code> to see the cause. Status
 bits: <code>[7:0]</code> IRQ7–0, <code>[16]</code> RDY (FIFO not empty), <code>[24]</code> RERR (read-while-empty),
 <code>[25]</code> FERR (write-while-full). Set an event via <code>IPCxISETy.SETn</code>; clear via
 <code>IPCxCLRy.CLRn</code> (all bits 0 ⇒ IRQ de-asserts).</li>
-<li><strong>Non-maskable interrupt (NMI):</strong> <code>IPCxNMISTA/SET/CLR</code> — write SET issues an NMI
+<li>Non-maskable interrupt (NMI): <code>IPCxNMISTA/SET/CLR</code> — write SET issues an NMI
 to the peer core; write CLR cancels. Independent of the FIFOs.</li>
-<li><strong>16 hardware semaphores:</strong> <code>IPCSEM0..15</code>, each a <code>LOCK</code> bit for exclusive control
+<li>16 hardware semaphores: <code>IPCSEM0..15</code>, each a <code>LOCK</code> bit for exclusive control
 between CPU0/CPU1. &quot;Application can choose to use a semaphore separately or in
 common between the two cores.&quot; <em>Reserve one for the mailbox critical section.</em></li>
 </ul>
-<p><strong>Consequence for the mailbox:</strong> the FIFO is a <strong>doorbell</strong>, not a data channel —
-a 32-bit token per notify is enough. The **actual PSA-call payload lives in shared
-SRAM** (the NS mailbox queue); a <strong>hardware semaphore</strong> guards it; the **maskable
-IRQ** signals &quot;message ready&quot;. Keep ≤4 outstanding tokens or drain in the handler
+<p>Consequence for the mailbox: the FIFO is a doorbell, not a data channel —
+a 32-bit token per notify is enough. The actual PSA-call payload lives in shared
+SRAM (the NS mailbox queue); a hardware semaphore guards it; the maskable
+IRQ signals &quot;message ready&quot;. Keep ≤4 outstanding tokens or drain in the handler
 to avoid the busfault.</p>
 <hr>
 <h2 id="layer-2--fsp-ipc-driver-api-r_ipc">Layer 2 — FSP IPC driver API (<code>r_ipc</code>)</h2>
 <div class="table-wrap"><table>
 <tr><th>FSP call</th><th>Purpose</th></tr>
 <tr><td><code>R_IPC_Open(ctrl, cfg)</code></td><td>Configure a channel: <code>ipc_cfg_t{ name, channel, direction (IPC_DIRECTION_SEND/RECEIVE), callback }</code></td></tr>
-<tr><td><code>R_IPC_MessageSend(ctrl, msg)</code></td><td>Push one <strong>32-bit</strong> word into the channel&#x27;s TX FIFO</td></tr>
+<tr><td><code>R_IPC_MessageSend(ctrl, msg)</code></td><td>Push one 32-bit word into the channel&#x27;s TX FIFO</td></tr>
 <tr><td><code>R_IPC_EventGenerate(ctrl, event)</code></td><td>Set IRQ event bit(s) + raise the maskable interrupt on the peer (<code>IPC_GENERATE_EVENT_IRQ0..n</code>)</td></tr>
 <tr><td><code>R_IPC_CallbackSet(ctrl, cb, ctx)</code></td><td>Register the RX/event callback</td></tr>
 <tr><td><code>R_IPC_Close(ctrl)</code></td><td>Release the channel</td></tr>
 <tr><td>callback <code>ipc_callback_args_t{ event, message }</code></td><td><code>event = IPC_EVENT_MESSAGE_RECEIVED</code> (FIFO data) or <code>IPC_EVENT_IRQ0..n</code>; <code>message</code> = received word. Runs in ISR context</td></tr>
 </table></div>
-<p><strong>Not in the IPC driver — BSP APIs</strong> (<code>ra/fsp/src/bsp/mcu/all/bsp_ipc.c</code>):</p>
+<p>Not in the IPC driver — BSP APIs (<code>ra/fsp/src/bsp/mcu/all/bsp_ipc.c</code>):</p>
 <div class="table-wrap"><table>
 <tr><th>BSP call</th><th>Purpose</th></tr>
-<tr><td><code>R_BSP_IpcSemaphoreTake(handle)</code></td><td><strong>Try-take</strong> <code>IPCSEMn</code> → <code>FSP_SUCCESS</code> / <code>FSP_ERR_IN_USE</code> (non-blocking; reads the LOCK). A blocking critical section must <strong>spin</strong> until success</td></tr>
+<tr><td><code>R_BSP_IpcSemaphoreTake(handle)</code></td><td>Try-take <code>IPCSEMn</code> → <code>FSP_SUCCESS</code> / <code>FSP_ERR_IN_USE</code> (non-blocking; reads the LOCK). A blocking critical section must spin until success</td></tr>
 <tr><td><code>R_BSP_IpcSemaphoreGive(handle)</code></td><td>Release the semaphore</td></tr>
 <tr><td><code>R_BSP_IpcNmiEnable(cb)</code></td><td>Enable inter-core NMI + register <code>cb</code> (<code>void(*)(void)</code>)</td></tr>
 <tr><td><code>R_BSP_IpcNmiRequestSet()</code></td><td>Issue the NMI to the peer core</td></tr>
 </table></div>
 <p>Handle: <code>bsp_ipc_semaphore_handle_t { uint8_t semaphore_num; }</code> selects <code>IPCSEM0..15</code>.
-Note the message-FIFO send/receive is <strong>not</strong> here — that is <code>r_ipc</code> (<code>R_IPC_MessageSend</code>);
+Note the message-FIFO send/receive is not here — that is <code>r_ipc</code> (<code>R_IPC_MessageSend</code>);
 <code>bsp_ipc.c</code> is only semaphores + NMI.</p>
-<p><strong>Secondary-core start</strong> (<code>bsp_common.h</code>, <code>__STATIC_INLINE</code>): <code>R_BSP_SecondaryCoreStart(void)</code>
+<p>Secondary-core start (<code>bsp_common.h</code>, <code>__STATIC_INLINE</code>): <code>R_BSP_SecondaryCoreStart(void)</code>
 — sets <code>R_CPU_CTRL-&gt;CPU1INITVTOR = BSP_PARTITION_FLASH_CPU1_S_START</code> (CPU1&#x27;s initial
 vector table), clears <code>CPU1WAITCR</code> (in case a debugger parked CPU1), then writes the
-key code + <code>ACTREQ</code> to <code>CPU1ACTCSR</code> to activate CPU1. <strong>No start-address parameter</strong> —
+key code + <code>ACTREQ</code> to <code>CPU1ACTCSR</code> to activate CPU1. No start-address parameter —
 CPU1&#x27;s entry is fixed by <code>CPU1INITVTOR</code>, which is driven by <code>BSP_PARTITION_FLASH_CPU1_S_START</code>
 (a partition-config macro — the <code>BSP_PARTITION_*</code> dependency described in <code>BRIDGING_FILES.md</code>,
 back again).</p>
@@ -152,7 +152,7 @@ back again).</p>
 <li><code>tfm_hal_mailbox.h</code> — <code>tfm_mailbox_hal_init()</code>, <code>tfm_mailbox_hal_notify_peer()</code>,
 <code>tfm_mailbox_hal_enter_critical()</code> / <code>exit_critical()</code>.</li>
 <li><code>tfm_hal_multi_core.h</code> — declares only <code>tfm_hal_boot_ns_cpu()</code> and
-<code>tfm_hal_wait_for_ns_cpu_ready()</code>. The access-attribute functions below are <strong>not</strong> there:
+<code>tfm_hal_wait_for_ns_cpu_ready()</code>. The access-attribute functions below are not there:
 they are in <code>mem_check_v6m_v7m_hal.h</code>, the Armv6-M/v7-M memory-check HAL, which does not
 apply to an M85 SPE — see <code>tfm_multi_core_access_check.rst</code> and the v8-M checks instead.
 Historic list follows:
@@ -160,22 +160,22 @@ Historic list follows:
 <li>SPE agent partition: <code>secure_fw/partitions/ns_agent_mailbox/</code>.</li>
 <li>NS side: <code>interface/{include,src}/multi_core/</code> (generic) + platform <code>platform_ns_mailbox.c</code>.</li>
 </ul>
-<p>Closest reference: <strong><code>platform/ext/target/rpi/rp2350/</code></strong> (dual Cortex-M33 + TrustZone,
+<p>Closest reference: <code>platform/ext/target/rpi/rp2350/</code> (dual Cortex-M33 + TrustZone,
 <em>hybrid</em> topology). Also <code>cypress/psoc64</code> (SPE-core / NSPE-core split).</p>
 <hr>
 <h2 id="the-mapping-this-is-the-port">The mapping (this is the port)</h2>
 <div class="table-wrap"><table>
 <tr><th>TF-M mailbox HAL</th><th>FSP IPC / BSP</th><th>RA8D2 IPC</th><th>Notes</th></tr>
-<tr><td><code>tfm_mailbox_hal_init(s_queue)</code></td><td><code>R_IPC_Open</code>(RECEIVE + callback); handshake via <code>R_IPC_MessageSend</code>/RX</td><td>RXD/TXD FIFO</td><td>NSPE sends its NS-queue base <strong>address (32-bit)</strong> over the FIFO; SPE stores <code>ns_status</code>/<code>ns_slots</code>/<code>ns_slot_count</code> into <code>s_queue</code>. <strong>Validate the address is in NS SRAM</strong> (the rp2350 <code>FIXME</code>)</td></tr>
+<tr><td><code>tfm_mailbox_hal_init(s_queue)</code></td><td><code>R_IPC_Open</code>(RECEIVE + callback); handshake via <code>R_IPC_MessageSend</code>/RX</td><td>RXD/TXD FIFO</td><td>NSPE sends its NS-queue base address (32-bit) over the FIFO; SPE stores <code>ns_status</code>/<code>ns_slots</code>/<code>ns_slot_count</code> into <code>s_queue</code>. Validate the address is in NS SRAM (the rp2350 <code>FIXME</code>)</td></tr>
 <tr><td><code>tfm_mailbox_hal_notify_peer()</code></td><td><code>R_IPC_MessageSend(token)</code> or <code>R_IPC_EventGenerate</code></td><td>TXD FIFO → peer <code>RDY</code>/IRQ</td><td>doorbell only; payload already in shared SRAM</td></tr>
-<tr><td><code>tfm_mailbox_hal_enter_critical()</code></td><td><strong>spin</strong> on <code>R_BSP_IpcSemaphoreTake(&amp;h)</code> until <code>FSP_SUCCESS</code></td><td><code>IPCSEMn.LOCK</code></td><td>try-take is non-blocking → loop; reserve one <code>IPCSEMn</code> for the mailbox</td></tr>
+<tr><td><code>tfm_mailbox_hal_enter_critical()</code></td><td>spin on <code>R_BSP_IpcSemaphoreTake(&amp;h)</code> until <code>FSP_SUCCESS</code></td><td><code>IPCSEMn.LOCK</code></td><td>try-take is non-blocking → loop; reserve one <code>IPCSEMn</code> for the mailbox</td></tr>
 <tr><td><code>tfm_mailbox_hal_exit_critical()</code></td><td><code>R_BSP_IpcSemaphoreGive(&amp;h)</code></td><td><code>IPCSEMn</code> release</td><td></td></tr>
 <tr><td>IPC IRQ handler → <code>spm_handle_interrupt()</code></td><td><code>R_IPC</code> callback (<code>IPC_EVENT_MESSAGE_RECEIVED</code>)</td><td><code>IPCxSTAy</code> (RDY/IRQn) → <code>IPCxCLRy</code></td><td>one IRQ line/channel — read STA, clear, then signal <code>MAILBOX_SIGNAL</code> to <code>ns_agent_mailbox</code></td></tr>
-<tr><td><code>tfm_hal_boot_ns_cpu(start)</code></td><td><code>R_BSP_SecondaryCoreStart()</code></td><td><code>CPU1INITVTOR</code> ← <code>BSP_PARTITION_FLASH_CPU1_S_START</code>; clear <code>CPU1WAITCR</code>; <code>CPU1ACTCSR</code> = key+ACTREQ</td><td><strong>ignores <code>start</code></strong> — reconcile CPU1&#x27;s vector (<code>BSP_PARTITION_FLASH_CPU1_S_START</code>) with TF-M&#x27;s CPU1 image start, or set <code>CPU1INITVTOR</code> from <code>start</code> before calling</td></tr>
+<tr><td><code>tfm_hal_boot_ns_cpu(start)</code></td><td><code>R_BSP_SecondaryCoreStart()</code></td><td><code>CPU1INITVTOR</code> ← <code>BSP_PARTITION_FLASH_CPU1_S_START</code>; clear <code>CPU1WAITCR</code>; <code>CPU1ACTCSR</code> = key+ACTREQ</td><td>ignores <code>start</code> — reconcile CPU1&#x27;s vector (<code>BSP_PARTITION_FLASH_CPU1_S_START</code>) with TF-M&#x27;s CPU1 image start, or set <code>CPU1INITVTOR</code> from <code>start</code> before calling</td></tr>
 <tr><td><code>tfm_hal_wait_for_ns_cpu_ready()</code></td><td><code>R_IPC</code> RX of a ready token</td><td>RXD FIFO</td><td></td></tr>
 <tr><td><code>tfm_hal_get_{secure,ns}_access_attr()</code></td><td>—</td><td>—</td><td>from RA8x2 <code>region_defs.h</code> + shared-SRAM attribution; see <code>tfm_multi_core_access_check.rst</code></td></tr>
 </table></div>
-<p><strong>Data path:</strong> NSPE writes a PSA call into its mailbox queue (shared SRAM) → takes
+<p>Data path: NSPE writes a PSA call into its mailbox queue (shared SRAM) → takes
 <code>IPCSEMn</code> → <code>notify_peer</code> (FIFO doorbell) → SPE IPC IRQ → <code>ns_agent_mailbox</code> reads
 the queue (access-checked) → dispatches the PSA call → writes the reply → <code>notify_peer</code>
 back → NSPE IPC IRQ wakes the NS mailbox client.</p>
@@ -190,25 +190,25 @@ ns/platform_ns_mailbox.c# NS-side transport (mirror, NSPE core)</code></pre>
 <hr>
 <h2 id="open-decisions-settle-at-p4-start--several-feed-the-topology-spike">Open decisions (settle at P4 start — several feed the topology spike)</h2>
 <ol>
-<li><strong>Core topology.</strong> Which core is SPE, which is NSPE; is the NSPE core plain, or
+<li>Core topology. Which core is SPE, which is NSPE; is the NSPE core plain, or
 does it run its own TrustZone (hybrid, like rp2350)? Drives everything. *(Open —
 never examined; see PROJECT_PLAN P4.)*</li>
-<li><strong>IPC channel/direction assignment.</strong> <code>IPC0</code> = CPU1→CPU0, <code>IPC1</code> = CPU0→CPU1 —
+<li>IPC channel/direction assignment. <code>IPC0</code> = CPU1→CPU0, <code>IPC1</code> = CPU0→CPU1 —
 map S→NS and N→S notifies onto these; pick FIFO channel 0 vs 1.</li>
-<li><strong>Semaphore allocation.</strong> Which <code>IPCSEMn</code> is the mailbox mutex (avoid clashing
+<li>Semaphore allocation. Which <code>IPCSEMn</code> is the mailbox mutex (avoid clashing
 with any application semaphore use).</li>
-<li><strong>Shared SRAM region.</strong> Where the mailbox queues live so both cores reach them;
+<li>Shared SRAM region. Where the mailbox queues live so both cores reach them;
 its S/NS attribution; how the SPE reads NS-owned params (access check).</li>
-<li><strong>Secondary-core boot — API known, wiring open.</strong> <code>R_BSP_SecondaryCoreStart()</code>
+<li>Secondary-core boot — API known, wiring open. <code>R_BSP_SecondaryCoreStart()</code>
 boots CPU1 at <code>BSP_PARTITION_FLASH_CPU1_S_START</code>. Open: provide that partition
 macro (or set <code>CPU1INITVTOR</code> from TF-M&#x27;s CPU1 image start), and author CPU1&#x27;s entry
 (TZ setup / <code>sau_and_idau_cfg</code> / jump to NS). Note <code>tfm_hal_boot_ns_cpu</code>&#x27;s <code>start</code>
 arg is unused by the FSP call — reconcile.</li>
-<li><strong>IPC peripheral ownership.</strong> <code>IPCSAR</code>/<code>IPCPAR</code> attribution — which world programs
+<li>IPC peripheral ownership. <code>IPCSAR</code>/<code>IPCPAR</code> attribution — which world programs
 the IPC; both cores need their end.</li>
-<li><strong>NMI use.</strong> Reserve NMI for a flash-write &quot;halt peer&quot; doorbell (rp2350 pattern),
+<li>NMI use. Reserve NMI for a flash-write &quot;halt peer&quot; doorbell (rp2350 pattern),
 or leave unused for MVP.</li>
-<li><del>FSP BSP semaphore API</del> — <strong>resolved.</strong> <code>R_BSP_IpcSemaphoreTake</code> / <code>Give</code>
+<li><del>FSP BSP semaphore API</del> — resolved. <code>R_BSP_IpcSemaphoreTake</code> / <code>Give</code>
 (<code>bsp_ipc.c</code>), try-take semantics → <code>enter_critical</code> spins.</li>
 </ol>
 <hr>
