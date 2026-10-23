@@ -1,7 +1,7 @@
 # RA6E1 solution template — what it must emit for TF-M
 
 Derived from the TF-M port as it stands on 2026-08-26 (all three images building and signed).
-Everything below is something the port **reads from a generated project**. If the template emits
+Everything below is something the port reads from a generated project. If the template emits
 it, a fresh solution builds TF-M with no hand-edits; if it does not, the failure mode is listed.
 
 Companion docs: `RA6E1_SOLUTION.md` (current layout and TZ boundaries), `DESIGN.md` (why),
@@ -15,11 +15,11 @@ The port takes three directories, and validates each has `ra/`, `ra_gen/`, `ra_c
 
 | Variable | Project | Role in the TF-M build |
 |---|---|---|
-| `FSP_BL2_APP_DIR` | `ra6e1_mcuboot` | FSP modules for BL2; **flat build** |
-| `FSP_S_APP_DIR` | `ra6e1_secure` | FSP modules for the secure image; **source of the layout** |
+| `FSP_BL2_APP_DIR` | `ra6e1_mcuboot` | FSP modules for BL2; flat build |
+| `FSP_S_APP_DIR` | `ra6e1_secure` | FSP modules for the secure image; source of the layout |
 | `FSP_NS_APP_DIR` | `ra6e1_nonsecure` | whole FSP application, built as `tfm_ns` |
 
-- [ ] All three generate and **build cleanly in e2 standalone**. This is not optional politeness:
+- [ ] All three generate and build cleanly in e2 standalone. This is not optional politeness:
       the layout files are build outputs, so an unbuildable project is an unconfigurable TF-M.
 
 ---
@@ -28,15 +28,15 @@ The port takes three directories, and validates each has `ra/`, `ra_gen/`, `ra_c
 
 Emitted into `<project>/Debug/` by the e2 build, so they exist only after a build there.
 
-- [ ] `Debug/bsp_linker_info.h` — **all three projects** (existence is validated per project;
-      the secure project's copy is the one actually parsed)
+- [ ] `Debug/bsp_linker_info.h` — all three projects (existence is validated per project;
+      the secure project's copy is the one parsed)
 - [ ] `Debug/memory_regions.ld` — NS project (pulled in by `script/fsp.ld`)
 - [ ] `script/fsp.ld` — NS project (used verbatim as the NS scatter file)
 - [ ] `Debug/compile_commands.json` — not read by the build, but it is the reference for the
       generated-header include set in `cmake/modules/fsp_bsp.cmake`. Keep it emitted.
 
 > The port hardcodes `Debug/`. RASC writes these to the project root instead — a known
-> divergence, deliberately not abstracted while e2 is the only shape that produces solutions.
+> divergence, left unabstracted while e2 is the only shape that produces solutions.
 
 ---
 
@@ -44,7 +44,7 @@ Emitted into `<project>/Debug/` by the e2 build, so they exist only after a buil
 
 `bsp_linker_info.h` is filtered down to its `#define BSP_PARTITION_*` lines at configure time
 (the rest of the file declares C types that cannot be preprocessed into a linker script). The
-port needs **exactly these**, in `_START` / `_SIZE` pairs unless noted:
+port needs exactly these, in `_START` / `_SIZE` pairs unless noted:
 
 | Group | Symbols |
 |---|---|
@@ -55,18 +55,18 @@ port needs **exactly these**, in `_START` / `_SIZE` pairs unless noted:
 | RAM partitions | `RAM_CPU0_S_*`, `RAM_CPU0_C_*`, `RAM_CPU0_N_*` |
 | Data flash | `DATA_FLASH_CPU0_S_*`, `DATA_FLASH_CPU0_N_*` |
 
-- [ ] **The secure project emits the full set.** The port reads the layout from `ra6e1_secure`
+- [ ] The secure project emits the full set. The port reads the layout from `ra6e1_secure`
       specifically because it is a strict superset — it carries the `RAM_BL` / `DATA_FLASH_BL` /
       `QSPI_FLASH_BL` entries the bootloader's own copy omits. If the template ever narrows what
       the secure project emits, the port loses the bootloader region.
-- [ ] `FLASH_CPU0_C_START` lands **below** `__BL_0_P_T_START`, so the NSC veneers sit inside the
+- [ ] `FLASH_CPU0_C_START` lands below `__BL_0_P_T_START`, so the NSC veneers sit inside the
       signed payload. Currently `0x97800` vs `0x98000`. Re-check on every repartition — see
       `RA6E1_SOLUTION.md`, "NSC placement".
-- [ ] **NSC is 2 KB, not 1**, and ends exactly on the NS boundary. MCUboot needs the last
+- [ ] NSC is 2 KB, not 1, and ends exactly on the NS boundary. MCUboot needs the last
       `0x180` of the slot for its trailer at `MCUBOOT_ALIGN_VAL` 128, and the veneers are pinned
       at the NSC start — at 1 KB the signed image overran the trailer by 17 bytes. Take the extra
       kilobyte from the secure code region so the S/NS boundary does not move.
-- [ ] **Partitions are contiguous and both slot pairs are the same size.** `fa_size` is a *sum of
+- [ ] Partitions are contiguous and both slot pairs are the same size. `fa_size` is a *sum of
       sizes* while the trailer magic is placed from the *address span*, so a hole makes imgtool
       and bootutil disagree on where the magic goes — and the image still boots, then fails on
       first upgrade. `ra6e1_layout_checks.c` asserts both; a 2026-08-29 regeneration that grew the
@@ -77,26 +77,26 @@ port needs **exactly these**, in `_START` / `_SIZE` pairs unless noted:
 ## 4. Modules to enable, per project
 
 A module reaches a TF-M image only if the port declares it. Enabling more in e2 is harmless for
-the standalone build but produces a configure-time **warning** naming the module as not-in-image.
+the standalone build but produces a configure-time warning naming the module as not-in-image.
 
-| Project | Must have | Also enabled, deliberately never linked into TF-M |
+| Project | Must have | Also enabled, never linked into TF-M |
 |---|---|---|
 | `ra6e1_secure` | BSP + IOPORT, `r_flash_hp`, `r_sce` | — |
 | `ra6e1_mcuboot` | BSP + IOPORT, `r_flash_hp` | `r_sce`, `rm_psa_crypto`, `rm_mcuboot_port` |
 | `ra6e1_nonsecure` | whatever the NS app needs | — (whole tree is globbed) |
 
-- [ ] `r_sce` in the **secure** project. Only the TRNG is taken (`sce_trng.c` → PSA external
+- [ ] `r_sce` in the secure project. Only the TRNG is taken (`sce_trng.c` → PSA external
       RNG); `--gc-sections` trims the rest to ~8 KB. Without it the secure image has no entropy
       source and falls back to the shared hard-coded NV seed.
-- [ ] `r_flash_hp` in **both** S and BL2.
-- [ ] The excluded three keep their **headers** resolvable — generated `common_data.h` /
+- [ ] `r_flash_hp` in both S and BL2.
+- [ ] The excluded three keep their headers resolvable — generated `common_data.h` /
       `hal_data.h` include them unconditionally even when nothing is instantiated. Their include
       paths are already listed and `EXISTS`-guarded in `fsp_bsp.cmake`; if a regenerated project
       needs another, read it off `Debug/compile_commands.json` (entry for `ra_gen/hal_data.c`).
-- [ ] Generated file **names** stay standard. The port excludes `ra_gen/main.c`,
+- [ ] Generated file names stay standard. The port excludes `ra_gen/main.c`,
       `.../Source/startup.c` and `bsp_linker.c` by name for S and BL2 (TF-M supplies all three).
       Renaming them means FSP's versions collide at link.
-- [ ] **Remove LittleFS from the FSP mbedTLS / `rm_psa_crypto` stack.** The stock stacking wires
+- [ ] Remove LittleFS from the FSP mbedTLS / `rm_psa_crypto` stack. The stock stacking wires
       PSA ITS down to LittleFS for key storage. TF-M provides ITS itself — the
       `TFM_PARTITION_INTERNAL_TRUSTED_STORAGE` partition owns the secure data flash, backed by
       `Driver_FLASH1` — so the two implementations both claim that role and the FSP one drags in
@@ -105,8 +105,8 @@ the standalone build but produces a configure-time **warning** naming the module
 
       Note this does not change what TF-M links today: `rm_psa_crypto` and `ra/arm/mbedtls` are
       already in `FSP_MODULES_NEVER_BUILT`, so nothing from them reaches a signed image. The
-      reason to fix it in the template is that the module has to stay **generatable and buildable
-      standalone** — it is the path to hardware-accelerated crypto later, and that switch is much
+      reason to fix it in the template is that the module has to stay generatable and buildable
+      standalone — it is the path to hardware-accelerated crypto later, and that switch is much
       easier if the storage backend was never LittleFS.
 
 ---
@@ -115,28 +115,28 @@ the standalone build but produces a configure-time **warning** naming the module
 
 | Setting | `ra6e1_secure` | `ra6e1_mcuboot` | `ra6e1_nonsecure` |
 |---|---|---|---|
-| `BSP_CFG_EARLY_INIT` | **1** | **1** | 0 |
+| `BSP_CFG_EARLY_INIT` | 1 | 1 | 0 |
 | `BSP_CFG_STACK_MAIN_BYTES` | sane non-zero | sane non-zero | sane non-zero |
 
-- [ ] `BSP_CFG_EARLY_INIT = 1` in **secure and bootloader**. It is what puts `SystemCoreClockUpdate()`
+- [ ] `BSP_CFG_EARLY_INIT = 1` in secure and bootloader. It is what puts `SystemCoreClockUpdate()`
       on the path before `main()`. Without it `R_FLASH_HP_Open()` sees FCLK 0 and returns
       `FSP_ERR_FCLK` — the July 2026 failure. NS does not need it (`DESIGN.md` §8.1).
 - [ ] `BSP_CFG_STACK_MAIN_BYTES` — consumed by `bsp_init_stub.c`, which weakly replaces the
       `g_init_info` / `g_main_stack` that FSP's excluded `bsp_linker.c` would have defined.
 
-**`BSP_CFG_CLOCKS_SECURE` is no longer a requirement.** It was, until BL2 became a flat build
+`BSP_CFG_CLOCKS_SECURE` is no longer a requirement. It was, until BL2 became a flat build
 (commit `9e3a10ef4`). Flat takes the `#else` branch of `bsp_mcu_ofs_cfg.h`, which emits
 `OFS1_SEL = 0xFFFFF8F8` unconditionally and never reads the setting. BL2 is the only image that
 emits OFS at all, so the setting now has no effect on any TF-M image. Note also that
-`ra_gen/bsp_clock_cfg.h` defines it **unguarded**, so `-D` can never override it — if a future
+`ra_gen/bsp_clock_cfg.h` defines it unguarded, so `-D` can never override it — if a future
 change does need it set, it has to be set in the project.
 
 ---
 
 ## 6. MCUboot module settings
 
-**TF-M builds its own BL2** from its own vendored MCUboot, with its own keys; `ra6e1_mcuboot`
-contributes only FSP driver modules. So these settings govern the **standalone** bootloader, and
+TF-M builds its own BL2 from its own vendored MCUboot, with its own keys; `ra6e1_mcuboot`
+contributes only FSP driver modules. So these settings govern the standalone bootloader, and
 only the ones the shared flash layout implies have to agree with `config.cmake`. Verified
 2026-08-26: switching this project from `signature.none` to ECDSA P-256 left `bl2.axf`,
 `tfm_s_signed.bin` and `tfm_ns_signed.bin` byte-identical.
@@ -144,25 +144,25 @@ only the ones the shared flash layout implies have to agree with `config.cmake`.
 The two bootloaders are separate binaries with different keys — images signed for one will not
 boot under the other. A mismatch is not a build error.
 
-- [ ] `MCUBOOT_IMAGE_NUMBER` = **2** — dual image
-- [ ] Signature **ECDSA P-256**. ⚠ The template's default is **Signature Type: None**, which
+- [ ] `MCUBOOT_IMAGE_NUMBER` = 2 — dual image
+- [ ] Signature ECDSA P-256. ⚠ The template's default is Signature Type: None, which
       silently reduces the standalone bootloader to a SHA-256 hash check — it boots, and looks
       like it validated. This project set ran that way until 2026-08-26. Does not affect TF-M's
       BL2 (see the note above), but it is the wrong default to ship.
-- [ ] Upgrade mode **overwrite-only** (hence no scratch area)
-- [ ] **Validate primary slot** enabled. Keep it, but **not for the reason this line used to
-      give**: with zero-size trailer partitions the secure trailer occupies the last `0x180`
-      bytes of the slot, which lie **inside the NSC window** — Secure memory that Non-secure
+- [ ] Upgrade mode overwrite-only (hence no scratch area)
+- [ ] Validate primary slot enabled. Keep it, but not for the reason this line used to
+      give: with zero-size trailer partitions the secure trailer occupies the last `0x180`
+      bytes of the slot, which lie inside the NSC window — Secure memory that Non-secure
       code cannot write. The NS-writable argument holds only for a layout whose trailer falls
       outside the NSC. Validate-primary still earns its place as a corruption check.
-- [ ] Header **`0x200`** / **trailer partitions size `0`** (end markers, not real trailers).
+- [ ] Header `0x200` / trailer partitions size `0` (end markers, not real trailers).
       A real `0x100` `__BL_0_P_T` after `FLASH_CPU0_C` would put 256 secure bytes between the
       NSC and the non-secure boundary, which breaks §3's "NSC ends exactly on the NS boundary"
       and **RDPM cannot express it**. MCUboot takes its trailer from the slot tail instead.
       All four trailer partitions are zero-size in `ra6e1_secure`. `config.cmake` reads these
       out of
       `bsp_linker_info.h` (`___BL_0_P_H_SIZE`, `___BL_0_P_T_SIZE`) because TF-M's own defaults
-      are `0x400` — and those cache values are what **imgtool signs with**. Left at the default,
+      are `0x400` — and those cache values are what imgtool signs with. Left at the default,
       the payload is placed `0x400` into the slot while the image is linked for slot+`0x200`:
       a silently unbootable image. `region_defs.h` now `#error`s on the mismatch.
 
@@ -170,7 +170,7 @@ boot under the other. A mismatch is not a build error.
 
 ## 7. Sizing the default layout
 
-Measured from the current build; leave headroom rather than fitting exactly.
+Measured from the current build; leave headroom rather than fitting the figures.
 
 | Image | `text` | Slot code region | Used |
 |---|---|---|---|
@@ -178,12 +178,12 @@ Measured from the current build; leave headroom rather than fitting exactly.
 | tfm_s | 175 838 | `0x3FE00` (255.5K) | 67% |  *(figures dated 2026-08-26; `RA6E1_SOLUTION.md` has 167 916 for what it labels the same layout - re-measure before relying on either)*
 | tfm_ns | 3 334 | `0x2FD00` (191.25K) | 2% |
 
-- [ ] Secure slot **≥ 256K**. TF-M's secure image is the binding constraint, and the current 67%
-      is with `CRYPTO_HW_ACCELERATOR` **off** — the SCE cipher stack will grow it.
-- [ ] Bootloader **96K** is comfortable at 57%.
-- [ ] **Data flash: give the secure side more than 4 KB if the template can.** This is the one
+- [ ] Secure slot ≥ 256K. TF-M's secure image is the binding constraint, and the current 67%
+      is with `CRYPTO_HW_ACCELERATOR` off — the SCE cipher stack will grow it.
+- [ ] Bootloader 96K is comfortable at 57%.
+- [ ] Data flash: give the secure side more than 4 KB if the template can. This is the one
       genuinely tight resource. The RA6M4 port uses ~7 KB of 8 KB (NV counters 2K + PS 3K +
-      ITS 2K); the current solution gives **all 8 KB to the secure side** (NV counters 2K + PS 3K + ITS 3K),
+      ITS 2K); the current solution gives all 8 KB to the secure side (NV counters 2K + PS 3K + ITS 3K),
       as `RA6E1_SOLUTION.md` records. `flash_layout.h`
       splits what it has proportionally and `#error`s below 4 KB, but there is no wear-levelling
       headroom at that size.
@@ -195,25 +195,25 @@ Measured from the current build; leave headroom rather than fitting exactly.
 
 ## 8. Launch configurations
 
-- [ ] `com.renesas.hardwaredebug.arm.jlink.setTZBoundaries` = **`false`** in **every** launch
-      config the template emits. It defaults to **enabled**, derives boundaries from the launched
-      project's symbols, and cannot handle a bootloader *and* a secure image sharing the secure
+- [ ] **`com.renesas.hardwaredebug.arm.jlink.setTZBoundaries` = `false` in every launch
+      config the template emits.** It defaults to enabled, derives boundaries from the launched
+      project's symbols, and cannot handle a bootloader and a secure image sharing the secure
       region — launched against the bootloader it marks everything secure and silently undoes a
-      correct partition. TF-M's BL2 is exactly the same shape. `DESIGN.md` §7.2.
+      correct partition. TF-M's BL2 is the same shape. `DESIGN.md` §7.2.
 
 ---
 
 ## 9. What the template still cannot supply
 
-- **TrustZone boundaries.** Nothing in the firmware ever programs them; they are set once per
+- TrustZone boundaries. Nothing in the firmware ever programs them; they are set once per
   board with the Renesas Device Partition Manager, in KB, and must be recomputed on every
   repartition against the 32 KB (code) / 8 KB (SRAM) granularity rule. Current values in
   `RA6E1_SOLUTION.md`.
-- **The OFS discrete-region rule.** `ra6e1_bl2.ld` must keep thirteen **discrete** `MEMORY`
+- The OFS discrete-region rule. `ra6e1_bl2.ld` must keep thirteen discrete `MEMORY`
   regions, each `> REGION`. One coalesced `PT_LOAD` zero-fills the option memory between the
   words and permanently bricks the part — invisible in the srec, and it cost two EK-RA6M4 boards
-  on 2026-07-21. **Measured on the bricked image** ([D094]): a 388-byte segment holding three
-  emitted words, of which **376 bytes were zero fill**. The FSPR attribution an earlier revision
+  on 2026-07-21. Measured on the bricked image ([D094]): a 388-byte segment holding three
+  emitted words, of which 376 bytes were zero fill. The FSPR attribution an earlier revision
   of this line carried is withdrawn — RA6M4 has no Flash Access Window — and which zeroed field
   killed the boards is unknown. This lives in the TF-M port, not the template, but any
   layout change should be re-verified: `arm-none-eabi-readelf -l bin/bl2.axf`.
