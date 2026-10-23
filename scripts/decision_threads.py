@@ -10,7 +10,7 @@ WHAT IT IS FOR
 DECISIONS.md is append-only and 111 entries long. Two things get lost in it:
 
   1. Which entries are still live. Rule 2 says a superseded entry gets `Status: Superseded by
-     Dyyy`, and exactly ONE of twenty threads actually carries it (D001). --status fixes that.
+     Dyyy`, and ONE of twenty threads carries it (D001). --status fixes that.
   2. What the settled answer to a question is, without walking the chain. The worksheet feeds
      the `## Settled questions` table at the top of the file; the one-line answers are written
      by hand, see THE LIMIT below.

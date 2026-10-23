@@ -18,8 +18,8 @@ wrong by hand:
 
 Both are inherited unchanged from the GCC launch, which is known good on hardware.
 
-WHAT ACTUALLY DIFFERS BETWEEN A GCC AND AN IAR LAUNCH
-----------------------------------------------------
+WHAT DIFFERS BETWEEN A GCC AND AN IAR LAUNCH
+--------------------------------------------
 Only the build directory paths. Verified against the RA6M5 pair, where
 ra6m5_TFM_test_crypto_{gcc,iar}.launch differ in exactly 9 lines, all of them paths.
 Image names are identical (bl2.elf, tfm_s_signed.bin, tfm_ns.axf, ...) because TF-M names
@@ -37,7 +37,7 @@ Nothing is built either way - ATTR_BUILD_BEFORE_LAUNCH_ATTR is 2 (disabled) - so
 project only supplies that name and the debug context.
 
 PROJECT_BUILD_CONFIG_AUTO_ATTR is false, which is what all six working RA6M5 IAR launches
-use. The GCC launches have true, so it cannot simply be inherited.
+use. The GCC launches have true, so it cannot be inherited.
 """
 import argparse
 import sys

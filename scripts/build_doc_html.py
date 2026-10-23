@@ -22,7 +22,7 @@ WHAT IT RENDERS
 ---------------
 Every *.md at the repository root plus scripts/README.md. The archive/ tree is not rendered.
 
-It is a deliberately small renderer for the subset these documents use - ATX headings, pipe
+It is a small renderer for the subset these documents use - ATX headings, pipe
 tables, fenced code, nested and task lists, block quotes, rules, emphasis, code spans, links.
 Raw HTML is NOT passed through: every '<' is escaped, because these documents write `<part>`
 and `<booleanAttribute ...>` as text. Stdlib only, so the hook has no dependency to install.

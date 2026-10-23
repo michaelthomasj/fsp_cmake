@@ -27,8 +27,8 @@ things that are:
   2. every relative .md link in a document resolves to a file
   3. every .md filename mentioned in a .cmake / CMakeLists.txt comment resolves
 
-DECISIONS.md IS EXEMPT FROM (2) AND (3), DELIBERATELY
------------------------------------------------------
+DECISIONS.md IS EXEMPT FROM (2) AND (3), BY DESIGN
+--------------------------------------------------
 It is append-only: entries are superseded, never edited. A reference in an old entry to a file
 that has since been retired is a historical fact, not a broken link - MACHINE_HANDOFF.md is
 cited six times there and was deleted on 2026-10-09. Link-checking it would make this tool

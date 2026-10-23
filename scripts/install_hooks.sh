@@ -5,7 +5,7 @@
 #
 # Hooks are not version-controlled by git itself, so this has to be run once per clone.
 # It copies rather than symlinks: Windows clones without developer mode cannot follow a
-# symlink in .git/hooks, and the failure is silent - the hook simply never runs.
+# symlink in .git/hooks, and the failure is silent - the hook never runs.
 
 set -e
 root=$(git rev-parse --show-toplevel)

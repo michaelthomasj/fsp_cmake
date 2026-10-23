@@ -122,7 +122,7 @@ def build(entries):
 def threads(entries, by, displaced_by):
     """Lineages joined by **Supersedes only**, oldest -> newest.
 
-    Corrects deliberately does NOT join a thread. A later entry often corrects one claim in
+    Corrects does NOT join a thread, by design. A later entry often corrects one claim in
     an earlier one while answering a different question: D092 corrects a claim in D091 but is
     about RA8M2's first boot, not about which MCUboot backend to use. Merging on Corrects
     chained D075..D092 into a single "thread" and presented D092 as the current word on the

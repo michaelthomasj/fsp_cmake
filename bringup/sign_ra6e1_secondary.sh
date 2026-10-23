@@ -4,10 +4,10 @@
 # Purpose: exercise the upgrade path. MCUboot only overwrites the primary slot when the
 # secondary holds a VALID image with a HIGHER version, so the same payloads that are already
 # running can be reused - only the version in the header has to differ. This is the first
-# thing that makes BL2 actually WRITE code flash, which is what MCUBOOT_ALIGN_VAL=128 and the
+# thing that makes BL2 WRITE code flash, which is what MCUBOOT_ALIGN_VAL=128 and the
 # 128-byte program_unit exist for. Everything before this only ever read.
 #
-# The payloads are byte-identical to the primaries; nothing is rebuilt. That is deliberate -
+# The payloads are byte-identical to the primaries; nothing is rebuilt. That is the point -
 # if the upgrade misbehaves it is the copy/trailer machinery, not a code difference.
 #
 # Re-signing rather than copying the primary .bin is required: the version lives in the image
@@ -43,8 +43,8 @@ SEC_COUNTER=1
 DEP_S="(1,0.0.0+0)"
 DEP_NS="(0, 0.0.0+0)"
 
-# --measured-boot-record is passed because the BUILD passes it, for both images. Note that
-# it is on despite the port's config.cmake setting MCUBOOT_MEASURED_BOOT OFF: config_base.cmake
+# --measured-boot-record is passed because the BUILD passes it, for both images. It is
+# on despite the port's config.cmake setting MCUBOOT_MEASURED_BOOT OFF: config_base.cmake
 # force-sets it ON with a plain set() whenever CONFIG_TFM_BOOT_STORE_MEASUREMENTS and
 # CONFIG_TFM_BOOT_STORE_ENCODED_MEASUREMENTS are on, and a plain set() shadows the cache. The
 # secondary must be signed exactly like the primary apart from the version, so it matches the

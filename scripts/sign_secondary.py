@@ -29,7 +29,7 @@ The secondary image must differ from the primary in a way MCUboot will act on:
 Everything else - key, alignment, header size, security counter, dependencies, the measured
 boot record - must match the primary exactly, or BL2 rejects the image for a reason that has
 nothing to do with the upgrade path. This script therefore does not invent a command line: it
-reads the one the build actually used out of build.ninja and changes only -v and the output.
+reads the one the build used out of build.ninja and changes only -v and the output.
 
 AFTER FLASHING
 --------------

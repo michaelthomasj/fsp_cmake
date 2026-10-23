@@ -47,7 +47,7 @@ rem  catches it is the manifest generator, not check_config.cmake, so the messag
 rem  partitions and says nothing about the isolation level that enabled them.
 rem
 rem  This script therefore FORCES IPC above level 1 rather than letting you pass the broken
-rem  pair. Everything else really is automatic: platform/CMakeLists.txt:125 defines
+rem  pair. Everything else is automatic: platform/CMakeLists.txt:125 defines
 rem  CONFIG_TFM_ENABLE_MEMORY_PROTECT for TFM_ISOLATION_LEVEL > 1, the two configs that would
 rem  block it are already off here (PSA_FRAMEWORK_HAS_MM_IOVEC, CONFIG_TFM_STACK_WATERMARKS),
 rem  and PLATFORM_HAS_ISOLATION_L3_SUPPORT is ON for both parts.
@@ -62,7 +62,7 @@ rem      L3   5 static + 1 private data + the MMIO regions of the partition bein
 rem  tests_reg contributes one ARoT MMIO region via the FLIH or SLIH service - the secure
 rem  client service is PSA-RoT, so its MMIO costs nothing (the L2 path guards on !privileged).
 rem  So L2 should land on 6 and L3 on 7 of the 8 regions. tfm_hal_platform.c logs what the
-rem  hardware actually reports; read it rather than trusting this comment.
+rem  hardware reports; read it rather than trusting this comment.
 rem
 rem  RA8M2 WILL NOT FIT and the script does not stop you trying. tfm_s is 293,564 B against a
 rem  294,400 B slot - 670 B spare after the imgtool TLVs (DECISIONS D057, corrected by D087) -

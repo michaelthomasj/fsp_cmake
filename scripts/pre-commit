@@ -2,7 +2,7 @@
 # Documentation hooks: cross-reference check, then re-render the course's reference pages.
 #
 # Install:   scripts/install_hooks.sh      (or copy this file to .git/hooks/pre-commit)
-# Bypass:    git commit --no-verify        (for a commit that deliberately breaks a reference,
+# Bypass:    git commit --no-verify        (for a commit that breaks a reference on purpose,
 #                                           e.g. the first half of a two-repo rename)
 #
 # Only runs when the commit touches something that can carry a reference or feeds the rendered
@@ -21,7 +21,7 @@ if [ -f "$root/scripts/check_docs.py" ] && echo "$changed" | grep -qE '\.md$|\.c
     if [ $status -ne 0 ]; then
         echo
         echo "pre-commit: documentation references are broken (above)."
-        echo "            Fix them, or commit with --no-verify if that is deliberate."
+        echo "            Fix them, or commit with --no-verify if that is intended."
         exit $status
     fi
 fi
@@ -73,7 +73,7 @@ fi
 
 # 3. Rendered reference pages, docs/learning/ref/. The Markdown is the source: render from the
 #    INDEX (--staged), not the working tree, so a partially staged document produces HTML that
-#    matches what is actually being committed. Then stage the result, including removals.
+#    matches what is being committed. Then stage the result, including removals.
 [ -f "$root/scripts/build_doc_html.py" ] || exit 0
 python "$root/scripts/build_doc_html.py" --staged
 status=$?

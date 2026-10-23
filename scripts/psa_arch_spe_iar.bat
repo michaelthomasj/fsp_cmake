@@ -50,7 +50,7 @@ if /i "%PART%"=="ra8m2" (
 if "%BUILD%"=="" echo usage: %~nx0 ^<build-dir^> ^<TEST_PSA_API^> [part] & exit /b 2
 if "%SUITE%"=="" echo usage: %~nx0 ^<build-dir^> ^<TEST_PSA_API^> [part] & exit /b 2
 
-rem  LOGGING IS ON DELIBERATELY in these four options, and they are stated here rather than
+rem  LOGGING IS ON BY DESIGN in these four options, and they are stated here rather than
 rem  left to the defaults so a fresh tree matches an old one. Until 2026-10-02 they existed
 rem  only as hand-set cache entries in C:\b\m5cry, so a rebuilt-from-scratch SPE was quietly
 rem  a different image - 3,785 B less secure text and 5,960 B less BL2 text. DECISIONS D084.

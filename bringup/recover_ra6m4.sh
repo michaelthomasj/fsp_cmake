@@ -2,7 +2,7 @@
 #
 # RA6M4 recovery / device-state helper.
 #
-# WHAT ACTUALLY RECOVERS A LOCKED-OUT BOARD (verified on this bench):
+# WHAT RECOVERS A LOCKED-OUT BOARD (verified on this bench):
 #   Renesas Device Partition Manager GUI -> "Initialize device" over J-Link.
 #     e2 studio / RASC:  Run -> Renesas Debug Tools -> Renesas Device Partition Manager
 #     tick "Initialize device", Target MCU connection = J-Link, Run.
@@ -19,7 +19,7 @@
 #     "Establishing connection: FAILED! Unable to retrieve device's boot code."
 #   This was observed on a KNOWN-GOOD board too, so that failure says nothing
 #   about board health. Use the GUI path above. The CLI is only useful in a
-#   production fixture that actually wires up SCI/USB boot mode.
+#   production fixture that wires up SCI/USB boot mode.
 #
 # This script itself only does the SAFE, READ-ONLY things:
 #   ./recover_ra6m4.sh status   # J-Link connect + read OFS + reset vector (read-only)
