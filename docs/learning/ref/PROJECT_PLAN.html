@@ -62,7 +62,7 @@
 <p class="src">Rendered from <a href="../../../PROJECT_PLAN.md"><code>PROJECT_PLAN.md</code></a>. Edit the Markdown, not this page.</p>
 <h1 id="tf-m-on-renesas-ra--ra6e1--ra6m5--ra8x2-single-core-fsp-67-gnuarm--iar">TF-M on Renesas RA — RA6E1 → RA6M5 → RA8x2 (single-core), FSP 6.7, GNUARM + IAR</h1>
 <p><strong>Project plan · Firmware security · revised 2026-10-12</strong></p>
-<p>RA6E1, <strong>RA6M5 and RA8M2 are all complete on both toolchains</strong>, validated well
+<p>RA6E1, RA6M5 and RA8M2 are all complete on both toolchains, validated well
 beyond the original bar — RA6M5 was the first platform here with hardware crypto
 doing the work rather than only supplying entropy, and RA8M2 adds RSIP-E50D,
 measured boot verified from the boot record, and MCUboot secondary-slot upgrade.
@@ -72,30 +72,30 @@ track is FWU on RA6M5.</p>
 (<a href="DECISIONS.html#d130">D130</a>). TF-M 2.3 replaces Mbed TLS with TF-PSA-Crypto, which has no <code>*_ALT</code>
 mechanism, so it cannot host FSP&#x27;s 3.6-era crypto stack. SCE9 acceleration is built
 on the 3.6 ALT route now and redone as a PSA transparent driver then. It is the last
-phase, <strong>P7</strong>.</p>
+phase, P7.</p>
 <blockquote><p><strong><a href="DECISIONS.html#d035">D035</a> said <em>cancelled</em>; <a href="DECISIONS.html#d130">D130</a> supersedes it with <em>deferred</em>.</strong> The working state is
 the same either way — v2.2.0 / Mbed TLS 3.6.3 — but the planning consequence is opposite,
 and this document asserted &quot;future work&quot; against an Accepted &quot;cancelled&quot; for a month.
-Note also that <a href="DECISIONS.html#d035">D035</a>&#x27;s &quot;P5 of PROJECT_PLAN.md is cancelled&quot; uses the <strong>2026-09-21</strong>
-numbering: that work is now <strong>P7</strong>, and today&#x27;s P5 is RA8x2 single-core, which is done.</p></blockquote>
+<a href="DECISIONS.html#d035">D035</a>&#x27;s &quot;P5 of PROJECT_PLAN.md is cancelled&quot; also uses the 2026-09-21
+numbering: that work is now P7, and today&#x27;s P5 is RA8x2 single-core, which is done.</p></blockquote>
 <p><strong>Scope change — RA8x2 is single-core.</strong> The previous revision built the whole
 RA8x2 leg around dual-core operation and binding FSP&#x27;s inter-core comms to
-TF-M&#x27;s mailbox HAL. That is <strong>descoped</strong>: RA8x2 work is now the TrustZone
+TF-M&#x27;s mailbox HAL. That is descoped: RA8x2 work is now the TrustZone
 configuration and BSP update for a single-core part. This removes an entire
-phase and <strong>both High risks</strong> from the register — see <em>Descoped</em> below.</p>
+phase and both High risks from the register — see <em>Descoped</em> below.</p>
 <p><strong>All dates below are targets, not commitments.</strong> An overrun shifts subsequent
 dates rather than cutting scope.</p>
-<blockquote><p><a href="../../../PROJECT_PLAN.html"><code>PROJECT_PLAN.html</code></a> is a <strong>hand-made summary page</strong>, not a render of
+<blockquote><p><a href="../../../PROJECT_PLAN.html"><code>PROJECT_PLAN.html</code></a> is a hand-made summary page, not a render of
 this file, and it drifts. For an HTML view that is generated from this document and checked
 for staleness on every commit, use
 <a href="PROJECT_PLAN.html"><code>docs/learning/ref/PROJECT_PLAN.html</code></a>
 (<code>scripts/build_doc_html.py --check</code> enforces it).</p></blockquote>
 <div class="table-wrap"><table>
 <tr><th></th><th></th></tr>
-<tr><td><strong>RA6E1 (GNUARM + IAR)</strong></td><td><strong>done 2026-09-14</strong> (target was ~09-25)</td></tr>
-<tr><td><strong>RA6M5 — upstream vehicle</strong></td><td><strong>done 2026-09-23</strong> (target was ~10-16)</td></tr>
-<tr><td><strong>Primary goal — RA8x2 single-core</strong></td><td><strong>done 2026-10-09</strong> (target was ~11-27)</td></tr>
-<tr><td>TF-M 2.3 / TF-PSA-Crypto</td><td><strong>deferred</strong> — gated on FSP&#x27;s Mbed TLS v4.1 migration, ~2026-11-12 (<a href="DECISIONS.html#d130">D130</a>)</td></tr>
+<tr><td><strong>RA6E1 (GNUARM + IAR)</strong></td><td>done 2026-09-14 (target was ~09-25)</td></tr>
+<tr><td><strong>RA6M5 — upstream vehicle</strong></td><td>done 2026-09-23 (target was ~10-16)</td></tr>
+<tr><td><strong>Primary goal — RA8x2 single-core</strong></td><td>done 2026-10-09 (target was ~11-27)</td></tr>
+<tr><td>TF-M 2.3 / TF-PSA-Crypto</td><td>deferred — gated on FSP&#x27;s Mbed TLS v4.1 migration, ~2026-11-12 (<a href="DECISIONS.html#d130">D130</a>)</td></tr>
 <tr><td>Revised</td><td>2026-10-12</td></tr>
 <tr><td>Toolchains</td><td>GNUARM + IAR</td></tr>
 <tr><td>Validation</td><td>boot + crypto NSC app; PSA Arch suites where available</td></tr>
@@ -105,7 +105,7 @@ for staleness on every commit, use
 <h2 id="snapshot">Snapshot</h2>
 <p><strong>Done — RA6E1, both toolchains</strong></p>
 <ul>
-<li>Full secure boot chain <strong>BL2 → S → NS</strong> on silicon, GNUARM and IAR.</li>
+<li>Full secure boot chain BL2 → S → NS on silicon, GNUARM and IAR.</li>
 <li><strong>PSA Arch suites pass on both toolchains</strong> — attestation 1/1, storage 17
 (11 passed, 6 optional-PS skips), crypto 64/64, zero failures. This is
 conformance evidence the original plan did not ask for.</li>
@@ -116,10 +116,10 @@ CMSE veneer placement, vendor-section hooks) — see <code>UPSTREAM_CHANGES.md</
 </ul>
 <p><strong>Done — RA6M5, both toolchains (2026-09-23, M4 met ~3 weeks early)</strong></p>
 <ul>
-<li>Full chain <strong>BL2 → S → NS</strong> on a CK-RA6M5 V2, GNUARM and IAR, on FSP 6.7.0-beta0.</li>
+<li>Full chain BL2 → S → NS on a CK-RA6M5 V2, GNUARM and IAR, on FSP 6.7.0-beta0.</li>
 <li><strong>SCE9 hardware crypto active</strong> — the first platform here to use it for ciphers,
 hashes and ECC rather than entropy alone. BL2 hashes images on the engine too.</li>
-<li>TF-M&#x27;s crypto is built from <strong>FSP&#x27;s own Mbed TLS</strong>, not upstream, because FSP&#x27;s
+<li>TF-M&#x27;s crypto is built from FSP&#x27;s own Mbed TLS, not upstream, because FSP&#x27;s
 <code>*_ALT</code> sources depend on its PSA core (DECISIONS D042).</li>
 <li><strong>PSA Arch on both toolchains</strong> — crypto 63/0/1, attestation 1/0/0, storage 11/0/6,
 identical results, zero failures (D046).</li>
@@ -132,7 +132,7 @@ identical results, zero failures (D046).</li>
 <li><strong>BL2, <code>tfm_s</code> and <code>tfm_ns</code> all build and link, on BOTH toolchains</strong> (IAR then GNUARM).</li>
 <li>Memory map, OFS placement and M85 TCM attribution verified pre-silicon; the OFS brick
 guard passes on both toolchains with six discrete per-word segments.</li>
-<li>Full chain <strong>BL2 → S → NS</strong> on an EK-RA8M2, GNUARM and IAR, on FSP 6.7.</li>
+<li>Full chain BL2 → S → NS on an EK-RA8M2, GNUARM and IAR, on FSP 6.7.</li>
 <li><strong>PSA Arch identical on both toolchains</strong> — crypto 62/1/1, attestation 1/0/0,
 storage 11/0/6. The single failure is crypto 216, plaintext RSA-2048 keygen,
 which RSIP-E50D has no primitive for (D111) — not a port defect.</li>
@@ -140,18 +140,18 @@ which RSIP-E50D has no primitive for (D111) — not a port defect.</li>
 attestation suite — both SHA-256 TLVs matched (D096, D105).</li>
 <li><strong>MCUboot secondary-slot upgrade proven</strong> on both toolchains, install and erase
 (D100, D106).</li>
-<li>RSIP-E50D active; <strong>RA8M2 image 0&#x27;s slot order is reversed</strong> — secondary sits
+<li>RSIP-E50D active; RA8M2 image 0&#x27;s slot order is reversed — secondary sits
 below primary.</li>
 <li>Still carried, neither gating M5: the <code>BSP_TZ_CFG_MSAR=0</code> workaround pending an
 e2 generator fix (D093), and FWU on RA6M5.</li>
-<li>Note the part is <strong>RA8M2</strong> (R7KA8M2JFLCAC) with <strong>RSIP-E50D</strong>, not SCE9; earlier revisions
+<li>Note the part is RA8M2 (R7KA8M2JFLCAC) with RSIP-E50D, not SCE9; earlier revisions
 of this plan said RSIP-E51A.</li>
 </ul>
 <p><strong><del>Primary goal — RA8M2 single-core (~late Nov)</del> — done 2026-10-09</strong> (<a href="DECISIONS.html#d106">D106</a>)</p>
 <ul>
 <li>TrustZone configuration + BSP update on FSP 6.7, GNUARM + IAR. Both toolchains build, the
 full chain runs on hardware, and the PSA Arch suites pass on both. Isolation 1+IPC, 2 and 3
-followed on <strong>2026-10-21</strong> (<a href="DECISIONS.html#d116">D116</a>, <a href="DECISIONS.html#d118">D118</a>, <a href="DECISIONS.html#d119">D119</a>), <strong>regression+FLIH only</strong> (<a href="DECISIONS.html#d126">D126</a>
+followed on 2026-10-21 (<a href="DECISIONS.html#d116">D116</a>, <a href="DECISIONS.html#d118">D118</a>, <a href="DECISIONS.html#d119">D119</a>), regression+FLIH only (<a href="DECISIONS.html#d126">D126</a>
 §4). <a href="DECISIONS.html#d124">D124</a> is RA6M5 IAR L3, not this part.</li>
 </ul>
 <p><strong>Deferred — TF-M 2.3 / TF-PSA-Crypto (gated on FSP&#x27;s Mbed TLS v4.1 migration, ~2026-11-12)</strong></p>
@@ -174,16 +174,16 @@ crypto suite with usable headroom.</li>
 <tr><th>Phase</th><th>Work</th><th>Start</th><th>End</th><th>Track</th></tr>
 <tr><td><strong>P1</strong></td><td>RA6E1 secure image (tfm_s) — GNUARM</td><td>2026-07-28</td><td>2026-08-14</td><td>✅ done</td></tr>
 <tr><td><strong>P2</strong></td><td>RA6E1 non-secure · full boot · crypto NSC app (GNUARM)</td><td>2026-08-17</td><td>2026-09-04</td><td>✅ done</td></tr>
-<tr><td><strong>P3</strong></td><td>IAR toolchain for RA6E1</td><td>2026-09-07</td><td><strong>2026-09-14</strong></td><td>✅ done, 11d early</td></tr>
-<tr><td><strong>P4</strong></td><td>RA6M5 port + SCE9 crypto acceleration</td><td>2026-09-15</td><td><strong>2026-09-23</strong></td><td>✅ done, 23d early</td></tr>
-<tr><td><strong>P5</strong></td><td>RA8x2 single-core — TrustZone cfg + BSP</td><td><strong>2026-09-24</strong></td><td><strong>2026-10-09</strong></td><td>✅ done, 49d early</td></tr>
+<tr><td><strong>P3</strong></td><td>IAR toolchain for RA6E1</td><td>2026-09-07</td><td>2026-09-14</td><td>✅ done, 11d early</td></tr>
+<tr><td><strong>P4</strong></td><td>RA6M5 port + SCE9 crypto acceleration</td><td>2026-09-15</td><td>2026-09-23</td><td>✅ done, 23d early</td></tr>
+<tr><td><strong>P5</strong></td><td>RA8x2 single-core — TrustZone cfg + BSP</td><td>2026-09-24</td><td>2026-10-09</td><td>✅ done, 49d early</td></tr>
 <tr><td><strong>P6</strong></td><td><em>Stretch</em> — upstream to Arm TF-M</td><td>2027-01-11</td><td>2027-03-26</td><td>Stretch</td></tr>
-<tr><td><strong>P7</strong></td><td>TF-M 2.3 / TF-PSA-Crypto</td><td>gated on FSP Mbed TLS v4.1 (~2026-11-12)</td><td>—</td><td><strong>Deferred</strong> (<a href="DECISIONS.html#d130">D130</a>)</td></tr>
+<tr><td><strong>P7</strong></td><td>TF-M 2.3 / TF-PSA-Crypto</td><td>gated on FSP Mbed TLS v4.1 (~2026-11-12)</td><td>—</td><td>Deferred (<a href="DECISIONS.html#d130">D130</a>)</td></tr>
 <tr><td><strong>P8</strong></td><td><em>Future</em> — NS image in OSPI (XIP)</td><td>after P7</td><td>—</td><td>Future</td></tr>
 </table></div>
-<p>Critical path: <strong>P4 → P5</strong> (sequential under one engineer).</p>
+<p>Critical path: P4 → P5 (sequential under one engineer).</p>
 <p>The primary goal moved forward three weeks, to ~Nov 27, because the TF-M 2.3
-rebase that sat ahead of RA8x2 was deferred. P7 has no end date: its <strong>start</strong> is
+rebase that sat ahead of RA8x2 was deferred. P7 has no end date: its start is
 gated on FSP&#x27;s Mbed TLS v4.1 migration, expected ~2026-11-12 (<a href="DECISIONS.html#d130">D130</a>).</p>
 <hr>
 <h2 id="phases">Phases</h2>
@@ -193,14 +193,14 @@ gated on FSP&#x27;s Mbed TLS v4.1 migration, expected ~2026-11-12 (<a href="DECI
 MCUboot dual-image — the RA6E1 pattern.</li>
 <li><code>platform/ext/target/renesas/ra6m5</code>: memory map, <code>region_defs.h</code>, linker scripts
 (<code>.ld</code> + <code>.icf</code>), OFS guard.</li>
-<li>Full boot chain + crypto NSC app on silicon, <strong>GNUARM and IAR</strong>.</li>
+<li>Full boot chain + crypto NSC app on silicon, GNUARM and IAR.</li>
 <li>PSA Arch suites, both toolchains.</li>
 <li><strong>SCE9 crypto acceleration</strong> — RA6M5 has SCE9, the same engine as RA6E1/RA6M4
 (FSP namespaces it <code>BSP_FEATURE_RSIP_SCE9_SUPPORTED</code>; true RSIP parts are RA8).
 <ul>
 <li><strong>Route: FSP <code>rm_psa_crypto</code> <code>*_ALT</code> sources</strong>, in
 <code>platform/ext/accelerator/renesas/sce9/</code> against TF-M&#x27;s <code>crypto_hw.h</code>, with <code>cc312</code>
-as the structural template. <strong>Per-engine directory on purpose</strong> — RA8&#x27;s RSIP is a
+as the structural template. Per-engine directory on purpose — RA8&#x27;s RSIP is a
 different driver API and lands beside it as <code>platform/ext/accelerator/renesas/rsip_e50d</code> (<a href="DECISIONS.html#d050">D050</a>). The Renesas wrapped-key
 vendor driver stays out: it depends on FSP&#x27;s patched Mbed TLS.</li>
 <li><strong>Built against FSP&#x27;s Mbed TLS 3.6.6, not upstream</strong> (D042). Pairing the ALT sources
@@ -208,14 +208,14 @@ with upstream left multi-part GCM broken — FSP&#x27;s changes live in the PSA 
 ALTs are written against — so the port overlays FSP&#x27;s <code>include/</code> and <code>library/</code> on
 upstream scaffolding of the same version.</li>
 <li>Accelerated: cipher, AES, GCM, CMAC, SHA-256, ECP/ECDSA, RSA, and SHA-256 for BL2&#x27;s
-image hash. <strong>CCM stays in software</strong> — FSP&#x27;s SCE9 CCM caps associated data at
+image hash. CCM stays in software — FSP&#x27;s SCE9 CCM caps associated data at
 110 B and Protected Storage exceeds it (D043).</li>
 <li><code>FSP_MODULES_NEVER_BUILT</code> (<code>r_sce</code>, <code>rm_psa_crypto</code>, FSP&#x27;s mbedTLS) untangled, which
 was the substance of the work rather than a flag flip.</li>
 <li>Regression gate met: PSA Arch crypto 63 passed / 0 failed / 1 skipped, the skip being
 deterministic ECDSA, which FSP does not support (D040).</li>
 </ul></li>
-<li>✅ <strong>Exit M4 met 2026-09-23</strong> — RA6M5 full chain + crypto app on silicon, GNUARM and
+<li>✅ Exit M4 met 2026-09-23 — RA6M5 full chain + crypto app on silicon, GNUARM and
 IAR, SCE9 ciphers active, all three PSA Arch suites passing on both toolchains (D046).
 Built and validated on FSP 6.7.0-beta0 (<a href="DECISIONS.html#d047">D047</a>).</li>
 </ul>
@@ -228,7 +228,7 @@ TF-M 2.3 is deferred to P7, where SCE9 is redone as a PSA transparent driver.</p
 <li>BSP update: memory map, RSIP crypto driver, entropy source, Cortex-M85
 PACBTI / FPU-in-SPE.</li>
 <li>Linker scripts for both toolchains; boot chain + crypto NSC app.</li>
-<li>✅ <strong>Exit M5 met 2026-10-09</strong> — RA8M2 single-core full chain on silicon, GNUARM and
+<li>✅ Exit M5 met 2026-10-09 — RA8M2 single-core full chain on silicon, GNUARM and
 IAR, all three PSA Arch suites identical across toolchains, measured boot verified
 from the record, MCUboot upgrade proven. 49 days early. Evidence table in D106.</li>
 </ul>
@@ -249,14 +249,14 @@ obsolete there.</li>
 </ul>
 <h3 id="p7--tf-m-23--tf-psa-crypto--deferred-gated-on-fsps-mbed-tls-v41-migration">P7 · TF-M 2.3 / TF-PSA-Crypto — deferred, gated on FSP&#x27;s Mbed TLS v4.1 migration</h3>
 <ul>
-<li><strong>Gate:</strong> FSP completing its Mbed TLS <strong>v4.1</strong> migration, expected ~2026-11-12
+<li><strong>Gate:</strong> FSP completing its Mbed TLS v4.1 migration, expected ~2026-11-12
 (<a href="DECISIONS.html#d130">D130</a>). 4.x is where the crypto library splits out as TF-PSA-Crypto, which is
 what 2.3 consumes — rebasing first would put FSP&#x27;s 3.6-era stack on a TF-M that
 cannot host it. Re-confirm the version pairing when the migration lands.</li>
 <li>TF-M 2.3.0 pins TF-PSA-Crypto v1.1.0, 2.3.1 pins v1.1.1 — no Mbed TLS, no
 <code>*_ALT</code>. CC312&#x27;s legacy ALT path is gone in 2.3.0.</li>
 <li>SCE9 acceleration redone as a PSA transparent driver, on the rsip7 CM driver model.
-The rsip7 work supplies the model; the <strong>gate</strong> is the Mbed TLS v4.1 migration above
+The rsip7 work supplies the model; the gate is the Mbed TLS v4.1 migration above
 (<a href="DECISIONS.html#d130">D130</a>).</li>
 <li>Rebase from <code>dd2b7de19</code>: 10 of 20 shared files conflict; SPM logging rewritten
 (<code>lib/tfm_log</code>), so the trace option and RTT backend need porting; item 6 still
@@ -265,7 +265,7 @@ needed at the moved <code>scripts/wrapper.py</code>. Detail in DECISIONS D035.</
 curves cost 22,977 bytes of HW procedure tables. Deleting the two <code>#undef</code>s in
 <code>rsip_e50d/crypto_accelerator_config.h</code> is the whole change; then re-run the PSA
 Arch crypto suite at profile_large, which is what exercises them. E50D has the
-hardware; the port simply stops advertising it until there is room.</li>
+hardware; the port stops advertising it until there is room.</li>
 <li><strong>Exit M7</strong> — RA6E1, RA6M5 and RA8x2 on 2.3.x with PSA-driver acceleration,
 both toolchains, suites green, and the RA8M2 curve set back to the engine&#x27;s full
 capability.</li>
@@ -301,9 +301,9 @@ toolchains, PSA Arch suites green with MRAM headroom restored.</li>
 <tr><th>ID</th><th>Date (target)</th><th>Gate</th></tr>
 <tr><td>M1</td><td>2026-08-14</td><td>✅ RA6E1 BL2 → tfm_s boots on silicon</td></tr>
 <tr><td>M2</td><td>2026-09-04</td><td>✅ Full RA6E1 boot + crypto NSC app (GNUARM)</td></tr>
-<tr><td>M3</td><td><strong>2026-09-14</strong></td><td>✅ RA6E1 full chain + crypto app, GNUARM <strong>and</strong> IAR</td></tr>
-<tr><td>M4</td><td><strong>2026-09-23</strong></td><td>✅ RA6M5 full chain, both toolchains, SCE9 ciphers active — 23 days early</td></tr>
-<tr><td><strong>M5</strong></td><td><strong>2026-10-09</strong></td><td>✅ RA8M2 single-core full chain, both toolchains, RSIP-E50D, measured boot + MCUboot upgrade verified — 49 days early</td></tr>
+<tr><td>M3</td><td>2026-09-14</td><td>✅ RA6E1 full chain + crypto app, GNUARM and IAR</td></tr>
+<tr><td>M4</td><td>2026-09-23</td><td>✅ RA6M5 full chain, both toolchains, SCE9 ciphers active — 23 days early</td></tr>
+<tr><td><strong>M5</strong></td><td>2026-10-09</td><td>✅ RA8M2 single-core full chain, both toolchains, RSIP-E50D, measured boot + MCUboot upgrade verified — 49 days early</td></tr>
 <tr><td>M6</td><td>~2027 Q1–Q2</td><td><em>Stretch</em> — merged into Arm TF-M upstream (port waits on M7)</td></tr>
 <tr><td>M7</td><td>deferred</td><td>TF-M 2.3 / TF-PSA-Crypto — gated on FSP&#x27;s Mbed TLS v4.1 migration, ~2026-11-12 (<a href="DECISIONS.html#d130">D130</a>)</td></tr>
 <tr><td>M8</td><td>future</td><td><em>Future</em> — RA8x2 NS image in OSPI, executed in place (after M7)</td></tr>
@@ -312,16 +312,16 @@ toolchains, PSA Arch suites green with MRAM headroom restored.</li>
 <h2 id="risks--buffer">Risks &amp; buffer</h2>
 <div class="table-wrap"><table>
 <tr><th>Severity</th><th>Risk</th></tr>
-<tr><td><del>High</del></td><td><del><strong>RA8x2 new silicon on FSP 6.7.</strong></del> <strong>Retired 2026-10-09.</strong> First bring-up carried M85 FPU/caches, RSIP-E50D and TrustZone config. All of it is now exercised on silicon on both toolchains, with the PSA Arch suites identical across them. The one first-boot surprise was MRAM&#x27;s MRCPFB being non-secure (D092/D093), worked around and tracked.</td></tr>
-<tr><td><del>Med</del></td><td><del><strong>SCE9 cipher wiring.</strong></del> <strong>Retired 2026-09-23.</strong> FSP&#x27;s crypto stack and TF-M&#x27;s mbedcrypto now coexist; the port builds TF-M&#x27;s crypto from FSP&#x27;s Mbed TLS. The ALT route remains Mbed TLS 3.6-only — redone as a PSA driver in P7, and every FSP ALT fix carried here is debt against that rebase.</td></tr>
-<tr><td><del>Med</del></td><td><del><strong>IAR replication, round 2.</strong></del> <strong>Retired 2026-09-25.</strong> RA8M2 builds and links on <strong>both</strong> toolchains. IAR came first; GNUARM then found two defects IAR had masked — an archive-ordering dependency for the <code>gp_ddsc_*</code> TCM symbols, and <code>Debug</code> not fitting. The <code>.icf</code>/startup patterns transferred as expected.</td></tr>
-<tr><td><del>Med</del></td><td><del><strong>Hardware.</strong></del> <strong>Retired 2026-09-25.</strong> The EK-RA8M2 boards are in hand, ahead of the Oct 19 need-by. The RA6M5 board is in hand. 2× EK-RA6M4 remain bricked (RA6E1 was the RA6 vehicle) — the reason the OFS brick guard exists.</td></tr>
-<tr><td><del>Med</del></td><td><del><strong>RA8x2 MRAM budget.</strong></del> <strong>Retired 2026-09-25 — measured.</strong> <code>tfm_s</code> at profile_large/L3/IPC is 204 KB in a 293 KB region (<strong>+87 KB</strong>); GNUARM MinSizeRel leaves +26 KB; the PSA Arch crypto NS image fits with +1.5 KB. <code>Debug</code> is what was tight all along, and it does NOT fit on GNUARM at all (~414 KB) — so <strong>MinSizeRel is a requirement, not a preference</strong>. P8 (NS in OSPI) is no longer needed to make the budget work.</td></tr>
-<tr><td>Med</td><td><strong>TF-M 2.3 debt grows while deferred.</strong> Every change to a shared file adds to the eventual P7 rebase, and upstream submission of the port waits on it.</td></tr>
-<tr><td><del>Low</del></td><td><del><strong>Open defects.</strong></del> <strong>Both closed 2026-09-23.</strong> <code>.ram_from_flash</code> now relocates at every isolation level under both toolchains (<a href="DECISIONS.html#d048">D048</a>); the IAR NS toolchain emits <code>.srec</code> (<a href="DECISIONS.html#d049">D049</a>). Remaining: the IAR NS build produces no <code>.map</code>.</td></tr>
+<tr><td><del>High</del></td><td><del>RA8x2 new silicon on FSP 6.7.</del> Retired 2026-10-09. First bring-up carried M85 FPU/caches, RSIP-E50D and TrustZone config. All of it is now exercised on silicon on both toolchains, with the PSA Arch suites identical across them. The one first-boot surprise was MRAM&#x27;s MRCPFB being non-secure (D092/D093), worked around and tracked.</td></tr>
+<tr><td><del>Med</del></td><td><del>SCE9 cipher wiring.</del> Retired 2026-09-23. FSP&#x27;s crypto stack and TF-M&#x27;s mbedcrypto now coexist; the port builds TF-M&#x27;s crypto from FSP&#x27;s Mbed TLS. The ALT route remains Mbed TLS 3.6-only — redone as a PSA driver in P7, and every FSP ALT fix carried here is debt against that rebase.</td></tr>
+<tr><td><del>Med</del></td><td><del>IAR replication, round 2.</del> Retired 2026-09-25. RA8M2 builds and links on both toolchains. IAR came first; GNUARM then found two defects IAR had masked — an archive-ordering dependency for the <code>gp_ddsc_*</code> TCM symbols, and <code>Debug</code> not fitting. The <code>.icf</code>/startup patterns transferred as expected.</td></tr>
+<tr><td><del>Med</del></td><td><del>Hardware.</del> Retired 2026-09-25. The EK-RA8M2 boards are in hand, ahead of the Oct 19 need-by. The RA6M5 board is in hand. 2× EK-RA6M4 remain bricked (RA6E1 was the RA6 vehicle) — the reason the OFS brick guard exists.</td></tr>
+<tr><td><del>Med</del></td><td><del>RA8x2 MRAM budget.</del> Retired 2026-09-25 — measured. <code>tfm_s</code> at profile_large/L3/IPC is 204 KB in a 293 KB region (+87 KB); GNUARM MinSizeRel leaves +26 KB; the PSA Arch crypto NS image fits with +1.5 KB. <code>Debug</code> is what was tight all along, and it does NOT fit on GNUARM at all (~414 KB) — so MinSizeRel is a requirement, not a preference. P8 (NS in OSPI) is no longer needed to make the budget work.</td></tr>
+<tr><td>Med</td><td>TF-M 2.3 debt grows while deferred. Every change to a shared file adds to the eventual P7 rebase, and upstream submission of the port waits on it.</td></tr>
+<tr><td><del>Low</del></td><td><del>Open defects.</del> Both closed 2026-09-23. <code>.ram_from_flash</code> now relocates at every isolation level under both toolchains (<a href="DECISIONS.html#d048">D048</a>); the IAR NS toolchain emits <code>.srec</code> (<a href="DECISIONS.html#d049">D049</a>). Remaining: the IAR NS build produces no <code>.map</code>.</td></tr>
 </table></div>
 <h3 id="descoped-2026-09-14--dual-core">Descoped 2026-09-14 — dual-core</h3>
-<p>The previous revision made <strong>RA8x2 dual-core</strong> the primary goal, with P5 dedicated
+<p>The previous revision made RA8x2 dual-core the primary goal, with P5 dedicated
 to binding FSP inter-core communication to TF-M&#x27;s <code>tfm_hal_multi_core_*</code> /
 <code>platform_mailbox</code>, an NS mailbox agent, and PSA call marshaling across cores.
 It carried the two highest risks in the register: the mailbox integration itself
@@ -334,18 +334,18 @@ Everything is sequential under one engineer.</p>
 <hr>
 <h3 id="test-coverage-gaps--suites-never-run-on-any-part-surveyed-2026-10-06">Test coverage gaps — suites never run on ANY part (surveyed 2026-10-06)</h3>
 <p>Enumerated from <code>tf-m-tests</code> and <code>psa-arch-tests</code> and checked against every build tree in
-<code>C:\b</code>. <strong>Surveyed 2026-10-06; the IPC and isolation rows have since been closed.</strong></p>
+<code>C:\b</code>. Surveyed 2026-10-06; the IPC and isolation rows have since been closed.</p>
 <div class="table-wrap"><table>
 <tr><th>Suite</th><th>Option</th><th>Why it has not run</th><th>Applicable?</th></tr>
-<tr><td><strong>Firmware Update</strong></td><td><code>TEST_S_FWU</code>, <code>TEST_NS_FWU</code></td><td><code>TFM_PARTITION_FIRMWARE_UPDATE</code> is OFF on both parts</td><td><strong>Yes - highest value.</strong> Exercises the PSA FWU API over the MCUboot slots this port already has. RA8M2 secure slot has ~670 B spare, so the partition may not fit without turning something off. <strong>The bootloader half is now proven</strong> - BL2 installs both images from their secondary slots and erases them (<a href="DECISIONS.html#d100">D100</a>) - so what FWU adds is the API that <em>places</em> an image there</td></tr>
-<tr><td><strong>IPC model</strong></td><td><code>TEST_S_IPC</code>, <code>TEST_NS_IPC</code></td><td><strong>CLOSED 2026-10-22</strong> for the levels that ran. Ten regression trees run the IPC backend: <strong>L1+IPC on GNUARM only</strong> (both parts), <strong>L2 and L3 on both toolchains</strong> (both parts) — 6 + 4. The IPC backend is selected in all ten; no entry records the per-tree <code>TEST_S_IPC</code>/<code>TEST_NS_IPC</code> values or the individual test ids, so neither is claimed here</td><td>Done for L2/L3 - <a href="DECISIONS.html#d113">D113</a> to <a href="DECISIONS.html#d124">D124</a>. <strong>No IAR L1+IPC tree exists</strong> (<a href="DECISIONS.html#d124">D124</a> matrix)</td></tr>
-<tr><td><strong>Isolation 2 / 3</strong></td><td><code>TFM_ISOLATION_LEVEL</code></td><td><strong>CLOSED 2026-10-22.</strong> Never ran above isolation 1 before <a href="DECISIONS.html#d113">D113</a>; now green at <strong>L2 and L3 on RA6M5 and RA8M2, GNUARM and IAR</strong>. L1+IPC is GNUARM-only, and RA6M5&#x27;s is secure-only (<a href="DECISIONS.html#d125">D125</a> §4)</td><td>Done - <a href="DECISIONS.html#d124">D124</a></td></tr>
-<tr><td><strong>SLIH above isolation 1</strong></td><td><code>CONFIG_TFM_SLIH_API</code></td><td><strong>No SLIH tree or launch above L1 exists.</strong> The only SLIH launches are RA6M5&#x27;s two at L1 (<code>ra6m5_TFM_slih_{gcc,iar}.launch</code>); SLIH has <strong>never run on RA8M2</strong> on either toolchain — the <code>m2gslih</code> trees were built and never got a launch (<a href="DECISIONS.html#d126">D126</a> §4). The SLIH service declares the same <code>mmio_region</code> as FLIH and has never been exercised above L1</td><td><strong>Yes</strong> - but the L2/L3 trees and launches have to be made first</td></tr>
-<tr><td><strong>PSA Arch IPC suite</strong></td><td><code>TEST_PSA_API=IPC</code></td><td>only CRYPTO, INITIAL_ATTESTATION and STORAGE have been built. TF-M accepts <code>IPC</code>, and <code>psa-arch-tests/api-tests/ff/{ipc,partition}</code> exists</td><td><strong>Yes.</strong> The Firmware Framework suite - different from the dev_apis ones already run</td></tr>
+<tr><td><strong>Firmware Update</strong></td><td><code>TEST_S_FWU</code>, <code>TEST_NS_FWU</code></td><td><code>TFM_PARTITION_FIRMWARE_UPDATE</code> is OFF on both parts</td><td>Yes - highest value. Exercises the PSA FWU API over the MCUboot slots this port already has. RA8M2 secure slot has ~670 B spare, so the partition may not fit without turning something off. The bootloader half is now proven - BL2 installs both images from their secondary slots and erases them (<a href="DECISIONS.html#d100">D100</a>) - so what FWU adds is the API that <em>places</em> an image there</td></tr>
+<tr><td><strong>IPC model</strong></td><td><code>TEST_S_IPC</code>, <code>TEST_NS_IPC</code></td><td>CLOSED 2026-10-22 for the levels that ran. Ten regression trees run the IPC backend: L1+IPC on GNUARM only (both parts), L2 and L3 on both toolchains (both parts) — 6 + 4. The IPC backend is selected in all ten; no entry records the per-tree <code>TEST_S_IPC</code>/<code>TEST_NS_IPC</code> values or the individual test ids, so neither is claimed here</td><td>Done for L2/L3 - <a href="DECISIONS.html#d113">D113</a> to <a href="DECISIONS.html#d124">D124</a>. No IAR L1+IPC tree exists (<a href="DECISIONS.html#d124">D124</a> matrix)</td></tr>
+<tr><td><strong>Isolation 2 / 3</strong></td><td><code>TFM_ISOLATION_LEVEL</code></td><td>CLOSED 2026-10-22. Never ran above isolation 1 before <a href="DECISIONS.html#d113">D113</a>; now green at L2 and L3 on RA6M5 and RA8M2, GNUARM and IAR. L1+IPC is GNUARM-only, and RA6M5&#x27;s is secure-only (<a href="DECISIONS.html#d125">D125</a> §4)</td><td>Done - <a href="DECISIONS.html#d124">D124</a></td></tr>
+<tr><td><strong>SLIH above isolation 1</strong></td><td><code>CONFIG_TFM_SLIH_API</code></td><td>No SLIH tree or launch above L1 exists. The only SLIH launches are RA6M5&#x27;s two at L1 (<code>ra6m5_TFM_slih_{gcc,iar}.launch</code>); SLIH has never run on RA8M2 on either toolchain — the <code>m2gslih</code> trees were built and never got a launch (<a href="DECISIONS.html#d126">D126</a> §4). The SLIH service declares the same <code>mmio_region</code> as FLIH and has never been exercised above L1</td><td>Yes - but the L2/L3 trees and launches have to be made first</td></tr>
+<tr><td><strong>PSA Arch IPC suite</strong></td><td><code>TEST_PSA_API=IPC</code></td><td>only CRYPTO, INITIAL_ATTESTATION and STORAGE have been built. TF-M accepts <code>IPC</code>, and <code>psa-arch-tests/api-tests/ff/{ipc,partition}</code> exists</td><td>Yes. The Firmware Framework suite - different from the dev_apis ones already run</td></tr>
 <tr><td><strong>FPU</strong></td><td><code>TEST_S_FPU</code>, <code>TEST_NS_FPU</code></td><td><code>CONFIG_TFM_ENABLE_CP10CP11=OFF</code> - the port is soft-float throughout</td><td>Only if FP is ever enabled. RA8M2 is Cortex-M85 with FP hardware, so this is a real gap for that part</td></tr>
 <tr><td><strong>NSID management</strong></td><td><code>TEST_NS_MANAGE_NSID</code></td><td><code>TFM_NS_MANAGE_NSID</code> not set</td><td>Yes, cheap. Checks non-secure client ID handling</td></tr>
 <tr><td><strong>QCBOR / t_cose</strong></td><td><code>TEST_NS_QCBOR</code>, <code>TEST_NS_T_COSE</code></td><td>never enabled</td><td>Yes, cheap. Both libraries are already linked for attestation, so this is self-test of code that already ships</td></tr>
-<tr><td><strong>Multi-core</strong></td><td><code>TEST_NS_MULTI_CORE</code></td><td><code>TFM_MULTI_CORE_TOPOLOGY=OFF</code>; dual-core was descoped 2026-09-14</td><td>Not applicable while CPU1 is unused, but RA8M2 <strong>is</strong> dual-core - revisit with <code>RA8x2_DUAL_CORE_DESIGN.md</code></td></tr>
+<tr><td><strong>Multi-core</strong></td><td><code>TEST_NS_MULTI_CORE</code></td><td><code>TFM_MULTI_CORE_TOPOLOGY=OFF</code>; dual-core was descoped 2026-09-14</td><td>Not applicable while CPU1 is unused, but RA8M2 is dual-core - revisit with <code>RA8x2_DUAL_CORE_DESIGN.md</code></td></tr>
 </table></div>
 <p><strong>Also uncovered, found 2026-10-08 (<a href="DECISIONS.html#d099">D099</a>):</strong> <code>mbedtls_aes_crypt_ctr()</code> in FSP 6.7&#x27;s
 <code>aes_alt.c</code> ignores <code>nc_off</code>/<code>stream_block</code> and mishandles partial blocks - the defect D041
@@ -363,7 +363,7 @@ QCBOR, t_cose) as a single regression variant. FPU only if soft-float is revisit
 <h2 id="todo">TODO</h2>
 <ul>
 <li><p><strong>FSP pack uprev for both ports, once both are ready.</strong> RA6M5 and RA8M2 are each
-on the <strong>same</strong> 6.7.0-beta0 pack, <code>+20260925.818e720c</code>, since the regeneration in <a href="DECISIONS.html#d057">D057</a>
+on the same 6.7.0-beta0 pack, <code>+20260925.818e720c</code>, since the regeneration in <a href="DECISIONS.html#d057">D057</a>
 — all twelve projects and all four solutions. The &quot;do it as one change&quot; rationale still holds
 for the next uprev.
 When both ports are green, regenerate every project against the then-current FSP
@@ -383,11 +383,11 @@ RA8M2 — the port defined <code>0x1000</code> while FSP&#x27;s generated
 <code>RM_MCUBOOT_MRAM_BLOCK_SIZE</code> (<code>0x8000</code>), and that directory is on the include path,
 so it was a conflicting redefinition producing a layout that only fails on hardware.</p>
 <ul>
-<li>Fixed by taking FSP&#x27;s value, but as a <strong>literal</strong> — <code>flash_layout.h</code> is preprocessed
+<li>Fixed by taking FSP&#x27;s value, but as a literal — <code>flash_layout.h</code> is preprocessed
 into the BL2 linker script and cannot include <code>mcuboot_config.h</code> (which pulls
 <code>bsp_api.h</code>). The proper fix is to extract <code>RM_MCUBOOT_MRAM_BLOCK_SIZE</code> into the
 generated <code>bsp_partitions.h</code>, the mechanism already used for the partitions.</li>
-<li>Then sweep for other instances, on <strong>both</strong> ports: anything the port <code>#define</code>s that
+<li>Then sweep for other instances, on both ports: anything the port <code>#define</code>s that
 FSP also generates. <code>MCUBOOT_ALIGN_VAL</code> / <code>MCUBOOT_BOOT_MAX_ALIGN</code> and
 <code>MCUBOOT_MAX_IMG_SECTORS</code> are the obvious neighbours; <code>MCUBOOT_MAX_IMG_SECTORS</code>
 legitimately differs, since TF-M has its own flash map, and that distinction should
@@ -399,12 +399,12 @@ files and do not move when the packs do. Nothing in the build compares them agai
 origin, so they drift silently into constants that link cleanly and are wrong at run time —
 which has already happened three times (D054, and the <code>sce9</code> path and <code>SCE9_SUPPORTED</code>
 errors found on 2026-09-24). The document must give, per file, its FSP origin, what was
-changed, and <strong>the check that detects drift</strong>. Inventory and categories are in
+changed, and the check that detects drift. Inventory and categories are in
 <a href="DOCUMENTATION_PLAN.html">DOCUMENTATION_PLAN.md</a>.</p></li>
 <li><p><strong>Use the MRAM hardware rollback counter — after TF-M 2.3.</strong> <code>R_MRAM</code> exposes
 <code>AntiRollbackCounterIncrement</code> / <code>Refresh</code> / <code>Read</code>. These are a better home for
 MCUboot&#x27;s NV counters than the emulated-OTP region in <code>DF_EMULATION</code>, and would free
-part of it. Deferred past P7 deliberately: TF-M 2.3 reworks the platform NV-counter
+part of it. Deferred past P7 by choice: TF-M 2.3 reworks the platform NV-counter
 interface, so doing it first means doing it twice.</p></li>
 </ul>
 <hr>
