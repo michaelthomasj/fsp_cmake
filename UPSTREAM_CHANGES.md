@@ -19,9 +19,10 @@ subdirectories and therefore missed real edits to common files - `cmake/install.
 among them - which also meant the "untracked divergence" re-check the Submission notes
 prescribe could never have found them.
 
-The wide form returns 39 files. The items below account for 20 of them - that was 21
+The wide form returns 38 files. The items below account for 20 of them - that was 21
 until [D091] withdrew item 13 and returned `bl2/CMakeLists.txt` to byte-identical with
-TF-Mv2.2.0. The remaining 19 are listed under Not yet accounted for.
+TF-Mv2.2.0. The remaining 18 are listed under Not yet accounted for. It was 39 until
+`tfm_config.log` was deleted ([D135]).
 
 ---
 
@@ -345,7 +346,7 @@ visible rather than silent:
 - `platform/ext/accelerator/renesas/{sce9,rsip_e50d}/` - 14 added files. New platform
   content rather than edits to common code; it needs a destination decision, not a patch.
 - `tfm_config.log` - a 312-line log committed at the TF-M repo root (`95e7d4ba3`). An
-  accident; it should be deleted.
+  accident, deleted 2026-10-23 ([D135]). Listed here so the count above reconciles.
 
 ---
 

@@ -6,8 +6,8 @@
 
 | | |
 |---|---|
-| Entries | **133** |
-| Standing | **120** |
+| Entries | **135** |
+| Standing | **122** |
 | Superseded | **13** |
 | Standing but corrected on some point | **35** |
 | Standing, but the question they left open is closed | **3** |
@@ -34,7 +34,7 @@ A later entry **supersedes** an earlier one: same question, newer answer. Citing
 
 ---
 
-## Standing (120)
+## Standing (122)
 
 Nothing supersedes these. The title is the position. Where a later entry corrects one, the correction is named - the entry stands apart from that. **Where the Closed by column is filled, read the status as historical:** the entry describes a problem that a later entry shut, so its own "Open" or "Provisional" is no longer true.
 
@@ -160,6 +160,8 @@ Nothing supersedes these. The title is the position. Where a later entry correct
 | `D130` | 2026-10-22 | TF-M 2.3 is deferred, not cancelled: the gate is FSP's Mbed TLS 4.1 migration, expected ~2026-11-12 | Accepted | `D131` | — |
 | `D131` | 2026-10-22 | the v5 review: two generators were passing against their own faulty output; the RA6M5 PXN correction gets the entry it never had | Accepted | — | — |
 | `D133` | 2026-10-22 | the coalesced fill zeroes eight DEFINED option registers, not only reserved bytes; [D132] overstated the reserved-area reading | Accepted | — | — |
+| `D134` | 2026-10-23 | the 2026-10-23 technical review: the five high findings hold against source | Accepted | — | — |
+| `D135` | 2026-10-23 | eight defects from the 2026-10-23 review are fixed now; P01-P05 and the brick-path restructure are the owner's | Accepted | — | — |
 
 ---
 

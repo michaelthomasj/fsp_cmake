@@ -72,9 +72,10 @@ subdirectories and therefore missed real edits to common files - <code>cmake/ins
 <code>lib/ext/mcuboot/CMakeLists.txt</code>, <code>toolchain_ARMCLANG.cmake</code> and <code>toolchain_CLANG.cmake</code>
 among them - which also meant the &quot;untracked divergence&quot; re-check the Submission notes
 prescribe could never have found them.</p>
-<p>The wide form returns 39 files. The items below account for 20 of them - that was 21
+<p>The wide form returns 38 files. The items below account for 20 of them - that was 21
 until <a href="DECISIONS.html#d091">D091</a> withdrew item 13 and returned <code>bl2/CMakeLists.txt</code> to byte-identical with
-TF-Mv2.2.0. The remaining 19 are listed under Not yet accounted for.</p>
+TF-Mv2.2.0. The remaining 18 are listed under Not yet accounted for. It was 39 until
+<code>tfm_config.log</code> was deleted (<a href="DECISIONS.html#d135">D135</a>).</p>
 <hr>
 <h2 id="ready-to-upstream">Ready to upstream</h2>
 <h3 id="s1">1. IAR: <code>STACKSEAL</code> block reserves space but places no section</h3>
@@ -313,7 +314,7 @@ toolchain files, not two.</li>
 <li><code>platform/ext/accelerator/renesas/{sce9,rsip_e50d}/</code> - 14 added files. New platform
 content rather than edits to common code; it needs a destination decision, not a patch.</li>
 <li><code>tfm_config.log</code> - a 312-line log committed at the TF-M repo root (<code>95e7d4ba3</code>). An
-accident; it should be deleted.</li>
+accident, deleted 2026-10-23 (<a href="DECISIONS.html#d135">D135</a>). Listed here so the count above reconciles.</li>
 </ul>
 <hr>
 <h2 id="local--not-for-upstream">Local — not for upstream</h2>

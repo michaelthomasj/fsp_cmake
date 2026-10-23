@@ -7369,3 +7369,130 @@ checked against the preserved image, which is in this repository and takes two c
 The entry then propagated into six documents and three port comments before anything tested it.
 The rule the log already had — check the explanation against the artifact ([D126]), and check
 that your checker can fail ([D131]) — applies to a decision entry as much as to a tool.
+
+---
+
+## D134 — the 2026-10-23 technical review: the five high findings hold against source
+
+**Date:** 2026-10-23 · **Status:** Accepted ·
+**Evidence:** `docs/General_tech_review/PORT_TECHNICAL_REVIEW.md` and `port_review_findings.csv`
+at TF-M `a18fd18c8` / fsp_cmake `f30860e`; every claim below re-read in the tree rather than
+taken on report ([D133] process note)
+
+Six tracks produced 167 findings, consolidated to 5 high, 36 medium, 53 low and 49 info, with no
+critical finding and no NS-to-S memory-isolation bypass in the shipped configuration. This entry
+records what was verified. [D135] records what was changed.
+
+**P01 — development keys and dummy provisioning are the shipped default. Verified.**
+`MCUBOOT_HW_KEY OFF` (`ra6m5/config.cmake:99`, `ra8m2/config.cmake:107`);
+`PLATFORM_DEFAULT_{NV_COUNTERS,CRYPTO_KEYS,OTP,PROVISIONING} ON` (`ra6m5:200-203`,
+`ra8m2:226-229`); `TFM_DUMMY_PROVISIONING` overridden by neither part, so it keeps the
+`config/config_base.cmake:132` default of `ON`; `MCUBOOT_KEY_S/NS` overridden by neither part, so
+they keep the in-tree `root-EC-P256*.pem` of `mcuboot_default_config.cmake:63-64`. The only
+key-related override either part makes is `MCUBOOT_SIGNATURE_TYPE "EC-P256"` (`ra6m5:68`,
+`ra8m2:75`). With `HW_KEY OFF` the trust anchor is the key arrays in `bl2/ext/mcuboot/keys.c`, so
+changing `MCUBOOT_KEY_S/NS` alone re-signs the images and leaves BL2 trusting the sample keys.
+
+**P02 — anti-rollback is inert. Verified.** `MCUBOOT_HW_ROLLBACK_PROT ON`
+(`mcuboot_default_config.cmake:45`) with `MCUBOOT_SECURITY_COUNTER_S/NS` fixed at `1` (`:74-75`)
+and no override in either part. `MCUBOOT_DOWNGRADE_PREVENTION` appears nowhere under `bl2/`.
+
+**P03 — the clock, wait-state and operating-mode SARs are non-secure writable. Verified, and
+fixable from the port without a generator fix.** All four secure projects generate
+`BSP_CFG_CLOCKS_SECURE (0)` (`ra_gen/bsp_clock_cfg.h` in `ra6m5_{gcc,iar}_secure` and
+`ra8m2_{gcc,iar}_CPU0_secure`), so `R_BSP_SecurityInit` writes the non-secure-open arm of each
+`#if BSP_CFG_CLOCKS_SECURE` branch:
+
+| part | register | secure value | value in force |
+|---|---|---|---|
+| RA6M5 | CGFSAR | `0xFFE0E402` | `0xFFFFFFFF` |
+| RA6M5 | FSAR | `0xFEFE` | `0xFFFF` |
+| RA6M5 | SRAMSAR | bit 1 clear | bit 1 set |
+| RA8M2 | CGFSAR | `0x0` | `0x1F7F7FFD` |
+| RA8M2 | LPMSAR | bit 0 clear | bit 0 set |
+| RA8M2 | MSAR | `0` | `0`, already overridden |
+
+Each of these is `#ifndef`-guarded in the generated `bsp_mcu_family_cfg.h`, so the port can supply
+it from `FSP_COMPILE_DEFS` exactly as it already does for `BSP_TZ_CFG_MSAR=0`
+(`ra8m2/CMakeLists.txt:227`). The generator defect [D093] records blocks
+`BSP_CFG_CLOCKS_SECURE (1)`, not the individual overrides. Do not reach for
+`-DBSP_CFG_CLOCKS_SECURE=1`: `bsp_clock_cfg.h` defines it unguarded, and on BL2 it also selects
+the TrustZone arm of the `OFS1_SEL` formula (`ra6m5/CMakeLists.txt:186-206`).
+
+**P04 — secure debug and the DLM lifecycle are neither enforced nor reflected. Verified at code
+level.** `init_debug()` returns `TFM_PLAT_ERR_SUCCESS` at `ra6m5/target_cfg.c:138-141` and in the
+ra8m2 equivalent, and has no caller in either port: every `init_debug()` call site in the tree is
+an `arm/` platform. The reported lifecycle comes from `map_otp_lcs_to_tfm_slc()` alone. The DLM
+register semantics are the review's architecture knowledge, not a manual, and the manual is in
+neither tree.
+
+**P05 — an open multi-part operation blocks the TRNG. Verified at code level, not run.**
+44 SCE9 primitives under `ra6m5_gcc_secure/.../sce9/plainkey/primitive/` open with
+`if (RD1_MASK(REG_1BCH, 0x0000001fU) != 0) return FSP_ERR_CRYPTO_SCE_RESOURCE_CONFLICT;`, and
+`HW_SCE_GenerateRandomNumberSub` is one of them (`hw_sce_p_p20.c:12-14`, exactly as cited). The
+port turns that refusal into `PSA_ERROR_HARDWARE_FAILURE` rather than a busy or retry status
+(`ra6m5/sce_trng.c:73`), after zeroising the buffer. **One step is inference, not verification:**
+the review describes `hw_sce_p_p47i.c:15-17` as taking the lock, where those three lines test it
+and return `RESOURCE_CONFLICT`. Whether the Init call leaves `REG_1BCH` set is inside the
+obfuscated `WR1_PROG` sequence and was not read.
+
+**Where the review states a mechanism loosely.**
+
+- R095 says the guard "never inspects `bl2.elf`". The guard inspects `$<TARGET_FILE:bl2>`, which
+  is `bl2.axf`; `bl2.elf` is `objcopy -O elf32-littlearm` of that same file
+  (`toolchain_GNUARM.cmake:283-291`), so the verdict carries over in practice. The gap R095 and
+  R096 share is real and lies elsewhere: the guard and strip targets are `ALL` targets, so a build
+  that is not `ALL` runs neither.
+- P03 recommends a build-time `#error` while the generated value is `0`. Not adopted: in the
+  present state that fails every build.
+
+**What the review did not cover, in its own words.** No builds and no hardware runs; the only
+binaries were RA6M5 ELFs from 2026-09-23, a month older than the source; no RA8M2 build outputs
+exist; no RA hardware manuals, so SAR, DLM, MRAM-programming and data-flash erased-value
+semantics come from FSP sources; all test statuses come from this file. The ten uncommitted
+working-tree entries it declined to inspect were the untracked `docs/artifacts*` review
+directories, `START_REVIEW.md` and one `.jlink` file, with no port source among them.
+
+---
+
+## D135 — eight defects from the 2026-10-23 review are fixed now; P01-P05 and the brick-path restructure are the owner's
+
+**Date:** 2026-10-23 · **Status:** Accepted · **Evidence:** [D134]; the commits named below
+
+The review's five high findings are configuration policy, a hardening change that removes
+non-secure access, or unobserved runtime behaviour. None is a defect a reader of the tree can
+settle, so this round takes what is mechanical and leaves the rest stated.
+
+**Fixed.**
+
+| finding | change |
+|---|---|
+| R156 | `check_ofs.py` tool errors exit 2 through a `die()` helper. Exit 1 is the DO-NOT-FLASH verdict, and a missing `readelf` was returning it. |
+| R155 | RA6M5's BPS and PBPS words are `0x10` (`ra6m5/region_defs.h:297,299`) and `ra6m5_bl2.ld` gives each its own `0x10` region, so `--max-word 0xC` would have failed the build on a legitimately placed BPS group. Raised to `0x10` at both call sites; `0xC` is right for RA6E1 and RA6M4. The guard loses nothing: the closest two words on this map are OFS0 (`0x0100A100`+4) and DUALSEL (`0x0100A110`), so the smallest coalescable span is `0x14`. |
+| - | `check_ofs.py` still attributed the brick to "block-protect programmed to 0" and called it permanent, in two printed messages. [D133] withdrew both. The 2026-10-22 sweep missed them. |
+| R148 | `ra8m2/bl2_boot_hal.c` writes `ns_end - 1` to `SAU->RLAR`. `RLAR.LADDR` is the inclusive limit of the 32-byte block it names, so FSP's `ns_end` ran BL2's one SAU region 32 bytes past the end of MRAM. This is a deliberate deviation from the FSP expression that block is otherwise a verbatim copy of, and the same off-by-one belongs in a report to FSP. |
+| R130 | `cmsis_override.h` defines `CMSE_NONSECURE` as `18`, the ACLE value, not `1`. Latent either way: both RA6M5 binaries use `18`, because `arm_cmse.h` redefines the macro after the pre-include. |
+| R020 | The RA8M2 isolation-3 comment justified PXN being off with "needs armv8.1-m.main". `ra8m2/cpuarch.cmake:24` sets `armv8.1-m.main`, so PXN is available on this part and is simply not enabled. |
+| R160 | The `BL2_HALT_AT_MAIN` guard in the shared `bl2/ext/mcuboot/bl2_main.c` named `-DRA6M4_BL2_HALT_AT_MAIN`, the RA6M4 FAWMON address `0x407FE0DC`, a bit-15 liveness reading and a permanent brick. The option is `<PART>_BL2_HALT_AT_MAIN`, the RA6M4 has no Flash Access Window, and [D133] withdrew the permanence. |
+| R112 | `tfm_config.log`, a 312-line failed ra6m4 configure log at the TF-M repository root, is deleted. `UPSTREAM_CHANGES.md` had already called it an accident that should be deleted; its file count goes from 39 to 38 and the unaccounted-for count from 19 to 18. |
+
+Every edit to a file cited by line is word-level with the line count unchanged, so no citation
+moved. `ra8m2/bl2_boot_hal.c:91-95`, `bl2_main.c:112-125` and `ra8m2/config.cmake:225` are all
+cited, and all three files are the length they were.
+
+**Left for the owner, with the reason.**
+
+| finding | why it is not taken here |
+|---|---|
+| P01, P02 | Product decisions: real keys, a provisioning flow, release-managed counters and a downgrade-rejected test. Both are inherited upstream development defaults, so a production profile is new port surface rather than a correction. |
+| P03 | Implementable today from `FSP_COMPILE_DEFS`, and [D134] names each register and value. It takes clock, wait-state and low-power register access away from the non-secure world, so it needs a hardware run on both parts and both toolchains, not a source edit. |
+| P04 | Needs the DLM register map, which is in neither tree. |
+| P05 | FSP engine-lock lifetime, inside `rm_psa_crypto` territory, and never observed running. |
+| R096, R095 | The brick-path closure is structural and the choice matters. Three routes: rename the unsafe output inside the generic `add_convert_to_bin_target`, which touches every platform; give the platform its own flat-binary rule for bl2; or delete the flashable artefacts when the guard fails. **Recommended: the third, with the guard as a dependency, because it is the only one that also covers the `.elf`, `.hex` and `.srec` that a failed guard leaves in `bin/` today.** |
+| R142 | FSP `r_mram.c` 32-byte crossing, unconfirmed on hardware, and FSP's to fix. |
+| P08 and the matrix | Hardware. |
+
+**Process note.** The five highs were verified before any of them was acted on, which is what
+[D133] asked for after [D132] was written from a report. One of the eight fixes above is the
+2026-10-22 sweep's own residue in `check_ofs.py`, found by reading the file rather than by a
+checker: no checker in this repository reads the port's printed output.
