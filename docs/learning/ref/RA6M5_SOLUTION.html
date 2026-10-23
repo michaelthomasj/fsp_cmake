@@ -61,10 +61,10 @@
 <main id="top" class="ref-doc">
 <p class="src">Rendered from <a href="../../../RA6M5_SOLUTION.md"><code>RA6M5_SOLUTION.md</code></a>. Edit the Markdown, not this page.</p>
 <h1 id="ra6m5-solution-project--layout-trustzone-boundaries-project-requirements">RA6M5 Solution Project — layout, TrustZone boundaries, project requirements</h1>
-<p>Device: <strong>R7FA6M5BH3CFC</strong> on the <strong>CK-RA6M5 V2</strong> (<code>board.ra6m5ckv2</code>) — 2 MB code flash, 512 KB SRAM,
+<p>Device: R7FA6M5BH3CFC on the CK-RA6M5 V2 (<code>board.ra6m5ckv2</code>) — 2 MB code flash, 512 KB SRAM,
 8 KB data flash, SCE9, Cortex-M33.</p>
 <p>Companion docs: <code>RA6E1_SOLUTION.md</code> (the port this is derived from), <code>DESIGN.md</code> (why),
-<code>RA6E1_TEMPLATE_CHECKLIST.md</code> (what a solution must emit — it applies here <strong>with exceptions</strong>:
+<code>RA6E1_TEMPLATE_CHECKLIST.md</code> (what a solution must emit — it applies here with exceptions:
 it is written for RA6E1, and says <code>r_sce</code> supplies only the TRNG with <code>CRYPTO_HW_ACCELERATOR</code>
 off, where RA6M5 runs SCE9 acceleration and links FSP&#x27;s Mbed TLS. Its data-flash split and
 trailer discussion are RA6E1&#x27;s too).</p>
@@ -97,31 +97,32 @@ region-1 block size (<code>BSP_FEATURE_FLASH_HP_CF_REGION1_BLOCK_SIZE</code>).</
 </table></div>
 <p>In 32 KB units: BL2 3, scratch 1, secure slots 16 each, NS slots 14 each — 64 units, no
 remainder.</p>
-<p><strong>The scratch block is SECURE and deliberately empty.</strong> MCUboot is overwrite-only here, so
+<p>The scratch block is secure and empty by design. MCUboot is overwrite-only here, so
 nothing uses it; <code>FLASH_AREA_SCRATCH_SIZE</code> is 0 in <code>flash_layout.h</code>. It exists so a later
 move to swap-using-scratch does not have to re-partition and re-provision the part. It is
-secure because during a swap the scratch holds fragments of the <strong>secure</strong> image — an
+secure because during a swap the scratch holds fragments of the secure image — an
 NS-writable scratch would expose and could corrupt it.</p>
-<p><strong>Data flash is entirely secure.</strong> ITS, PS and the MCUboot NV counters all live there:
+<p>Data flash is entirely secure. ITS, PS and the MCUboot NV counters all live there:
 NV counters 2048 B, PS 3072 B, ITS 3072 B. <code>flash_layout.h</code> splits the partition
 proportionally and <code>#error</code>s below 4 KB; <code>PS_MAX_ASSET_SIZE</code> 512 / <code>PS_NUM_ASSETS</code> 5 in
 <code>config_tfm_target.h</code> are derived from the resulting 1536-byte FS block. Do not give the
 NS side a half like the stock template does.</p>
 <hr>
 <h2 id="trustzone-boundary-values-for-this-layout">TrustZone boundary values for this layout</h2>
-<p>Programmed once per board with the <strong>Renesas Device Partition Manager</strong>, in KB. Nothing in
+<p>Programmed once per board with the Renesas Device Partition Manager, in KB. Nothing in
 the firmware sets them. See <code>DESIGN.md</code> §7.1 for the granularity rules.</p>
 <div class="table-wrap"><table>
 <tr><th>Boundary</th><th>Value (KB)</th><th>Check</th></tr>
-<tr><td>Code flash Secure</td><td><strong>1150</strong></td><td>S + NSC = 1152 = 36 × 32 ✓</td></tr>
-<tr><td>Code flash NSC</td><td><strong>2</strong></td><td></td></tr>
-<tr><td>Data flash Secure</td><td><strong>8</strong></td><td>whole device</td></tr>
-<tr><td>SRAM Secure</td><td><strong>255</strong></td><td>S + NSC = 256 = 32 × 8 ✓</td></tr>
-<tr><td>SRAM NSC</td><td><strong>1</strong></td><td></td></tr>
+<tr><td>Code flash Secure</td><td>1150</td><td>S + NSC = 1152 = 36 × 32 ✓</td></tr>
+<tr><td>Code flash NSC</td><td>2</td><td></td></tr>
+<tr><td>Data flash Secure</td><td>8</td><td>whole device</td></tr>
+<tr><td>SRAM Secure</td><td>255</td><td>S + NSC = 256 = 32 × 8 ✓</td></tr>
+<tr><td>SRAM NSC</td><td>1</td><td></td></tr>
 </table></div>
 <p>Resulting NS regions: 896 KB of code flash from 0x120000, 256 KB of SRAM from 0x20040000.</p>
-<p>RDPM erases the part — reflash all three images afterwards. Every launch configuration must
-keep <code>com.renesas.hardwaredebug.arm.jlink.setTZBoundaries</code> = <strong>false</strong> (<code>DESIGN.md</code> §7.2).</p>
+<p><strong>RDPM erases the part</strong> — reflash all three images afterwards.</p>
+<p>Every launch configuration must keep
+<code>com.renesas.hardwaredebug.arm.jlink.setTZBoundaries</code> = <code>false</code> (<code>DESIGN.md</code> §7.2).</p>
 <blockquote><p><strong>Nine of the 47 shipped launches break this rule today</strong> (audited 2026-10-22):</p>
 <ul>
 <li><code>jlink</code> key <code>true</code> in the four stock e2 <code>*_nonsecure Debug_SSD.launch</code> files
@@ -139,23 +140,22 @@ mode each bank is 1 MB and the upper half is not at 0x100000, which breaks this 
 <hr>
 <h2 id="what-the-e2-projects-must-provide">What the e2 projects must provide</h2>
 <p>Three projects, as on RA6E1 — <code>ra6m5_mcuboot</code>, <code>ra6m5_secure</code>, <code>ra6m5_nonsecure</code>. The
-<code>RA6E1_TEMPLATE_CHECKLIST.md</code> contract applies unchanged. RA6M5-specific points, all of
-them learned from the first <code>ra6m5_gcc_*</code> generation:</p>
-<p>All of these were missing in the first <code>ra6m5_gcc_*</code> generation. All but the last are now in
+<code>RA6E1_TEMPLATE_CHECKLIST.md</code> contract applies unchanged. RA6M5-specific points follow.
+All of these were missing in the first <code>ra6m5_gcc_*</code> generation. All but the last are now in
 place:</p>
 <div class="table-wrap"><table>
 <tr><th>Project</th><th>Requirement</th></tr>
-<tr><td><code>ra6m5_gcc_secure</code></td><td><code>r_flash_hp</code>, instance named <strong><code>g_flash0</code></strong></td></tr>
+<tr><td><code>ra6m5_gcc_secure</code></td><td><code>r_flash_hp</code>, instance named <code>g_flash0</code></td></tr>
 <tr><td><code>ra6m5_gcc_secure</code></td><td><code>r_sce</code> (TRNG backs the PSA external RNG)</td></tr>
 <tr><td><code>ra6m5_gcc_secure</code></td><td><code>BSP_CFG_STACK_MAIN_BYTES</code> = 0x1000</td></tr>
-<tr><td><code>ra6m5_gcc_mcuboot</code></td><td>flash instance named <strong><code>g_flash0</code></strong>, not <code>g_flashRA_NOT_DEFINED</code></td></tr>
-<tr><td>all</td><td>the partitioning above, with <code>__BL_*_T</code> sizes <strong>0</strong></td></tr>
-<tr><td><code>ra6m5_gcc_secure</code>, <code>ra6m5_gcc_mcuboot</code></td><td><strong><code>BSP_CFG_EARLY_INIT</code> = 1</strong> — done; both projects emit <code>((1))</code>, and a <code>#error</code> has enforced it since <a href="DECISIONS.html#d034">D034</a>. BSP tab → Early BSP Initialization</td></tr>
+<tr><td><code>ra6m5_gcc_mcuboot</code></td><td>flash instance named <code>g_flash0</code>, not <code>g_flashRA_NOT_DEFINED</code></td></tr>
+<tr><td>all</td><td>the partitioning above, with <code>__BL_*_T</code> sizes 0</td></tr>
+<tr><td><code>ra6m5_gcc_secure</code>, <code>ra6m5_gcc_mcuboot</code></td><td><code>BSP_CFG_EARLY_INIT</code> = 1 — done; both projects emit <code>((1))</code>, and a <code>#error</code> has enforced it since <a href="DECISIONS.html#d034">D034</a>. BSP tab → Early BSP Initialization</td></tr>
 </table></div>
 <p>The flash instance name is not cosmetic: <code>cmsis_drivers/Driver_Flash.c</code> refers to
 <code>g_flash0_ctrl</code> / <code>g_flash0_cfg</code> by name, and those come from the generated
 <code>ra_gen/hal_data.c</code>.</p>
-<p><strong><code>BSP_CFG_EARLY_INIT</code> is load-bearing.</strong> TF-M&#x27;s <code>Reset_Handler</code> runs <code>SystemInit()</code> before
+<p><code>BSP_CFG_EARLY_INIT</code> is load-bearing. TF-M&#x27;s <code>Reset_Handler</code> runs <code>SystemInit()</code> before
 the C runtime zeroes <code>.bss</code>. With early init off, FSP leaves <code>SystemCoreClock</code> in <code>.bss</code>, so it
 is wiped right after <code>SystemInit()</code> computed it, <code>R_FLASH_HP_Open()</code> derives FCLK = 0 and fails
 with <code>FSP_ERR_FCLK</code> — BL2 first, since MCUboot opens the flash before anything else. The port
@@ -166,31 +166,31 @@ missed on the first RA6M5 hardware run (2026-09-21); <code>ra6m5_layout_checks.c
 asserted at build time, so the project and the port have to agree. 0x1000 matches RA6E1.</p>
 <hr>
 <h2 id="status">Status</h2>
-<p><strong>2026-09-21 — all three images build for RA6M5 on GNUARM</strong>, from the <code>ra6m5_gcc_*</code> projects
+<p>2026-09-21 — all three images build for RA6M5 on GNUARM, from the <code>ra6m5_gcc_*</code> projects
 now carried in this repo: modules added, partitions set to the layout above, regenerated and
 built in e2.</p>
 <p>First hardware run (2026-09-21, CK-RA6M5 V2): <code>FSP_ERR_FCLK</code> from <code>R_FLASH_HP_Open</code> —
 <code>BSP_CFG_EARLY_INIT</code> was 0 in both secure and bootloader projects. See below.</p>
-<p><strong>2026-10-22 — the regression suite passes at isolation 2 and 3 on both toolchains</strong>, FLIH IRQ
-tests included (<a href="DECISIONS.html#d123">D123</a>, <a href="DECISIONS.html#d124">D124</a>). <strong>Isolation 1+IPC: GNUARM only, and secure suites only</strong> —
+<p>2026-10-22 — the regression suite passes at isolation 2 and 3 on both toolchains, FLIH IRQ
+tests included (<a href="DECISIONS.html#d123">D123</a>, <a href="DECISIONS.html#d124">D124</a>). Isolation 1+IPC: GNUARM only, and secure suites only —
 no IAR L1+IPC tree exists (<a href="DECISIONS.html#d124">D124</a>&#x27;s matrix shows <code>-</code>), and the one GNUARM run&#x27;s non-secure
-half was truncated, so <a href="DECISIONS.html#d125">D125</a> §4 marks that row secure-only. <a href="DECISIONS.html#d123">D123</a>&#x27;s <strong>IAR L2</strong> secure
+half was truncated, so <a href="DECISIONS.html#d125">D125</a> §4 marks that row secure-only. <a href="DECISIONS.html#d123">D123</a>&#x27;s IAR L2 secure
 half is likewise reported rather than captured (<a href="DECISIONS.html#d128">D128</a> §4).</p>
-<p><strong>2026-09-23 — all three PSA Arch suites pass from both toolchains</strong> (profile_large, isolation
+<p>2026-09-23 — all three PSA Arch suites pass from both toolchains (profile_large, isolation
 3, IPC), on FSP 6.7.0-beta0 — crypto 63/0/1, attestation 1/0/0, storage 11/0/6, identical on
 GCC and IAR, zero failures (<a href="DECISIONS.html#d046">D046</a>). Launches for all six are in <code>ra6m5_gcc_nonsecure/</code>.
-<strong>Read the &quot;isolation 3&quot; there narrowly:</strong> it says the SPM was <em>configured</em> at level 3, not
+Read the &quot;isolation 3&quot; there narrowly: it says the SPM was configured at level 3, not
 that level-3 isolation was enforced. The shared HAL compiled with <code>TFM_ISOLATION_LEVEL</code>
 undefined until <a href="DECISIONS.html#d113">D113</a>, so those runs did not exercise the level-3 MPU table at all. The
 first runs that do are <a href="DECISIONS.html#d114">D114</a> and <a href="DECISIONS.html#d123">D123</a>.</p>
-<p>**2026-09-22 — SCE9 acceleration validated on hardware: PSA Arch crypto 63 passed, 0 failed,
-1 skipped** (profile_large, isolation 3, IPC). The skip is deterministic ECDSA, which FSP does not
+<p>2026-09-22 — SCE9 acceleration validated on hardware: PSA Arch crypto 63 passed, 0 failed,
+1 skipped (profile_large, isolation 3, IPC). The skip is deterministic ECDSA, which FSP does not
 support (<a href="DECISIONS.html#d040">D040</a>). TF-M&#x27;s crypto is built from FSP&#x27;s Mbed TLS (<a href="DECISIONS.html#d042">D042</a>) with FSP&#x27;s SCE9 ALT set
 minus CCM (<a href="DECISIONS.html#d043">D043</a>); BL2 hashes images on the SCE9 too.</p>
 <p>Accelerated: cipher, AES, GCM, CMAC, SHA-256, ECP/ECDSA, RSA. In software: CCM, because FSP&#x27;s
 SCE9 CCM caps associated data at 110 B and Protected Storage exceeds it — CCM still reaches the
 engine per block through the cipher and AES ALTs.</p>
-<p>Re-confirmed the same day on <strong>FSP 6.7.0-beta0</strong> with no port-local patches at all (<a href="DECISIONS.html#d045">D045</a>).
+<p>Re-confirmed the same day on FSP 6.7.0-beta0 with no port-local patches at all (<a href="DECISIONS.html#d045">D045</a>).
 Two defects found here — both of the shape &quot;an abandoned operation leaves the SCE mid-session and
 wedges every later user&quot; — are fixed in the pack itself: <code>mbedtls_aes_free()</code> (<a href="DECISIONS.html#d041">D041</a>) and
 <code>mbedtls_cipher_free()</code> for CMAC (<a href="DECISIONS.html#d043">D043</a>). A third fix, to <code>mbedtls_aes_crypt_ctr()</code>, was
@@ -211,7 +211,7 @@ reverted: that function is not an FSP API and is unreachable through PSA (<a hre
 <li>secure image spans <code>0xA0000</code>–<code>0xCBD50</code>; veneers at <code>0x11F800</code>, inside the signed payload and
 clear of the MCUboot trailer</li>
 <li>signed images pad to exactly 512 KB and 448 KB — the full slots</li>
-<li>BL2 emits <strong>discrete</strong> OFS LOAD segments (<code>0x0100A100</code> / <code>0x0100A200</code> / <code>0x0100A280</code>) — the
+<li>BL2 emits discrete OFS LOAD segments (<code>0x0100A100</code> / <code>0x0100A200</code> / <code>0x0100A280</code>) — the
 brick guard from <code>DESIGN.md</code> §8.4 holds on this device</li>
 <li>the SCE9 TRNG links into <code>tfm_s</code> (28 <code>HW_SCE_*</code> symbols, 8.9 KB after <code>--gc-sections</code>)</li>
 <li><code>ra6m5_layout_checks.c</code> and the orphan-section check pass</li>
@@ -221,11 +221,11 @@ real build: see <a href="DECISIONS.html#d031">D031</a>.</p>
 <hr>
 <h2 id="device-differences-from-ra6e1-that-the-port-had-to-absorb">Device differences from RA6E1 that the port had to absorb</h2>
 <ul>
-<li><strong>Block-protect OFS words are wider.</strong> <code>BPS</code>, <code>PBPS</code> and their <code>_SEC</code> / <code>_SEL</code> mirrors are
+<li>Block-protect OFS words are wider. <code>BPS</code>, <code>PBPS</code> and their <code>_SEC</code> / <code>_SEL</code> mirrors are
 0x10, not 0xC, because 2 MB of flash has more protectable blocks. The starts are the same.
-Wrong lengths here are in brick territory — the values come from the generated
+<strong>A wrong length here is a brick risk</strong> — the values come from the generated
 <code>Debug/memory_regions.ld</code>.</li>
-<li><strong>OSPI.</strong> The RA6M5 has <code>OSPI0_CS0</code> / <code>OSPI0_CS1</code> regions the RA6E1 has not. Nothing in the
+<li>OSPI. The RA6M5 has <code>OSPI0_CS0</code> / <code>OSPI0_CS1</code> regions the RA6E1 has not. Nothing in the
 port uses them; they appear in the generated partition list.</li>
 <li>Everything else transfers: same 8 KB / 32 KB flash block geometry, same 128-byte write
 size, same 64-byte data-flash block, same 112-entry vector table, same 13 OFS groups,
@@ -234,31 +234,31 @@ same SCE9 source tree (byte-identical layout).</li>
 <hr>
 <h2 id="open-items">Open items</h2>
 <ul>
-<li><p><strong>TODO — <code>psa_arch_spe.bat</code> fix is stranded on the RA8 branch.</strong> <code>39e0597</code> quotes the
+<li><p>TODO — <code>psa_arch_spe.bat</code> fix is stranded on the RA8 branch. <code>39e0597</code> quotes the
 compiler path so the default <code>GCC_BIN</code> (<code>C:/Program Files (x86)/...</code>) stops breaking the
 script: unquoted, the <code>)</code> in <code>(x86)</code> closed the enclosing <code>if not exist (</code> block early, so
-cmake never ran, the script printed <code>/Arm was unexpected at this time</code> <strong>and exited 0</strong>. It
+cmake never ran, the script printed <code>/Arm was unexpected at this time</code> and exited 0. It
 affects the RA6M5 PSA Arch build too, but it was committed after PR #4 and so is not on
 <code>main</code>. If RA6 work is picked up before <code>ra8m2_gen_6_7_TFM</code> merges back,
 cherry-pick it: <code>git cherry-pick 39e0597</code>.</p></li>
-<li><p><strong><del>Toolchain.</del> Closed (<a href="DECISIONS.html#d046">D046</a>).</strong> <code>ra6m5_iar</code>&#x27;s solution selects IAR and the IAR leg is
+<li><p><del>Toolchain.</del> Closed (<a href="DECISIONS.html#d046">D046</a>). <code>ra6m5_iar</code>&#x27;s solution selects IAR and the IAR leg is
 finished — PSA Arch passes on both toolchains. Original note: it was named for IAR while its
 solution selected <code>gcc-arm-embedded</code>.
 RASC can generate an IAR CMake project (<code>ToolchainIarCMakeGenerator</code>,
 <code>template/cmake/iar.cmake</code> in the SC 2026-07 plugin set) — set the solution toolchain to
 IAR before doing the IAR leg, so the flags come from RASC rather than being carried over
 from RA6E1 by hand.</p></li>
-<li><p><strong><del>FSP version drift.</del> Closed.</strong> RA6M5 and RA8M2 are both on 6.7.0-beta0, which has been the
-plan&#x27;s baseline since <a href="DECISIONS.html#d047">D047</a>. RA6E1 stays on <strong>6.6.0-rc1</strong> and is dormant - <a href="DECISIONS.html#d047">D047</a>&#x27;s claim
+<li><p><del>FSP version drift.</del> Closed. RA6M5 and RA8M2 are both on 6.7.0-beta0, which has been the
+plan&#x27;s baseline since <a href="DECISIONS.html#d047">D047</a>. RA6E1 stays on 6.6.0-rc1 and is dormant - <a href="DECISIONS.html#d047">D047</a>&#x27;s claim
 that &quot;the RA6E1 solutions were already on 6.7.0-beta0&quot; does not match the tree.</p></li>
-<li><p><strong>CCM associated-data limit.</strong> FSP&#x27;s SCE9 CCM caps associated data at 110 B, and reports the
+<li><p>CCM associated-data limit. FSP&#x27;s SCE9 CCM caps associated data at 110 B, and reports the
 overflow as a plain <code>PSA_ERROR_INVALID_ARGUMENT</code>. A software fallback above the threshold, or a
 documented limit, would make SCE9 CCM usable from PSA (<a href="DECISIONS.html#d043">D043</a>). The two session-leak fixes are
 already in the pack.</p></li>
-<li><p><strong>Open question — acceleration delta.</strong> How does the acceleration actually differ between
-this approach (FSP&#x27;s Mbed TLS + FSP&#x27;s <code>*_ALT</code> set) and the previous one (ARM&#x27;s Mbed TLS
-accelerated with the same ALT sources)? Which operations changed hands, and where does the
-PSA core route differently. To be answered with measurements, not inspection.</p></li>
+<li><p>Open question — acceleration delta. The acceleration this approach gives (FSP&#x27;s Mbed TLS
+plus FSP&#x27;s <code>*_ALT</code> set) has not been compared with the previous one (ARM&#x27;s Mbed TLS
+accelerated with the same ALT sources): which operations changed hands, and where the PSA
+core routes differently. To be answered with measurements, not inspection.</p></li>
 </ul>
 </main>
 </div>
