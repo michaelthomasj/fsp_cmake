@@ -13,17 +13,17 @@ defaulted, D101 for the RA8M2 IAR project parity); layouts and board settings ar
 | Profile | profile_large | default | default |
 | Isolation | 3 | 1 | 1 |
 | SPM backend | IPC | SFN | SFN |
-| `TFM_SPM_DEBUG_TRACE` | **off** — passed explicitly | on (platform default) | on (platform default) |
+| `TFM_SPM_DEBUG_TRACE` | off — passed explicitly | on (platform default) | on (platform default) |
 | `TFM_SPM_LOG_LEVEL` | `_DEBUG`, passed | `_DEBUG`, passed | `_DEBUG` passed (GCC); from `Debug` (IAR) |
 | `TFM_PARTITION_LOG_LEVEL` | `_INFO`, passed | build-type default | build-type default |
 | `CONFIG_TFM_HALT_ON_CORE_PANIC` | `ON`, passed | default | default |
-| Build type | MinSizeRel | MinSizeRel, **both toolchains** | MinSizeRel (GCC) / Debug (IAR) |
+| Build type | MinSizeRel | MinSizeRel, both toolchains | MinSizeRel (GCC) / Debug (IAR) |
 
 Line references: `psa_arch_spe.bat:67-71` (and `psa_arch_spe_iar.bat:77-81`),
 `reg_build_gcc.bat:145,158-159`, `reg_build_iar.bat:89,103-104`,
 `app_build_ra8m2_gcc.bat:45,54`, `app_build_ra8m2_iar.bat:45`.
 
-**Why `TFM_SPM_LOG_LEVEL` is passed at all.** Not a trace requirement — a *log-level* one.
+Why `TFM_SPM_LOG_LEVEL` is passed at all. Not a trace requirement — a *log-level* one.
 Both platform configs set `TFM_SPM_DEBUG_TRACE=ON`, and `MinSizeRel` sets `TFM_SPM_LOG_LEVEL`
 to `_SILENCE` (`config/build_type/minsizerel.cmake:9`). `check_config.cmake:119` rejects that
 pair outright:
@@ -33,15 +33,15 @@ INVALID CONFIG: TFM_SPM_DEBUG_TRACE AND TFM_SPM_LOG_LEVEL = TFM_SPM_LOG_LEVEL_SI
 ```
 
 so every MinSizeRel script passes `_DEBUG` to get past configure. `-DTFM_SPM_DEBUG_TRACE=OFF`
-is the other way out of the same conflict, and is what the PSA Arch scripts do. **The
-constraint has nothing to do with isolation 3 or the IPC backend** — the comment heads in
+is the other way out of the same conflict, and is what the PSA Arch scripts do. The
+constraint has nothing to do with isolation 3 or the IPC backend — the comment heads in
 `psa_arch_spe*.bat` that say otherwise are wrong on the reason, right on the action.
 
 Secure-side logging is the one setting that cannot be shared. The three options together — SPM
-log, partition log and halt-on-panic — cost ~3,785 B against **670 B** spare on RA8M2 ([D087];
+log, partition log and halt-on-panic — cost ~3,785 B against 670 B spare on RA8M2 ([D087];
 the 960 B this line used to quote was the retracted figure), so they are set per script rather
-than in the platform `config.cmake`. **MinSizeRel is mandatory on
-RA8M2 under GNUARM** (IAR `Debug` fits, [D055]): `Debug` is ~414 KB against a 293 KB slot
+than in the platform `config.cmake`. MinSizeRel is mandatory on
+RA8M2 under GNUARM (IAR `Debug` fits, [D055]): `Debug` is ~414 KB against a 293 KB slot
 ([D057]).
 
 ## Build trees
@@ -82,8 +82,8 @@ Suites: `CRYPTO`, `INITIAL_ATTESTATION`, `STORAGE` (runs ITS and PS), `PROTECTED
 `INTERNAL_TRUSTED_STORAGE`.
 
 Rebuild the SPE before the NS apps whenever the secure side changes — the NS build links
-against the interface the SPE installs into `api_ns\`. **Regenerating an FSP project in RASC
-counts as the secure side changing**, and a stale tree carries the old generated values with no
+against the interface the SPE installs into `api_ns\`. Regenerating an FSP project in RASC
+counts as the secure side changing, and a stale tree carries the old generated values with no
 diagnostic.
 
 Toolchain and repository locations are variables at the top of each script; set them in the
@@ -113,16 +113,16 @@ python scripts\mk_iar_launches.py --check
 python scripts\mk_iar_launches.py
 ```
 
-The launch **files** live in `ra6m5_gcc_nonsecure/` (RA6M5) and `ra8m2_gcc_mcuboot/` (RA8M2).
+The launch files live in `ra6m5_gcc_nonsecure/` (RA6M5) and `ra8m2_gcc_mcuboot/` (RA8M2).
 Names carry the toolchain: `_gcc` or `_iar`.
 
-The **host project** in `PROJECT_ATTR` differs between the two parts, on purpose:
+The host project in `PROJECT_ATTR` differs between the two parts, on purpose:
 
 | | host project |
 |---|---|
 | RA6M5, both toolchains | `ra6m5_gcc_nonsecure` |
 | RA8M2 GCC | `ra8m2_gcc_CPU0_nonsecure` |
-| RA8M2 IAR | **`ra8m2_iar_CPU0_nonsecure`** |
+| RA8M2 IAR | `ra8m2_iar_CPU0_nonsecure` |
 
 `serverParam` builds the J-Link settings path from `${ProjName}`:
 
@@ -135,24 +135,24 @@ Giving each toolchain its own host keeps them apart. Nothing is built either way
 `ATTR_BUILD_BEFORE_LAUNCH_ATTR` is `2`, which in Eclipse CDT is `USE_WORKSPACE_SETTING`, not `DISABLED` (`0`) - so whether the host project is built depends on the workspace preference — so the host project supplies only that name
 and the debug context. Keep `MAPPED_RESOURCE_PATHS` in step with `PROJECT_ATTR`.
 
-`PROJECT_BUILD_CONFIG_AUTO_ATTR` is **`false`** in every IAR launch, which is what all six
-working RA6M5 IAR launches use. Only the **RA8M2** GCC launches have `true`; every RA6M5 GCC
-launch has `false`, so it cannot simply be inherited either way.
+`PROJECT_BUILD_CONFIG_AUTO_ATTR` is `false` in every IAR launch, which is what all six
+working RA6M5 IAR launches use. Only the RA8M2 GCC launches have `true`; every RA6M5 GCC
+launch has `false`, so it cannot be inherited either way.
 
 `mk_iar_launches.py` derives each IAR launch from its GCC twin by swapping build-tree names and
-the three project attributes above, **and rewriting `e2lite.setTZBoundaries` from `true` to
-`false`** - so that key differs too. It
+the three project attributes above, and rewriting `e2lite.setTZBoundaries` from `true` to
+`false` - so that key differs too. It
 refuses to write a launch that still names a GCC tree or the GCC project, or that has
 `setTZBoundaries` true anywhere. Run `--check` first: it reports `same` when the generator
 reproduces what is on disk, which is how a hand edit gets folded back in rather than lost.
 
-**Two attributes are safety-critical in every launch:**
+Two attributes are safety-critical in every launch:
 
 - `setTZBoundaries` = **false**. The debugger writing the TrustZone boundaries is a brick
-  hazard (`DESIGN.md` §7.2). RA8M2 launches carry the key **twice** — `...arm.jlink.` and
+  hazard (`DESIGN.md` §7.2). RA8M2 launches carry the key twice — `...arm.jlink.` and
   `...arm.e2lite.` — and e2 defaults the e2lite one to `true`. Only the namespace matching the
   selected probe is read, so the J-Link launches here are safe, but set both.
-- `ueraseRomOnDownload` and `ueraseDataRomOnDownload` = **1**. Otherwise a stale ITS/PS area
+- `ueraseRomOnDownload` and `ueraseDataRomOnDownload` = 1. Otherwise a stale ITS/PS area
   survives a reflash and the storage suites fail in ways that look like code faults.
 
 Flash `bl2.elf` or `bl2.hex`, **never `bl2.bin`** — the OFS words land at their link addresses
@@ -167,10 +167,10 @@ than reusing a remembered value:
 arm-none-eabi-nm <build>/bin/tfm_ns.axf | grep ' _SEGGER_RTT$'
 ```
 
-**BL2's block cannot be recovered after the chainload.** `region_defs.h` gives BL2 and the SPE
+BL2's block cannot be recovered after the chainload. `region_defs.h` gives BL2 and the SPE
 the same RAM, so the SPE's `.bss` zeroing wipes BL2's control block microseconds after the
-jump, and a viewer that auto-detects after reset always finds the SPE's. To capture BL2, halt in it first with a **breakpoint**, point the viewer at BL2's address
-while halted, then run. `RA8M2_BL2_HALT_AT_MAIN=ON` does **not** work for this: it is an
+jump, and a viewer that auto-detects after reset always finds the SPE's. To capture BL2, halt in it first with a breakpoint, point the viewer at BL2's address
+while halted, then run. `RA8M2_BL2_HALT_AT_MAIN=ON` does not work for this: it is an
 unconditional `while(1)` at the top of `main()` (`bl2_main.c:112-125`), before any init or
 print, so "then run" just spins and the image is not bootable. D100's wording is the source of
 that error.
@@ -194,20 +194,20 @@ there to a since-retired file is a historical fact, not a defect.
 Review snapshots under `docs/artifacts*/` are exempt from all three checks: they cite entries a
 review proposes before anyone has written them.
 
-Bypass with `git commit --no-verify` when a commit deliberately breaks a reference, such as the
+Bypass with `git commit --no-verify` when a commit breaks a reference on purpose, such as the
 first half of a rename spanning both repositories.
 
 ```sh
 python scripts/check_arch_lines.py          # BUILD_ARCHITECTURE.md's line citations
-python scripts/check_arch_lines.py --list   # show what each cited line actually holds
+python scripts/check_arch_lines.py --list   # show what each cited line holds
 ```
 
 72 citations, each paired with a regex the cited line must match: the RA port `CMakeLists.txt`
-and module files, upstream TF-M, and this repository's own build scripts. **`check_docs.py`
-cannot catch this class:** the file exists and the D-numbers resolve, so a reference stays
+and module files, upstream TF-M, and this repository's own build scripts. `check_docs.py`
+cannot catch this class: the file exists and the D-numbers resolve, so a reference stays
 "valid" while pointing at the wrong line.
 
-The **port** citations went stale twice in one day, both times from a comment edit above the
+The port citations went stale twice in one day, both times from a comment edit above the
 block with no CMake change. The upstream citations were untouched by both commits; they move
 only on a TF-M uprev.
 

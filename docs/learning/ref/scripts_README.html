@@ -73,29 +73,29 @@ defaulted, D101 for the RA8M2 IAR project parity); layouts and board settings ar
 <tr><td>Profile</td><td>profile_large</td><td>default</td><td>default</td></tr>
 <tr><td>Isolation</td><td>3</td><td>1</td><td>1</td></tr>
 <tr><td>SPM backend</td><td>IPC</td><td>SFN</td><td>SFN</td></tr>
-<tr><td><code>TFM_SPM_DEBUG_TRACE</code></td><td><strong>off</strong> — passed explicitly</td><td>on (platform default)</td><td>on (platform default)</td></tr>
+<tr><td><code>TFM_SPM_DEBUG_TRACE</code></td><td>off — passed explicitly</td><td>on (platform default)</td><td>on (platform default)</td></tr>
 <tr><td><code>TFM_SPM_LOG_LEVEL</code></td><td><code>_DEBUG</code>, passed</td><td><code>_DEBUG</code>, passed</td><td><code>_DEBUG</code> passed (GCC); from <code>Debug</code> (IAR)</td></tr>
 <tr><td><code>TFM_PARTITION_LOG_LEVEL</code></td><td><code>_INFO</code>, passed</td><td>build-type default</td><td>build-type default</td></tr>
 <tr><td><code>CONFIG_TFM_HALT_ON_CORE_PANIC</code></td><td><code>ON</code>, passed</td><td>default</td><td>default</td></tr>
-<tr><td>Build type</td><td>MinSizeRel</td><td>MinSizeRel, <strong>both toolchains</strong></td><td>MinSizeRel (GCC) / Debug (IAR)</td></tr>
+<tr><td>Build type</td><td>MinSizeRel</td><td>MinSizeRel, both toolchains</td><td>MinSizeRel (GCC) / Debug (IAR)</td></tr>
 </table></div>
 <p>Line references: <code>psa_arch_spe.bat:67-71</code> (and <code>psa_arch_spe_iar.bat:77-81</code>),
 <code>reg_build_gcc.bat:145,158-159</code>, <code>reg_build_iar.bat:89,103-104</code>,
 <code>app_build_ra8m2_gcc.bat:45,54</code>, <code>app_build_ra8m2_iar.bat:45</code>.</p>
-<p><strong>Why <code>TFM_SPM_LOG_LEVEL</code> is passed at all.</strong> Not a trace requirement — a <em>log-level</em> one.
+<p>Why <code>TFM_SPM_LOG_LEVEL</code> is passed at all. Not a trace requirement — a <em>log-level</em> one.
 Both platform configs set <code>TFM_SPM_DEBUG_TRACE=ON</code>, and <code>MinSizeRel</code> sets <code>TFM_SPM_LOG_LEVEL</code>
 to <code>_SILENCE</code> (<code>config/build_type/minsizerel.cmake:9</code>). <code>check_config.cmake:119</code> rejects that
 pair outright:</p>
 <pre><code>INVALID CONFIG: TFM_SPM_DEBUG_TRACE AND TFM_SPM_LOG_LEVEL = TFM_SPM_LOG_LEVEL_SILENCE</code></pre>
 <p>so every MinSizeRel script passes <code>_DEBUG</code> to get past configure. <code>-DTFM_SPM_DEBUG_TRACE=OFF</code>
-is the other way out of the same conflict, and is what the PSA Arch scripts do. **The
-constraint has nothing to do with isolation 3 or the IPC backend** — the comment heads in
+is the other way out of the same conflict, and is what the PSA Arch scripts do. The
+constraint has nothing to do with isolation 3 or the IPC backend — the comment heads in
 <code>psa_arch_spe*.bat</code> that say otherwise are wrong on the reason, right on the action.</p>
 <p>Secure-side logging is the one setting that cannot be shared. The three options together — SPM
-log, partition log and halt-on-panic — cost ~3,785 B against <strong>670 B</strong> spare on RA8M2 (<a href="DECISIONS.html#d087">D087</a>;
+log, partition log and halt-on-panic — cost ~3,785 B against 670 B spare on RA8M2 (<a href="DECISIONS.html#d087">D087</a>;
 the 960 B this line used to quote was the retracted figure), so they are set per script rather
-than in the platform <code>config.cmake</code>. **MinSizeRel is mandatory on
-RA8M2 under GNUARM** (IAR <code>Debug</code> fits, <a href="DECISIONS.html#d055">D055</a>): <code>Debug</code> is ~414 KB against a 293 KB slot
+than in the platform <code>config.cmake</code>. MinSizeRel is mandatory on
+RA8M2 under GNUARM (IAR <code>Debug</code> fits, <a href="DECISIONS.html#d055">D055</a>): <code>Debug</code> is ~414 KB against a 293 KB slot
 (<a href="DECISIONS.html#d057">D057</a>).</p>
 <h2 id="build-trees">Build trees</h2>
 <p>One SPE serves all three PSA Arch suites — profile_large enables crypto, ITS, PS, attestation
@@ -127,8 +127,8 @@ scripts\app_build_ra8m2_iar.bat C:\b\m2iapp C:\b\m2iappns</code></pre>
 <p>Suites: <code>CRYPTO</code>, <code>INITIAL_ATTESTATION</code>, <code>STORAGE</code> (runs ITS and PS), <code>PROTECTED_STORAGE</code>,
 <code>INTERNAL_TRUSTED_STORAGE</code>.</p>
 <p>Rebuild the SPE before the NS apps whenever the secure side changes — the NS build links
-against the interface the SPE installs into <code>api_ns\</code>. **Regenerating an FSP project in RASC
-counts as the secure side changing**, and a stale tree carries the old generated values with no
+against the interface the SPE installs into <code>api_ns\</code>. Regenerating an FSP project in RASC
+counts as the secure side changing, and a stale tree carries the old generated values with no
 diagnostic.</p>
 <p>Toolchain and repository locations are variables at the top of each script; set them in the
 environment to override.</p>
@@ -147,14 +147,14 @@ python scripts\make_psa_arch_launch.py ra6m5_TFM_test_storage_gcc C:\b\m5cry C:\
 rem  RA8M2 IAR, derived from the known-good GCC launches
 python scripts\mk_iar_launches.py --check
 python scripts\mk_iar_launches.py</code></pre>
-<p>The launch <strong>files</strong> live in <code>ra6m5_gcc_nonsecure/</code> (RA6M5) and <code>ra8m2_gcc_mcuboot/</code> (RA8M2).
+<p>The launch files live in <code>ra6m5_gcc_nonsecure/</code> (RA6M5) and <code>ra8m2_gcc_mcuboot/</code> (RA8M2).
 Names carry the toolchain: <code>_gcc</code> or <code>_iar</code>.</p>
-<p>The <strong>host project</strong> in <code>PROJECT_ATTR</code> differs between the two parts, on purpose:</p>
+<p>The host project in <code>PROJECT_ATTR</code> differs between the two parts, on purpose:</p>
 <div class="table-wrap"><table>
 <tr><th></th><th>host project</th></tr>
 <tr><td>RA6M5, both toolchains</td><td><code>ra6m5_gcc_nonsecure</code></td></tr>
 <tr><td>RA8M2 GCC</td><td><code>ra8m2_gcc_CPU0_nonsecure</code></td></tr>
-<tr><td>RA8M2 IAR</td><td><strong><code>ra8m2_iar_CPU0_nonsecure</code></strong></td></tr>
+<tr><td>RA8M2 IAR</td><td><code>ra8m2_iar_CPU0_nonsecure</code></td></tr>
 </table></div>
 <p><code>serverParam</code> builds the J-Link settings path from <code>${ProjName}</code>:</p>
 <pre><code>-uJLinkSetting= "${workspace_loc:/${ProjName}}/${LaunchConfigName}.jlink"</code></pre>
@@ -162,22 +162,22 @@ Names carry the toolchain: <code>_gcc</code> or <code>_iar</code>.</p>
 Giving each toolchain its own host keeps them apart. Nothing is built either way —
 <code>ATTR_BUILD_BEFORE_LAUNCH_ATTR</code> is <code>2</code>, which in Eclipse CDT is <code>USE_WORKSPACE_SETTING</code>, not <code>DISABLED</code> (<code>0</code>) - so whether the host project is built depends on the workspace preference — so the host project supplies only that name
 and the debug context. Keep <code>MAPPED_RESOURCE_PATHS</code> in step with <code>PROJECT_ATTR</code>.</p>
-<p><code>PROJECT_BUILD_CONFIG_AUTO_ATTR</code> is <strong><code>false</code></strong> in every IAR launch, which is what all six
-working RA6M5 IAR launches use. Only the <strong>RA8M2</strong> GCC launches have <code>true</code>; every RA6M5 GCC
-launch has <code>false</code>, so it cannot simply be inherited either way.</p>
+<p><code>PROJECT_BUILD_CONFIG_AUTO_ATTR</code> is <code>false</code> in every IAR launch, which is what all six
+working RA6M5 IAR launches use. Only the RA8M2 GCC launches have <code>true</code>; every RA6M5 GCC
+launch has <code>false</code>, so it cannot be inherited either way.</p>
 <p><code>mk_iar_launches.py</code> derives each IAR launch from its GCC twin by swapping build-tree names and
-the three project attributes above, **and rewriting <code>e2lite.setTZBoundaries</code> from <code>true</code> to
-<code>false</code>** - so that key differs too. It
+the three project attributes above, and rewriting <code>e2lite.setTZBoundaries</code> from <code>true</code> to
+<code>false</code> - so that key differs too. It
 refuses to write a launch that still names a GCC tree or the GCC project, or that has
 <code>setTZBoundaries</code> true anywhere. Run <code>--check</code> first: it reports <code>same</code> when the generator
 reproduces what is on disk, which is how a hand edit gets folded back in rather than lost.</p>
-<p><strong>Two attributes are safety-critical in every launch:</strong></p>
+<p>Two attributes are safety-critical in every launch:</p>
 <ul>
 <li><code>setTZBoundaries</code> = <strong>false</strong>. The debugger writing the TrustZone boundaries is a brick
-hazard (<code>DESIGN.md</code> §7.2). RA8M2 launches carry the key <strong>twice</strong> — <code>...arm.jlink.</code> and
+hazard (<code>DESIGN.md</code> §7.2). RA8M2 launches carry the key twice — <code>...arm.jlink.</code> and
 <code>...arm.e2lite.</code> — and e2 defaults the e2lite one to <code>true</code>. Only the namespace matching the
 selected probe is read, so the J-Link launches here are safe, but set both.</li>
-<li><code>ueraseRomOnDownload</code> and <code>ueraseDataRomOnDownload</code> = <strong>1</strong>. Otherwise a stale ITS/PS area
+<li><code>ueraseRomOnDownload</code> and <code>ueraseDataRomOnDownload</code> = 1. Otherwise a stale ITS/PS area
 survives a reflash and the storage suites fail in ways that look like code faults.</li>
 </ul>
 <p>Flash <code>bl2.elf</code> or <code>bl2.hex</code>, <strong>never <code>bl2.bin</code></strong> — the OFS words land at their link addresses
@@ -186,10 +186,10 @@ only in a format that carries them.</p>
 <p>Each image has its own control block and the address moves on every rebuild, so read it rather
 than reusing a remembered value:</p>
 <pre><code class="language-sh">arm-none-eabi-nm &lt;build&gt;/bin/tfm_ns.axf | grep ' _SEGGER_RTT$'</code></pre>
-<p><strong>BL2&#x27;s block cannot be recovered after the chainload.</strong> <code>region_defs.h</code> gives BL2 and the SPE
+<p>BL2&#x27;s block cannot be recovered after the chainload. <code>region_defs.h</code> gives BL2 and the SPE
 the same RAM, so the SPE&#x27;s <code>.bss</code> zeroing wipes BL2&#x27;s control block microseconds after the
-jump, and a viewer that auto-detects after reset always finds the SPE&#x27;s. To capture BL2, halt in it first with a <strong>breakpoint</strong>, point the viewer at BL2&#x27;s address
-while halted, then run. <code>RA8M2_BL2_HALT_AT_MAIN=ON</code> does <strong>not</strong> work for this: it is an
+jump, and a viewer that auto-detects after reset always finds the SPE&#x27;s. To capture BL2, halt in it first with a breakpoint, point the viewer at BL2&#x27;s address
+while halted, then run. <code>RA8M2_BL2_HALT_AT_MAIN=ON</code> does not work for this: it is an
 unconditional <code>while(1)</code> at the top of <code>main()</code> (<code>bl2_main.c:112-125</code>), before any init or
 print, so &quot;then run&quot; just spins and the image is not bootable. D100&#x27;s wording is the source of
 that error.</p>
@@ -206,15 +206,15 @@ resolves. <code>DECISIONS.md</code> is exempt from the link checks because it is
 there to a since-retired file is a historical fact, not a defect.
 Review snapshots under <code>docs/artifacts*/</code> are exempt from all three checks: they cite entries a
 review proposes before anyone has written them.</p>
-<p>Bypass with <code>git commit --no-verify</code> when a commit deliberately breaks a reference, such as the
+<p>Bypass with <code>git commit --no-verify</code> when a commit breaks a reference on purpose, such as the
 first half of a rename spanning both repositories.</p>
 <pre><code class="language-sh">python scripts/check_arch_lines.py          # BUILD_ARCHITECTURE.md's line citations
-python scripts/check_arch_lines.py --list   # show what each cited line actually holds</code></pre>
+python scripts/check_arch_lines.py --list   # show what each cited line holds</code></pre>
 <p>72 citations, each paired with a regex the cited line must match: the RA port <code>CMakeLists.txt</code>
-and module files, upstream TF-M, and this repository&#x27;s own build scripts. **<code>check_docs.py</code>
-cannot catch this class:** the file exists and the D-numbers resolve, so a reference stays
+and module files, upstream TF-M, and this repository&#x27;s own build scripts. <code>check_docs.py</code>
+cannot catch this class: the file exists and the D-numbers resolve, so a reference stays
 &quot;valid&quot; while pointing at the wrong line.</p>
-<p>The <strong>port</strong> citations went stale twice in one day, both times from a comment edit above the
+<p>The port citations went stale twice in one day, both times from a comment edit above the
 block with no CMake change. The upstream citations were untouched by both commits; they move
 only on a TF-M uprev.</p>
 <p>Fail-on-stale, not regenerate: the numbers sit in prose that explains each block, so a human
