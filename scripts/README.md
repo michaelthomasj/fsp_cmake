@@ -19,7 +19,7 @@ defaulted, D101 for the RA8M2 IAR project parity); layouts and board settings ar
 | `CONFIG_TFM_HALT_ON_CORE_PANIC` | `ON`, passed | default | default |
 | Build type | MinSizeRel | MinSizeRel, **both toolchains** | MinSizeRel (GCC) / Debug (IAR) |
 
-Line references: `psa_arch_spe.bat:67-71` (and `psa_arch_spe_iar.bat:77-79`),
+Line references: `psa_arch_spe.bat:67-71` (and `psa_arch_spe_iar.bat:77-81`),
 `reg_build_gcc.bat:145,158-159`, `reg_build_iar.bat:89,103-104`,
 `app_build_ra8m2_gcc.bat:45,54`, `app_build_ra8m2_iar.bat:45`.
 
@@ -37,9 +37,10 @@ is the other way out of the same conflict, and is what the PSA Arch scripts do. 
 constraint has nothing to do with isolation 3 or the IPC backend** — the comment heads in
 `psa_arch_spe*.bat` that say otherwise are wrong on the reason, right on the action.
 
-Secure-side *partition* logging is the one that cannot be shared. It costs ~3,785 B against
-**670 B** spare on RA8M2 ([D087]; the 960 B this line used to quote was the retracted figure)
-— so it is set per script, not in the platform `config.cmake`. **MinSizeRel is mandatory on
+Secure-side logging is the one setting that cannot be shared. The three options together — SPM
+log, partition log and halt-on-panic — cost ~3,785 B against **670 B** spare on RA8M2 ([D087];
+the 960 B this line used to quote was the retracted figure), so they are set per script rather
+than in the platform `config.cmake`. **MinSizeRel is mandatory on
 RA8M2 under GNUARM** (IAR `Debug` fits, [D055]): `Debug` is ~414 KB against a 293 KB slot
 ([D057]).
 
@@ -201,13 +202,20 @@ python scripts/check_arch_lines.py          # BUILD_ARCHITECTURE.md's line citat
 python scripts/check_arch_lines.py --list   # show what each cited line actually holds
 ```
 
-55 citations into `ra6m5/CMakeLists.txt`, `ra8m2/CMakeLists.txt` and the upstream TF-M files,
-each paired with a regex the cited line must match. **`check_docs.py` cannot catch this class:**
-the file exists and the D-numbers resolve, so a reference stays "valid" while pointing at the
-wrong line. Every one of these went stale twice in one day, both times from a **comment** edit
-above the block — no CMake changed. Fail-on-stale, not regenerate: the numbers sit in prose that
-explains each block, so a human has to look. Skipped when `trusted-firmware-m` is not beside
-this repo. Adding a citation to the document means adding a row to the table in the script.
+72 citations, each paired with a regex the cited line must match: the RA port `CMakeLists.txt`
+and module files, upstream TF-M, and this repository's own build scripts. **`check_docs.py`
+cannot catch this class:** the file exists and the D-numbers resolve, so a reference stays
+"valid" while pointing at the wrong line.
+
+The **port** citations went stale twice in one day, both times from a comment edit above the
+block with no CMake change. The upstream citations were untouched by both commits; they move
+only on a TF-M uprev.
+
+Fail-on-stale, not regenerate: the numbers sit in prose that explains each block, so a human
+has to look. The pre-commit hook skips it when `trusted-firmware-m` is not beside this repo;
+run by hand in that case it exits 2. `scripts/pre-commit-tfm` runs the same check from the
+TF-M side, where the drift originates. Adding a citation to a document means adding a row to
+the table in the script.
 
 ### Rendered documents for the course
 

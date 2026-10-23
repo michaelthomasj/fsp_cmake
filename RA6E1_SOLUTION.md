@@ -616,6 +616,7 @@ be recomputed **and re-checked against the 32 KB / 8 KB granularity rule**.
 ### Divergences from the current TF-M port config
 **None of substance any more.** This section listed ECDSA-P256 vs RSA-3072, overwrite-only vs
 swap+256K scratch, MCUboot 2.4.0 vs 2.1.0 and FSP 6.6.0-beta2 vs 6.1.0 — all of which described
-the RA6M4-era port. The live port signs **EC-P256**, is **OVERWRITE_ONLY with no scratch**, and
-builds on FSP 6.7.0-beta0; the Status line above says so. Kept as a heading so the question is
+the RA6M4-era port. The live port signs **EC-P256** and is OVERWRITE_ONLY with no scratch.
+RA6E1 builds against its solution's FSP 6.6.0-rc1, as the header above says; RA6M5 and RA8M2
+are on 6.7.0-beta0. RA6E1 is dormant, so its projects were not uprevved with theirs. Kept as a heading so the question is
 visibly answered rather than missing.

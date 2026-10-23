@@ -461,14 +461,16 @@ segments, the RA6-hardcoded version printed <em>&quot;CLEAN (no OFS segments) �
 The back-port of the per-part guards to RA6M5 and RA6E1 is still open (<a href="DECISIONS.html#d077">D077</a>).</p>
 <div class="table-wrap"><table>
 <tr><th></th><th>Windows</th><th>Limit</th><th>Where</th></tr>
-<tr><td><strong>RA6M5</strong>, RA6E1, RA6M4</td><td>one: <code>0x0100A100</code>–<code>0x0100A2CF</code></td><td><code>--max-word 0xC</code></td><td><code>ra6m5/CMakeLists.txt:884</code> (<code>--ra6-default</code>)</td></tr>
-<tr><td><strong>RA8M2</strong></td><td>five: <code>0x02C9F040</code>–<code>0x02C9F280</code>, <code>0x12C9F4C0</code>–<code>0x12C9F680</code>, <code>0x02E07600</code>–<code>0x02E07698</code>, <code>0x02E17700</code>–<code>0x02E17924</code>, <code>0x12E17780</code>–<code>0x12E17800</code></td><td><code>--max-word 4</code></td><td><code>ra8m2/CMakeLists.txt:1021-1039</code></td></tr>
+<tr><td><strong>RA6M5</strong>, RA6E1, RA6M4</td><td>one: <code>0x0100A100</code>–<code>0x0100A2CF</code></td><td><code>--max-word 0xC</code></td><td><code>ra6m5_add_ofs_check()</code>, passing <code>--ra6-default</code></td></tr>
+<tr><td><strong>RA8M2</strong></td><td>five: <code>0x02C9F040</code>–<code>0x02C9F280</code>, <code>0x12C9F4C0</code>–<code>0x12C9F680</code>, <code>0x02E07600</code>–<code>0x02E07698</code>, <code>0x02E17700</code>–<code>0x02E17924</code>, <code>0x12E17780</code>–<code>0x12E17800</code></td><td><code>--max-word 4</code></td><td><code>ra8m2_add_ofs_check()</code>, passing five <code>--region</code> windows</td></tr>
 </table></div>
+<p>Both are functions in the part&#x27;s <code>CMakeLists.txt</code>, cited by name because a comment edit above
+them moves their line numbers (<a href="DECISIONS.html#d129">D129</a>).</p>
 <p>RA8M2&#x27;s limit is <code>4</code> because <code>bl2_option_setting.c</code> places only 4-byte words there — deliberately
 tighter than the <code>0x80</code> a BPS word would need, to be raised only if BPS/PBPS are ever placed.
 BL2 also passes <code>--require-segments</code>, so an empty result fails rather than passing.</p>
 <blockquote><p><strong>Known tension, not yet resolved.</strong> RA6M5&#x27;s widest <em>defined</em> groups are <code>0x10</code>
-(<code>BPS</code>/<code>PBPS</code> and mirrors, <code>region_defs.h:275-312</code>) while its guard limit is <code>--max-word 0xC</code>,
+(<code>BPS</code>/<code>PBPS</code> and mirrors, the <code>OPTION_SETTING_*</code> block in <code>region_defs.h</code>) while its guard limit is <code>--max-word 0xC</code>,
 inherited from RA6E1/RA6M4 where those words are <code>0xC</code>. It does not fire today because
 RA6M5&#x27;s <code>bl2_option_setting.c</code> places none of them. **Enabling a BPS or PBPS group on RA6M5
 will fail the guard on a correctly linked image** — raise the limit to <code>0x10</code> at that point,

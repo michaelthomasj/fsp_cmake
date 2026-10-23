@@ -6,10 +6,10 @@
 
 | | |
 |---|---|
-| Entries | **130** |
-| Standing | **118** |
+| Entries | **131** |
+| Standing | **119** |
 | Superseded | **12** |
-| Standing but corrected on some point | **31** |
+| Standing but corrected on some point | **33** |
 | Standing, but the question they left open is closed | **3** |
 | Supersede lineages | **9** |
 
@@ -33,7 +33,7 @@ A later entry **supersedes** an earlier one: same question, newer answer. Citing
 
 ---
 
-## Standing (118)
+## Standing (119)
 
 Nothing supersedes these. The title is the position. Where a later entry corrects one, the correction is named - the entry stands apart from that. **Where the Closed by column is filled, read the status as historical:** the entry describes a problem that a later entry shut, so its own "Open" or "Provisional" is no longer true.
 
@@ -154,9 +154,10 @@ Nothing supersedes these. The title is the position. Where a later entry correct
 | `D125` | 2026-10-22 | six corrections to [D120]–[D123] from the second documentation review; the HAL never left the PSA-RoT code region | Accepted | `D128` | — |
 | `D126` | 2026-10-22 | eighteen corrections to [D110]–[D125] from the second review; two carried items closed, and [D115]'s "three of four corners" was wrong | Accepted | `D128` | — |
 | `D127` | 2026-10-22 | the CMake target graph gets its own document, drawn in ASCII rather than mermaid | Accepted | — | — |
-| `D128` | 2026-10-22 | the metadata line is an index and may be repaired in place (new rule 7); ten relation fields corrected, and [D120]/[D125]/[D126] each got one attribution wrong | Accepted | `D129` | — |
-| `D129` | 2026-10-22 | the v4 review of `BUILD_ARCHITECTURE.md`: eight findings, the FSPR attribution withdrawn in eleven more places, and line citations are now checked | Accepted | — | — |
-| `D130` | 2026-10-22 | TF-M 2.3 is deferred, not cancelled: the gate is FSP's Mbed TLS 4.1 migration, expected ~2026-11-12 | Accepted | — | — |
+| `D128` | 2026-10-22 | the metadata line is an index and may be repaired in place (new rule 7); ten relation fields corrected, and [D120]/[D125]/[D126] each got one attribution wrong | Accepted | `D129`, `D131` | — |
+| `D129` | 2026-10-22 | the v4 review of `BUILD_ARCHITECTURE.md`: eight findings, the FSPR attribution withdrawn in eleven more places, and line citations are now checked | Accepted | `D131` | — |
+| `D130` | 2026-10-22 | TF-M 2.3 is deferred, not cancelled: the gate is FSP's Mbed TLS 4.1 migration, expected ~2026-11-12 | Accepted | `D131` | — |
+| `D131` | 2026-10-22 | the v5 review: two generators were passing against their own faulty output; the RA6M5 PXN correction gets the entry it never had | Accepted | — | — |
 
 ---
 

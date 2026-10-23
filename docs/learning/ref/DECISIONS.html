@@ -178,6 +178,7 @@
           <li><a href="#d128">D128 — the metadata line is an index and may be repaired in place (new rule 7); ten relation fields corrected, and [D120]/[D125]/[D126] each got one attribution wrong</a></li>
           <li><a href="#d129">D129 — the v4 review of BUILD_ARCHITECTURE.md: eight findings, the FSPR attribution withdrawn in eleven more places, and line citations are now checked</a></li>
           <li><a href="#d130">D130 — TF-M 2.3 is deferred, not cancelled: the gate is FSP&#x27;s Mbed TLS 4.1 migration, expected ~2026-11-12</a></li>
+          <li><a href="#d131">D131 — the v5 review: two generators were passing against their own faulty output; the RA6M5 PXN correction gets the entry it never had</a></li>
         </ol>
       </li>
     </ol>
@@ -987,7 +988,7 @@ in both images, matches what RA6E1 actually runs with.</p>
 correct. Same two checks apply there.</p>
 <hr>
 <h2 id="d035">D035 — Stay on TF-M 2.2; the TF-M 2.3 rebase is cancelled</h2>
-<p><strong>Date:</strong> 2026-09-21 · <strong>Status:</strong> Accepted</p>
+<p><strong>Date:</strong> 2026-09-21 · <strong>Status:</strong> Superseded by D130</p>
 <p><strong>Decision.</strong> Do not move to TF-M 2.3. It replaces Mbed TLS with TF-PSA-Crypto — v1.1.0 in
 2.3.0, v1.1.1 in 2.3.1 (<code>config/config_base.cmake:38</code> at each tag; 2.3.0 release notes: &quot;Use
 TF-PSA-Crypto 1.1.0 in place of Mbed-TLS&quot;). The port stays on v2.2.0 / Mbed TLS 3.6.3. P5 of
@@ -5691,6 +5692,101 @@ upstream submission of the port waits on it. The ALT route remains Mbed TLS 3.6-
 redone as a PSA transparent driver in P7, following the rsip7 CM driver model. The
 TF-PSA-Crypto work itself lives in the sibling <code>fsp_tf_psa_crypto</code> repository with its own
 decision log (<code>GETTING_STARTED.md</code>), not here.</p>
+<hr>
+<h2 id="d131">D131 — the v5 review: two generators were passing against their own faulty output; the RA6M5 PXN correction gets the entry it never had</h2>
+<p><strong>Date:</strong> 2026-10-22 · <strong>Status:</strong> Accepted · <strong>Corrects:</strong> <a href="DECISIONS.html#d128">D128</a>, <a href="DECISIONS.html#d129">D129</a>, <a href="DECISIONS.html#d130">D130</a> · <strong>Evidence:</strong> v5 findings F001, F283, F309, F313–F334; both tool fixes tested against induced failures</p>
+<p>The fifth review found no open high-severity items but reported that the previous round
+introduced two tool defects. Both let errors pass the repository&#x27;s own checks. Those are
+recorded first because they determine how much the other checks are worth.</p>
+<h3 id="s1_12">1. The glossary dropped every correction (F309)</h3>
+<p><code>build_settled.py</code> gained a sixth Standing column, <code>Closed by</code>, in <a href="DECISIONS.html#d128">D128</a>.
+<code>build_course_glossary.py</code> read the last cell of each row. The last cell became <code>Closed by</code>,
+which is <code>—</code> for 127 of 130 entries, so every correction vanished. All 42 cited entries read a
+bare &quot;stands&quot;. D113 should read &quot;corrected by D117, D120, D126&quot;.</p>
+<p><code>--check</code> passed throughout, because it compares the generator&#x27;s output with the page that
+generator last wrote. A parser reading the wrong column agrees with itself.</p>
+<p>Two changes. The parser now reads SETTLED.md by <strong>column name</strong> and raises if the column is
+absent, so a renamed or reordered column stops the build instead of producing a wrong page.
+A second guard counts <code>Corrects:</code> fields in <code>DECISIONS.md</code> and fails if the log records
+corrections that the table does not show. It reports the counts either way, per <a href="DECISIONS.html#d121">D121</a>.</p>
+<p>The guard fired on its first run and named D090 and D098. Both were false positives: each is
+superseded and corrected by the same entry, where <a href="DECISIONS.html#d128">D128</a> drops the redundant &quot;also corrected
+by&quot; on purpose. The guard now checks standing rows only.</p>
+<h3 id="s2_12">2. <code>check_arch_lines.py</code> did not run when TF-M changed (F321)</h3>
+<p>The checker exists to catch line drift caused by a TF-M comment edit. A TF-M commit does not
+run this repository&#x27;s hook, so the check fired only at the next fsp_cmake commit that staged
+<code>BUILD_ARCHITECTURE.md</code>. <a href="DECISIONS.html#d129">D129</a> §5 stated the trigger as though it covered the cause.</p>
+<p><code>scripts/pre-commit-tfm</code> now runs the same check from the TF-M clone, on any staged
+<code>platform/ext/target/renesas/</code> file. <code>install_hooks.sh</code> installs it. Tested by inserting one
+comment line into <code>ra6m5/CMakeLists.txt</code>: the hook reported 28 of 55 citations stale, named the
+correct line for each, and blocked the commit.</p>
+<h3 id="s3_9">3. Corrections to <a href="DECISIONS.html#d129">D129</a></h3>
+<div class="table-wrap"><table>
+<tr><th>Claim</th><th>Correct</th></tr>
+<tr><td>&quot;~25 port citations&quot; (§5 and the docstring)</td><td><strong>39</strong> port rows and 16 upstream rows. The total of 55 was right; the split was not (F327)</td></tr>
+<tr><td>&quot;eleven places&quot; carried the FSPR attribution (title, §3)</td><td><strong>thirteen</strong> files. <code>7f7377c12</code> changed 13 (F331)</td></tr>
+<tr><td>&quot;<a href="DECISIONS.html#d128">D128</a> pinned the header&quot;, &quot;<a href="DECISIONS.html#d128">D128</a>&quot; for the PXN error (§5, Correction to <a href="DECISIONS.html#d128">D128</a>)</td><td><a href="DECISIONS.html#d128">D128</a> says nothing about <code>2c6d4feb2</code>, PXN or a header pin. See §4 (F332)</td></tr>
+</table></div>
+<p>The citation table now holds 39 port, 29 upstream and 4 local rows, 72 in total. F320 found
+about 15 cited lines with no row at all. That gap was not theoretical: writing the
+<code>BRIDGING_FILES.md</code> fix in this same pass, I cited ra8m2&#x27;s <code>FSP_EXCLUDED_MODULES</code> at <code>:159</code>
+when it is at <code>:112</code>, and nothing objected.</p>
+<h3 id="s4_6">4. The RA6M5 PXN correction, recorded here (F332)</h3>
+<p><code>2c6d4feb2</code> corrected a claim that had no entry. The <code>ra6m5</code> PXN comment said a
+<code>TFM_PXN_ENABLE=ON</code> configure of that platform &quot;passes the armv8.1-m.main gate&quot;. It cannot.
+<code>config/check_config.cmake:91</code> rejects <code>TFM_PXN_ENABLE</code> unless <code>TFM_SYSTEM_ARCHITECTURE</code> is
+<code>armv8.1-m.main</code>, and <code>ra6m5/cpuarch.cmake:15</code> sets <code>armv8-m.main</code>. PXN is an Armv8.1-M
+feature and the Cortex-M33 does not implement it, so the configure fails by design.</p>
+<p>The paragraph was copied from <code>ra8m2</code>, where the measurement was taken and is valid
+(<code>cpuarch.cmake:24</code>). The commit cited <a href="DECISIONS.html#d128">D128</a> for this, which was wrong; it belongs here.
+What holds for RA6M5 is narrower: the define is plumbed PUBLIC on <code>platform_s</code> and would reach
+the HAL through <code>tfm_spm</code> if the part could use the feature.</p>
+<h3 id="s5_6">5. Three mechanisms, not one — extends <a href="DECISIONS.html#d129">D129</a> §1 (F313, F314)</h3>
+<p><a href="DECISIONS.html#d129">D129</a> established that the <code>sce</code> module builds <code>r_sce</code>. It did not name the mechanism that
+does exclude sources, so <code>BRIDGING_FILES.md</code> and <code>ADDING_FSP_MODULES.md</code> kept describing
+<code>FSP_MODULES_NEVER_BUILT</code> as an exclusion list.</p>
+<div class="table-wrap"><table>
+<tr><th>Mechanism</th><th>Where</th><th>Effect</th></tr>
+<tr><td><code>FSP_MODULES_S</code> / <code>_BL2</code></td><td><code>ra6m5/CMakeLists.txt:234</code>, <code>:238</code></td><td>the only thing that builds FSP sources for the secure and BL2 images</td></tr>
+<tr><td><code>FSP_MODULES_NEVER_BUILT</code></td><td><code>:266</code></td><td>suppresses the unclaimed-directory warning; excludes no source</td></tr>
+<tr><td><code>FSP_EXCLUDED_MODULES</code></td><td><code>:112</code>, used by <code>fsp_collect_sources()</code> at <code>:1023</code></td><td>filters sources out of the non-secure glob only</td></tr>
+</table></div>
+<p><code>r_sce</code> is in <code>FSP_MODULES_NEVER_BUILT</code> and built by the <code>sce</code> module and excluded from the NS
+glob. All three are true, for different roles.</p>
+<p>A related claim in <code>BRIDGING_FILES.md</code> §3 was also wrong, and it affected a check for a
+silent failure. The section said FSP&#x27;s <code>flash_map_backend.h</code> &quot;reaches no include path&quot;.
+<code>fsp_bsp.cmake:106-108</code> puts FSP&#x27;s <code>mcu-tools</code> MCUboot headers on the BSP library&#x27;s include
+path, because the bootloader project&#x27;s <code>hal_data.h</code> includes <code>rm_mcuboot_port.h</code>. Those paths
+are PRIVATE to <code>fsp_bsp_bl2</code> and never reach <code>bootutil</code>, which is what makes the arrangement
+safe. **An <code>fsp_bsp</code> object therefore reports a 12-byte <code>struct flash_area</code> legitimately, and
+the DWARF check has to be scoped to <code>bootutil</code> objects** or it reports a false failure on the
+one surface where nothing else in the build would.</p>
+<h3 id="s6_4">6. Smaller corrections</h3>
+<ul>
+<li><strong><a href="DECISIONS.html#d130">D130</a> named the wrong Mbed TLS version</strong> (F333). 3.6.3 is TF-M&#x27;s bundled copy, which the
+crypto partition has not used since <a href="DECISIONS.html#d042">D042</a>. The port builds crypto from FSP&#x27;s Mbed TLS,
+recorded as 3.6.6 in <a href="DECISIONS.html#d047">D047</a>.</li>
+<li><strong><a href="DECISIONS.html#d035">D035</a> still read <code>Accepted</code></strong> (F334). Rule 2 requires the superseded entry to carry the
+line, and rule 7 permits the repair. Set to <code>Superseded by D130</code>. <code>SETTLED.md</code> was correct
+only because it derives the relation from <a href="DECISIONS.html#d130">D130</a>&#x27;s field.</li>
+<li><strong><code>bl2_boot_hal.c</code> is not gated the same way on both parts</strong> (F316). On <code>ra6m5</code> it is under
+<code>if(CRYPTO_HW_ACCELERATOR)</code>. On <code>ra8m2</code> it is unconditional, because it enables the SAU and
+BL2 cannot read the non-secure slots without it; only <code>ra_sce_init.c</code> is gated there.</li>
+<li><strong><code>RA6E1_SOLUTION.md</code> claimed FSP 6.7.0-beta0</strong> (F283). RA6E1 is dormant and its projects
+are on 6.6.0-rc1. Only RA6M5 and RA8M2 were uprevved.</li>
+<li><strong><a href="DECISIONS.html#d130">D130</a> and <code>PROJECT_PLAN.md</code> gave P7 two different gates</strong> (F328). The Mbed TLS v4.1
+migration is the gate. The rsip7 update supplies the driver model.</li>
+</ul>
+<h3 id="process-note">Process note</h3>
+<p><code>docs/STYLE_EDIT_PROMPT.md</code> became a standing instruction during this pass. This entry is
+written to it: short declarative sentences, one claim each, and emphasis only on the one hazard
+in §5. Earlier entries are not rewritten, because rule 1 forbids it, but the style applies from
+here.</p>
+<p>The pattern across four reviews now reads: check the explanation against the build files
+(<a href="DECISIONS.html#d126">D126</a>), check the sibling entry you cite (<a href="DECISIONS.html#d128">D128</a>), check the comment you quote (<a href="DECISIONS.html#d129">D129</a>), and
+<strong>check that your checker can fail</strong>. Both defects in §1 and §2 were tools that reported success
+without testing anything — one compared a generator with itself, the other never ran on the
+commits that cause the drift it detects.</p>
 </main>
 </div>
 </body>

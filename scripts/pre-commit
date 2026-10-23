@@ -52,9 +52,13 @@ fi
 # 2b. BUILD_ARCHITECTURE.md's line citations into the TF-M port files.
 #
 #     Fail-on-stale, not regenerate: the numbers sit inside prose that explains each block, so
-#     there is nothing to generate - a human has to look. Unlike the other checks this one
-#     fires on a TF-M *comment* edit, which is exactly how it drifted twice in one day while
-#     check_docs.py reported everything valid. Skipped when TF-M is not beside this repo.
+#     there is nothing to generate - a human has to look.
+#
+#     THIS STEP DOES NOT CATCH THE DRIFT AT ITS SOURCE. The cause is a TF-M comment edit, and
+#     a TF-M commit never runs this hook, so this step fires only at the next fsp_cmake commit
+#     that stages the document. scripts/pre-commit-tfm covers the other side and is installed
+#     into the TF-M clone by install_hooks.sh. After editing a renesas port file without that
+#     hook, run `python scripts/check_arch_lines.py` by hand. Skipped when TF-M is absent.
 if [ -f "$root/scripts/check_arch_lines.py" ] && [ -d "$root/../trusted-firmware-m" ] \
    && echo "$changed" | grep -qE '^BUILD_ARCHITECTURE\.md$|^scripts/check_arch_lines\.py$'; then
     python "$root/scripts/check_arch_lines.py"

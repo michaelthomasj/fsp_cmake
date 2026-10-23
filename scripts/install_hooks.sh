@@ -21,4 +21,23 @@ for h in pre-commit; do
     chmod +x "$dst"
     echo "  installed $h"
 done
-echo "done. Verify with: python scripts/check_docs.py"
+
+# The TF-M clone gets its own hook. BUILD_ARCHITECTURE.md cites line numbers in the RA port
+# CMakeLists, and those move when a TF-M comment is edited above them. A TF-M commit never
+# runs this repository's hook, so without this the drift is caught only later (F321).
+tfm="$root/../trusted-firmware-m"
+if [ -d "$tfm/.git" ]; then
+    src="$root/scripts/pre-commit-tfm"
+    dst="$tfm/.git/hooks/pre-commit"
+    if [ -f "$dst" ] && ! cmp -s "$src" "$dst"; then
+        cp "$dst" "$dst.bak"
+        echo "  existing trusted-firmware-m pre-commit backed up to pre-commit.bak"
+    fi
+    cp "$src" "$dst"
+    chmod +x "$dst"
+    echo "  installed pre-commit into trusted-firmware-m"
+else
+    echo "  skipped trusted-firmware-m hook: no clone at $tfm"
+fi
+
+echo "done. Verify with: python scripts/check_docs.py && python scripts/check_arch_lines.py"

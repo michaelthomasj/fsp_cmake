@@ -126,22 +126,26 @@ so the first one reached silently suppresses the other. They do not define the s
 complete types, the link succeeds, and the only symptom is a bootloader rejecting a correct
 image (<a href="DECISIONS.html#d090">D090</a>). An FSP uprev that adds a member, or a TF-M bump that changes its struct, breaks
 this again with no warning.</p>
-<p><strong>Since <a href="DECISIONS.html#d091">D091</a> the expected size is 16, not 12.</strong> Both parts now compile TF-M&#x27;s struct and
-never build <code>rm_mcuboot_port</code> (<code>FSP_MODULES_NEVER_BUILT</code> at <code>ra6m5/CMakeLists.txt:252</code> and
-<code>ra8m2/CMakeLists.txt:299</code>), so FSP&#x27;s header reaches no include path and the collision is
-structurally impossible. The check below was written when FSP&#x27;s 12-byte struct was expected;
-<strong>run unchanged it now flags every live <code>bootutil</code>/<code>flash_map</code> object as a failure</strong>, and
-acting on that would mean putting FSP&#x27;s header back.</p>
-<p><strong>The check</strong> - every linked object must report <strong>16</strong>:</p>
-<pre><code class="language-sh">for o in $(find &lt;build&gt;/bl2 &lt;build&gt;/platform -name '*.o'); do
+<p>Since <a href="DECISIONS.html#d091">D091</a> the expected size is 16. Both parts compile TF-M&#x27;s struct. Neither builds
+<code>rm_mcuboot_port</code>: <code>FSP_EXCLUDED_MODULES</code> filters its sources out of the glob
+(<code>ra6m5/CMakeLists.txt:112</code>, <code>ra8m2/CMakeLists.txt:112</code>).</p>
+<p>FSP&#x27;s header is still on an include path, so the collision is avoided by scope rather than
+by absence. <code>fsp_bsp.cmake:106-108</code> adds FSP&#x27;s <code>mcu-tools</code> MCUboot headers to the BSP
+library, with the reason at <code>:85-87</code>: because the bootloader project&#x27;s <code>hal_data.h</code> includes <code>rm_mcuboot_port.h</code>, which
+includes <code>bootutil/image.h</code>. Those paths are <strong>PRIVATE to <code>fsp_bsp_bl2</code></strong> and never reach
+<code>bootutil</code>. One consequence matters for the check: an <code>fsp_bsp</code> object may legitimately
+report 12 bytes.</p>
+<p>The check. Every <code>bootutil</code> and <code>flash_map</code> object must report 16. Scope it to those: an
+<code>fsp_bsp_bl2</code> object is expected to report 12 and is not a failure.</p>
+<pre><code class="language-sh">for o in $(find &lt;build&gt;/bl2 -name '*.o' | grep -v fsp_bsp); do
   arm-none-eabi-readelf --debug-dump=info "$o" 2&gt;/dev/null |     awk -v f="$o" '/DW_TAG_structure_type/{s=1;n="";b=""}
          s&amp;&amp;/DW_AT_name.*: flash_area$/{n=1}
          s&amp;&amp;/DW_AT_byte_size/{b=$NF}
          n&amp;&amp;b{if(b!=16)print b" bytes: "f; exit}'
 done</code></pre>
-<p><strong>Objects reporting 12 are the failure now</strong> - FSP&#x27;s header has been reintroduced somewhere.
-A stale on-disk object can report either size; confirm with <code>grep -c &lt;object&gt; build.ninja</code>
-returning 0 before chasing it.</p>
+<p>**A <code>bootutil</code> object reporting 12 means FSP&#x27;s header has reached <code>bootutil</code>&#x27;s include
+path.** A stale on-disk object can report either size; confirm with
+<code>grep -c &lt;object&gt; build.ninja</code> returning 0 before chasing it.</p>
 <h3 id="s4">4. The rm_psa_crypto tree — the cheapest canary found so far</h3>
 <pre><code class="language-sh">cd &lt;peaks-working&gt; &amp;&amp; git diff --stat ra/fsp/src/rm_psa_crypto/</code></pre>
 <p>Of 35 files, only <code>aes_alt.c</code> and <code>cipher_alt.c</code> have ever differed between the SCE9 and E50D
@@ -187,8 +191,16 @@ complains.</p>
 <p>A link error is the good outcome here. The bad one is a signature that still matches with
 changed semantics.</p>
 <h3 id="shadows-an-fsp-module-wholesale">Shadows an FSP module wholesale</h3>
-<p><code>rm_mcuboot_port</code>, <code>rm_psa_crypto</code> + <code>ra/arm/mbedtls</code>, <code>r_sce</code>, <code>bsp_linker.c</code>, and
-<code>startup.c</code> / <code>ra_gen/main.c</code>. Each carries a stated reason.</p>
+<p><code>rm_mcuboot_port</code>, <code>bsp_linker.c</code>, and <code>startup.c</code> / <code>ra_gen/main.c</code>. Each carries a stated
+reason.</p>
+<p><code>rm_psa_crypto</code> and <code>ra/arm/mbedtls</code> are a narrower case. The port excludes FSP&#x27;s PSA core
+module build and its mbedTLS config, not FSP&#x27;s crypto code: the <code>*_ALT</code> sources come from
+<code>platform/ext/accelerator/renesas/{sce9,rsip_e50d}</code>, and the library from the
+<code>fsp_mbedtls.cmake</code> overlay. §4 and §5 treat those ALT sources as part of the image, which
+is correct.</p>
+<p><code>r_sce</code> is not shadowed at all. The <code>sce</code> module builds it for the secure and BL2 roles
+(<a href="DECISIONS.html#d129">D129</a>). <code>FSP_EXCLUDED_MODULES</code> removes it only from the non-secure glob, which is a
+different image.</p>
 <p><strong><code>rm_mcuboot_port</code> is shadowed on both parts</strong> — <a href="DECISIONS.html#d091">D091</a>. It briefly supplied the flash map
 and backend on RA8M2 (<a href="DECISIONS.html#d079">D079</a>), which is what removed the running cost <a href="DECISIONS.html#d073">D073</a>/<a href="DECISIONS.html#d074">D074</a> paid, and
 RA6M5 returned to TF-M&#x27;s at <a href="DECISIONS.html#d085">D085</a>; <a href="DECISIONS.html#d091">D091</a> then settled both parts on TF-M&#x27;s map and backend

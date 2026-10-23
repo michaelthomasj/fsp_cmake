@@ -4,15 +4,17 @@
     python scripts/check_arch_lines.py            # check, exit 1 on any mismatch
     python scripts/check_arch_lines.py --list     # print what each cited line holds
 
-Exit codes:  0 all citations resolve   1 at least one is stale   2 bad usage
+Exit codes:  0 all citations resolve   1 at least one is stale   2 no TF-M checkout beside
+this repo (the pre-commit hook skips the check in that case rather than calling it)
 
 WHY THIS EXISTS
 ---------------
-BUILD_ARCHITECTURE.md cites ~25 line numbers in ra6m5/CMakeLists.txt and ra8m2/CMakeLists.txt.
-Every one of them went stale TWICE in a single day, both times because a *comment* was edited
-above the block - once by the PXN correction (2c6d4feb2) and once by the D129 comment pass.
-Neither edit changed a single line of CMake. check_docs.py cannot catch this: the file exists
-and the D-numbers resolve, so every reference is "valid" while pointing at the wrong line.
+The reference documents cite line numbers in the TF-M port, in upstream TF-M and in this
+repository's own scripts. 39 port citations went stale TWICE in a single day, both times
+because a *comment* was edited above the block - once by the PXN correction (2c6d4feb2), once
+by the D129 comment pass. Neither edit changed a line of CMake. The 16 upstream citations were
+untouched by both. check_docs.py cannot catch this class: the file exists and the D-numbers
+resolve, so every reference stays "valid" while pointing at the wrong line.
 
 A line number that silently drifts is worse than no line number, because a reader who follows
 it and finds a plausible-looking neighbouring construct will believe it.
@@ -98,6 +100,30 @@ UPSTREAM = [
     ("bl2/ext/mcuboot/CMakeLists.txt",                  70, r"^target_link_libraries\(bl2"),
     ("config/config_base.cmake",                        17, r"CMAKE_INSTALL_PREFIX"),
     ("config/check_config.cmake",                       91, r"TFM_PXN_ENABLE"),
+    # Added after F320 found ~15 cited lines with no row. The gap was not theoretical:
+    # writing the BRIDGING_FILES fix in the same pass, I cited ra8m2's
+    # FSP_EXCLUDED_MODULES at :159 when it is at :112, and nothing objected.
+    ("config/config_base.cmake",                       116, r"PLATFORM_DEFAULT_ATTEST_HAL"),
+    ("platform/ext/common/tfm_hal_isolation_v8m.c",     268, r"PLATFORM_STATIC_MPU_REGIONS"),
+    ("platform/ext/target/renesas/ra6m5/config.cmake",  127, r"CRYPTO_HW_ACCELERATOR\s"),
+    ("platform/ext/target/renesas/ra6m5/config.cmake",  199, r"PLATFORM_DEFAULT_ATTEST_HAL"),
+    ("platform/ext/target/renesas/ra8m2/config.cmake",  225, r"PLATFORM_DEFAULT_ATTEST_HAL"),
+    ("platform/ext/target/renesas/ra6m5/CMakeLists.txt", 112, r"^\s+set\(FSP_EXCLUDED_MODULES"),
+    ("platform/ext/target/renesas/ra8m2/CMakeLists.txt", 112, r"^\s+set\(FSP_EXCLUDED_MODULES"),
+    ("platform/ext/target/renesas/ra6m5/CMakeLists.txt", 1023, r"fsp_collect_sources\(FSP_NS_SOURCES"),
+    ("platform/ext/target/renesas/ra6m5/cmake/modules/fsp_module_common.cmake", 33, r"add_library\(.*STATIC"),
+    ("platform/ext/target/renesas/ra6m5/cmake/modules/fsp_flash.cmake", 21, r"fsp_bsp_\$\{FSP_MODULE_ROLE\}"),
+    ("platform/ext/target/renesas/ra6m5/cmake/modules/fsp_sce.cmake",   51, r"fsp_bsp_\$\{FSP_MODULE_ROLE\}"),
+    ("platform/ext/target/renesas/ra6m5/cmake/modules/fsp_agt.cmake",   40, r"fsp_bsp_\$\{FSP_MODULE_ROLE\}"),
+    ("platform/ext/target/renesas/ra6m5/cmake/modules/fsp_bsp.cmake",  106, r"mcu-tools/MCUboot/boot/bootutil/include"),
+]
+
+# Citations into this repository's own files. Separate list because the path root differs.
+LOCAL = [
+    ("scripts/reg_build_gcc.bat",      144, r"cmake -S %TFM_TESTS%\\tests_reg\\spe"),
+    ("scripts/reg_build_gcc.bat",      168, r"cmake -S %TFM_TESTS%\\tests_reg -B"),
+    ("scripts/app_build_ra8m2_gcc.bat", 44, r"cmake -S %TFM_SRC% -B"),
+    ("scripts/app_build_ra8m2_gcc.bat", 63, r"ra8m2\\ns_app -B"),
 ]
 
 
@@ -133,6 +159,25 @@ def main():
 
     for rel, n, pat in UPSTREAM:
         p = os.path.join(TFM, rel)
+        if not os.path.exists(p):
+            bad.append("%s is missing" % rel)
+            continue
+        if p not in cache:
+            cache[p] = lines(p)
+        L = cache[p]
+        got = L[n - 1] if 0 < n <= len(L) else "<past end of file>"
+        ok = bool(re.search(pat, got))
+        checked += 1
+        if a.list:
+            print("%-30s %-5d %-7s %s" % (rel, n, "ok" if ok else "STALE", got.strip()[:60]))
+        if not ok:
+            hits = [i + 1 for i, l in enumerate(L) if re.search(pat, l)]
+            bad.append("%s:%d should match /%s/\n      is: %s\n      found at: %s"
+                       % (rel, n, pat, got.strip()[:70],
+                          ", ".join(str(h) for h in hits) or "nowhere"))
+
+    for rel, n, pat in LOCAL:
+        p = os.path.join(ROOT, rel)
         if not os.path.exists(p):
             bad.append("%s is missing" % rel)
             continue

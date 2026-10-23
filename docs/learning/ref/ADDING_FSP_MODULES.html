@@ -95,9 +95,24 @@ when that happens (§5).</p>
 <pre><code class="language-cmake">set(FSP_MODULES_S    bsp flash sce agt)
 set(FSP_MODULES_BL2  bsp flash)            # + sce when BL2 needs crypto
 set(FSP_MODULES_NEVER_BUILT r_sce rm_psa_crypto rm_mcuboot_port)</code></pre>
-<p><code>FSP_MODULES_NEVER_BUILT</code> is not a mistake list — it names directories the port deliberately
-replaces. TF-M supplies its own MCUboot flash backend (<a href="DECISIONS.html#d091">D091</a>) and its own crypto integration, so
-FSP&#x27;s <code>rm_mcuboot_port</code> and <code>rm_psa_crypto</code> must stay out of the link.</p>
+<p><code>FSP_MODULES_NEVER_BUILT</code> excludes nothing. It names the directories the §5 audit should not
+warn about, and that is its only effect (<a href="DECISIONS.html#d127">D127</a>).</p>
+<p>Three separate mechanisms are easy to confuse here:</p>
+<div class="table-wrap"><table>
+<tr><th>Mechanism</th><th>Where</th><th>Effect</th></tr>
+<tr><td><code>FSP_MODULES_S</code> / <code>_BL2</code></td><td><code>ra6m5/CMakeLists.txt:234</code>, <code>:238</code></td><td>the only thing that <strong>builds</strong> FSP sources for the secure and BL2 images</td></tr>
+<tr><td><code>FSP_MODULES_NEVER_BUILT</code></td><td><code>:266</code></td><td>suppresses the §5 unclaimed-directory warning; excludes no source</td></tr>
+<tr><td><code>FSP_EXCLUDED_MODULES</code></td><td><code>:112</code>, used by <code>fsp_collect_sources()</code> at <code>:1023</code></td><td>filters sources out of the <strong>non-secure</strong> glob only</td></tr>
+</table></div>
+<p>So <code>r_sce</code> appears in <code>FSP_MODULES_NEVER_BUILT</code> yet is built by the <code>sce</code> module for the secure
+and BL2 roles (<a href="DECISIONS.html#d129">D129</a>). It is listed there for the BL2-without-accelerator role, which declares
+no <code>sce</code> module and would otherwise trip the audit. <code>FSP_EXCLUDED_MODULES</code> removes it from the
+non-secure image, which is a different build.</p>
+<p><code>rm_mcuboot_port</code> does stay out of the link: TF-M supplies its own MCUboot flash backend
+(<a href="DECISIONS.html#d091">D091</a>). <code>rm_psa_crypto</code> is narrower — the port excludes FSP&#x27;s PSA core module and its mbedTLS
+config, while FSP&#x27;s <code>*_ALT</code> sources still reach the image through
+<code>platform/ext/accelerator/renesas/{sce9,rsip_e50d}</code> and its library through the
+<code>fsp_mbedtls.cmake</code> overlay.</p>
 <hr>
 <h2 id="s3">3. Writing the module file</h2>
 <p>A complete module is about ten lines. <code>fsp_agt.cmake</code> in full, minus its comments:</p>

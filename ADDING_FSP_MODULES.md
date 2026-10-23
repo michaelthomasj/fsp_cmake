@@ -46,9 +46,27 @@ set(FSP_MODULES_BL2  bsp flash)            # + sce when BL2 needs crypto
 set(FSP_MODULES_NEVER_BUILT r_sce rm_psa_crypto rm_mcuboot_port)
 ```
 
-`FSP_MODULES_NEVER_BUILT` is not a mistake list — it names directories the port deliberately
-replaces. TF-M supplies its own MCUboot flash backend ([D091]) and its own crypto integration, so
-FSP's `rm_mcuboot_port` and `rm_psa_crypto` must stay out of the link.
+`FSP_MODULES_NEVER_BUILT` excludes nothing. It names the directories the §5 audit should not
+warn about, and that is its only effect ([D127]).
+
+Three separate mechanisms are easy to confuse here:
+
+| Mechanism | Where | Effect |
+|---|---|---|
+| `FSP_MODULES_S` / `_BL2` | `ra6m5/CMakeLists.txt:234`, `:238` | the only thing that **builds** FSP sources for the secure and BL2 images |
+| `FSP_MODULES_NEVER_BUILT` | `:266` | suppresses the §5 unclaimed-directory warning; excludes no source |
+| `FSP_EXCLUDED_MODULES` | `:112`, used by `fsp_collect_sources()` at `:1023` | filters sources out of the **non-secure** glob only |
+
+So `r_sce` appears in `FSP_MODULES_NEVER_BUILT` yet is built by the `sce` module for the secure
+and BL2 roles ([D129]). It is listed there for the BL2-without-accelerator role, which declares
+no `sce` module and would otherwise trip the audit. `FSP_EXCLUDED_MODULES` removes it from the
+non-secure image, which is a different build.
+
+`rm_mcuboot_port` does stay out of the link: TF-M supplies its own MCUboot flash backend
+([D091]). `rm_psa_crypto` is narrower — the port excludes FSP's PSA core module and its mbedTLS
+config, while FSP's `*_ALT` sources still reach the image through
+`platform/ext/accelerator/renesas/{sce9,rsip_e50d}` and its library through the
+`fsp_mbedtls.cmake` overlay.
 
 ---
 

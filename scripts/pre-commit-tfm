@@ -1,0 +1,36 @@
+#!/bin/sh
+# Installed into the trusted-firmware-m clone, not this one.
+#
+# BUILD_ARCHITECTURE.md cites ~40 line numbers in the RA port CMakeLists. Those numbers
+# move when a TF-M *comment* is edited above them, which is how they drifted twice on
+# 2026-10-22 (D128, D129). fsp_cmake's own pre-commit cannot see it: a TF-M commit never
+# runs it, so the drift was caught only at the next fsp_cmake commit that happened to stage
+# the document, or by a manual run (F321).
+#
+# This hook closes that gap from the other side: edit a renesas port file in TF-M and the
+# check runs here, at the commit that causes the drift.
+#
+# Install:   sh fsp_cmake/scripts/install_hooks.sh      (installs both repositories' hooks)
+# Bypass:    git commit --no-verify
+#
+# It only reports. Fixing means editing fsp_cmake/BUILD_ARCHITECTURE.md and the table in
+# check_arch_lines.py together, which is a judgement call about which construct each
+# citation means - not something to regenerate.
+
+changed=$(git diff --cached --name-only --diff-filter=ACMR)
+echo "$changed" | grep -q '^platform/ext/target/renesas/' || exit 0
+
+root=$(git rev-parse --show-toplevel)
+checker="$root/../fsp_cmake/scripts/check_arch_lines.py"
+[ -f "$checker" ] || exit 0          # fsp_cmake not beside this clone; nothing to check
+
+python "$checker"
+status=$?
+if [ $status -ne 0 ]; then
+    echo
+    echo "pre-commit: this commit moves lines that fsp_cmake/BUILD_ARCHITECTURE.md cites (above)."
+    echo "            Update that document and the table in check_arch_lines.py together,"
+    echo "            or commit with --no-verify and fix it in the fsp_cmake commit."
+    exit $status
+fi
+exit 0

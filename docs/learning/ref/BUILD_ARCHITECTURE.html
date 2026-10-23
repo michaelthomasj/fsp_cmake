@@ -116,8 +116,11 @@ ra6m5_gcc_nonsecure --NS_APP_DIR--&gt;   | cmake --build &lt;spe&gt; -- install
 <ul>
 <li>The three e2 projects are <strong>inputs only</strong>. They supply the generated FSP sources,
 <code>bsp_linker_info.h</code> (the partition addresses every layout derives from) and the OFS values.</li>
-<li><code>FSP_NS_APP_DIR</code> is read by the <strong>SPE</strong> project — the secure build needs the non-secure
-partition bounds to lay out the slots.</li>
+<li>The slot layout comes from the <strong>secure</strong> project&#x27;s <code>Debug/bsp_linker_info.h</code>, named above.
+The SPE project takes <code>FSP_NS_APP_DIR</code> but does not compile from it: it records the path
+into <code>api_ns</code> (<code>&lt;part&gt;_ns_config.cmake</code>) so the NS project builds against the same e2
+non-secure project and can cross-check it. Those sources are compiled only under
+<code>RA6M5_NS_IN_SPE_BUILD</code>, which is off by default.</li>
 <li><strong>BL2 is not signed.</strong> It is the root of trust and is flashed raw, as <code>.hex</code> or <code>.srec</code>,
 never the flat <code>.bin</code> (<a href="DECISIONS.html#d002">D002</a>, <code>GETTING_STARTED.md</code> §6). Only <code>tfm_s</code> and <code>tfm_ns</code> go
 through <code>imgtool</code>.</li>
@@ -291,9 +294,11 @@ PRIVATE-links <code>tfm_sprt</code>, which PUBLIC-links <code>psa_interface</cod
 <li><strong>All nine upstream users of the file</strong> — an519, an524, corstone300, corstone310, mps4,
 musca_b1, musca_s1, rse, alcor — add it to <code>tfm_spm</code>. **All four RA ports added it to
 <code>platform_s</code>.**</li>
-<li>Consequence: the file compiled with <code>TFM_ISOLATION_LEVEL</code> undefined, every <code>#if</code> on it
-quietly evaluated 0, the MMIO region was never programmed at isolation 2, and the
-partition-metadata region was never covered at isolation 3.</li>
+<li>Consequence: the file compiled with <code>TFM_ISOLATION_LEVEL</code> undefined, so every <code>#if</code> on it
+evaluated 0. <code>== 2</code> and <code>== 3</code> tests were false; <code>!= 3</code> tests were true. The MMIO region
+was never programmed at isolation 2, and the partition-metadata region was never covered
+at isolation 3. The App RoT data arm did fire, which <a href="DECISIONS.html#d120">D120</a> records against an earlier
+&quot;neither arm fires&quot; reading.</li>
 <li><strong>Not an upstream defect — a target choice.</strong> Moving the source fixed the class rather than
 the two macros anyone had happened to be bitten by. <a href="DECISIONS.html#d113">D113</a> through <a href="DECISIONS.html#d126">D126</a>; the withdrawal
 of the upstream claim is item 15 of <code>UPSTREAM_CHANGES.md</code>.</li>

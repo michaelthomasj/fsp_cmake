@@ -63,8 +63,11 @@ ra6m5_gcc_nonsecure --NS_APP_DIR-->   | cmake --build <spe> -- install
 
 - The three e2 projects are **inputs only**. They supply the generated FSP sources,
   `bsp_linker_info.h` (the partition addresses every layout derives from) and the OFS values.
-- `FSP_NS_APP_DIR` is read by the **SPE** project — the secure build needs the non-secure
-  partition bounds to lay out the slots.
+- The slot layout comes from the **secure** project's `Debug/bsp_linker_info.h`, named above.
+  The SPE project takes `FSP_NS_APP_DIR` but does not compile from it: it records the path
+  into `api_ns` (`<part>_ns_config.cmake`) so the NS project builds against the same e2
+  non-secure project and can cross-check it. Those sources are compiled only under
+  `RA6M5_NS_IN_SPE_BUILD`, which is off by default.
 - **BL2 is not signed.** It is the root of trust and is flashed raw, as `.hex` or `.srec`,
   never the flat `.bin` ([[D002]], `GETTING_STARTED.md` §6). Only `tfm_s` and `tfm_ns` go
   through `imgtool`.
@@ -253,9 +256,11 @@ psa_interface  --PUBLIC--  tfm_sprt  --PRIVATE-->  tfm_spm     always
 - **All nine upstream users of the file** — an519, an524, corstone300, corstone310, mps4,
   musca_b1, musca_s1, rse, alcor — add it to `tfm_spm`. **All four RA ports added it to
   `platform_s`.**
-- Consequence: the file compiled with `TFM_ISOLATION_LEVEL` undefined, every `#if` on it
-  quietly evaluated 0, the MMIO region was never programmed at isolation 2, and the
-  partition-metadata region was never covered at isolation 3.
+- Consequence: the file compiled with `TFM_ISOLATION_LEVEL` undefined, so every `#if` on it
+  evaluated 0. `== 2` and `== 3` tests were false; `!= 3` tests were true. The MMIO region
+  was never programmed at isolation 2, and the partition-metadata region was never covered
+  at isolation 3. The App RoT data arm did fire, which [[D120]] records against an earlier
+  "neither arm fires" reading.
 - **Not an upstream defect — a target choice.** Moving the source fixed the class rather than
   the two macros anyone had happened to be bitten by. [[D113]] through [[D126]]; the withdrawal
   of the upstream claim is item 15 of `UPSTREAM_CHANGES.md`.

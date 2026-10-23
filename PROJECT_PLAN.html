@@ -152,7 +152,7 @@
   <header class="head">
     <div class="eyebrow">Project Plan · Revised 2026-10-12 · M5 met 49 days early</div>
     <h1>TF-M on Renesas RA — RA6E1 → RA6M5 → RA8x2 (single-core), FSP 6.7, GNUARM + IAR</h1>
-    <p class="sub"><b>RA6E1, RA6M5 and RA8M2 are all complete on both toolchains</b> and validated beyond the original bar — the PSA Arch attestation, storage and crypto suites pass under GNUARM and IAR on all three parts. RA6M5 is the upstream vehicle and the first platform here with <b>SCE9 hardware crypto active</b>; RA8M2 adds <b>RSIP-E50D</b>, measured boot verified from the boot record, and a proven MCUboot secondary-slot upgrade. <b>M5 was met 2026-10-09, 49 days early.</b> Remaining on the primary track is <b>FWU on RA6M5</b>. The <b>TF-M 2.3 update is deferred, gated on FSP's Mbed TLS v4.1 migration (~2026-11-12, D130)</b>, after the rsip7 update — 2.3 replaces Mbed TLS with TF-PSA-Crypto. Dual-core and the inter-core mailbox HAL are <b>descoped</b>. All dates are targets.</p>
+    <p class="sub"><b>RA6E1, RA6M5 and RA8M2 are all complete on both toolchains</b> and validated beyond the original bar — the PSA Arch attestation, storage and crypto suites pass under GNUARM and IAR on all three parts. RA6M5 is the upstream vehicle and the first platform here with <b>SCE9 hardware crypto active</b>; RA8M2 adds <b>RSIP-E50D</b>, measured boot verified from the boot record, and a proven MCUboot secondary-slot upgrade. <b>M5 was met 2026-10-09, 49 days early.</b> Remaining on the primary track is <b>FWU on RA6M5</b>. The <b>TF-M 2.3 update is deferred, gated on FSP's Mbed TLS v4.1 migration (~2026-11-12, D130)</b> — 2.3 replaces Mbed TLS with TF-PSA-Crypto. Dual-core and the inter-core mailbox HAL are <b>descoped</b>. All dates are targets.</p>
     <div class="metarow">
       <div class="meta ok"><div class="k">RA6E1 · GNUARM + IAR</div><div class="v">done 2026-09-14</div></div>
       <div class="meta ok"><div class="k">RA6M5 · upstream vehicle</div><div class="v">done 2026-09-23</div></div>
@@ -244,7 +244,7 @@
 
       <div class="g-lab" style="grid-row:8"><span class="id">P7</span><span class="tx">Deferred — TF-M 2.3 / TF-PSA-Crypto</span></div>
       <div class="g-track" style="grid-row:8"></div>
-      <div class="bar future" style="grid-row:8;grid-column:20/22">after rsip7<span class="ms">M7</span></div>
+      <div class="bar future" style="grid-row:8;grid-column:20/22">Mbed TLS v4.1<span class="ms">M7</span></div>
 
       <div class="g-lab" style="grid-row:9"><span class="id">P8</span><span class="tx">Future — NS image in OSPI (XIP)</span></div>
       <div class="g-track" style="grid-row:9"></div>
@@ -320,7 +320,7 @@
     </div>
 
     <div class="ph future">
-      <div class="ph-top"><span class="ph-id">P7</span><span class="ph-dates">future · after the rsip7 update</span></div>
+      <div class="ph-top"><span class="ph-id">P7</span><span class="ph-dates">deferred · gated on FSP Mbed TLS v4.1, ~2026-11-12 (D130)</span></div>
       <h3>TF-M 2.3 / TF-PSA-Crypto — deferred, gated on FSP's Mbed TLS v4.1 migration</h3>
       <ul>
         <li><b>Gate:</b> FSP completing its Mbed TLS <b>v4.1</b> migration, expected ~2026-11-12 (D130). 4.x is where the crypto library splits out as TF-PSA-Crypto, which is what 2.3 consumes — rebasing first would put FSP's 3.6-era stack on a TF-M that cannot host it.</li>
@@ -389,7 +389,7 @@
 
   <footer>
     <span>Revised 2026-10-12 · M5 met 2026-10-09, 49 days early</span>
-    <span>RA6E1 done · RA6M5 done · RA8M2 done · FWU on RA6M5 open · TF-M 2.3 after rsip7 · NS-in-OSPI last</span>
+    <span>RA6E1 done · RA6M5 done · RA8M2 done · FWU on RA6M5 open · TF-M 2.3 deferred (D130) · NS-in-OSPI last</span>
   </footer>
 </div>
 </body>

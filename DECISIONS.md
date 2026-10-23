@@ -1069,7 +1069,7 @@ correct. Same two checks apply there.
 
 ## D035 — Stay on TF-M 2.2; the TF-M 2.3 rebase is cancelled
 
-**Date:** 2026-09-21 · **Status:** Accepted
+**Date:** 2026-09-21 · **Status:** Superseded by D130
 
 **Decision.** Do not move to TF-M 2.3. It replaces Mbed TLS with TF-PSA-Crypto — v1.1.0 in
 2.3.0, v1.1.1 in 2.3.1 (`config/config_base.cmake:38` at each tag; 2.3.0 release notes: "Use
@@ -7151,3 +7151,122 @@ upstream submission of the port waits on it. The ALT route remains Mbed TLS 3.6-
 redone as a PSA transparent driver in P7, following the rsip7 CM driver model. The
 TF-PSA-Crypto work itself lives in the sibling `fsp_tf_psa_crypto` repository with its own
 decision log (`GETTING_STARTED.md`), not here.
+
+---
+
+## D131 — the v5 review: two generators were passing against their own faulty output; the RA6M5 PXN correction gets the entry it never had
+
+**Date:** 2026-10-22 · **Status:** Accepted · **Corrects:** [D128], [D129], [D130] · **Evidence:** v5 findings F001, F283, F309, F313–F334; both tool fixes tested against induced failures
+
+The fifth review found no open high-severity items but reported that the previous round
+introduced two tool defects. Both let errors pass the repository's own checks. Those are
+recorded first because they determine how much the other checks are worth.
+
+### 1. The glossary dropped every correction (F309)
+
+`build_settled.py` gained a sixth Standing column, `Closed by`, in [D128].
+`build_course_glossary.py` read the last cell of each row. The last cell became `Closed by`,
+which is `—` for 127 of 130 entries, so every correction vanished. All 42 cited entries read a
+bare "stands". D113 should read "corrected by D117, D120, D126".
+
+`--check` passed throughout, because it compares the generator's output with the page that
+generator last wrote. A parser reading the wrong column agrees with itself.
+
+Two changes. The parser now reads SETTLED.md by **column name** and raises if the column is
+absent, so a renamed or reordered column stops the build instead of producing a wrong page.
+A second guard counts `Corrects:` fields in `DECISIONS.md` and fails if the log records
+corrections that the table does not show. It reports the counts either way, per [D121].
+
+The guard fired on its first run and named D090 and D098. Both were false positives: each is
+superseded and corrected by the same entry, where [D128] drops the redundant "also corrected
+by" on purpose. The guard now checks standing rows only.
+
+### 2. `check_arch_lines.py` did not run when TF-M changed (F321)
+
+The checker exists to catch line drift caused by a TF-M comment edit. A TF-M commit does not
+run this repository's hook, so the check fired only at the next fsp_cmake commit that staged
+`BUILD_ARCHITECTURE.md`. [D129] §5 stated the trigger as though it covered the cause.
+
+`scripts/pre-commit-tfm` now runs the same check from the TF-M clone, on any staged
+`platform/ext/target/renesas/` file. `install_hooks.sh` installs it. Tested by inserting one
+comment line into `ra6m5/CMakeLists.txt`: the hook reported 28 of 55 citations stale, named the
+correct line for each, and blocked the commit.
+
+### 3. Corrections to [D129]
+
+| Claim | Correct |
+|---|---|
+| "~25 port citations" (§5 and the docstring) | **39** port rows and 16 upstream rows. The total of 55 was right; the split was not (F327) |
+| "eleven places" carried the FSPR attribution (title, §3) | **thirteen** files. `7f7377c12` changed 13 (F331) |
+| "[D128] pinned the header", "[D128]" for the PXN error (§5, Correction to [D128]) | [D128] says nothing about `2c6d4feb2`, PXN or a header pin. See §4 (F332) |
+
+The citation table now holds 39 port, 29 upstream and 4 local rows, 72 in total. F320 found
+about 15 cited lines with no row at all. That gap was not theoretical: writing the
+`BRIDGING_FILES.md` fix in this same pass, I cited ra8m2's `FSP_EXCLUDED_MODULES` at `:159`
+when it is at `:112`, and nothing objected.
+
+### 4. The RA6M5 PXN correction, recorded here (F332)
+
+`2c6d4feb2` corrected a claim that had no entry. The `ra6m5` PXN comment said a
+`TFM_PXN_ENABLE=ON` configure of that platform "passes the armv8.1-m.main gate". It cannot.
+`config/check_config.cmake:91` rejects `TFM_PXN_ENABLE` unless `TFM_SYSTEM_ARCHITECTURE` is
+`armv8.1-m.main`, and `ra6m5/cpuarch.cmake:15` sets `armv8-m.main`. PXN is an Armv8.1-M
+feature and the Cortex-M33 does not implement it, so the configure fails by design.
+
+The paragraph was copied from `ra8m2`, where the measurement was taken and is valid
+(`cpuarch.cmake:24`). The commit cited [D128] for this, which was wrong; it belongs here.
+What holds for RA6M5 is narrower: the define is plumbed PUBLIC on `platform_s` and would reach
+the HAL through `tfm_spm` if the part could use the feature.
+
+### 5. Three mechanisms, not one — extends [D129] §1 (F313, F314)
+
+[D129] established that the `sce` module builds `r_sce`. It did not name the mechanism that
+does exclude sources, so `BRIDGING_FILES.md` and `ADDING_FSP_MODULES.md` kept describing
+`FSP_MODULES_NEVER_BUILT` as an exclusion list.
+
+| Mechanism | Where | Effect |
+|---|---|---|
+| `FSP_MODULES_S` / `_BL2` | `ra6m5/CMakeLists.txt:234`, `:238` | the only thing that builds FSP sources for the secure and BL2 images |
+| `FSP_MODULES_NEVER_BUILT` | `:266` | suppresses the unclaimed-directory warning; excludes no source |
+| `FSP_EXCLUDED_MODULES` | `:112`, used by `fsp_collect_sources()` at `:1023` | filters sources out of the non-secure glob only |
+
+`r_sce` is in `FSP_MODULES_NEVER_BUILT` and built by the `sce` module and excluded from the NS
+glob. All three are true, for different roles.
+
+A related claim in `BRIDGING_FILES.md` §3 was also wrong, and it affected a check for a
+silent failure. The section said FSP's `flash_map_backend.h` "reaches no include path".
+`fsp_bsp.cmake:106-108` puts FSP's `mcu-tools` MCUboot headers on the BSP library's include
+path, because the bootloader project's `hal_data.h` includes `rm_mcuboot_port.h`. Those paths
+are PRIVATE to `fsp_bsp_bl2` and never reach `bootutil`, which is what makes the arrangement
+safe. **An `fsp_bsp` object therefore reports a 12-byte `struct flash_area` legitimately, and
+the DWARF check has to be scoped to `bootutil` objects** or it reports a false failure on the
+one surface where nothing else in the build would.
+
+### 6. Smaller corrections
+
+- **[D130] named the wrong Mbed TLS version** (F333). 3.6.3 is TF-M's bundled copy, which the
+  crypto partition has not used since [D042]. The port builds crypto from FSP's Mbed TLS,
+  recorded as 3.6.6 in [D047].
+- **[D035] still read `Accepted`** (F334). Rule 2 requires the superseded entry to carry the
+  line, and rule 7 permits the repair. Set to `Superseded by D130`. `SETTLED.md` was correct
+  only because it derives the relation from [D130]'s field.
+- **`bl2_boot_hal.c` is not gated the same way on both parts** (F316). On `ra6m5` it is under
+  `if(CRYPTO_HW_ACCELERATOR)`. On `ra8m2` it is unconditional, because it enables the SAU and
+  BL2 cannot read the non-secure slots without it; only `ra_sce_init.c` is gated there.
+- **`RA6E1_SOLUTION.md` claimed FSP 6.7.0-beta0** (F283). RA6E1 is dormant and its projects
+  are on 6.6.0-rc1. Only RA6M5 and RA8M2 were uprevved.
+- **[D130] and `PROJECT_PLAN.md` gave P7 two different gates** (F328). The Mbed TLS v4.1
+  migration is the gate. The rsip7 update supplies the driver model.
+
+### Process note
+
+`docs/STYLE_EDIT_PROMPT.md` became a standing instruction during this pass. This entry is
+written to it: short declarative sentences, one claim each, and emphasis only on the one hazard
+in §5. Earlier entries are not rewritten, because rule 1 forbids it, but the style applies from
+here.
+
+The pattern across four reviews now reads: check the explanation against the build files
+([D126]), check the sibling entry you cite ([D128]), check the comment you quote ([D129]), and
+**check that your checker can fail**. Both defects in §1 and §2 were tools that reported success
+without testing anything — one compared a generator with itself, the other never ran on the
+commits that cause the drift it detects.

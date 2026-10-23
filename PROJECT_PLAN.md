@@ -197,8 +197,9 @@ gated on FSP's Mbed TLS v4.1 migration, expected ~2026-11-12 ([[D130]]).
   cannot host it. Re-confirm the version pairing when the migration lands.
 - TF-M 2.3.0 pins TF-PSA-Crypto v1.1.0, 2.3.1 pins v1.1.1 — no Mbed TLS, no
   `*_ALT`. CC312's legacy ALT path is gone in 2.3.0.
-- SCE9 acceleration redone as a PSA transparent driver — the rsip7 CM driver
-  model, which is why this follows that update.
+- SCE9 acceleration redone as a PSA transparent driver, on the rsip7 CM driver model.
+  The rsip7 work supplies the model; the **gate** is the Mbed TLS v4.1 migration above
+  ([[D130]]).
 - Rebase from `dd2b7de19`: 10 of 20 shared files conflict; SPM logging rewritten
   (`lib/tfm_log`), so the trace option and RTT backend need porting; item 6 still
   needed at the moved `scripts/wrapper.py`. Detail in DECISIONS D035.
@@ -292,7 +293,7 @@ Enumerated from `tf-m-tests` and `psa-arch-tests` and checked against every buil
 | Suite | Option | Why it has not run | Applicable? |
 |---|---|---|---|
 | **Firmware Update** | `TEST_S_FWU`, `TEST_NS_FWU` | `TFM_PARTITION_FIRMWARE_UPDATE` is OFF on both parts | **Yes - highest value.** Exercises the PSA FWU API over the MCUboot slots this port already has. RA8M2 secure slot has ~670 B spare, so the partition may not fit without turning something off. **The bootloader half is now proven** - BL2 installs both images from their secondary slots and erases them ([[D100]]) - so what FWU adds is the API that *places* an image there |
-| **IPC model** | `TEST_S_IPC`, `TEST_NS_IPC` | **CLOSED 2026-10-22** for the levels that ran. Ten regression trees run the IPC backend: **L1+IPC on GNUARM only** (both parts), **L2 and L3 on both toolchains** (both parts) — 6 + 4. `TEST_S_IPC`/`TEST_NS_IPC` are on in all ten; no entry names the individual test ids, so none is claimed here | Done for L2/L3 - [[D113]] to [[D124]]. **No IAR L1+IPC tree exists** ([[D124]] matrix) |
+| **IPC model** | `TEST_S_IPC`, `TEST_NS_IPC` | **CLOSED 2026-10-22** for the levels that ran. Ten regression trees run the IPC backend: **L1+IPC on GNUARM only** (both parts), **L2 and L3 on both toolchains** (both parts) — 6 + 4. The IPC backend is selected in all ten; no entry records the per-tree `TEST_S_IPC`/`TEST_NS_IPC` values or the individual test ids, so neither is claimed here | Done for L2/L3 - [[D113]] to [[D124]]. **No IAR L1+IPC tree exists** ([[D124]] matrix) |
 | **Isolation 2 / 3** | `TFM_ISOLATION_LEVEL` | **CLOSED 2026-10-22.** Never ran above isolation 1 before [[D113]]; now green at **L2 and L3 on RA6M5 and RA8M2, GNUARM and IAR**. L1+IPC is GNUARM-only, and RA6M5's is secure-only ([[D125]] §4) | Done - [[D124]] |
 | **SLIH above isolation 1** | `CONFIG_TFM_SLIH_API` | **No SLIH tree or launch above L1 exists.** The only SLIH launches are RA6M5's two at L1 (`ra6m5_TFM_slih_{gcc,iar}.launch`); SLIH has **never run on RA8M2** on either toolchain — the `m2gslih` trees were built and never got a launch ([[D126]] §4). The SLIH service declares the same `mmio_region` as FLIH and has never been exercised above L1 | **Yes** - but the L2/L3 trees and launches have to be made first |
 | **PSA Arch IPC suite** | `TEST_PSA_API=IPC` | only CRYPTO, INITIAL_ATTESTATION and STORAGE have been built. TF-M accepts `IPC`, and `psa-arch-tests/api-tests/ff/{ipc,partition}` exists | **Yes.** The Firmware Framework suite - different from the dev_apis ones already run |
@@ -365,4 +366,4 @@ QCBOR, t_cose) as a single regression variant. FPU only if soft-float is revisit
 
 ---
 
-*Revised 2026-10-22 · RA6E1 done · RA6M5 done · RA8M2 single-core done 2026-10-09 · TF-M 2.3 after rsip7 · NS-in-OSPI last*
+*Revised 2026-10-22 · RA6E1 done · RA6M5 done · RA8M2 single-core done 2026-10-09 · TF-M 2.3 deferred ([[D130]]) · NS-in-OSPI last*

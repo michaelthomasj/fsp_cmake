@@ -87,22 +87,65 @@ def link(e):
     return '<a href="ref/DECISIONS.html#%s">%s</a>' % (e.lower(), e)
 
 
+def cells(line):
+    """The cells of a Markdown table row, without the leading and trailing pipes."""
+    return [c.strip() for c in line.strip().strip("|").split("|")]
+
+
 def standing():
-    out, mode = {}, None
+    """Read each entry's position from SETTLED.md, by column NAME.
+
+    This used to take the last cell of the row. That broke silently when
+    build_settled.py added a sixth Standing column, "Closed by": the last cell became
+    that one, which is "-" for 125 of 130 entries, so every correction disappeared from
+    the glossary and all 42 cited entries read a bare "stands". --check did not catch it,
+    because it compares this generator's output with itself.
+
+    Reading by header name is the fix. A renamed or reordered column now raises instead
+    of quietly producing a wrong page, which is the behaviour this table needs: the
+    preamble tells the reader to consult the correcting entry before quoting a detail,
+    so dropping the corrections makes the instruction unfollowable.
+    """
+    out, mode, hdr = {}, None, None
     for line in read(os.path.join(ROOT, "SETTLED.md")).splitlines():
         if line.startswith("## "):
-            mode = "s" if line.startswith("## Standing") else "x" if line.startswith("## Superseded") else None
+            mode = ("s" if line.startswith("## Standing")
+                    else "x" if line.startswith("## Superseded") else None)
+            hdr = None
+            continue
+        if mode and hdr is None and re.match(r"\|\s*#\s*\|", line):
+            hdr = cells(line)
+            continue
         m = re.match(r"\| `(D\d{3})` \|", line)
         if not (mode and m):
             continue
-        # Superseded rows read "`D103` (also corrected by `D103`)": split the two relations and
-        # de-duplicate, so an entry that both supersedes and corrects is named once.
-        cell = line.strip().strip("|").split("|")[-1]
+        if hdr is None:
+            raise SystemExit("build_course_glossary: SETTLED.md has a row before its header "
+                             "in the %s table; cannot read columns by name"
+                             % ("Standing" if mode == "s" else "Superseded"))
+        row = cells(line)
+        want = "Corrected by" if mode == "s" else "Superseded by"
+        if want not in hdr:
+            raise SystemExit("build_course_glossary: SETTLED.md's %s table has no %r column "
+                             "(columns: %s). Update this parser and the table together."
+                             % ("Standing" if mode == "s" else "Superseded", want,
+                                ", ".join(hdr)))
+        cell = row[hdr.index(want)] if hdr.index(want) < len(row) else ""
+        # Superseded rows read "`D103` (also corrected by `D103`)": split the two relations
+        # and de-duplicate, so an entry that both supersedes and corrects is named once.
         main, _, also = cell.partition("(also corrected by")
         refs = list(dict.fromkeys(re.findall(r"`(D\d{3})`", main)))
         extra = [r for r in dict.fromkeys(re.findall(r"`(D\d{3})`", also)) if r not in refs]
         if mode == "s":
-            out[m.group(1)] = "stands" + ("; corrected by " + ", ".join(map(link, refs)) if refs else "")
+            shut = []
+            if "Closed by" in hdr and hdr.index("Closed by") < len(row):
+                shut = list(dict.fromkeys(re.findall(r"`(D\d{3})`", row[hdr.index("Closed by")])))
+            txt = "stands"
+            if refs:
+                txt += "; corrected by " + ", ".join(map(link, refs))
+            if shut:
+                txt += "; closed by " + ", ".join(map(link, shut))
+            out[m.group(1)] = txt
         else:
             out[m.group(1)] = ("<strong>superseded</strong> by " + ", ".join(map(link, refs))
                                + ("; also corrected by " + ", ".join(map(link, extra)) if extra else ""))
@@ -152,6 +195,42 @@ def main():
     new = render(cur, warnings)
     for w in warnings:
         print("  warning: " + w)
+
+    # Semantic guard, independent of the rendered page.
+    #
+    # --check compares this generator's output with the page it last wrote, so a parser
+    # that reads the wrong SETTLED.md column agrees with itself and passes. That is how
+    # every correction vanished from 42 rows unnoticed. Count the relations in DECISIONS.md
+    # instead: if the log records corrections and the table shows none, fail.
+    #
+    # Reporting the counts matters as much as comparing them (D121): a check that prints
+    # only "ok" cannot be told apart from one that compared nothing.
+    log = read(os.path.join(ROOT, "DECISIONS.md"))
+    corrected = set()
+    for meta in re.findall(r"^\*\*Date:\*\*.*$", log, re.M):
+        for field in re.findall(r"\*\*Corrects:\*\*\s*([^·]*)", meta):
+            corrected.update(re.findall(r"D\d{3}", field))
+    pos = standing()
+    # Only standing rows are checked. A superseded row reads "superseded by Dxxx", which
+    # already sends the reader to the later entry; where the same entry supersedes AND
+    # corrects, build_settled.py drops the redundant "(also corrected by Dxxx)" on purpose
+    # (D128). D090 and D098 are both that case.
+    stands = {d for d, v in pos.items() if v.startswith("stands")}
+    shown = {d for d in stands if "corrected by" in pos[d]}
+    want = corrected & stands
+    print("  decisions: %d indexed, %d standing, %d of those corrected per DECISIONS.md, %d shown"
+          % (len(pos), len(stands), len(want), len(shown)))
+    if want and not shown:
+        print("  ERROR: DECISIONS.md records %d corrected standing entries and the table shows none."
+              % len(want))
+        print("         The SETTLED.md column layout probably changed - see standing().")
+        return 1
+    missing = sorted(want - shown)
+    if missing:
+        print("  ERROR: corrected in DECISIONS.md but shown as uncorrected: %s"
+              % ", ".join(missing))
+        return 1
+
     if args.check:
         if new != cur:
             print("stale:   docs/learning/glossary.html decisions table; run: python scripts/build_course_glossary.py")

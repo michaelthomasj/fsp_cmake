@@ -438,15 +438,18 @@ The back-port of the per-part guards to RA6M5 and RA6E1 is still open ([D077]).
 
 | | Windows | Limit | Where |
 |---|---|---|---|
-| **RA6M5**, RA6E1, RA6M4 | one: `0x0100A100`–`0x0100A2CF` | `--max-word 0xC` | `ra6m5/CMakeLists.txt:884` (`--ra6-default`) |
-| **RA8M2** | five: `0x02C9F040`–`0x02C9F280`, `0x12C9F4C0`–`0x12C9F680`, `0x02E07600`–`0x02E07698`, `0x02E17700`–`0x02E17924`, `0x12E17780`–`0x12E17800` | `--max-word 4` | `ra8m2/CMakeLists.txt:1021-1039` |
+| **RA6M5**, RA6E1, RA6M4 | one: `0x0100A100`–`0x0100A2CF` | `--max-word 0xC` | `ra6m5_add_ofs_check()`, passing `--ra6-default` |
+| **RA8M2** | five: `0x02C9F040`–`0x02C9F280`, `0x12C9F4C0`–`0x12C9F680`, `0x02E07600`–`0x02E07698`, `0x02E17700`–`0x02E17924`, `0x12E17780`–`0x12E17800` | `--max-word 4` | `ra8m2_add_ofs_check()`, passing five `--region` windows |
+
+Both are functions in the part's `CMakeLists.txt`, cited by name because a comment edit above
+them moves their line numbers ([[D129]]).
 
 RA8M2's limit is `4` because `bl2_option_setting.c` places only 4-byte words there — deliberately
 tighter than the `0x80` a BPS word would need, to be raised only if BPS/PBPS are ever placed.
 BL2 also passes `--require-segments`, so an empty result fails rather than passing.
 
 > **Known tension, not yet resolved.** RA6M5's widest *defined* groups are `0x10`
-> (`BPS`/`PBPS` and mirrors, `region_defs.h:275-312`) while its guard limit is `--max-word 0xC`,
+> (`BPS`/`PBPS` and mirrors, the `OPTION_SETTING_*` block in `region_defs.h`) while its guard limit is `--max-word 0xC`,
 > inherited from RA6E1/RA6M4 where those words are `0xC`. It does not fire today because
 > RA6M5's `bl2_option_setting.c` places none of them. **Enabling a BPS or PBPS group on RA6M5
 > will fail the guard on a correctly linked image** — raise the limit to `0x10` at that point,
