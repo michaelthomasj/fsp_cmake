@@ -412,10 +412,9 @@ BPS/PBPS and their <code>_SEC</code>/<code>_SEL</code> mirrors are <code>0x10</c
 more protectable blocks — so 112 bytes of data across a 464-byte span to <code>0x0100A2D0</code>, leaving</li>
 </ul>
 <ol start="352">
-<li>Those bytes between are other FCU configuration and are not ours to write. (An earlier
-revision named the FSPR permanence word here. <a href="DECISIONS.html#d094">D094</a> withdrew that: RA6M4 does not implement
-the Flash Access Window, so FSPR does not exist on the part. Which field actually died is still
-open - see below.)</li>
+<li>**The bytes between the groups are reserved, and the hardware manual requires that
+reserved areas are never written** (<a href="DECISIONS.html#d132">D132</a>). That is the whole of the hazard; no individual
+field has to be named for it.</li>
 </ol>
 <ul>
 <li><p>Correct (what FSP&#x27;s generated <code>fsp_gen.ld</code> does, and what the port now does): declare one
@@ -433,15 +432,12 @@ produced one <code>PT_LOAD</code> of 388 bytes (<code>0x184</code>) spanning <co
 376 bytes were zero fill. The 460-byte figure above is the width of the whole sparse map, not
 what any one image spans; do not quote it as the size of the fatal segment. The guard window
 (<code>0x0100A100</code>-<code>0x0100A2CF</code>) is wider still, because it has to catch any group an image might emit.</p>
-<p>Which zeroed field killed them is not established, and this log disagrees with itself.
-<a href="DECISIONS.html#d065">D065</a> names PBPS at <code>0x0100A1E0</code> (one-time Permanent Block Protect); <a href="DECISIONS.html#d094">D094</a>, which is
-later and is the operative entry, says the field is unknown, having disproved FSPR
-permanence (register absent on RA6M4) and OFS1_SEL content (byte-identical on a working
-board). Treat PBPS as the surviving candidate, not a finding. Post-brick readback gave
-<code>DLMMON = 0x2</code> = SSD, an open state, not a DLM lock. Do not read FAWMON. The mechanism above
-is proven byte-exact regardless - &quot;byte-exact&quot; meaning the 388-byte segment and its 376 zero
-bytes were read out of the preserved image, not that the damaged register is known - and none
-of the guidance depends on naming the field.</p></li>
+<p>The fill lands on reserved bytes, and writing a reserved area is itself the fault (<a href="DECISIONS.html#d132">D132</a>).
+Two earlier readings tried to name the field instead: <a href="DECISIONS.html#d065">D065</a> named PBPS at <code>0x0100A1E0</code>
+(one-time Permanent Block Protect), and <a href="DECISIONS.html#d094">D094</a> disproved FSPR permanence (the register is
+absent on RA6M4) and OFS1_SEL content (byte-identical on a working board) and left the
+question open. Neither attribution is needed. Post-brick readback gave <code>DLMMON = 0x2</code> = SSD,
+an open state, not a DLM lock. Do not read FAWMON.</p></li>
 </ul>
 <p><strong>The zero fill is invisible in the srec.</strong> It lives in the program header, not in any section, and
 <code>objcopy -O srec</code> emits from sections. This is why the srec-diff approach (the premise of the
@@ -496,8 +492,8 @@ it in RASC changes nothing here.</p>
 known-good value, byte-identical to a working board. The real RA8 consequence is the MRAM
 Security Attribution register, handled by <code>BSP_TZ_CFG_MSAR=0</code> (§1.1).</p>
 <p>Because OFS sits at <code>0x0100Axxx</code>, a plain <code>objcopy -O binary</code> pads
-<code>bl2.bin</code> to ~16.8 MB, zero-filling PBPS at <code>0x0100A1E0</code> — the brick, from an ELF that passes
-every check. <strong>Flash <code>bl2.hex</code> or <code>bl2.srec</code>, never <code>bl2.bin</code>.</strong></p>
+<code>bl2.bin</code> to ~16.8 MB, zero-filling the reserved bytes among them — the brick, from an ELF
+that passes every check. <strong>Flash <code>bl2.hex</code> or <code>bl2.srec</code>, never <code>bl2.bin</code>.</strong></p>
 <p>Since 2026-09-29 all four ports re-emit the flat binary and verify the result with
 <code>check_ofs.py --check-flat-bin</code>, so a <code>.bin</code> from a current build is safe - 33,388 B on RA6M5
 and 27,888 B on RA8M2. The re-emission is address-driven, not name-driven:

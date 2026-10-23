@@ -6,10 +6,10 @@
 
 | | |
 |---|---|
-| Entries | **131** |
-| Standing | **119** |
+| Entries | **132** |
+| Standing | **120** |
 | Superseded | **12** |
-| Standing but corrected on some point | **33** |
+| Standing but corrected on some point | **34** |
 | Standing, but the question they left open is closed | **3** |
 | Supersede lineages | **9** |
 
@@ -33,7 +33,7 @@ A later entry **supersedes** an earlier one: same question, newer answer. Citing
 
 ---
 
-## Standing (119)
+## Standing (120)
 
 Nothing supersedes these. The title is the position. Where a later entry corrects one, the correction is named - the entry stands apart from that. **Where the Closed by column is filled, read the status as historical:** the entry describes a problem that a later entry shut, so its own "Open" or "Provisional" is no longer true.
 
@@ -123,7 +123,7 @@ Nothing supersedes these. The title is the position. Where a later entry correct
 | `D091` | 2026-10-05 | Option 3 adopted: both parts take TF-M's MCUboot backend, FSP's HAL behind fa_driver | Accepted | `D092` | — |
 | `D092` | 2026-10-05 | RA8M2's first boot: BL2 works; the secure image needs Clocks set Secure in e2 | Accepted | — | — |
 | `D093` | 2026-10-06 | `BSP_TZ_CFG_MSAR=0` on RA8M2: a workaround for an e2 generator defect, to be removed | Accepted, **temporary** | `D094` | — |
-| `D094` | 2026-10-06 | the RA6M4 brick: coalescing is proven, the killed field is not; [D093]'s attribution corrected | Accepted | — | — |
+| `D094` | 2026-10-06 | the RA6M4 brick: coalescing is proven, the killed field is not; [D093]'s attribution corrected | Accepted | `D132` | — |
 | `D095` | 2026-10-06 | RA8M2 passes the full regression on hardware; both live parts now proven under [D091] | Accepted | `D096` | — |
 | `D096` | 2026-10-06 | measured boot confirmed on RA8M2 by decoding the boot record; [D095] had assumed it | Accepted | — | — |
 | `D097` | 2026-10-08 | RA8M2 PSA Arch: storage clean, crypto has one real failure — RSIP-E50D cannot generate RSA-2048 keys | Accepted | `D098` | — |
@@ -158,6 +158,7 @@ Nothing supersedes these. The title is the position. Where a later entry correct
 | `D129` | 2026-10-22 | the v4 review of `BUILD_ARCHITECTURE.md`: eight findings, the FSPR attribution withdrawn in eleven more places, and line citations are now checked | Accepted | `D131` | — |
 | `D130` | 2026-10-22 | TF-M 2.3 is deferred, not cancelled: the gate is FSP's Mbed TLS 4.1 migration, expected ~2026-11-12 | Accepted | `D131` | — |
 | `D131` | 2026-10-22 | the v5 review: two generators were passing against their own faulty output; the RA6M5 PXN correction gets the entry it never had | Accepted | — | — |
+| `D132` | 2026-10-22 | the RA6M4 brick is a write to a reserved area; no field needs naming | Accepted | — | — |
 
 ---
 

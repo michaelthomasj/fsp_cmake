@@ -55,7 +55,7 @@ Rows marked _TBD_ are not yet written.
 | Why was BL2 silent on RTT under IAR? | **Two independent blockers.** TF-M's `toolchain_IARARM.cmake` redirects `__write` to DLIB's buffered writer, so the port's hook is unreachable and output goes to semihosting — fixed by implementing `__dwrite`. DLIB also buffers stdout and BL2 never flushes — fixed by `setvbuf`. Neither alone is sufficient. | D107→D108→**D110** |
 | Does a passing attestation suite prove measured boot? | **No.** With `component_cnt == 0` the token carries `IAT_NO_SW_COMPONENTS` and the suite passes anyway. Read the boot record at the start of secure RAM and match both measurements to the images' SHA-256 TLVs. | D080→**D081** |
 | How must OFS memory be linked? | **One linker `MEMORY` region per OFS group.** ⚠ Coalescing lets the linker gap-fill between words and write values nobody chose. Flash `bl2.elf`/`bl2.hex`, never `bl2.bin`. `check_ofs.py` enforces it. | **D002** (supersedes D001) |
-| What bricked the two EK-RA6M4 boards? | **Segment coalescing is proven; the killed field is not.** The bricked image's OFS1_SEL is the known-good `f8f8ffff`, so the original attribution was wrong. Measured gap fill is `0x00 ×376`, not `0xFF`. | D093→**D094** |
+| What bricked the two EK-RA6M4 boards? | **A write to a reserved area.** The gaps between the OFS groups are reserved, and the hardware manual requires that reserved areas are never written. A coalesced `PT_LOAD` zero-fills them: measured gap fill is `0x00 ×376`, not `0xFF`. No individual field needs naming. | D093→D094→**D132** |
 | Why is DF_EMULATION 64 KB on RA8M2? | **FSP's MRAM sector size forces it.** On a 1 MB device with a 64 KB BL2 it is the only value that leaves a workable split. ITS, PS and the NV counters share it; the part has no data flash. | D041→D043→D044→D051→**D054** |
 | Is deterministic ECDSA available? | **No — FSP does not support it, by design.** PSA Arch test 252 skips with code `0x2d` on every part and both toolchains. | D036→D037→**D038** |
 | How much secure-slot headroom is there? | **1,693 B on RA6M5, 670 B on RA8M2.** Earlier figures of 1,984 / 960 omitted ~275 B of imgtool TLVs. Measured from the `0xFF` gap below the trailer. | D084→**D087** |
@@ -7270,3 +7270,36 @@ The pattern across four reviews now reads: check the explanation against the bui
 **check that your checker can fail**. Both defects in §1 and §2 were tools that reported success
 without testing anything — one compared a generator with itself, the other never ran on the
 commits that cause the drift it detects.
+
+---
+
+## D132 — the RA6M4 brick is a write to a reserved area; no field needs naming
+
+**Date:** 2026-10-22 · **Status:** Accepted · **Corrects:** [D094] · **Evidence:** the RA6M4
+hardware manual's option-setting memory map, and the owner's reading of it
+
+The gaps between the option-setting groups are reserved. The hardware manual requires that
+reserved areas are not written at all. A coalesced `PT_LOAD` writes zeros across them, and that
+write bricks the part.
+
+That is the whole cause. [D094] went looking for the individual field that died, disproved two
+candidates (FSPR permanence, which RA6M4 does not implement, and `OFS1_SEL` content, which was
+byte-identical to a working board) and left the question open. The question does not need an
+answer: writing a reserved area is itself the fault, whatever a particular reserved word happens
+to control on a particular part.
+
+**What this changes in the record.** The measurement in [D094] stands unaltered: the preserved
+image emitted three OFS words and ld produced one `PT_LOAD` of 388 bytes (`0x184`) spanning
+`0x0100A100`-`0x0100A283`, of which 376 bytes were zero fill. What is withdrawn is the framing
+around it — "which field dies is unknown", "treat PBPS as the surviving candidate", and the
+suggestion that the cause remained open. [D065]'s PBPS attribution is not revived either; PBPS
+is one reserved word among the many the fill covers.
+
+**What this changes in the documents.** Every statement of the form "the mechanism is proven but
+the field responsible is unknown" is replaced by "the fill writes reserved areas, which the
+hardware manual forbids". The hazard statements themselves are untouched: one `MEMORY` region
+per group, `check_ofs.py` on every BL2, flash `.elf`/`.hex` and never `.bin`.
+
+**Why the hedge was there.** The port reconstructed the cause from a dead board and the image
+that killed it, and treated the hardware manual's reserved-area rule as background rather than
+as the answer. A rule in the manual outranks an inference from two boards.

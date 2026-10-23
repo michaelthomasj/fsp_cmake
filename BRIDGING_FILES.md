@@ -211,7 +211,7 @@ rebuilds, and expects the new value to be programmed.
 | OFS values | the bootloader project's `ra_cfg/.../bsp_mcu_ofs_cfg.h` | Edited in the secure project instead — no effect, no warning. `bl2_option_setting.c` compiles into `platform_bl2`, so only `FSP_BL2_APP_DIR` is on the path. Both projects define the same groups |
 | OFS addresses | the bootloader project's generated `Debug/memory_regions.*`, filtered into `option_settings.h` at configure time | Hand-transcribed until 2026-09-24, and they were RA6M5's: OFS0 linked at `0x0100A100` instead of `0x02c9f040`. RA6M5 and RA6E1 still transcribe theirs — the open back-port in [D077] |
 | which groups exist | the device; FSP emits a `BSP_CFG_OPTION_SETTING_*` only for what the user set | A group enabled in e2 that the port does not place is dropped with no diagnostic. OFS2, OFS3_SEC and OFS3_SEL were dropped this way |
-| placement | `<part>_bl2.ld` MEMORY + sections, `<part>_bl2.icf` region + keep + place | One coalesced `PT_LOAD` zero-fills the gaps across option/config memory → **permanent brick** ([D002], [D094] — the mechanism is proven, the field responsible is unidentified). Invisible in the srec |
+| placement | `<part>_bl2.ld` MEMORY + sections, `<part>_bl2.icf` region + keep + place | One coalesced `PT_LOAD` zero-fills the reserved gaps between the option groups, which the hardware manual forbids writing → **permanent brick** ([D002], [D132]). Invisible in the srec |
 
 ### The checks that exist, and the pattern to follow
 

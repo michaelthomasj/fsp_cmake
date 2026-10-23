@@ -179,6 +179,7 @@
           <li><a href="#d129">D129 — the v4 review of BUILD_ARCHITECTURE.md: eight findings, the FSPR attribution withdrawn in eleven more places, and line citations are now checked</a></li>
           <li><a href="#d130">D130 — TF-M 2.3 is deferred, not cancelled: the gate is FSP&#x27;s Mbed TLS 4.1 migration, expected ~2026-11-12</a></li>
           <li><a href="#d131">D131 — the v5 review: two generators were passing against their own faulty output; the RA6M5 PXN correction gets the entry it never had</a></li>
+          <li><a href="#d132">D132 — the RA6M4 brick is a write to a reserved area; no field needs naming</a></li>
         </ol>
       </li>
     </ol>
@@ -233,7 +234,7 @@ wins. Nothing above supersedes anything; the entries carry their own <code>Statu
 <tr><td>Why was BL2 silent on RTT under IAR?</td><td><strong>Two independent blockers.</strong> TF-M&#x27;s <code>toolchain_IARARM.cmake</code> redirects <code>__write</code> to DLIB&#x27;s buffered writer, so the port&#x27;s hook is unreachable and output goes to semihosting — fixed by implementing <code>__dwrite</code>. DLIB also buffers stdout and BL2 never flushes — fixed by <code>setvbuf</code>. Neither alone is sufficient.</td><td>D107→D108→<strong>D110</strong></td></tr>
 <tr><td>Does a passing attestation suite prove measured boot?</td><td><strong>No.</strong> With <code>component_cnt == 0</code> the token carries <code>IAT_NO_SW_COMPONENTS</code> and the suite passes anyway. Read the boot record at the start of secure RAM and match both measurements to the images&#x27; SHA-256 TLVs.</td><td>D080→<strong>D081</strong></td></tr>
 <tr><td>How must OFS memory be linked?</td><td><strong>One linker <code>MEMORY</code> region per OFS group.</strong> ⚠ Coalescing lets the linker gap-fill between words and write values nobody chose. Flash <code>bl2.elf</code>/<code>bl2.hex</code>, never <code>bl2.bin</code>. <code>check_ofs.py</code> enforces it.</td><td><strong>D002</strong> (supersedes D001)</td></tr>
-<tr><td>What bricked the two EK-RA6M4 boards?</td><td><strong>Segment coalescing is proven; the killed field is not.</strong> The bricked image&#x27;s OFS1_SEL is the known-good <code>f8f8ffff</code>, so the original attribution was wrong. Measured gap fill is <code>0x00 ×376</code>, not <code>0xFF</code>.</td><td>D093→<strong>D094</strong></td></tr>
+<tr><td>What bricked the two EK-RA6M4 boards?</td><td><strong>A write to a reserved area.</strong> The gaps between the OFS groups are reserved, and the hardware manual requires that reserved areas are never written. A coalesced <code>PT_LOAD</code> zero-fills them: measured gap fill is <code>0x00 ×376</code>, not <code>0xFF</code>. No individual field needs naming.</td><td>D093→D094→<strong>D132</strong></td></tr>
 <tr><td>Why is DF_EMULATION 64 KB on RA8M2?</td><td><strong>FSP&#x27;s MRAM sector size forces it.</strong> On a 1 MB device with a 64 KB BL2 it is the only value that leaves a workable split. ITS, PS and the NV counters share it; the part has no data flash.</td><td>D041→D043→D044→D051→<strong>D054</strong></td></tr>
 <tr><td>Is deterministic ECDSA available?</td><td><strong>No — FSP does not support it, by design.</strong> PSA Arch test 252 skips with code <code>0x2d</code> on every part and both toolchains.</td><td>D036→D037→<strong>D038</strong></td></tr>
 <tr><td>How much secure-slot headroom is there?</td><td><strong>1,693 B on RA6M5, 670 B on RA8M2.</strong> Earlier figures of 1,984 / 960 omitted ~275 B of imgtool TLVs. Measured from the <code>0xFF</code> gap below the trailer.</td><td>D084→<strong>D087</strong></td></tr>
@@ -5787,6 +5788,31 @@ here.</p>
 <strong>check that your checker can fail</strong>. Both defects in §1 and §2 were tools that reported success
 without testing anything — one compared a generator with itself, the other never ran on the
 commits that cause the drift it detects.</p>
+<hr>
+<h2 id="d132">D132 — the RA6M4 brick is a write to a reserved area; no field needs naming</h2>
+<p><strong>Date:</strong> 2026-10-22 · <strong>Status:</strong> Accepted · <strong>Corrects:</strong> <a href="DECISIONS.html#d094">D094</a> · <strong>Evidence:</strong> the RA6M4
+hardware manual&#x27;s option-setting memory map, and the owner&#x27;s reading of it</p>
+<p>The gaps between the option-setting groups are reserved. The hardware manual requires that
+reserved areas are not written at all. A coalesced <code>PT_LOAD</code> writes zeros across them, and that
+write bricks the part.</p>
+<p>That is the whole cause. <a href="DECISIONS.html#d094">D094</a> went looking for the individual field that died, disproved two
+candidates (FSPR permanence, which RA6M4 does not implement, and <code>OFS1_SEL</code> content, which was
+byte-identical to a working board) and left the question open. The question does not need an
+answer: writing a reserved area is itself the fault, whatever a particular reserved word happens
+to control on a particular part.</p>
+<p><strong>What this changes in the record.</strong> The measurement in <a href="DECISIONS.html#d094">D094</a> stands unaltered: the preserved
+image emitted three OFS words and ld produced one <code>PT_LOAD</code> of 388 bytes (<code>0x184</code>) spanning
+<code>0x0100A100</code>-<code>0x0100A283</code>, of which 376 bytes were zero fill. What is withdrawn is the framing
+around it — &quot;which field dies is unknown&quot;, &quot;treat PBPS as the surviving candidate&quot;, and the
+suggestion that the cause remained open. <a href="DECISIONS.html#d065">D065</a>&#x27;s PBPS attribution is not revived either; PBPS
+is one reserved word among the many the fill covers.</p>
+<p><strong>What this changes in the documents.</strong> Every statement of the form &quot;the mechanism is proven but
+the field responsible is unknown&quot; is replaced by &quot;the fill writes reserved areas, which the
+hardware manual forbids&quot;. The hazard statements themselves are untouched: one <code>MEMORY</code> region
+per group, <code>check_ofs.py</code> on every BL2, flash <code>.elf</code>/<code>.hex</code> and never <code>.bin</code>.</p>
+<p><strong>Why the hedge was there.</strong> The port reconstructed the cause from a dead board and the image
+that killed it, and treated the hardware manual&#x27;s reserved-area rule as background rather than
+as the answer. A rule in the manual outranks an inference from two boards.</p>
 </main>
 </div>
 </body>

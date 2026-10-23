@@ -47,7 +47,7 @@
       <li><a href="#top">SETTLED.md</a>
         <ol>
           <li><a href="#threads--read-the-entry-in-bold">Threads — read the entry in bold</a></li>
-          <li><a href="#standing-119">Standing (119)</a></li>
+          <li><a href="#standing-120">Standing (120)</a></li>
           <li><a href="#superseded-12">Superseded (12)</a></li>
         </ol>
       </li>
@@ -62,10 +62,10 @@
 <p><code>DECISIONS.md</code> is append-only, so the position on any question is stated by the newest entry in its thread and the earlier ones remain as the reasoning. This file says which entry that is. For the handful of questions that need a paragraph rather than a title, read the hand-written <strong>Settled questions</strong> table at the top of <code>DECISIONS.md</code>.</p>
 <div class="table-wrap"><table>
 <tr><th></th><th></th></tr>
-<tr><td>Entries</td><td><strong>131</strong></td></tr>
-<tr><td>Standing</td><td><strong>119</strong></td></tr>
+<tr><td>Entries</td><td><strong>132</strong></td></tr>
+<tr><td>Standing</td><td><strong>120</strong></td></tr>
 <tr><td>Superseded</td><td><strong>12</strong></td></tr>
-<tr><td>Standing but corrected on some point</td><td><strong>33</strong></td></tr>
+<tr><td>Standing but corrected on some point</td><td><strong>34</strong></td></tr>
 <tr><td>Standing, but the question they left open is closed</td><td><strong>3</strong></td></tr>
 <tr><td>Supersede lineages</td><td><strong>9</strong></td></tr>
 </table></div>
@@ -85,7 +85,7 @@
 <tr><td>D107 → <strong>D108</strong></td><td><code>D108</code></td><td>D108 supersedes D107</td></tr>
 </table></div>
 <hr>
-<h2 id="standing-119">Standing (119)</h2>
+<h2 id="standing-120">Standing (120)</h2>
 <p>Nothing supersedes these. The title is the position. Where a later entry corrects one, the correction is named - the entry stands apart from that. <strong>Where the Closed by column is filled, read the status as historical:</strong> the entry describes a problem that a later entry shut, so its own &quot;Open&quot; or &quot;Provisional&quot; is no longer true.</p>
 <div class="table-wrap"><table>
 <tr><th>#</th><th>Date</th><th>Position</th><th>Status</th><th>Corrected by</th><th>Closed by</th></tr>
@@ -173,7 +173,7 @@
 <tr><td><code>D091</code></td><td>2026-10-05</td><td>Option 3 adopted: both parts take TF-M&#x27;s MCUboot backend, FSP&#x27;s HAL behind fa_driver</td><td>Accepted</td><td><code>D092</code></td><td>—</td></tr>
 <tr><td><code>D092</code></td><td>2026-10-05</td><td>RA8M2&#x27;s first boot: BL2 works; the secure image needs Clocks set Secure in e2</td><td>Accepted</td><td>—</td><td>—</td></tr>
 <tr><td><code>D093</code></td><td>2026-10-06</td><td><code>BSP_TZ_CFG_MSAR=0</code> on RA8M2: a workaround for an e2 generator defect, to be removed</td><td>Accepted, <strong>temporary</strong></td><td><code>D094</code></td><td>—</td></tr>
-<tr><td><code>D094</code></td><td>2026-10-06</td><td>the RA6M4 brick: coalescing is proven, the killed field is not; <a href="DECISIONS.html#d093">D093</a>&#x27;s attribution corrected</td><td>Accepted</td><td>—</td><td>—</td></tr>
+<tr><td><code>D094</code></td><td>2026-10-06</td><td>the RA6M4 brick: coalescing is proven, the killed field is not; <a href="DECISIONS.html#d093">D093</a>&#x27;s attribution corrected</td><td>Accepted</td><td><code>D132</code></td><td>—</td></tr>
 <tr><td><code>D095</code></td><td>2026-10-06</td><td>RA8M2 passes the full regression on hardware; both live parts now proven under <a href="DECISIONS.html#d091">D091</a></td><td>Accepted</td><td><code>D096</code></td><td>—</td></tr>
 <tr><td><code>D096</code></td><td>2026-10-06</td><td>measured boot confirmed on RA8M2 by decoding the boot record; <a href="DECISIONS.html#d095">D095</a> had assumed it</td><td>Accepted</td><td>—</td><td>—</td></tr>
 <tr><td><code>D097</code></td><td>2026-10-08</td><td>RA8M2 PSA Arch: storage clean, crypto has one real failure — RSIP-E50D cannot generate RSA-2048 keys</td><td>Accepted</td><td><code>D098</code></td><td>—</td></tr>
@@ -208,6 +208,7 @@
 <tr><td><code>D129</code></td><td>2026-10-22</td><td>the v4 review of <code>BUILD_ARCHITECTURE.md</code>: eight findings, the FSPR attribution withdrawn in eleven more places, and line citations are now checked</td><td>Accepted</td><td><code>D131</code></td><td>—</td></tr>
 <tr><td><code>D130</code></td><td>2026-10-22</td><td>TF-M 2.3 is deferred, not cancelled: the gate is FSP&#x27;s Mbed TLS 4.1 migration, expected ~2026-11-12</td><td>Accepted</td><td><code>D131</code></td><td>—</td></tr>
 <tr><td><code>D131</code></td><td>2026-10-22</td><td>the v5 review: two generators were passing against their own faulty output; the RA6M5 PXN correction gets the entry it never had</td><td>Accepted</td><td>—</td><td>—</td></tr>
+<tr><td><code>D132</code></td><td>2026-10-22</td><td>the RA6M4 brick is a write to a reserved area; no field needs naming</td><td>Accepted</td><td>—</td><td>—</td></tr>
 </table></div>
 <hr>
 <h2 id="superseded-12">Superseded (12)</h2>

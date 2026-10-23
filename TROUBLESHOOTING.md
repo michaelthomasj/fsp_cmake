@@ -13,13 +13,12 @@ The two brick hazards are first. Everything else is recoverable.
 ### The part reads back `0xDA` and will not respond
 
 **The board is dead and cannot be recovered.** Two EK-RA6M4 boards were lost this way on
-2026-07-21. Which field killed them is not known: [D094] disproved both attributions that had
-been offered (FSPR permanence, which RA6M4 does not implement, and `OFS1_SEL` content, which
-was byte-identical to a working board). Post-brick readback gave `DLMMON = 0x2` = SSD, an open
-state, not a DLM lock.
+2026-07-21. The cause is a write to a reserved area: the gaps between the option-setting
+groups are reserved, and the hardware manual requires that they are never written ([D132]).
+Post-brick readback gave `DLMMON = 0x2` = SSD, an open state, not a DLM lock.
 
-**Cause.** The mechanism is proven even though the field is not. A BL2 image whose
-option-setting words were coalesced by the linker into one `PT_LOAD`. Measured on the
+**Cause.** A BL2 image whose option-setting words were coalesced by the linker into one
+`PT_LOAD`, so the fill between them lands on reserved bytes. Measured on the
 preserved image: a segment at `0x0100A100` of 388 bytes (`0x184`, to `0x0100A283`) holding
 the three words that BL2 emitted, of which 376 bytes were zero fill written across
 configuration memory that should have been left alone.

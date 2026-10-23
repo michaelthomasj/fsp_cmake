@@ -380,10 +380,9 @@ sparse. On RA6E1/RA6M4: thirteen register groups holding 92 bytes of real data (
 RA6M5 has the same thirteen groups at the same starts but wider block-protect words —
 BPS/PBPS and their `_SEC`/`_SEL` mirrors are `0x10`, not `0xC`, because 2 MB of code flash has
 more protectable blocks — so 112 bytes of data across a 464-byte span to `0x0100A2D0`, leaving
-352. Those bytes between are other FCU configuration and are not ours to write. (An earlier
-revision named the FSPR permanence word here. [D094] withdrew that: RA6M4 does not implement
-the Flash Access Window, so FSPR does not exist on the part. Which field actually died is still
-open - see below.)
+352. **The bytes between the groups are reserved, and the hardware manual requires that
+reserved areas are never written** ([D132]). That is the whole of the hazard; no individual
+field has to be named for it.
 
 - Correct (what FSP's generated `fsp_gen.ld` does, and what the port now does): declare one
   discrete `MEMORY` region per group — thirteen in `ra6m5_bl2.ld`, six in `ra8m2_bl2.ld` —
@@ -402,15 +401,12 @@ open - see below.)
   what any one image spans; do not quote it as the size of the fatal segment. The guard window
   (`0x0100A100`-`0x0100A2CF`) is wider still, because it has to catch any group an image might emit.
 
-  Which zeroed field killed them is not established, and this log disagrees with itself.
-  [D065] names PBPS at `0x0100A1E0` (one-time Permanent Block Protect); [D094], which is
-  later and is the operative entry, says the field is unknown, having disproved FSPR
-  permanence (register absent on RA6M4) and OFS1_SEL content (byte-identical on a working
-  board). Treat PBPS as the surviving candidate, not a finding. Post-brick readback gave
-  `DLMMON = 0x2` = SSD, an open state, not a DLM lock. Do not read FAWMON. The mechanism above
-  is proven byte-exact regardless - "byte-exact" meaning the 388-byte segment and its 376 zero
-  bytes were read out of the preserved image, not that the damaged register is known - and none
-  of the guidance depends on naming the field.
+  The fill lands on reserved bytes, and writing a reserved area is itself the fault ([D132]).
+  Two earlier readings tried to name the field instead: [D065] named PBPS at `0x0100A1E0`
+  (one-time Permanent Block Protect), and [D094] disproved FSPR permanence (the register is
+  absent on RA6M4) and OFS1_SEL content (byte-identical on a working board) and left the
+  question open. Neither attribution is needed. Post-brick readback gave `DLMMON = 0x2` = SSD,
+  an open state, not a DLM lock. Do not read FAWMON.
 
 **The zero fill is invisible in the srec.** It lives in the program header, not in any section, and
 `objcopy -O srec` emits from sections. This is why the srec-diff approach (the premise of the
@@ -478,8 +474,8 @@ known-good value, byte-identical to a working board. The real RA8 consequence is
 Security Attribution register, handled by `BSP_TZ_CFG_MSAR=0` (§1.1).
 
 Because OFS sits at `0x0100Axxx`, a plain `objcopy -O binary` pads
-`bl2.bin` to ~16.8 MB, zero-filling PBPS at `0x0100A1E0` — the brick, from an ELF that passes
-every check. **Flash `bl2.hex` or `bl2.srec`, never `bl2.bin`.**
+`bl2.bin` to ~16.8 MB, zero-filling the reserved bytes among them — the brick, from an ELF
+that passes every check. **Flash `bl2.hex` or `bl2.srec`, never `bl2.bin`.**
 
 Since 2026-09-29 all four ports re-emit the flat binary and verify the result with
 `check_ofs.py --check-flat-bin`, so a `.bin` from a current build is safe - 33,388 B on RA6M5
