@@ -1,10 +1,10 @@
 # Adding an FSP module to the TF-M build
 
-**Audience:** someone who has enabled a driver in the e2 project and now needs TF-M to compile
+Audience: someone who has enabled a driver in the e2 project and now needs TF-M to compile
 and link it.
-**Scope:** the CMake side only. Enabling the module in RASC is a prerequisite, not covered here.
+Scope: the CMake side only. Enabling the module in RASC is a prerequisite, not covered here.
 
-> **Provenance.** This replaces `archive/ra6m4/TFM_INTEGRATION_COMPLETE.md` §"Adding New FSP
+> Provenance. This replaces `archive/ra6m4/TFM_INTEGRATION_COMPLETE.md` §"Adding New FSP
 > Modules", which describes the superseded RA6M4 arrangement (`FSP_Project_ra6m4`,
 > `GeneratedSrc_Modular.cmake`, an `fsp_uart` module) and matches nothing in the live ports.
 > Nineteen source files pointed at `fsp_cmake/TFM_INTEGRATION_COMPLETE.md`, a path that does not
@@ -14,13 +14,13 @@ and link it.
 
 ## 1. The model, in one paragraph
 
-FSP drivers are **opt-in, per role**. Nothing from `ra/fsp/src/` reaches an image unless a
-`cmake/modules/fsp_<name>.cmake` declares it *and* the platform lists it in `FSP_MODULES_S` or
-`FSP_MODULES_BL2`. The secure image and the bootloader come from **different e2 projects**, so
+FSP drivers are opt-in, per role. Nothing from `ra/fsp/src/` reaches an image unless a
+`cmake/modules/fsp_<name>.cmake` declares it and the platform lists it in `FSP_MODULES_S` or
+`FSP_MODULES_BL2`. The secure image and the bootloader come from different e2 projects, so
 each module builds twice under distinct target names — `fsp_bsp_s` and `fsp_bsp_bl2` — which also
 stops the two images' FSP configurations leaking into each other.
 
-The deliberate consequence: **adding a driver in RASC does not add it to TF-M.** The build warns
+The consequence is intended: adding a driver in RASC does not add it to TF-M. The build warns
 when that happens (§5).
 
 ---
@@ -53,9 +53,9 @@ Three separate mechanisms are easy to confuse here:
 
 | Mechanism | Where | Effect |
 |---|---|---|
-| `FSP_MODULES_S` / `_BL2` | `ra6m5/CMakeLists.txt:234`, `:238` | the only thing that **builds** FSP sources for the secure and BL2 images |
+| `FSP_MODULES_S` / `_BL2` | `ra6m5/CMakeLists.txt:234`, `:238` | the only thing that builds FSP sources for the secure and BL2 images |
 | `FSP_MODULES_NEVER_BUILT` | `:266` | suppresses the §5 unclaimed-directory warning; excludes no source |
-| `FSP_EXCLUDED_MODULES` | `:112`, used by `fsp_collect_sources()` at `:1023` | filters sources out of the **non-secure** glob only |
+| `FSP_EXCLUDED_MODULES` | `:112`, used by `fsp_collect_sources()` at `:1023` | filters sources out of the non-secure glob only |
 
 So `r_sce` appears in `FSP_MODULES_NEVER_BUILT` yet is built by the `sce` module for the secure
 and BL2 roles ([D129]). It is listed there for the BL2-without-accelerator role, which declares
@@ -91,14 +91,14 @@ target_sources(${FSP_AGT_TARGET} PRIVATE ${_src})
 target_link_libraries(${FSP_AGT_TARGET} PUBLIC fsp_bsp_${FSP_MODULE_ROLE})
 ```
 
-Four obligations, and the third is the one people skip:
+Four obligations:
 
 | | |
 |---|---|
-| **`fsp_module_library(<OUT_VAR> <base>)`** | Never `add_library()` directly. The macro applies the include paths, `FSP_COMPILE_DEFS`, the TrustZone defines **and the FP/ABI flag** — see §4. |
-| **`fsp_module_glob(<out> <subdir>)`** | Glob *within* a declared module. The module is opt-in; naming each generated `.c` inside it would drift on every FSP bump. |
-| **A `FATAL_ERROR` when the glob is empty** | The module is in the port but the driver is not in the project. Say so, name the RASC step, and cite the decision. [D089] records a case where a guard that named its own fix cost one log read against one that did not. |
-| **Link `fsp_bsp_${FSP_MODULE_ROLE}`** | Every module needs the BSP, and the role suffix is not optional — `fsp_bsp` alone does not exist. |
+| `fsp_module_library(<OUT_VAR> <base>)` | Never `add_library()` directly. The macro applies the include paths, `FSP_COMPILE_DEFS`, the TrustZone defines and the FP/ABI flag — see §4. |
+| `fsp_module_glob(<out> <subdir>)` | Glob within a declared module. The module is opt-in; naming each generated `.c` inside it would drift on every FSP bump. |
+| A `FATAL_ERROR` when the glob is empty | The module is in the port but the driver is not in the project. Say so, name the RASC step, and cite the decision. [D089] records a case where a guard that named its own fix cost one log read against one that did not. |
+| Link `fsp_bsp_${FSP_MODULE_ROLE}` | Every module needs the BSP, and the role suffix is not optional — `fsp_bsp` alone does not exist. |
 
 Set `FSP_MODULE_DIRS_<base>` if the module claims directories beyond the one it globs; §5 uses it.
 
@@ -114,11 +114,11 @@ Error[Lt006]: Incompatible object(s): system.o(libfsp_bsp_s.a) and 195 other obj
   ... use VFP instructions incompatible with No vfp (provided as FPU option)
 ```
 
-TF-M applies `COMPILER_CP_FLAG` **per target**, not through `CMAKE_C_FLAGS`. Module libraries are
+TF-M applies `COMPILER_CP_FLAG` per target, not through `CMAKE_C_FLAGS`. Module libraries are
 created in these files, so nothing else gives it to them and they compile with the compiler's
-default FPU for the `-mcpu`/`--cpu` in use. On Cortex-M33 that is invisible — iccarm defaults to
-no FPU, which matches the link. **On Cortex-M85 it defaults to a present FPU and the link is
-refused.** BL2 uses `BL2_COMPILER_CP_FLAG` because TF-M builds the bootloader soft-float
+default FPU for the `-mcpu`/`--cpu` in use. On Cortex-M33 that is invisible: iccarm defaults to
+no FPU, which matches the link. On Cortex-M85 it defaults to a present FPU and the link is
+refused. BL2 uses `BL2_COMPILER_CP_FLAG` because TF-M builds the bootloader soft-float
 regardless of the secure image.
 
 The macro also adds `COMPILER_CMSE_FLAG`: every module here is linked into a secure-side image.
@@ -140,24 +140,24 @@ RA8M2 [s]: FSP module 'r_adc' is in the project but no module declares it, so it
 NOT in the image. Add a cmake/modules/fsp_<name>.cmake and list it in FSP_MODULES_S
 ```
 
-**Read it.** The alternative is discovering the omission as an undefined symbol much later, with
+Read it. The alternative is discovering the omission as an undefined symbol much later, with
 nothing connecting it to RASC.
 
 ---
 
 ## 6. Procedure
 
-1. **Enable the driver in e2 studio**, in the project for the role that needs it — the *secure*
+1. Enable the driver in e2 studio, in the project for the role that needs it — the secure
    project for the secure image, `<part>_mcuboot` for BL2. Interrupt-driven peripherals need a
-   real Interrupt Priority, **not Disabled**: on RA that is also what makes the interrupt secure
+   real Interrupt Priority, not Disabled: on RA that is also what makes the interrupt secure
    ([D061], [D101]).
-2. **Regenerate and build the project once.** Building is not optional — the port reads
+2. Regenerate and build the project once. Building is not optional — the port reads
    `Debug/bsp_linker_info.h`, which only a build produces. See [GETTING_STARTED.md](GETTING_STARTED.md) §4.
-3. **Write `cmake/modules/fsp_<base>.cmake`** per §3.
-4. **Add `<base>` to `FSP_MODULES_S` / `FSP_MODULES_BL2`.**
-5. **Rebuild TF-M** and check the configure output for the §5 warning naming a directory you
+3. Write `cmake/modules/fsp_<base>.cmake` per §3.
+4. Add `<base>` to `FSP_MODULES_S` / `FSP_MODULES_BL2`.
+5. Rebuild TF-M and check the configure output for the §5 warning naming a directory you
    expected to be claimed.
-6. **Do the same for every active part** that needs it. The module files are per-part copies;
+6. Do the same for every active part that needs it. The module files are per-part copies;
    RA6M5 and RA8M2 each have their own. They drift, and nothing detects it — [D089] is the worked
    example, where a fix applied to one part was recorded as done and the other was still broken.
 
@@ -166,36 +166,35 @@ nothing connecting it to RASC.
 ## 7. Using an FSP driver from a secure partition
 
 Everything above puts driver code in `platform_s`. That is correct for the SPM and for
-**PSA RoT** partitions, and if that is your case you can stop reading — FSP works unmodified
-at every isolation level.
+PSA RoT partitions, where FSP works unmodified at every isolation level.
 
-It is **not** correct for an **Application RoT** partition from isolation 2 onward, and the
+It is not correct for an Application RoT partition from isolation 2 onward, and the
 failure is invisible at isolation 1, which is what this port ships.
 
 ### Why
 
-From isolation 2 the SPM runs ARoT partitions **unprivileged** (`tfm_hal_bind_boundary()`
+From isolation 2 the SPM runs ARoT partitions unprivileged (`tfm_hal_bind_boundary()`
 sets `privileged = IS_PSA_ROT(p_ldinf)`). Three things an FSP driver call normally touches are
 then out of reach:
 
 | What | Where it lands | Result |
 |---|---|---|
-| Driver code in `platform_s` | `PT_PSA_ROT_CODE`, marked `ARM_MPU_PRIVILEGED` | **IACCVIOL** on the branch (`MMFSR` 0x01) |
-| The control block, e.g. `g_timer0_ctrl` | `ra_gen/hal_data.c` → `PT_PSA_ROT_DATA`, `ARM_MPU_PRIVILEGED` | **DACCVIOL** on first use (`MMFSR` 0x82) |
-| The NVIC, written by `R_XXX_Open()` | PPB, `0xE000E000` | **BusFault**, and no MPU region can grant it |
+| Driver code in `platform_s` | `PT_PSA_ROT_CODE`, marked `ARM_MPU_PRIVILEGED` | IACCVIOL on the branch (`MMFSR` 0x01) |
+| The control block, e.g. `g_timer0_ctrl` | `ra_gen/hal_data.c` → `PT_PSA_ROT_DATA`, `ARM_MPU_PRIVILEGED` | DACCVIOL on first use (`MMFSR` 0x82) |
+| The NVIC, written by `R_XXX_Open()` | PPB, `0xE000E000` | BusFault, and no MPU region can grant it |
 
-The third is the one with no workaround. **Every interrupt-driven FSP driver configures the
-NVIC inside `_Open()`** — `R_AGT_Open()` calls `R_BSP_IrqCfgEnable()`, and the pattern repeats
+The third is the one with no workaround. Every interrupt-driven FSP driver configures the
+NVIC inside `_Open()`: `R_AGT_Open()` calls `R_BSP_IrqCfgEnable()`, and the pattern repeats
 across the driver set (`r_spi` 12 call sites, `r_iic_master` 7, `r_sci_uart` 5, `r_canfd` 5,
-`r_gpt`, `r_adc`, `r_dmac`). The PPB is privileged-only *by architecture*, not by MPU policy,
+`r_gpt`, `r_adc`, `r_dmac`). The PPB is privileged-only by architecture, not by MPU policy,
 so `_Open()` can never be called from an unprivileged partition.
 
-This is a genuine collision of models rather than an FSP defect. TF-M deliberately takes NVIC
-ownership away from partitions: a partition declares `irqs` in its manifest, the SPM programs
-the NVIC on its behalf, and the partition uses `psa_irq_enable()` / `psa_irq_disable()`, which
-are SVCs into the SPM. FSP assumes the driver owns the interrupt controller. The two disagree
-at `_Open()` and nowhere else — the operational calls are clean. `R_AGT_Start()` and
-`R_AGT_Stop()` touch only `p_ctrl->p_reg->…`.
+This is a genuine collision of models rather than an FSP defect. TF-M takes NVIC
+ownership away from partitions by design: a partition declares `irqs` in its manifest, the SPM
+programs the NVIC on its behalf, and the partition uses `psa_irq_enable()` /
+`psa_irq_disable()`, which are SVCs into the SPM. FSP assumes the driver owns the interrupt
+controller. The two disagree at `_Open()` and nowhere else — the operational calls are clean.
+`R_AGT_Start()` and `R_AGT_Stop()` touch only `p_ctrl->p_reg->…`.
 
 ### The pattern that works
 
@@ -211,12 +210,12 @@ Concretely, for a peripheral an ARoT partition drives:
 
 1. Declare the register block as an `mmio_region` in the partition manifest, and add a matching
    `platform_data_t` to `tfm_peripherals_def.c` — the MPU region comes from that. Use the
-   **secure** alias of the address on parts that alias peripherals.
+   secure alias of the address on parts that alias peripherals.
 2. Declare the interrupt as `irqs` in the manifest. The SPM then owns it; the partition uses
    `psa_irq_enable()`, never `NVIC_*`.
 3. Call `R_XXX_Open()` from privileged init — the `<irq>_init` hook the manifest tooling
    generates is the natural home, since the SPM calls it during partition load.
-4. **Declare the control block inside the partition**, not in `ra_gen/`. A partition's own
+4. Declare the control block inside the partition, not in `ra_gen/`. A partition's own
    globals land in its data region, which is unprivileged-RW for that partition; the generated
    instance in `hal_data.c` does not.
 5. Compile the driver's operational sources into `tfm_sprt` so the code is fetchable from the
@@ -227,16 +226,15 @@ With those five, `R_AGT_Start(&my_ctrl)` works normally from the partition. No r
 
 ### FLIH handlers can be unprivileged — it depends on the partition and the level
 
-Worth stating because it is the opposite of what "interrupt handler" suggests: **an ARoT
-partition's FLIH handler at isolation 2 or 3 runs in Thread mode at that partition's
-privilege**, so it is unprivileged and bound by everything above — it may touch its
+An ARoT partition's FLIH handler at isolation 2 or 3 runs in Thread mode at that partition's
+privilege. It is therefore unprivileged and bound by everything above: it may touch its
 `mmio_region` peripherals and nothing else.
 
-Measured, not assumed: an ARoT FLIH handler clearing the RA ICU latch faulted with
-`MMFSR 0x82`, `MMFAR 0x40006300`, and the dump reported *"came from secure FW in thread
-mode"*.
+Measured rather than assumed: an ARoT FLIH handler clearing the RA ICU latch faulted with
+`MMFSR 0x82`, `MMFAR 0x40006300`, and the dump reported "came from secure FW in thread
+mode".
 
-**It is not a general rule about FLIH, and this section used to state it as one.**
+It is not a general rule about FLIH, and this section used to state it as one.
 `interrupt.c:195-209` picks one of three dispatches:
 
 | Condition | How `flih_func()` is called | Mode |
@@ -248,7 +246,7 @@ mode"*.
 So Handler mode is the common case and the unprivileged one is specific. Write a handler to
 the narrowest of the three — its own `mmio_region` only — and it is correct in all of them.
 
-That matters on RA specifically, because an interrupt latches in **two** places — the
+That matters on RA specifically, because an interrupt latches in two places — the
 peripheral's own flag and the ICU's `IELSR.IR` — and the ICU sits outside the peripheral's
 MMIO region. The NVIC pending bit is worse: PPB, privileged-only by architecture, so no
 region can grant it.
@@ -264,22 +262,21 @@ Keep the ICU-then-peripheral order that FSP's own ISRs use.
 
 ### `tfm_sprt` must be stateless
 
-`tfm_sprt`'s **code** is placed in the unprivileged region but its **`.bss` is not** — it lands
+`tfm_sprt`'s code is placed in the unprivileged region but its `.bss` is not — it lands
 in `PT_PSA_ROT_DATA`. A `static` in a file compiled into `tfm_sprt` is therefore privileged
 data, and reading it from an ARoT partition faults. Arm's own sprt timer driver has zero
-statics for exactly this reason.
+statics for this reason.
 
 That is why `plat_test.c` in this port is stateless and drives AGT0 through bare `AGTCR`
 writes: it is a test fixture called by upstream's ARoT partitions, so it cannot follow step 4
-above — it does not own the partition and has nowhere to put a control block. **A real
-partition you write is in a better position than that fixture**, because it owns its own data.
+above — it does not own the partition and has nowhere to put a control block. A partition you
+write does not have that limitation, because it owns its own data.
 
-### The escape hatch
+### The simpler alternative
 
-If none of this is appealing: **put the peripheral in a PSA RoT partition.** PSA RoT is
-privileged at every isolation level, so FSP drivers work there completely unmodified, `_Open()`
-included. The split above is only needed when an Application RoT partition must drive the
-hardware itself.
+Put the peripheral in a PSA RoT partition instead. PSA RoT is privileged at every isolation
+level, so FSP drivers work there unmodified, `_Open()` included. The split above is only needed
+when an Application RoT partition must drive the hardware itself.
 
 ### Provenance
 
@@ -288,7 +285,7 @@ The IACCVIOL came first at `PC 0x000BA964` (`tfm_plat_test_secure_timer_start`, 
 `PT_PSA_ROT_CODE`); moving the file to `tfm_sprt` turned it into a DACCVIOL at
 `MMFAR 0x20011493` (a `static bool`, inside `PT_PSA_ROT_DATA`). Upstream platforms place
 `plat_test.c` in `platform_s` and only the low-level timer driver in `tfm_sprt`, which does not
-actually work above isolation 1 — the FLIH/SLIH suites appear never to have been run there.
+work above isolation 1 — the FLIH/SLIH suites appear never to have been run there.
 
 ---
 
