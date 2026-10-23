@@ -183,7 +183,7 @@ Each has an `_iar` twin. In e2: `Run → Debug Configurations…`, pick one, `De
 
 > **Flash `bl2.elf` or `bl2.hex` — never `bl2.bin`.** The option-setting words live in discrete
 > segments that a flat binary cannot express; a `.bin` writes them at the wrong addresses and
-> can permanently lock the part. [D002](DECISIONS.md), [D065](DECISIONS.md).
+> can brick the part. [D002](DECISIONS.md), [D065](DECISIONS.md).
 
 > **`setTZBoundaries` must be `false`** in every launch configuration. The debugger otherwise
 > derives TrustZone boundaries from the launched project's symbols, and launched against BL2 it

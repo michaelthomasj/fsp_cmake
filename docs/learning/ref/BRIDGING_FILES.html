@@ -127,14 +127,17 @@ complete types, the link succeeds, and the only symptom is a bootloader rejectin
 image (<a href="DECISIONS.html#d090">D090</a>). An FSP uprev that adds a member, or a TF-M bump that changes its struct, breaks
 this again with no warning.</p>
 <p>Since <a href="DECISIONS.html#d091">D091</a> the expected size is 16. Both parts compile TF-M&#x27;s struct. Neither builds
-<code>rm_mcuboot_port</code> in the secure or BL2 image, because no module declares it: <code>FSP_MODULES_S</code>
-and <code>FSP_MODULES_BL2</code> are the only things that build FSP sources for those roles, and it is in
-<code>FSP_MODULES_NEVER_BUILT</code> so the audit stays quiet about it. <code>FSP_EXCLUDED_MODULES</code>
-(<code>ra6m5/CMakeLists.txt:112</code>, <code>ra8m2/CMakeLists.txt:112</code>) keeps it out of the non-secure glob,
-which is a different image - see <code>ADDING_FSP_MODULES.md</code> §2 for the three mechanisms.</p>
+<code>rm_mcuboot_port</code> in the secure or BL2 image, and the reason is that no module declares it:
+<code>FSP_MODULES_S</code> (<code>ra6m5/CMakeLists.txt:234</code>) and <code>FSP_MODULES_BL2</code> (<code>:238</code>) are the only
+things that build FSP sources for those roles, and neither lists it. <code>FSP_EXCLUDED_MODULES</code>
+(<code>:112</code>) removes it additionally from the non-secure glob, through the one
+<code>fsp_collect_sources()</code> call at <code>:1023</code>, which is a different image. <code>FSP_MODULES_NEVER_BUILT</code>
+excludes nothing at all; it only keeps the §5 audit quiet. See <code>ADDING_FSP_MODULES.md</code> §2 for
+the three mechanisms side by side.</p>
 <p>FSP&#x27;s header is still on an include path, so the collision is avoided by scope rather than
-by absence. <code>fsp_bsp.cmake:106-108</code> adds FSP&#x27;s <code>mcu-tools</code> MCUboot headers to the BSP
-library, with the reason at <code>:85-87</code>: the bootloader project&#x27;s <code>hal_data.h</code> includes
+by absence. <code>fsp_bsp.cmake:105-108</code> puts FSP&#x27;s <code>rm_mcuboot_port</code> directory - which is where its
+<code>flash_map_backend.h</code> lives - and the <code>mcu-tools</code> MCUboot headers on the BSP library&#x27;s include
+path, with the reason at <code>:85-87</code>: the bootloader project&#x27;s <code>hal_data.h</code> includes
 <code>rm_mcuboot_port.h</code>, which includes <code>bootutil/image.h</code>. Those paths are PRIVATE to
 <code>fsp_bsp_bl2</code> and never reach <code>bootutil</code>. One consequence matters for the check: an <code>fsp_bsp</code>
 object reporting 12 bytes is correct.</p>
@@ -207,8 +210,9 @@ different image.</p>
 <p><code>rm_mcuboot_port</code> is shadowed on both parts (<a href="DECISIONS.html#d091">D091</a>). It briefly supplied the flash map
 and backend on RA8M2 (<a href="DECISIONS.html#d079">D079</a>), which is what removed the running cost <a href="DECISIONS.html#d073">D073</a>/<a href="DECISIONS.html#d074">D074</a> paid, and
 RA6M5 returned to TF-M&#x27;s at <a href="DECISIONS.html#d085">D085</a>; <a href="DECISIONS.html#d091">D091</a> then settled both parts on TF-M&#x27;s map and backend
-with FSP&#x27;s HAL behind <code>fa_driver</code>. This row no longer differs per part - both <code>CMakeLists.txt</code>
-list <code>rm_mcuboot_port</code> in <code>FSP_MODULES_NEVER_BUILT</code>.</p>
+with FSP&#x27;s HAL behind <code>fa_driver</code>. This row no longer differs per part: on neither part does
+any <code>FSP_MODULES_S</code> or <code>FSP_MODULES_BL2</code> entry declare it. Its presence in
+<code>FSP_MODULES_NEVER_BUILT</code> is not the reason - that list only silences the audit.</p>
 <hr>
 <h2 id="the-linker-and-ofs-family--the-highest-consequence-case">The linker and OFS family — the highest-consequence case</h2>
 <p>The failure mode is not a build error. Worked hazard: a user changes an OFS setting in e2,
@@ -218,7 +222,7 @@ rebuilds, and expects the new value to be programmed.</p>
 <tr><td>OFS values</td><td>the bootloader project&#x27;s <code>ra_cfg/.../bsp_mcu_ofs_cfg.h</code></td><td>Edited in the secure project instead — no effect, no warning. <code>bl2_option_setting.c</code> compiles into <code>platform_bl2</code>, so only <code>FSP_BL2_APP_DIR</code> is on the path. Both projects define the same groups</td></tr>
 <tr><td>OFS addresses</td><td>the bootloader project&#x27;s generated <code>Debug/memory_regions.*</code>, filtered into <code>option_settings.h</code> at configure time</td><td>Hand-transcribed until 2026-09-24, and they were RA6M5&#x27;s: OFS0 linked at <code>0x0100A100</code> instead of <code>0x02c9f040</code>. RA6M5 and RA6E1 still transcribe theirs — the open back-port in <a href="DECISIONS.html#d077">D077</a></td></tr>
 <tr><td>which groups exist</td><td>the device; FSP emits a <code>BSP_CFG_OPTION_SETTING_*</code> only for what the user set</td><td>A group enabled in e2 that the port does not place is dropped with no diagnostic. OFS2, OFS3_SEC and OFS3_SEL were dropped this way</td></tr>
-<tr><td>placement</td><td><code>&lt;part&gt;_bl2.ld</code> MEMORY + sections, <code>&lt;part&gt;_bl2.icf</code> region + keep + place</td><td>One coalesced <code>PT_LOAD</code> zero-fills the span between the emitted words, writing <code>0x00</code> into eight defined option registers (DUALSEL, OFS1, BANKSEL, BPS, PBPS and their <code>_SEC</code> copies) as well as the reserved bytes between them → <strong>permanent brick</strong> (<a href="DECISIONS.html#d002">D002</a>, <a href="DECISIONS.html#d133">D133</a>). Invisible in the srec</td></tr>
+<tr><td>placement</td><td><code>&lt;part&gt;_bl2.ld</code> MEMORY + sections, <code>&lt;part&gt;_bl2.icf</code> region + keep + place</td><td>One coalesced <code>PT_LOAD</code> zero-fills the span between the emitted words, writing <code>0x00</code> into eight defined option registers (DUALSEL, OFS1, BANKSEL, BPS, PBPS and their <code>_SEC</code> copies) as well as the reserved bytes between them → <strong>two boards bricked, no recovery known</strong> (<a href="DECISIONS.html#d002">D002</a>, <a href="DECISIONS.html#d133">D133</a>). Invisible in the srec</td></tr>
 </table></div>
 <h3 id="the-checks-that-exist-and-the-pattern-to-follow">The checks that exist, and the pattern to follow</h3>
 <p>Each hazard gets a mechanism, not a comment:</p>

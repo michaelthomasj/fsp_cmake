@@ -195,7 +195,7 @@ Not cache variables, but the ones people need to change, with the constraint tha
 | `TFM_NV_COUNTERS_AREA_SIZE` | `flash_layout.h` | 2048 B; PS and ITS split what remains |
 | `TFM_HAL_PS_SECTORS_PER_BLOCK` | `flash_layout.h` | `(area/sector)/2`. `num_blocks < 2` fails ITS and PS init outright, reported as pid 257 |
 | `FLASH_AREA_IMAGE_SECTOR_SIZE` | `flash_layout.h` | `0x8000` on both. Restates an FSP value and is not machine-checkable against it — see the note in `<part>_layout_checks.c` and diff FSP's generated `mcuboot_config.h` after a pack uprev ([D054]) |
-| OFS `OPTION_SETTING_*` | `region_defs.h` (RA6M5), generated `option_settings.h` (RA8M2) | **BRICK HAZARD.** One `MEMORY` region per word; a coalesced `PT_LOAD` writes `0x00` into the eight defined option registers between the emitted words, and into the reserved bytes, and bricks the part permanently ([D133]; which of the eight does it is not established). Invisible in the srec — `readelf -l` is the only place it shows. `check_ofs.py` enforces it ([D002]) |
+| OFS `OPTION_SETTING_*` | `region_defs.h` (RA6M5), generated `option_settings.h` (RA8M2) | **BRICK HAZARD.** One `MEMORY` region per word; a coalesced `PT_LOAD` writes `0x00` into the eight defined option registers between the emitted words, and into the reserved bytes. Two boards were bricked this way and no recovery is known ([D133]; which of the eight registers does it is not established, and neither is whether the state is reversible). Invisible in the srec — `readelf -l` is the only place it shows. `check_ofs.py` enforces it ([D002]) |
 
 **OFS values are edited in the bootloader project**, not the secure one. Both projects define
 the same `BSP_CFG_OPTION_SETTING_*` groups, so editing the wrong one has no effect and no

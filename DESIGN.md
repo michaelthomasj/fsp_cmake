@@ -393,7 +393,7 @@ registers, and two of them are one-time.
   — `.option_setting_ofs0 0x0100A100 : { ... }`. ld coalesces them all into one PT_LOAD
   spanning every group the image emits, and zero-fills the gaps. A debugger loading
   the ELF writes that whole span across config memory that should have been left alone → **the
-  part is permanently bricked**. This destroyed two EK-RA6M4 boards.
+  part is bricked**. This destroyed two EK-RA6M4 boards, and no recovery is known.
 
   The measured numbers, from the bricked image itself (`bringup/bricking_evidence/bl2_BRICKED.elf`,
   [D094]): that BL2 emitted three OFS words - `0x0100A100`, `0x0100A200`, `0x0100A280` - and ld
@@ -493,7 +493,7 @@ and 27,888 B on RA8M2. The re-emission is address-driven, not name-driven:
 sections `P1`/`P7`/`P11` - the pattern silently succeeds and emits the full 16.8 MB brick.
 Never reproduce the strip by hand with `objcopy --remove-section`. The rule stands regardless:
 **a `.bin` from an older build dir, another toolchain path, or a hand-run `objcopy` can
-permanently lock the part**, and it looks identical in a file listing. Size is the only
+brick the part**, and it looks identical in a file listing. Size is the only
 indication — over ~1 MB means it spans the option memory.
 
 ## 9. Console / logging — SEGGER RTT (switchable)

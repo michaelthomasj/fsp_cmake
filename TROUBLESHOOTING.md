@@ -4,8 +4,8 @@ Each entry: the symptom as it appears, the cause, the fix, and where the full ac
 Harvested from `DECISIONS.md` and from comments at the fix sites, so the detail is one hop
 away rather than reproduced here.
 
-The two hazards are first: the first is permanent, the second is recovered by reprogramming
-the boundaries.
+The two hazards are first. No recovery is known for the first; the second is recovered by
+reprogramming the boundaries.
 
 ---
 

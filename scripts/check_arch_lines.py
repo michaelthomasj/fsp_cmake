@@ -122,6 +122,7 @@ PORT_PATHS = [
     ("platform/ext/target/renesas/ra6m5/cmake/modules/fsp_flash.cmake", 21, r"fsp_bsp_\$\{FSP_MODULE_ROLE\}"),
     ("platform/ext/target/renesas/ra6m5/cmake/modules/fsp_sce.cmake",   51, r"fsp_bsp_\$\{FSP_MODULE_ROLE\}"),
     ("platform/ext/target/renesas/ra6m5/cmake/modules/fsp_agt.cmake",   40, r"fsp_bsp_\$\{FSP_MODULE_ROLE\}"),
+    ("platform/ext/target/renesas/ra6m5/cmake/modules/fsp_bsp.cmake",  105, r"src/rm_mcuboot_port\"$"),
     ("platform/ext/target/renesas/ra6m5/cmake/modules/fsp_bsp.cmake",  106, r"mcu-tools/MCUboot/boot/bootutil/include"),
 ]
 

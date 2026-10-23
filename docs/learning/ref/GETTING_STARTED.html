@@ -198,7 +198,7 @@ is not the input to the table below.</p></blockquote>
 <h3 id="two-safety-rules">Two safety rules</h3>
 <blockquote><p><strong>Flash <code>bl2.elf</code> or <code>bl2.hex</code> — never <code>bl2.bin</code>.</strong> The option-setting words live in discrete
 segments that a flat binary cannot express; a <code>.bin</code> writes them at the wrong addresses and
-can permanently lock the part. <a href="DECISIONS.html#d002">D002</a>(DECISIONS.md), <a href="DECISIONS.html#d065">D065</a>(DECISIONS.md).</p></blockquote>
+can brick the part. <a href="DECISIONS.html#d002">D002</a>(DECISIONS.md), <a href="DECISIONS.html#d065">D065</a>(DECISIONS.md).</p></blockquote>
 <blockquote><p><strong><code>setTZBoundaries</code> must be <code>false</code></strong> in every launch configuration. The debugger otherwise
 derives TrustZone boundaries from the launched project&#x27;s symbols, and launched against BL2 it
 gets them wrong. On RA8M2 the key appears twice — <code>...arm.jlink.</code> and <code>...arm.e2lite.</code> —

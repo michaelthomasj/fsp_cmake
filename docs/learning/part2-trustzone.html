@@ -289,7 +289,7 @@ psa_status_t tfm_psa_call_veneer(psa_handle_t handle,
 <p class="src"><code>secure_fw/partitions/ns_agent_tz/psa_api_veneers_v80m.c:145-175</code></p>
 <p>The stack-seal comparison is a re-entrancy check: on Armv8.0-M the hardware does not detect a Non-secure caller
 re-entering Secure state while a Secure call is in progress, so TF-M checks for its seal pattern itself (comment at
-<code>psa_api_veneers_v80m.c:20-33</code>). Armv8.1-M parts such as the RA8M2's Cortex-M85 use
+<code>psa_api_veneers_v80m.c:21-33</code>). Armv8.1-M parts such as the RA8M2's Cortex-M85 use
 <code>psa_api_veneers.c</code> instead (<code>secure_fw/partitions/ns_agent_tz/CMakeLists.txt:35-36</code>).</p>
 
 <h3>Three ways this port has hit INVEP</h3>
@@ -392,7 +392,7 @@ unlocked:</p>
         p_icusarg[i]  = interrupt_security_state[i];
         NVIC-&gt;ITNS[i] = interrupt_security_state[i];
     }</code></pre>
-<p class="src"><code>ra6m5_gcc_secure/ra/fsp/src/bsp/mcu/all/bsp_irq.c:271-284</code></p>
+<p class="src"><code>ra6m5_gcc_secure/ra/fsp/src/bsp/mcu/all/bsp_irq.c:272-284</code></p>
 <p><code>interrupt_security_state</code> starts all-Non-secure and has a bit cleared for every slot with a non-zero
 entry in the generated event-link table. So:</p>
 <div class="note"><p><strong>On RA, an interrupt is Secure if and only if the <em>secure</em> e2 project configures it</strong>

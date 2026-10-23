@@ -92,15 +92,18 @@ image ([D090]). An FSP uprev that adds a member, or a TF-M bump that changes its
 this again with no warning.
 
 Since [D091] the expected size is 16. Both parts compile TF-M's struct. Neither builds
-`rm_mcuboot_port` in the secure or BL2 image, because no module declares it: `FSP_MODULES_S`
-and `FSP_MODULES_BL2` are the only things that build FSP sources for those roles, and it is in
-`FSP_MODULES_NEVER_BUILT` so the audit stays quiet about it. `FSP_EXCLUDED_MODULES`
-(`ra6m5/CMakeLists.txt:112`, `ra8m2/CMakeLists.txt:112`) keeps it out of the non-secure glob,
-which is a different image - see `ADDING_FSP_MODULES.md` §2 for the three mechanisms.
+`rm_mcuboot_port` in the secure or BL2 image, and the reason is that no module declares it:
+`FSP_MODULES_S` (`ra6m5/CMakeLists.txt:234`) and `FSP_MODULES_BL2` (`:238`) are the only
+things that build FSP sources for those roles, and neither lists it. `FSP_EXCLUDED_MODULES`
+(`:112`) removes it additionally from the non-secure glob, through the one
+`fsp_collect_sources()` call at `:1023`, which is a different image. `FSP_MODULES_NEVER_BUILT`
+excludes nothing at all; it only keeps the §5 audit quiet. See `ADDING_FSP_MODULES.md` §2 for
+the three mechanisms side by side.
 
 FSP's header is still on an include path, so the collision is avoided by scope rather than
-by absence. `fsp_bsp.cmake:106-108` adds FSP's `mcu-tools` MCUboot headers to the BSP
-library, with the reason at `:85-87`: the bootloader project's `hal_data.h` includes
+by absence. `fsp_bsp.cmake:105-108` puts FSP's `rm_mcuboot_port` directory - which is where its
+`flash_map_backend.h` lives - and the `mcu-tools` MCUboot headers on the BSP library's include
+path, with the reason at `:85-87`: the bootloader project's `hal_data.h` includes
 `rm_mcuboot_port.h`, which includes `bootutil/image.h`. Those paths are PRIVATE to
 `fsp_bsp_bl2` and never reach `bootutil`. One consequence matters for the check: an `fsp_bsp`
 object reporting 12 bytes is correct.
@@ -199,8 +202,9 @@ different image.
 `rm_mcuboot_port` is shadowed on both parts ([D091]). It briefly supplied the flash map
 and backend on RA8M2 ([D079]), which is what removed the running cost [D073]/[D074] paid, and
 RA6M5 returned to TF-M's at [D085]; [D091] then settled both parts on TF-M's map and backend
-with FSP's HAL behind `fa_driver`. This row no longer differs per part - both `CMakeLists.txt`
-list `rm_mcuboot_port` in `FSP_MODULES_NEVER_BUILT`.
+with FSP's HAL behind `fa_driver`. This row no longer differs per part: on neither part does
+any `FSP_MODULES_S` or `FSP_MODULES_BL2` entry declare it. Its presence in
+`FSP_MODULES_NEVER_BUILT` is not the reason - that list only silences the audit.
 
 ---
 
@@ -214,7 +218,7 @@ rebuilds, and expects the new value to be programmed.
 | OFS values | the bootloader project's `ra_cfg/.../bsp_mcu_ofs_cfg.h` | Edited in the secure project instead — no effect, no warning. `bl2_option_setting.c` compiles into `platform_bl2`, so only `FSP_BL2_APP_DIR` is on the path. Both projects define the same groups |
 | OFS addresses | the bootloader project's generated `Debug/memory_regions.*`, filtered into `option_settings.h` at configure time | Hand-transcribed until 2026-09-24, and they were RA6M5's: OFS0 linked at `0x0100A100` instead of `0x02c9f040`. RA6M5 and RA6E1 still transcribe theirs — the open back-port in [D077] |
 | which groups exist | the device; FSP emits a `BSP_CFG_OPTION_SETTING_*` only for what the user set | A group enabled in e2 that the port does not place is dropped with no diagnostic. OFS2, OFS3_SEC and OFS3_SEL were dropped this way |
-| placement | `<part>_bl2.ld` MEMORY + sections, `<part>_bl2.icf` region + keep + place | One coalesced `PT_LOAD` zero-fills the span between the emitted words, writing `0x00` into eight defined option registers (DUALSEL, OFS1, BANKSEL, BPS, PBPS and their `_SEC` copies) as well as the reserved bytes between them → **permanent brick** ([D002], [D133]). Invisible in the srec |
+| placement | `<part>_bl2.ld` MEMORY + sections, `<part>_bl2.icf` region + keep + place | One coalesced `PT_LOAD` zero-fills the span between the emitted words, writing `0x00` into eight defined option registers (DUALSEL, OFS1, BANKSEL, BPS, PBPS and their `_SEC` copies) as well as the reserved bytes between them → **two boards bricked, no recovery known** ([D002], [D133]). Invisible in the srec |
 
 ### The checks that exist, and the pattern to follow
 

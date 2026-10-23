@@ -211,7 +211,7 @@ client memory directly; it is allowed only at isolation 1 (<code>config/check_co
 <figcaption>Simplified: isolation 2 or 3, IPC backend, Application-RoT service, no other runnable threads. The
 non-secure caller is represented inside the SPE by the <em>NS agent</em> partition
 (<code>secure_fw/partitions/ns_agent_tz/</code>); the SPM code in the middle column runs on that thread. Sources: veneer
-<code>psa_api_veneers_v80m.c:144-175</code>; entry <code>tfm_arch_v8m_main.c:51-94</code>; scheduling
+<code>psa_api_veneers_v80m.c:145-175</code>; entry <code>tfm_arch_v8m_main.c:51-94</code>; scheduling
 <code>backend_ipc.c:501-516</code>, <code>tfm_arch_v8m_main.c:99-153</code>; partition-side SVCs
 <code>psa_interface_svc.c</code>.</figcaption>
 </figure>
