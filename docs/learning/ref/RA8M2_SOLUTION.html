@@ -61,38 +61,40 @@
 <main id="top" class="ref-doc">
 <p class="src">Rendered from <a href="../../../RA8M2_SOLUTION.md"><code>RA8M2_SOLUTION.md</code></a>. Edit the Markdown, not this page.</p>
 <h1 id="ra8m2-solution-project--layout-trustzone-boundaries-project-requirements">RA8M2 Solution Project — layout, TrustZone boundaries, project requirements</h1>
-<p>Device: <strong>R7KA8M2JF</strong> on the <strong>EK-RA8M2</strong> (<code>board.ra8m2ek</code>) — 1 MB MRAM, 1,872 KB SRAM (plus 64 KB ITCM / 64 KB DTCM per core-0 partition), no data
+<p>Device: R7KA8M2JF on the EK-RA8M2 (<code>board.ra8m2ek</code>) — 1 MB MRAM, 1,872 KB SRAM (plus 64 KB ITCM / 64 KB DTCM per core-0 partition), no data
 flash, RSIP-E50D, Cortex-M85. FSP 6.7.0-beta0.</p>
 <p>Companion docs: <code>RA6M5_SOLUTION.md</code> (the port this is derived from), <code>DESIGN.md</code> (why — §4 for
 the flash backend, §7 for the SAU), <code>RA6E1_TEMPLATE_CHECKLIST.md</code> (what a solution must emit).</p>
-<blockquote><p><strong>Hardware status: the regression+FLIH configuration passes</strong> (2026-10-06,
+<blockquote><p>Hardware status: the regression+FLIH configuration passes (2026-10-06,
 <code>ra8m2_TFM_flih_gcc</code>, banner <code>TF-M v2.2.0+94dbaa08f</code>). Every secure and non-secure suite in
-<em>that</em> configuration, zero failures, FLIH IRQ tests included - the first complete run on this
+that configuration, zero failures, FLIH IRQ tests included - the first complete run on this
 part. <strong>The SLIH suite has never run on RA8M2 on either toolchain</strong> (<a href="DECISIONS.html#d126">D126</a> §4): the
 <code>m2gslih</code> trees were built and never got a launch. That exercised the SAU programming, the
 MRAM dual-alias driver, DF_EMULATION as ITS/PS backing, the RSIP-E50D, measured boot, and the
-RDPM values below. <strong>IAR now matches GCC on everything</strong>: the full regression, all three
+RDPM values below. IAR now matches GCC on everything: the full regression, all three
 PSA Arch suites, measured boot and the MCUboot upgrade path all pass on silicon.
-<strong>M5 is met on both toolchains.</strong> DECISIONS D095, D101-D106.</p></blockquote>
+M5 is met on both toolchains. DECISIONS D095, D101-D106.</p></blockquote>
 <hr>
 <h2 id="two-things-make-ra8m2-different-from-every-other-part-in-this-port">Two things make RA8M2 different from every other part in this port</h2>
-<p><strong>1. MRAM, not flash — and a dual address alias.</strong> <code>BSP_FEATURE_TZ_NS_OFFSET</code> is <code>0x10000000</code>,
+<ol>
+<li><p>MRAM, not flash — and a dual address alias. <code>BSP_FEATURE_TZ_NS_OFFSET</code> is <code>0x10000000</code>,
 so the same physical MRAM appears twice: secure at <code>0x02000000</code>, non-secure at <code>0x12000000</code>.
 Once RDPM has programmed <code>CFSAMONA.CFS2</code>, each alias reaches only its own half. Offsets in the
 table below are from <code>0x02000000</code>; the non-secure rows sit in the other alias at the same
-offset.</p>
-<p><strong>2. <code>__SAUREGION_PRESENT</code> is <code>1</code></strong> (it is <code>0</code> on RA6M4/RA6E1/RA6M5, which have an SAU with zero
-regions, not no SAU). With the SAU present but unprogrammed, Armv8-M marks the access <strong>Secure</strong>.
+offset.</p></li>
+<li><p><code>__SAUREGION_PRESENT</code> is <code>1</code> (it is <code>0</code> on RA6M4/RA6E1/RA6M5, which have an SAU with zero
+regions, not no SAU). With the SAU present but unprogrammed, Armv8-M marks the access Secure.
 That alone refuses nothing — Secure state may read Secure memory. The refusal is RA&#x27;s
-<strong>memory-side</strong> check: once <code>CFSAMONA.CFS2</code> is programmed, the MRAM non-secure alias accepts only
-a <strong>Non-secure</strong> transaction. The Armv8-M half is that the SAU has to mark the alias NS so the
-transaction is <em>issued</em> non-secure in the first place. So something must programme the SAU before
-BL2 touches the non-secure alias.</p>
+memory-side check: once <code>CFSAMONA.CFS2</code> is programmed, the MRAM non-secure alias accepts only
+a Non-secure transaction. The Armv8-M half is that the SAU has to mark the alias NS so the
+transaction is issued non-secure in the first place. So something must programme the SAU before
+BL2 touches the non-secure alias.</p></li>
+</ol>
 <p>That used to be FSP&#x27;s job: BL2 took its MCUboot flash backend from FSP, whose
 <code>flash_area_open()</code> programmed the SAU from <code>R_PSCU-&gt;CFSAMONA_b.CFS2</code> and whose
 <code>flash_on_chip_cleanup()</code> tore it down, with <code>DEFAULT_MCUBOOT_FLASH_MAP</code> and
 <code>DEFAULT_MCUBOOT_FLASH_BACKEND</code> both OFF in <code>config.cmake</code> (D073, D076, D079).</p>
-<p><strong>That is no longer the arrangement.</strong> Under D091 both parts use TF-M&#x27;s map and backend with
+<p>That is no longer the arrangement. Under D091 both parts use TF-M&#x27;s map and backend with
 FSP&#x27;s HAL behind <code>fa_driver</code>; <code>DEFAULT_MCUBOOT_FLASH_MAP</code> is ON by default and
 <code>DEFAULT_MCUBOOT_FLASH_BACKEND</code> no longer exists - neither is set in <code>config.cmake</code>. The SAU
 programming now lives in <code>bl2_boot_hal.c</code>, guarded on <code>__SAUREGION_PRESENT == 1</code>, with the
@@ -123,57 +125,58 @@ bounds imported from FSP&#x27;s <code>flash_map.c</code>. <code>DESIGN.md</code>
 <tr><td><code>__BL_1_S_I</code></td><td><code>FLASH_NS</code></td><td>n</td><td>0xD8200</td><td>0x27E00</td><td>image 1 secondary</td></tr>
 <tr><td><code>__BL_1_S_T</code></td><td><code>FLASH_NS</code></td><td>n</td><td>0x100000</td><td>0x0</td><td></td></tr>
 </table></div>
-<blockquote><p><strong>Two naming systems, and you need both.</strong> The <strong>name</strong> column is
-<code>bsp_linker_info.h</code>&#x27;s — what the port&#x27;s CMake and headers consume. The <strong>parent</strong> column is
+<blockquote><p>Two naming systems, and you need both. The name column is
+<code>bsp_linker_info.h</code>&#x27;s — what the port&#x27;s CMake and headers consume. The parent column is
 read straight off <code>&lt;memory parent="..."&gt;</code> in <code>ra8m2_gcc/solution.xml</code>, which is the file you
 edit to repartition. Earlier revisions of this table put &quot;MRAM&quot; in that column; no such
 parent exists.</p>
 <p>The two systems disagree on more than the parent. The secure/NSC/BL2 regions hang off
-<strong><code>FLASH</code></strong> and <strong><code>RAM</code></strong>; the non-secure ones off <strong><code>FLASH_NS</code></strong> and <strong><code>RAM_NS</code></strong> — a
+<code>FLASH</code> and <code>RAM</code>; the non-secure ones off <code>FLASH_NS</code> and <code>RAM_NS</code> — a
 separate parent, not a suffix. And some regions are renamed outright: BL2 is
-<code>FLASH_BL_CPU0_S</code> in the header and <strong><code>FLASH_CPU0_B</code></strong> in the solution, NS code is
-<code>FLASH_CPU0_N</code> and <strong><code>FLASH_NS_CPU0_N</code></strong>. Map the name before editing, or you will edit the
+<code>FLASH_BL_CPU0_S</code> in the header and <code>FLASH_CPU0_B</code> in the solution, NS code is
+<code>FLASH_CPU0_N</code> and <code>FLASH_NS_CPU0_N</code>. Map the name before editing, or you will edit the
 wrong region.</p></blockquote>
 <p>In 32 KB units: BL2 2, DF_EMULATION 2, secure slots 9 each, NS slots 5 each — 32 units, no
 remainder. <code>flash_layout.h:196-197</code> states the same sum as
 <code>64 K BL2 + 64 K DF_EMULATION + 2 x 288 K secure + 2 x 160 K non-secure = 1024 K</code>.</p>
-<p><strong>The secure/non-secure split falls at offset <code>0xB0000</code></strong>, the one number the flash driver has
+<p>The secure/non-secure split falls at offset <code>0xB0000</code>, the one number the flash driver has
 to get right. <code>cmsis_drivers/Driver_Flash.c</code> picks the alias from it:</p>
 <pre><code class="language-c">#define MRAM_ADDR(off)                                                   \
     ((uint32_t)(off) +                                                   \
      ((uint32_t)(off) &gt;= MRAM_NS_BOUNDARY ? MRAM_NS_BASE                 \
                                           : (uint32_t)(FLASH_BASE_ADDRESS)))</code></pre>
 <p><code>MRAM_NS_BASE</code> is <code>FLASH_BASE_ADDRESS + BSP_FEATURE_TZ_NS_OFFSET</code> — the family-fixed offset,
-deliberately <strong>not</strong> <code>FLASH_AREA_1_OFFSET</code>, which would move if the slots were repartitioned
+not <code>FLASH_AREA_1_OFFSET</code>, which would move if the slots were repartitioned
 (D074). <code>MRAM_NS_BOUNDARY</code> derives from <code>BSP_PARTITION_FLASH_CPU0_C_START + _SIZE</code>, so it
 follows the generated layout. <code>ra8m2_layout_checks.c</code> asserts both aliases agree with FSP&#x27;s
 feature macro, and that every secure area lies below the boundary and both NS areas at or above
 it.</p>
 <p>Getting this wrong is what produced the first RA8M2 BL2 HardFault: a <code>memcpy</code> from <code>0xb0000</code>,
 missing the <code>0x02</code> or <code>0x12</code> alias prefix entirely. D073.</p>
-<p><strong>There is no data flash.</strong> ITS, PS and the MCUboot NV counters share <code>DF_EMULATION</code>, a 64 KB
-MRAM region held deliberately <strong>outside every MCUboot area</strong> so an image update cannot erase
+<p>There is no data flash. ITS, PS and the MCUboot NV counters share <code>DF_EMULATION</code>, a 64 KB
+MRAM region held outside every MCUboot area so an image update cannot erase
 stored assets. NV counters take 2048 B; PS and ITS get about 31,744 B each — roughly 10x the
 RA6M5 allocation, which has only 8 KB of real data flash. 64 KB is the smallest size that
 splits without a remainder (<code>flash_layout.h:130</code>).</p>
 <hr>
 <h2 id="trustzone-boundary-values-for-this-layout">TrustZone boundary values for this layout</h2>
-<p>Programmed once per board with the <strong>Renesas Device Partition Manager</strong>, in KB. Nothing in the
-firmware sets them. The RDPM screen takes <strong>six</strong> fields, in this order:</p>
+<p>Programmed once per board with the Renesas Device Partition Manager, in KB. Nothing in the
+firmware sets them. The RDPM screen takes six fields, in this order:</p>
 <div class="table-wrap"><table>
 <tr><th>Field</th><th>Value (KB)</th><th>Derivation</th></tr>
-<tr><td>Code flash (MRAM) Secure</td><td><strong>703</strong></td><td>secure region ends at <code>FLASH_CPU0_C_START</code> = <code>0xAFC00</code> = 703 KB</td></tr>
-<tr><td>Code flash NSC</td><td><strong>1</strong></td><td><code>FLASH_CPU0_C_SIZE</code> = <code>0x400</code></td></tr>
-<tr><td>Data flash Secure</td><td><strong>0</strong></td><td><code>DATA_FLASH_CPU0_S_SIZE</code> = <code>0x0</code> — the part has none</td></tr>
-<tr><td>SRAM Secure</td><td><strong>935</strong></td><td><code>RAM_CPU0_S_SIZE</code> = <code>0xE9C00</code> = 935 KB</td></tr>
-<tr><td>SRAM NSC</td><td><strong>1</strong></td><td><code>RAM_CPU0_C_SIZE</code> = <code>0x400</code></td></tr>
-<tr><td>Data flash NSC</td><td><strong>0</strong></td><td>no data flash</td></tr>
+<tr><td>Code flash (MRAM) Secure</td><td>703</td><td>secure region ends at <code>FLASH_CPU0_C_START</code> = <code>0xAFC00</code> = 703 KB</td></tr>
+<tr><td>Code flash NSC</td><td>1</td><td><code>FLASH_CPU0_C_SIZE</code> = <code>0x400</code></td></tr>
+<tr><td>Data flash Secure</td><td>0</td><td><code>DATA_FLASH_CPU0_S_SIZE</code> = <code>0x0</code> — the part has none</td></tr>
+<tr><td>SRAM Secure</td><td>935</td><td><code>RAM_CPU0_S_SIZE</code> = <code>0xE9C00</code> = 935 KB</td></tr>
+<tr><td>SRAM NSC</td><td>1</td><td><code>RAM_CPU0_C_SIZE</code> = <code>0x400</code></td></tr>
+<tr><td>Data flash NSC</td><td>0</td><td>no data flash</td></tr>
 </table></div>
 <p>Checks: code flash S + NSC = 704 KB = 22 x 32 ✓ (MRAM block 32 KB).
 SRAM S + NSC = 936 KB = 117 x 8 ✓.</p>
 <p>Resulting NS regions: 320 KB of MRAM in the non-secure alias from <code>0x120B0000</code>, 936 KB of SRAM.</p>
-<p><strong>RDPM erases the part — reflash all three images afterwards.</strong> Every launch configuration must
-keep <code>com.renesas.hardwaredebug.arm.jlink.setTZBoundaries</code> = <strong>false</strong> (<code>DESIGN.md</code> §7.2).</p>
+<p><strong>RDPM erases the part</strong> — reflash all three images afterwards.</p>
+<p>Every launch configuration must keep
+<code>com.renesas.hardwaredebug.arm.jlink.setTZBoundaries</code> = <code>false</code> (<code>DESIGN.md</code> §7.2).</p>
 <blockquote><p><strong>Nine of the 47 shipped launches break this rule today</strong> (audited 2026-10-22):</p>
 <ul>
 <li><code>jlink</code> key <code>true</code> in the four stock e2 <code>*_nonsecure Debug_SSD.launch</code> files
@@ -192,19 +195,19 @@ the <code>ra8m2_iar_*</code> equivalents. The <code>RA6E1_TEMPLATE_CHECKLIST.md<
 specifics:</p>
 <div class="table-wrap"><table>
 <tr><th>Project</th><th>Requirement</th></tr>
-<tr><td><code>*_CPU0_secure</code></td><td><code>r_mram</code>, instance named <strong><code>g_mram0</code></strong> (not <code>g_flash0</code> — this is MRAM)</td></tr>
+<tr><td><code>*_CPU0_secure</code></td><td><code>r_mram</code>, instance named <code>g_mram0</code> (not <code>g_flash0</code> — this is MRAM)</td></tr>
 <tr><td><code>*_mcuboot</code></td><td><code>r_mram</code> as <code>g_mram0</code>, plus <code>rm_mcuboot_port</code></td></tr>
-<tr><td><code>*_mcuboot</code></td><td><strong>Measured Boot enabled</strong> — supplies the boot record BL2 writes</td></tr>
-<tr><td><code>*_CPU0_secure</code>, <code>*_mcuboot</code></td><td><code>BSP_CFG_EARLY_INIT</code> = 1 (<strong>not</strong> the NS projects — both have 0 and pass every suite; the port asserts it only for secure and BL2)</td></tr>
-<tr><td>all</td><td>the partitioning above, with <code>__BL_*_T</code> sizes <strong>0</strong></td></tr>
+<tr><td><code>*_mcuboot</code></td><td>Measured Boot enabled — supplies the boot record BL2 writes</td></tr>
+<tr><td><code>*_CPU0_secure</code>, <code>*_mcuboot</code></td><td><code>BSP_CFG_EARLY_INIT</code> = 1 (not the NS projects — both have 0 and pass every suite; the port asserts it only for secure and BL2)</td></tr>
+<tr><td>all</td><td>the partitioning above, with <code>__BL_*_T</code> sizes 0</td></tr>
 </table></div>
-<p><strong>Partition emission order matters.</strong> The generator once produced a 512-byte secure primary slot
+<p>Partition emission order matters. The generator once produced a 512-byte secure primary slot
 because it emitted <code>__BL_0_S_T</code> before <code>__BL_0_P_H</code>; the fix was ordering, not geometry (D078).
 After any repartition, read <code>Debug/bsp_linker_info.h</code> back and check that <code>__BL_0_P_H_START</code>
 equals <code>__BL_0_S_T_START</code>.</p>
 <h3 id="project-side-gaps---all-closed-2026-10-08">Project-side gaps - all closed 2026-10-08</h3>
-<p>All three were fixed in RASC and verified against the GCC trees. **The IAR and GCC projects are
-now configuration-identical**, with the caveat that the method does not read
+<p>All three were fixed in RASC and verified against the GCC trees. The IAR and GCC projects are
+now configuration-identical, with the caveat that the method does not read
 <code>.secure_azone</code>/<code>.secure_rzone</code> (<a href="DECISIONS.html#d112">D112</a>) — the IAR NS azone was in fact missing the <code>ICU.IRQ0</code>
 secure assignment until it was fixed, so the claim held by luck. A full property diff of all
 three pairs (<code>CPU0_secure</code>,
@@ -216,13 +219,13 @@ every <code>BSP_PARTITION_*</code> match.</p>
 <tr><td><code>ra8m2_iar_CPU0_secure</code></td><td><code>RAM_CPU0_C</code> 128 B against GCC&#x27;s 1 KB</td><td><code>0x400</code> at <code>0x220E9C00</code></td></tr>
 <tr><td><code>ra8m2_iar_CPU0_secure</code></td><td>no <code>r_agt</code>, so the IAR PSA Arch tree (<code>m2pa</code>) could not configure</td><td><code>module.driver.timer.ipl = priority4</code>; <code>agt_int_isr</code> allocated to one AGT0_INT vector (the second AGT name is the IRQn alias of the same entry) in the vector table</td></tr>
 </table></div>
-<p><strong>On the last one: adding the module is not enough.</strong> An intermediate regenerate had <code>r_agt</code>
-present with <code>ipl = _disabled</code>, which emits <em>no vector entry at all</em> - <code>vector_data.h</code> declared
+<p>On the last one: adding the module is not enough. An intermediate regenerate had <code>r_agt</code>
+present with <code>ipl = _disabled</code>, which emits no vector entry at all - <code>vector_data.h</code> declared
 0 AGT events. A real Interrupt Priority is what puts the interrupt in the secure vector table
 (<a href="DECISIONS.html#d061">D061</a>); Disabled silently produces a project that looks configured and is not.</p>
-<p><strong>One difference remains and is inert.</strong> <code>BSP_PARTITION_RAM_BL_CPU0_S_SIZE</code> is <code>0x2600</code> on IAR
+<p>One difference remains and is inert. <code>BSP_PARTITION_RAM_BL_CPU0_S_SIZE</code> is <code>0x2600</code> on IAR
 against <code>0x1200</code> on GCC (secure and NS trees; absent from both mcuboot trees). Nothing consumes
-it - <code>region_defs.h:217</code> deliberately ignores that partition as FSP&#x27;s own bootloader budget,
+it - <code>region_defs.h:217</code> ignores that partition as FSP&#x27;s own bootloader budget,
 smaller than TF-M&#x27;s BL2 needs, so <code>BL2_DATA_*</code> comes from <code>RAM_CPU0_S</code>. The ~24 extra NS
 properties on the GCC side (AWS WiFi, DA16XXX, SCI-B UART) are likewise inert - neither tree
 instantiates those modules.</p>
@@ -233,7 +236,7 @@ instantiates those modules.</p>
 #define BSP_TZ_CFG_MSAR (        ((BSP_CFG_CLOCKS_SECURE == 0) ? (1U &lt;&lt; 1) : 0U) | /* MREFREQ */        ((BSP_CFG_CLOCKS_SECURE == 0) ? (1U &lt;&lt; 3) : 0U) | /* MRCFREQ */        ((BSP_CFG_CLOCKS_SECURE == 0) ? (1U &lt;&lt; 4) : 0U) /* MRCPFB */)
 #endif</code></pre>
 <p>With <code>BSP_CFG_CLOCKS_SECURE (0)</code> - which is what <code>ra_gen/bsp_clock_cfg.h</code> generates - bit 4 is
-set, <code>R_BSP_SecurityInit()</code> writes it to <code>R_MRMS-&gt;MSAR</code>, and <strong>MRCPFB becomes non-secure</strong>. The
+set, <code>R_BSP_SecurityInit()</code> writes it to <code>R_MRMS-&gt;MSAR</code>, and MRCPFB becomes non-secure. The
 secure image then faults the first time it programs MRAM: <code>tfm_plat_otp</code> writes into
 DF_EMULATION, <code>mram_program_control()</code> calls <code>bsp_prv_clear_pfb()</code>, and
 <code>R_MRMS-&gt;MRCPFB = 0x00</code> from Secure state takes a precise bus error.</p>
@@ -244,83 +247,83 @@ PC   bsp_prv_clear_pfb        called from mram_program_control</code></pre>
 <code>&lt;raClockConfiguration security="s"&gt;</code> in <code>.secure_xml</code> and still generates
 <code>BSP_CFG_CLOCKS_SECURE (0)</code> - its <code>.secure_xml</code> and <code>ra_gen/bsp_clock_cfg.h</code> share a timestamp,
 so it was generated that way. The attribute and the macro are not the same knob.</p>
-<p><strong>Believed to be an e2 studio generator defect, and it bites on RA8 parts only</strong> - <code>MSAR</code>
+<p>Believed to be an e2 studio generator defect, and it affects RA8 parts only - <code>MSAR</code>
 exists only where there is MRAM, and RA6&#x27;s other route through <code>OFS1_SEL</code> is closed because
 BL2 is built as the flat FSP role (D094). <code>BSP_TZ_CFG_MSAR</code> is <code>#ifndef</code>-guarded, so
 the port supplies <code>BSP_TZ_CFG_MSAR=0</code> through <code>FSP_COMPILE_DEFS</code> in <code>ra8m2/CMakeLists.txt</code> -
 all three MRAM registers Secure, which is what this port wants since BL2 and the secure image
 own MRAM and the non-secure app never changes MRAM timing.</p>
-<p><strong>This is a temporary workaround and a documented deviation</strong> from &quot;RASC is the source of
+<p>This is a temporary workaround and a documented deviation from &quot;RASC is the source of
 config truth&quot; (<code>DESIGN.md</code> §1.1). <strong>Remove it</strong> once e2 emits <code>BSP_CFG_CLOCKS_SECURE (1)</code> from
 the Clocks/Security setting; check <code>ra_gen/bsp_clock_cfg.h</code> after a regenerate to tell.</p>
-<p>Seen on the first RA8M2 boot, 2026-10-05. <strong>RA6M5 cannot hit this</strong> - it has no MRAM, so no
+<p>Seen on the first RA8M2 boot, 2026-10-05. RA6M5 cannot hit this - it has no MRAM, so no
 <code>MSAR</code>. The same e2 setting there affects only <code>LPMSAR</code> and the clock registers.</p>
 <hr>
 <h2 id="status">Status</h2>
-<p><strong>Builds, all four GCC trees and the IAR trees.</strong> Measured with <code>arm-none-eabi-size</code>
+<p>Builds, all four GCC trees and the IAR trees. Measured with <code>arm-none-eabi-size</code>
 (MinSizeRel, <code>text</code> only):</p>
 <div class="table-wrap"><table>
 <tr><th>Image</th><th>text</th><th>Region</th><th>Headroom</th></tr>
 <tr><td>bl2</td><td>27,100 B</td><td><code>0x10000</code> (64 KB)</td><td>58% free</td></tr>
-<tr><td>tfm_s</td><td>278,594 B</td><td><code>0x47A00</code> (293,376 B)</td><td>signed payload ends at 294,226 of a 294,912 slot — <strong>670 B spare</strong></td></tr>
+<tr><td>tfm_s</td><td>278,594 B</td><td><code>0x47A00</code> (293,376 B)</td><td>signed payload ends at 294,226 of a 294,912 slot — 670 B spare</td></tr>
 <tr><td>tfm_ns</td><td>105,944 B</td><td><code>0x27E00</code> (163,328 B)</td><td>35% free</td></tr>
 </table></div>
-<p><strong>PSA Arch suites on silicon. Both toolchains complete.</strong></p>
+<p>PSA Arch suites on silicon. Both toolchains complete.</p>
 <div class="table-wrap"><table>
 <tr><th>Suite</th><th>RA8M2 GCC</th><th>RA8M2 IAR</th><th>RA6M5 (both)</th></tr>
-<tr><td>crypto</td><td><strong>62 / 1 / 1</strong> of 64</td><td><strong>62 / 1 / 1</strong> of 64</td><td>63 / 0 / 1</td></tr>
-<tr><td>attestation</td><td>1 / 0 / 0</td><td><strong>1 / 0 / 0</strong></td><td>1 / 0 / 0</td></tr>
-<tr><td>storage (ITS + PS)</td><td>11 / 0 / 6</td><td><strong>11 / 0 / 6</strong></td><td>11 / 0 / 6</td></tr>
+<tr><td>crypto</td><td>62 / 1 / 1 of 64</td><td>62 / 1 / 1 of 64</td><td>63 / 0 / 1</td></tr>
+<tr><td>attestation</td><td>1 / 0 / 0</td><td>1 / 0 / 0</td><td>1 / 0 / 0</td></tr>
+<tr><td>storage (ITS + PS)</td><td>11 / 0 / 6</td><td>11 / 0 / 6</td><td>11 / 0 / 6</td></tr>
 </table></div>
 <p>The full regression suite also passes under IAR - all seven NS suites including FLIH IRQ - and
-<strong>measured boot is verified from the boot record</strong>, both measurements matching the signed
+measured boot is verified from the boot record, both measurements matching the signed
 images&#x27; SHA-256 TLVs. D105.</p>
-<p><strong>The two toolchains agree test for test</strong> - same tally, same failing test (216), same skip
+<p>The two toolchains agree test for test - same tally, same failing test (216), same skip
 (252), on <code>TF-M v2.2.0+94dbaa08f</code> in both. That is the same pattern RA6M5 showed, where GCC and
 IAR were also identical. D104.</p>
-<p>The two <em>parts</em> differ by <strong>one test out of 64</strong>: 216, the plaintext RSA-2048 keygen gap under
+<p>The two parts differ by one test out of 64: 216, the plaintext RSA-2048 keygen gap under
 &quot;Open items&quot; - and it now fails under both toolchains, which confirms it is silicon and config
 rather than anything toolchain-specific. Both parts skip 252 (deterministic ECDSA, which FSP
 does not support); the six storage skips are the optional <code>psa_ps_create</code> /
 <code>psa_ps_set_extended</code> APIs TF-M does not implement. D099.</p>
-<p><strong>The MCUboot upgrade path runs</strong> (<code>ra8m2_TFM_update_gcc</code>, 2026-10-08). Both images install
+<p>The MCUboot upgrade path runs (<code>ra8m2_TFM_update_gcc</code>, 2026-10-08). Both images install
 from their secondary slots, and a second reset reports <code>Swap type: none</code> - the secondary is
 erased, so no re-install. First execution of this path on any part here. D100.</p>
-<p><strong>Slot order is reversed for image 0.</strong> The secure secondary (<code>0x02020000</code>) sits <strong>below</strong> the
+<p>Slot order is reversed for image 0. The secure secondary (<code>0x02020000</code>) sits below the
 secure primary (<code>0x02068000</code>); image 1 is the usual way round (<code>0x120B0000</code> primary,
-<code>0x120D8000</code> secondary). So <code>rsp.br_image_off = 0x68000</code> is the <em>primary</em>. Flash rows and any
+<code>0x120D8000</code> secondary). So <code>rsp.br_image_off = 0x68000</code> is the primary. Flash rows and any
 reading of a <code>boot_rsp</code> must account for this. D100.</p>
 <p>The secure slot is nearly full. <code>README.md</code> §&quot;Freeing space in the secure image&quot; lists what can
 be turned off; at 670 B of headroom (<a href="DECISIONS.html#d087">D087</a>) the PSA Arch logging options cannot be enabled globally here.</p>
-<p><strong>Measured boot is on</strong> (<code>MCUBOOT_MEASURED_BOOT</code> + <code>MCUBOOT_DATA_SHARING</code> in <code>config.cmake</code>) and
+<p>Measured boot is on (<code>MCUBOOT_MEASURED_BOOT</code> + <code>MCUBOOT_DATA_SHARING</code> in <code>config.cmake</code>) and
 statically verified. It had never been enabled anywhere until 2026-10-02, and the attestation
 suite cannot detect its absence: with <code>component_cnt == 0</code> under the default
 <code>ATTEST_TOKEN_PROFILE_PSA_IOT_1</code>, <code>attest_add_all_sw_components()</code> emits <code>IAT_NO_SW_COMPONENTS</code>
 and returns success. So a passing attestation run proves nothing either way — read the boot
 record at the start of secure RAM instead. D080, D081.</p>
-<p><strong>BL2 uses TF-M&#x27;s MCUboot flash map and backend</strong>, with FSP&#x27;s flash HAL behind
+<p>BL2 uses TF-M&#x27;s MCUboot flash map and backend, with FSP&#x27;s flash HAL behind
 <code>fa_driver</code> as an <code>ARM_DRIVER_FLASH</code> in <code>cmsis_drivers/Driver_Flash.c</code> - the arrangement four ST
 platforms already use upstream. <code>rm_mcuboot_port</code> is listed in <code>FSP_MODULES_NEVER_BUILT</code>.</p>
 <p>This replaced an earlier design in which BL2 took FSP&#x27;s backend (D079, D082) and needed five
 couplings to do it: a by-name <code>flash_map.c</code> registration, a predefined <code>__FLASH_MAP_BACKEND_H__</code>
 to suppress TF-M&#x27;s duplicate header, <code>mcuboot_hook_shim.h</code> for the <code>BOOT_HOOK_FLASH_AREA_CALL</code>
 TF-M&#x27;s MCUboot lacks, and force-includes via <code>"SHELL:-include ..."</code>. All five are gone, and with
-them D090&#x27;s <code>struct flash_area</code> guard collision - which is now <strong>structurally impossible</strong> rather
+them D090&#x27;s <code>struct flash_area</code> guard collision - which is now structurally impossible rather
 than merely fixed. <code>bl2/CMakeLists.txt</code> is byte-identical to TF-Mv2.2.0. D091.</p>
 <p>The image layout is still the Solution&#x27;s: <code>FLASH_AREA_*_OFFSET/SIZE</code> derive from
 <code>BSP_PARTITION_*</code> regardless of which backend reads them. Layout ownership and backend ownership
 are separable, and conflating them is what made this take three attempts.</p>
-<p><strong>The flash controller is no longer handed over.</strong> That paragraph described the FSP-backend
+<p>The flash controller is no longer handed over. That paragraph described the FSP-backend
 arrangement <a href="DECISIONS.html#d091">D091</a> removed: <code>boot_platform_init()</code> opened <code>g_mram0_ctrl</code>, FSP&#x27;s
 <code>flash_area_open()</code> then opened the same controller and returned −1 on <code>FSP_ERR_ALREADY_OPEN</code>,
-so <code>ra8m2_flash_release_for_mcuboot()</code> had to close it first. **No such function exists in the
-port now**, and FSP&#x27;s <code>flash_area_open()</code> is not built. Today <code>Driver_FLASH0</code> owns <code>g_mram0</code>,
+so <code>ra8m2_flash_release_for_mcuboot()</code> had to close it first. No such function exists in the
+port now, and FSP&#x27;s <code>flash_area_open()</code> is not built. Today <code>Driver_FLASH0</code> owns <code>g_mram0</code>,
 <code>Driver_Flash.c</code> handles <code>FSP_ERR_ALREADY_OPEN</code> by close-and-reopen, and the first thing
 <code>boot_platform_post_init()</code> does is <code>bl2_sau_init()</code>.</p>
 <hr>
 <h2 id="open-items">Open items</h2>
 <ul>
-<li><p><strong>RSA-2048 key generation in PLAINTEXT format is unavailable, and there is no switch for it.</strong>
+<li><p>RSA-2048 key generation in PLAINTEXT format is unavailable, and there is no switch for it.
 PSA Arch crypto test 216 check 4 returns <code>PSA_ERROR_NOT_SUPPORTED</code> (-134) under both
 toolchains. Every other RSA-2048 operation passes. The guard in <code>rsa_alt_process.c</code>
 <code>mbedtls_rsa_gen_key()</code> is on the silicon, not on any config:</p>
@@ -329,25 +332,25 @@ toolchains. Every other RSA-2048 operation passes. The guard in <code>rsa_alt_pr
     ret = MBEDTLS_ERR_PLATFORM_FEATURE_UNSUPPORTED;
 #endif</code></pre>
 <p>E50D is absent from that list; RA6M5 passes because SCE9 is in it. <code>PSA_CRYPTO_CFG_RSA_FORMAT</code>
-is <strong>3</strong> (plaintext <em>and</em> wrapped) in the generated <code>ra_cfg/arm/mbedtls/config.h</code>, and both
+is 3 (plaintext and wrapped) in the generated <code>ra_cfg/arm/mbedtls/config.h</code>, and both
 parts select <code>vendor_plaintext_wrapped</code> in RASC, so the format config is not what selects the
-failing path and raising it cannot help. Hardware RSA keygen on E50D requires the <em>caller</em> to
-ask for a wrapped key, which a conformance test does not do. D097, D098, <strong>D111</strong>.</p></li>
-<li><p><strong><del>Run the IAR trees.</del> DONE 2026-10-21</strong> (<a href="DECISIONS.html#d118">D118</a>, <a href="DECISIONS.html#d119">D119</a> — both are dated 2026-10-21;
+failing path and raising it cannot help. Hardware RSA keygen on E50D requires the caller to
+ask for a wrapped key, which a conformance test does not do. D097, D098, D111.</p></li>
+<li><p><del>Run the IAR trees.</del> DONE 2026-10-21 (<a href="DECISIONS.html#d118">D118</a>, <a href="DECISIONS.html#d119">D119</a> — both are dated 2026-10-21;
 this line said 2026-10-22) — IAR is green at isolation 2 and 3 on this part, secure and
-non-secure, FLIH tests included. <strong>Regression+FLIH only</strong>, per <a href="DECISIONS.html#d126">D126</a> §4. Original note follows.
+non-secure, FLIH tests included. Regression+FLIH only, per <a href="DECISIONS.html#d126">D126</a> §4. Original note follows.
 The GCC side is done: full regression, PSA Arch attestation (1/1), and
 measured boot verified from the boot record at <code>0x22000000</code> - magic <code>0x2016</code>, NSPE 0.0.0 and
 SPE 2.2.0, both SHA-256 measurements equal to the signed images&#x27; TLVs (D095, D096).
-IAR side: all six trees build and **the regression, crypto, attestation and storage suites
-all pass on silicon, matching GCC**; measured boot verified from the boot record (D104,
+IAR side: all six trees build and the regression, crypto, attestation and storage suites
+all pass on silicon, matching GCC; measured boot verified from the boot record (D104,
 D105). The secondary-slot update test passes end to end under IAR - both images install
 and the second boot reports <code>Swap type: none</code>, so the secondary is erased (D106, D109).
 BL2&#x27;s own RTT log needed two IAR-specific fixes to appear at all (D107, D108).</p></li>
-<li><p><strong>D077 back-ports go the other way.</strong> This part has the generated OFS addresses and 22
+<li><p>D077 back-ports go the other way. This part has the generated OFS addresses and 22
 enabled-but-unplaced <code>#error</code> guards; RA6M5 and RA6E1 have neither. The open work is bringing
 them up to this part, not changing this one.</p></li>
-<li><p><strong><del><code>config.cmake:90-98</code> prose is stale</del> — closed.</strong> <code>config.cmake:80-105</code> now gives the
+<li><p><del><code>config.cmake:90-98</code> prose is stale</del> — closed. <code>config.cmake:80-105</code> now gives the
 <code>0x60</code> trailer, <code>FLASH_CPU0_S 0x47A00</code> at <code>0x68200</code>, NSC <code>0x400</code> at <code>0xAFC00</code> and NS from
 <code>0xB0000</code>, matching the generated layout. Original note: — its <code>MCUBOOT_ALIGN_VAL 32</code> justification rests on
 four numbers that have all since changed, and it points at <code>RA8M2_SOLUTION.md</code>, which did not
