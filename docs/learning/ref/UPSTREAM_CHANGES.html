@@ -59,29 +59,29 @@
 <main id="top" class="ref-doc">
 <p class="src">Rendered from <a href="../../../UPSTREAM_CHANGES.md"><code>UPSTREAM_CHANGES.md</code></a>. Edit the Markdown, not this page.</p>
 <h1 id="changes-to-upstream-tf-m">Changes to upstream TF-M</h1>
-<p>Changes this port makes to files <strong>outside</strong> <code>platform/ext/target/renesas/</code>. These are not
+<p>Changes this port makes to files outside <code>platform/ext/target/renesas/</code>. These are not
 Renesas-specific: each one is a gap or defect in common TF-M code that any platform with the
 same property would hit. They are tracked here separately from <code>DECISIONS.md</code> because they
 have a different destination — a patch series to TrustedFirmware-M rather than a design
 record — and because a fork carrying silent edits to common files is a maintenance trap.</p>
-<p>Fork point: <strong><code>dd2b7de19</code></strong> (&quot;Docs: Release notes updates for v2.2.0&quot;), i.e. TF-M v2.2.0.
+<p>Fork point: <code>dd2b7de19</code> (&quot;Docs: Release notes updates for v2.2.0&quot;), i.e. TF-M v2.2.0.
 Regenerate the authoritative list at any time with:</p>
 <pre><code>git diff --stat $(git merge-base HEAD upstream/main) -- . ':(exclude)platform/ext/target/renesas'</code></pre>
-<p><strong>Exclude only the port directory.</strong> An earlier version of this command named specific
+<p>Exclude only the port directory. An earlier version of this command named specific
 subdirectories and therefore missed real edits to common files - <code>cmake/install.cmake</code>,
 <code>lib/ext/mcuboot/CMakeLists.txt</code>, <code>toolchain_ARMCLANG.cmake</code> and <code>toolchain_CLANG.cmake</code>
 among them - which also meant the &quot;untracked divergence&quot; re-check the Submission notes
 prescribe could never have found them.</p>
-<p><strong>The wide form returns 39 files.</strong> The items below account for <strong>20</strong> of them - that was 21
+<p>The wide form returns 39 files. The items below account for 20 of them - that was 21
 until <a href="DECISIONS.html#d091">D091</a> withdrew item 13 and returned <code>bl2/CMakeLists.txt</code> to byte-identical with
-TF-Mv2.2.0. The remaining <strong>19</strong> are listed under <strong>Not yet accounted for</strong>.</p>
+TF-Mv2.2.0. The remaining 19 are listed under Not yet accounted for.</p>
 <hr>
 <h2 id="ready-to-upstream">Ready to upstream</h2>
 <h3 id="s1">1. IAR: <code>STACKSEAL</code> block reserves space but places no section</h3>
 <p><code>platform/ext/common/iar/tfm_isolation_s.icf.template</code></p>
 <p><code>define block STACKSEAL with size = STACKSEAL_SIZE { };</code> is empty — it reserves 8 bytes but
 names no section, so the <code>__STACK_SEAL</code> object (which platforms place in
-<code>.msp_stack_seal_res</code>, exactly as the GNU template anchors <code>__StackSeal</code> to that section) is
+<code>.msp_stack_seal_res</code>, as the GNU template anchors <code>__StackSeal</code> to that section) is
 never placed. ILINK sweeps it into the general data area. <code>Reset_Handler</code> then seals an
 address sitting on live partition data, <code>__iar_data_init3</code> overwrites the seal moments later,
 the SPM seal check fails, and <code>tfm_core_panic()</code> resets — a boot loop with nothing on the
@@ -98,7 +98,7 @@ honours neither — it hardcodes <code>block ER_VENEER</code> inline in <code>LR
 table.</p>
 <p>Any platform whose Non-Secure-Callable window is fixed by hardware (SAU/IDAU, or a vendor
 partition table) therefore gets its veneers outside that window. The <code>SG</code> instruction is not
-permitted there, so <strong>every</strong> NS→S call faults with <code>SFSR.INVEP</code> before the veneer&#x27;s first
+permitted there, so every NS→S call faults with <code>SFSR.INVEP</code> before the veneer&#x27;s first
 instruction.</p>
 <p>Fix: guard the inline placement with <code>!defined(TFM_LINKER_VENEERS_LOCATION_END)</code> and add
 <code>place at address TFM_LINKER_VENEERS_START { block ER_VENEER, block VENEER_ALIGN };</code>.</p>
@@ -109,8 +109,8 @@ instruction.</p>
 <p>GNU has <code>S_RAM_CODE_EXTRA_SECTION_NAME</code> (upstream, <code>53c10c111</code>) and
 <code>S_DATA_EXTRA_NOINIT_SECTION_NAME</code> (item 4) so a platform can name vendor sections that must
 execute from RAM, or be neither copied nor zeroed. The IAR template has no equivalent, and
-the obvious symmetry does not work: **a section name cannot survive iccarm&#x27;s preprocessor as
-a macro.** It re-emits <code>.ram_from_flash</code> as <code>. ram_from_flash</code> — the dot separated from the
+the obvious symmetry does not work: a section name cannot survive iccarm&#x27;s preprocessor as
+a macro. It re-emits <code>.ram_from_flash</code> as <code>. ram_from_flash</code> — the dot separated from the
 identifier so the two cannot paste — and ICF rejects it. This happens under every
 <code>--preprocess</code> variant, a quoted name is refused by the grammar (<code>no_tick_identifier</code>), and
 keeping the dot literal in the template does not help because the space is inserted ahead of
@@ -124,11 +124,11 @@ initialiser and leaves the block empty, naming <code>rw</code> in the directive 
 <h3 id="s4">4. GNU: vendor no-init sections are orphaned, not placed</h3>
 <p><code>platform/ext/common/gcc/tfm_common_s.ld.template</code>,
 <code>platform/ext/common/gcc/tfm_isolation_s.ld.template</code> — commit <code>fbc84be86</code></p>
-<p>Adds <code>S_DATA_EXTRA_NOINIT_SECTION_NAME</code> → <code>.TFM_NOINIT</code>, placed <em>before</em> <code>.TFM_BSS</code> so it
+<p>Adds <code>S_DATA_EXTRA_NOINIT_SECTION_NAME</code> → <code>.TFM_NOINIT</code>, placed before <code>.TFM_BSS</code> so it
 falls outside <code>__bss_start__..__bss_end__</code>. A BSP that sets state in <code>SystemInit()</code> — Renesas
 FSP sets <code>SystemCoreClock</code> and its clock state there — has that state established before the
 C runtime runs, so anything holding it must be excluded from both the copy and zero tables.</p>
-<p>Unhandled, such a section is not diagnosed but <strong>orphaned</strong>: ld invents an output section
+<p>Unhandled, such a section is not diagnosed but orphaned: ld invents an output section
 and, the input being PROGBITS, gives it a load address. On RA6E1 that was 110 bytes of
 <code>.ram_noinit</code> landing inside the 2 KB NSC window, holding initialisers nothing ever copies.</p>
 <h3 id="s5">5. GNU: <code>.ER_CODE_SRAM</code> must precede end-located veneers</h3>
@@ -170,14 +170,14 @@ through <code>SPMLOG_ERRMSGVAL</code>, which a silent SPM log compiles away to <
 that preserves address discontinuities — on RA parts the option-setting words at
 <code>0x0100Axxx</code> mean a flat <code>.bin</code> is padded to ~16.8 MB and, worse, merges the option words
 into one contiguous blob.</p>
-<p><strong>Complete as of 2026-09-23</strong> (<a href="DECISIONS.html#d049">D049</a>). <code>platform/ns/toolchain_ns_IARARM.cmake</code> now adds the
+<p>Complete as of 2026-09-23 (<a href="DECISIONS.html#d049">D049</a>). <code>platform/ns/toolchain_ns_IARARM.cmake</code> now adds the
 same <code>${target}_srec</code> target, via <code>ielftool --srec</code> as its other conversions use <code>ielftool</code>.
 Verified from a clean IAR NS build.</p>
 <p>Still uneven between the two NS toolchains: the IAR one produces no <code>.map</code>, so a symbol lookup
 there needs <code>nm</code> on the ELF. Worth folding in before submitting.</p>
 <h3 id="s9">9. BL2 signing depends on the target, not the image file</h3>
 <p><code>bl2/ext/mcuboot/CMakeLists.txt</code> — commit <code>b78618497</code></p>
-<p>A <strong>custom</strong> target named in <code>DEPENDS</code> becomes an order-only edge (CMake adds a file-level
+<p>A custom target named in <code>DEPENDS</code> becomes an order-only edge (CMake adds a file-level
 dependency when the named target is an executable or library; <code>tfm_s_bin</code> is a custom target,
 which is why this bites) — &quot;build this first&quot;, not &quot;re-run me
 when it changes&quot; — so the signed image was produced once and never regenerated. Every
@@ -200,52 +200,52 @@ branches but not the EC one, so an EC-P256 build with <code>MCUBOOT_IMAGE_NUMBER
 does not collide.</p>
 <h3 id="s13">13. WITHDRAWN - BL2&#x27;s MCUboot flash backend cannot be replaced by a platform</h3>
 <p><strong>Withdrawn 2026-10-05 (<a href="DECISIONS.html#d091">D091</a>). Do not submit.</strong></p>
-<p>This asked upstream to let a platform replace the MCUboot flash <em>backend</em>, not just the <em>map</em>.
+<p>This asked upstream to let a platform replace the MCUboot flash backend, not just the map.
 The port no longer needs it: both parts take TF-M&#x27;s backend and put FSP&#x27;s HAL behind
 <code>fa_driver</code>, which is what ST already does for STM32Cube
 (<code>stm/common/hal/CMSIS_Driver/low_level_flash.c</code>). <code>bl2/CMakeLists.txt</code> is byte-identical to
 TF-Mv2.2.0 again, and <code>DEFAULT_MCUBOOT_FLASH_BACKEND</code> no longer exists anywhere in the tree.</p>
 <p>Kept here rather than deleted because the underlying observation stands and may matter to a
-future port: <code>DEFAULT_MCUBOOT_FLASH_MAP=OFF</code> buys the map <strong>data</strong> only - the struct and the
+future port: <code>DEFAULT_MCUBOOT_FLASH_MAP=OFF</code> buys the map data only - the struct and the
 <code>flash_area_*</code> functions remain TF-M&#x27;s, and corstone1000 and rse, the only upstream users,
 both populate TF-M&#x27;s struct with <code>.fa_driver = &amp;FLASH_DEV_NAME</code>.</p>
 <h3 id="s14">14. IAR: <code>--redirect __write=__write_buffered</code> makes a platform <code>__write()</code> unreachable</h3>
-<p><code>toolchain_IARARM.cmake</code> lines 68-70 - **report only; no upstream file is modified for
-this item.** The port works around it inside <code>platform/ext/target/renesas/</code>, so it does
+<p><code>toolchain_IARARM.cmake</code> lines 68-70 - report only; no upstream file is modified for
+this item. The port works around it inside <code>platform/ext/target/renesas/</code>, so it does
 not appear in the 21-file diff above.</p>
 <pre><code class="language-cmake">add_link_options(
     --silent
     --semihosting
     --redirect __write=__write_buffered
     ...</code></pre>
-<p>Both options are unconditional, and together they make it **impossible for a platform to
-supply its own low-level stdout under IAR**. The redirect sends every reference to <code>__write</code>
+<p>Both options are unconditional, and together they make it impossible for a platform to
+supply its own low-level stdout under IAR. The redirect sends every reference to <code>__write</code>
 to DLIB&#x27;s buffered writer, so a platform&#x27;s <code>__write()</code> is defined, visible in <code>nm</code> and in the
 map, and never called. The chain ends in semihosting:</p>
 <pre><code>printf -&gt; _Prout -&gt; fputc -&gt; fflushOne -&gt; __write_buffered -&gt; __dwrite -&gt; __iar_sh_stdout</code></pre>
-<p><strong>Why it is a defect and not a preference.</strong> <code>__write()</code> is the hook IAR documents for exactly
-this purpose. (TF-M&#x27;s own <code>platform/ext/common/uart_stdout.c</code> overrides <strong><code>putchar()</code></strong> under
+<p>Why it is a defect and not a preference. <code>__write()</code> is the hook IAR documents for this
+purpose. (TF-M&#x27;s own <code>platform/ext/common/uart_stdout.c</code> overrides <code>putchar()</code> under
 IAR, not <code>__write()</code>; <code>_write()</code> is its GNU branch.) Under the
 stock toolchain file that definition is dead code: console output goes to semihosting instead
 of the platform&#x27;s UART. The failure is silent with no debugger attached, and with one the core
-<strong>halts on the semihosting breakpoint</strong> - neither of which names the cause.</p>
-<p><strong>How it presents.</strong> Found on RA8M2/IAR with an RTT console. BL2 printed nothing while the
+halts on the semihosting breakpoint - neither of which names the cause.</p>
+<p>How it presents. Found on RA8M2/IAR with an RTT console. BL2 printed nothing while the
 secure and non-secure images printed normally - TF-M&#x27;s SPM logging calls
 <code>stdio_output_string()</code> directly, so only MCUboot&#x27;s <code>BOOT_LOG_*</code>, which expand to <code>printf()</code>,
-went through DLIB. That asymmetry reads as a BL2-specific fault and cost a day pointed at the
-wrong thing: the RTT control block address was checked three ways and was correct all along,
-and the block itself was correctly initialised with <code>aUp[0].WrOff == 0</code>, which is the tell -
-<code>SEGGER_RTT_Init()</code> ran and the write hook never fired.</p>
-<p><strong>Suggested fix</strong>, in preference order:</p>
+went through DLIB. That asymmetry reads as a BL2-specific fault. The investigation went to the
+wrong place for a day: the RTT control block address was checked three ways and was correct
+all along, and the block itself was correctly initialised with <code>aUp[0].WrOff == 0</code>, which is
+the signature - <code>SEGGER_RTT_Init()</code> ran and the write hook never fired.</p>
+<p>Suggested fix, in preference order:</p>
 <ol>
 <li>Drop <code>--redirect __write=__write_buffered</code>, so DLIB calls <code>__write()</code> as documented and
 platform hooks work. Buffering is then the platform&#x27;s choice via <code>setvbuf()</code>.</li>
 <li>Failing that, make both options opt-out - e.g. <code>TFM_IAR_SEMIHOSTING</code>, default ON - so a
 platform with a real console can turn them off.</li>
-<li>At minimum, document in the porting guide that an IAR platform must implement <strong><code>__dwrite()</code></strong>
+<li>At minimum, document in the porting guide that an IAR platform must implement <code>__dwrite()</code>
 (declared in <code>&lt;LowLevelIOInterface.h&gt;</code>, same signature as <code>__write</code>) rather than <code>__write()</code>.</li>
 </ol>
-<p><strong>Workaround carried here.</strong> <code>&lt;part&gt;/rtt/rtt_stdout.c</code> defines both <code>__write()</code> and
+<p>Workaround carried here. <code>&lt;part&gt;/rtt/rtt_stdout.c</code> defines both <code>__write()</code> and
 <code>__dwrite()</code> against one implementation, which also keeps <code>dwrite.o</code> and <code>iarwstd.o</code> out of
 the link. A platform <code>setvbuf(stdout, NULL, _IONBF, 0)</code> is needed alongside it, because BL2
 logs a few hundred bytes and chainloads without ever flushing. DECISIONS D107, D108.</p>
@@ -253,47 +253,47 @@ logs a few hundred bytes and chainloads without ever flushing. DECISIONS D107, D
 <p><strong>Withdrawn 2026-10-22 (<a href="DECISIONS.html#d120">D120</a>). Do not submit.</strong></p>
 <p>This asked upstream to define <code>TFM_ISOLATION_LEVEL</code> and <code>CONFIG_TFM_PARTITION_META</code> for
 <code>platform_s</code>, on the claim that the shared Armv8-M isolation HAL compiles without them &quot;on
-every platform using the shared HAL&quot;. <strong>That claim was false.</strong> The macros go missing only
-because of how <em>this port</em> builds the file.</p>
-<p><strong>What decides it is the target the source is added to.</strong> <code>psa_interface</code> carries both macros -
+every platform using the shared HAL&quot;. That claim was false. The macros go missing only
+because of how this port builds the file.</p>
+<p>What decides it is the target the source is added to. <code>psa_interface</code> carries both macros -
 <code>TFM_ISOLATION_LEVEL</code> at <code>interface/CMakeLists.txt:37</code> and <code>CONFIG_TFM_PARTITION_META</code> at <code>:40</code>,
 in the same <code>target_compile_definitions(psa_interface INTERFACE ...)</code> block.</p>
-<p><code>tfm_spm</code> reaches them <strong>indirectly</strong>: it PRIVATE-links <code>tfm_sprt</code>
+<p><code>tfm_spm</code> reaches them indirectly: it PRIVATE-links <code>tfm_sprt</code>
 (<code>secure_fw/spm/CMakeLists.txt</code>), and <code>tfm_sprt</code> PUBLIC-links <code>psa_interface</code>
 (<code>secure_fw/partitions/lib/runtime/CMakeLists.txt:41</code>), so the INTERFACE definitions
-propagate. That edge is <strong>unconditional</strong>, unlike <code>platform_s</code>&#x27;s own link to <code>tfm_sprt</code>,
+propagate. That edge is unconditional, unlike <code>platform_s</code>&#x27;s own link to <code>tfm_sprt</code>,
 which exists only under <code>PLATFORM_DEFAULT_ATTEST_HAL</code>. <code>platform_s</code> links <code>tfm_config</code> and
 reaches <code>psa_interface</code> by no route at all when that flag is OFF.</p>
 <div class="table-wrap"><table>
 <tr><th>Platform</th><th>Adds <code>tfm_hal_isolation_v8m.c</code> to</th><th>Gets the macros</th></tr>
 <tr><td>an519, an524, corstone300/310, mps4, musca_b1/s1, rse, alcor</td><td><code>tfm_spm</code></td><td>yes</td></tr>
-<tr><td>ra6m5, ra8m2, ra6e1</td><td><code>tfm_spm</code> <strong>since <a href="DECISIONS.html#d121">D121</a></strong></td><td>yes</td></tr>
-<tr><td>ra6m4</td><td><code>platform_s</code></td><td><strong>no</strong> - the last one left</td></tr>
+<tr><td>ra6m5, ra8m2, ra6e1</td><td><code>tfm_spm</code> since <a href="DECISIONS.html#d121">D121</a></td><td>yes</td></tr>
+<tr><td>ra6m4</td><td><code>platform_s</code></td><td>no - the last one left</td></tr>
 </table></div>
 <p>Every one of the nine upstream users adds it to <code>tfm_spm</code>. All four RA ports used to add it to
 <code>platform_s</code>; three were moved in <a href="DECISIONS.html#d121">D121</a> and <code>ra6m4</code> was left alone because both its boards are
-dead (<a href="DECISIONS.html#d094">D094</a>) and the change could not be verified. <strong>Measured:</strong> an519 configured at isolation 2
+dead (<a href="DECISIONS.html#d094">D094</a>) and the change could not be verified. Measured: an519 configured at isolation 2
 compiles <code>tfm_spm.dir/.../tfm_hal_isolation_v8m.o</code> with <code>-DTFM_ISOLATION_LEVEL=2</code>,
 <code>-DCONFIG_TFM_PARTITION_META</code> and <code>-DCONFIG_TFM_ENABLE_MEMORY_PROTECT</code> all present.</p>
 <p><code>PLATFORM_DEFAULT_ATTEST_HAL=OFF</code> is a second, independent contributor and not the trigger.
 <code>platform_s</code> PRIVATE-links <code>tfm_sprt</code>, which PUBLIC-links <code>psa_interface</code>, but only under
-that flag (<code>platform/CMakeLists.txt:109</code>); the RA ports set it OFF. So does <strong>mps4</strong>, which
+that flag (<code>platform/CMakeLists.txt:109</code>); the RA ports set it OFF. So does mps4, which
 still gets the macros because it uses <code>tfm_spm</code>.</p>
-<p><strong>Nothing is owed upstream.</strong> The port&#x27;s interim fix was
+<p>Nothing is owed upstream. The port&#x27;s interim fix was
 <code>target_compile_definitions(platform_s PRIVATE ...)</code>; <a href="DECISIONS.html#d121">D121</a> replaced it on ra6m5, ra8m2 and
 ra6e1 by moving the source to <code>tfm_spm</code> and matching the other nine, which deleted the
 deviation rather than documenting it. Those three now carry no hand-defines at all.</p>
-<p>Kept rather than deleted because the underlying hazard generalises and cost five rounds of
-debugging: **an <code>#if</code> whose value depends on which CMake target happens to compile the file
-fails silently, and a missing <code>-D</code> on a compile line does not distinguish &quot;unset&quot; from
-&quot;unplumbed&quot;.** A <code>-Wundef</code> build of the SPE would have caught it on day one.</p>
+<p>Kept rather than deleted because the underlying hazard generalises: an <code>#if</code> whose value
+depends on which CMake target happens to compile the file fails silently, and a missing <code>-D</code>
+on a compile line does not distinguish &quot;unset&quot; from &quot;unplumbed&quot;. A <code>-Wundef</code> build of the SPE
+would have caught it on day one.</p>
 <h3 id="s16">16. GNU: pinned CMSE veneers drag FLASH&#x27;s allocation pointer</h3>
 <p><code>platform/ext/common/gcc/tfm_isolation_s.ld.template</code> - commit <code>4025eedff</code> (2026-09-28),
 &quot;Linker: give pinned CMSE veneers their own MEMORY region&quot; (+46 lines, template lines 41-90).</p>
 <p>When <code>.gnu.sgstubs</code> is pinned to a fixed address inside the FLASH region, ld advances FLASH&#x27;s
 allocation pointer past the veneers, so everything placed afterwards starts beyond them even
 when the space below is free. On this port that overran the regression-test link.</p>
-<p><strong>Fix, opt-in:</strong> <code>TFM_LINKER_VENEERS_OWN_REGION</code> gives the pinned veneers a <code>MEMORY</code> region of
+<p>Fix, opt-in: <code>TFM_LINKER_VENEERS_OWN_REGION</code> gives the pinned veneers a <code>MEMORY</code> region of
 their own and leaves FLASH&#x27;s pointer where it was. All four RA platforms define it
 (<code>&lt;part&gt;/region_defs.h</code>, e.g. <code>ra6m5/region_defs.h:202-203</code>); platforms that do not set it are
 unaffected. **A TF-M bump that drops the template change breaks the regression link on every
@@ -303,16 +303,16 @@ RA part.** <a href="DECISIONS.html#d063">D063</a>.</p>
 <p>Found by the 2026-10-22 review when the regenerate command was widened. Listed so the gap is
 visible rather than silent:</p>
 <ul>
-<li><strong><code>cmake/install.cmake</code></strong> - an <code>AND TARGET signing_layout_ns</code> guard (<code>2d0d32d8f</code>).</li>
-<li><strong><code>lib/ext/mcuboot/CMakeLists.txt</code></strong> - replaces the hard-coded upstream <code>GIT_REPOSITORY</code> with
+<li><code>cmake/install.cmake</code> - an <code>AND TARGET signing_layout_ns</code> guard (<code>2d0d32d8f</code>).</li>
+<li><code>lib/ext/mcuboot/CMakeLists.txt</code> - replaces the hard-coded upstream <code>GIT_REPOSITORY</code> with
 an overridable <code>${MCUBOOT_GIT_REPOSITORY}</code> hook (<code>c76fd57bf</code>). The Renesas fork URL itself is
 set in <code>ra6m4/config.cmake</code>, inside the port.</li>
-<li><strong><code>toolchain_ARMCLANG.cmake</code> (+11) and <code>toolchain_CLANG.cmake</code> (+2)</strong> - the <code>.srec</code> output of
+<li><code>toolchain_ARMCLANG.cmake</code> (+11) and <code>toolchain_CLANG.cmake</code> (+2) - the <code>.srec</code> output of
 item 8&#x27;s own commit <code>d7df90820</code>, which item 8 does not list. Item 8 should name all four
 toolchain files, not two.</li>
-<li><strong><code>platform/ext/accelerator/renesas/{sce9,rsip_e50d}/</code></strong> - 14 added files. New platform
+<li><code>platform/ext/accelerator/renesas/{sce9,rsip_e50d}/</code> - 14 added files. New platform
 content rather than edits to common code; it needs a destination decision, not a patch.</li>
-<li><strong><code>tfm_config.log</code></strong> - a 312-line log committed at the TF-M repo root (<code>95e7d4ba3</code>). An
+<li><code>tfm_config.log</code> - a 312-line log committed at the TF-M repo root (<code>95e7d4ba3</code>). An
 accident; it should be deleted.</li>
 </ul>
 <hr>
@@ -335,18 +335,18 @@ when two EK-RA6M4 boards were lost. Keep local or drop before submitting.</p>
 produced a silent failure - a reset loop, a hard fault, no console output, or a halt on a
 semihosting breakpoint - rather than a build error, which is the argument for fixing them
 centrally rather than working around them per-platform. Item 14 differs from 1-3 in being a
-defect in the <strong>toolchain file</strong> rather than a linker template, and in affecting every IAR
+defect in the toolchain file rather than a linker template, and in affecting every IAR
 platform that has a console, not only those with unusual linker needs.</li>
 <li>Items 4, 5 and 6 are already in the tree labelled &quot;Upstream:&quot; or &quot;Upstream + RA6E1:&quot;.
 Items 7, 8, 9 are not labelled but belong in the same series.</li>
-<li>Verification, by item: <strong>items 1-12 on EK-RA6E1</strong>; **items 14 and 15 on EK-RA6M5 and
-EK-RA8M2**, which is where the IAR console and the isolation work were done. GNU (arm-none-eabi 13.2) and IAR (10.10.2)
+<li>Verification, by item: items 1-12 on EK-RA6E1; items 14 and 15 on EK-RA6M5 and
+EK-RA8M2, which is where the IAR console and the isolation work were done. GNU (arm-none-eabi 13.2) and IAR (10.10.2)
 both build BL2 + secure + non-secure, and the non-secure PSA service smoke test passes all
 13 steps under IAR — <code>psa_framework_version</code>, <code>psa_version</code>, <code>psa_crypto_init</code>,
 <code>psa_generate_random</code> (SCE9 TRNG), <code>psa_hash_compute</code>, ITS set/get/remove, PS set/get/remove
 (AES-GCM), <code>psa_initial_attest_get_token_size</code>. GNU is additionally verified against the PSA
 Arch tests (crypto, storage, attestation).</li>
-<li><strong>Caveat on the attestation result above, added 2026-10-02.</strong> <code>MCUBOOT_MEASURED_BOOT</code>
+<li>Caveat on the attestation result above, added 2026-10-02. <code>MCUBOOT_MEASURED_BOOT</code>
 and <code>MCUBOOT_DATA_SHARING</code> are OFF on ra6e1, so those tokens carried
 <code>IAT_NO_SW_COMPONENTS</code> - valid and correctly signed, attesting no firmware
 measurements. <code>ATTEST_TOKEN_PROFILE_PSA_IOT_1</code> permits that and the suite passes it.
