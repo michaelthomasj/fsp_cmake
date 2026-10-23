@@ -235,7 +235,7 @@ and calls its function directly on the caller's stack (§3.5).</p>
 <tr><td>ARoT data</td><td>—</td><td>one static region for <em>all</em> ARoT data, unprivileged RW (<code>:205-224</code>)</td><td>per partition, reprogrammed on every switch (<code>:583-620</code>); the static region becomes the metadata pointer only (<code>:225-244</code>)</td></tr>
 <tr><td>ARoT MMIO</td><td>—</td><td>one region per named MMIO, appended <strong>permanently</strong> at bind time (<code>:456-502</code>) — visible to every ARoT partition</td><td>encoded into the partition's boundary handle and programmed per switch (<code>:503-513</code>, <code>:624-669</code>)</td></tr>
 <tr><td>Reserved for private data</td><td>0</td><td>0</td><td>1 region (<code>MIN_NR_PRIVATE_DATA_REGION</code>, <code>:50</code>, <code>:59</code>)</td></tr>
-<tr><td>SPM backend</td><td>SFN or IPC</td><td colspan="2">IPC forced (<code>config/set_config.cmake:28-38</code>)</td></tr>
+<tr><td>SPM backend</td><td>SFN or IPC</td><td colspan="2">IPC forced (<code>config/set_config.cmake:29-38</code>)</td></tr>
 </table></div>
 <p>Things level 3 does <em>not</em> do in TF-M's Armv8-M HAL, which follow directly from the code:</p>
 <ul>
@@ -435,7 +435,7 @@ while the code below it uses bare <code>AGTCR</code> writes only. The page refle
 <code>tfm_hal_post_partition_init_hook()</code> (the port's MPU dump, called from <code>spm_ipc.c:440</code>) and
 <code>tfm_hal_verify_static_boundaries()</code> (FIH profiles only, <code>main.c:42</code>). Every Armv8-M platform without special hardware — including both RA ports — uses the
 shared implementation in <code>platform/ext/common/tfm_hal_isolation_v8m.c</code>, compiled into
-<code>tfm_spm</code> (<code>ra6m5/CMakeLists.txt:503-506</code>, <code>ra8m2/CMakeLists.txt:634-637</code>).</p>
+<code>tfm_spm</code> (<code>ra6m5/CMakeLists.txt:517-520</code>, <code>ra8m2/CMakeLists.txt:648-651</code>).</p>
 <div class="table-wrap"><table>
 <tr><th>Function</th><th>Called</th><th>Does</th></tr>
 <tr><td><code>tfm_hal_set_up_static_boundaries()</code></td><td>once, at boot</td><td>SAU/MPC/PPC hooks; programs the static MPU table; enables the MPU</td></tr>
@@ -569,7 +569,7 @@ shared source</strong>.</p>
 <div class="table-wrap"><table>
 <tr><th>Platforms using <code>tfm_hal_isolation_v8m.c</code></th><th>Target the source is added to</th><th>Gets <code>psa_interface</code>'s definitions?</th></tr>
 <tr><td>an519, an524, corstone300/310, mps4, musca_b1/s1, rse, alcor</td><td><code>tfm_spm</code> (e.g. <code>arm/mps2/an519/CMakeLists.txt:116-119</code>)</td><td>yes — <code>tfm_spm</code> links <code>tfm_sprt</code> unconditionally (<code>secure_fw/spm/CMakeLists.txt:105</code>), and <code>tfm_sprt</code> links <code>psa_interface</code> PUBLIC (<code>secure_fw/partitions/lib/runtime/CMakeLists.txt:39-41</code>)</td></tr>
-<tr><td>ra6m5, ra8m2, ra6e1 since <a href="ref/DECISIONS.html#d121">D121</a></td><td><code>tfm_spm</code> (<code>ra6m5/CMakeLists.txt:503-506</code>, <code>ra8m2/CMakeLists.txt:634-637</code>, <code>ra6e1/CMakeLists.txt:415-418</code>)</td><td>yes, as above</td></tr>
+<tr><td>ra6m5, ra8m2, ra6e1 since <a href="ref/DECISIONS.html#d121">D121</a></td><td><code>tfm_spm</code> (<code>ra6m5/CMakeLists.txt:517-520</code>, <code>ra8m2/CMakeLists.txt:648-651</code>, <code>ra6e1/CMakeLists.txt:424-427</code>)</td><td>yes, as above</td></tr>
 <tr><td>ra6m4 (dormant); all four RA ports before <a href="ref/DECISIONS.html#d121">D121</a></td><td><code>platform_s</code> (<code>ra6m4/CMakeLists.txt:71</code>)</td><td>only if <code>PLATFORM_DEFAULT_ATTEST_HAL</code> is ON, which makes <code>platform_s</code> link <code>tfm_sprt</code> (<code>platform/CMakeLists.txt:109</code>). The RA ports set it OFF because they supply their own <code>attest_hal.c</code> (<code>ra6m5/config.cmake:199</code>)</td></tr>
 </table></div>
 <p>So inside <code>tfm_hal_isolation_v8m.c</code> the macro was undefined, and <strong>C's preprocessor evaluates an
@@ -589,7 +589,7 @@ was about its own run, where <code>TFM_ISOLATION_LEVEL</code> was already define
 said "with both undefined".</p>
 <p><strong>Fixed by <a href="ref/DECISIONS.html#d121">D121</a>.</strong> The HAL is now added to <code>tfm_spm</code>, as upstream does, and the
 port's <code>target_compile_definitions(platform_s …)</code> workaround is deleted
-(<code>ra6m5/CMakeLists.txt:472-506</code>). Every definition <code>psa_interface</code> carries now arrives, including
+(<code>ra6m5/CMakeLists.txt:486-520</code>). Every definition <code>psa_interface</code> carries now arrives, including
 any it gains later. What remains:</p>
 <ul>
   <li><strong>ra6m4</strong> is untouched: both boards are dead, so a change could not be verified. It keeps the gap.</li>
@@ -604,7 +604,7 @@ any it gains later. What remains:</p>
     it had left the region; <a href="ref/DECISIONS.html#d125">D125</a> §1–2 corrected it.</li>
 </ul>
 <p>The port comment above the move now states the two failures as sequential states, and why "neither arm fires"
-needs the first one already fixed (<code>ra6m5/CMakeLists.txt:482-498</code>; <a href="ref/DECISIONS.html#d125">D125</a>).</p>
+needs the first one already fixed (<code>ra6m5/CMakeLists.txt:496-512</code>; <a href="ref/DECISIONS.html#d125">D125</a>).</p>
 </div>
 <div class="table-wrap"><table>
 <tr><th>Test in the HAL</th><th>Value with the macro undefined</th><th>Effect</th></tr>
@@ -632,9 +632,9 @@ compile the HAL where the macro arrives.</p>
 <p>Each fix moved the fault one layer on. Every row is a Part 1 dump:</p>
 <div class="table-wrap"><table>
 <tr><th>Round</th><th>Fault</th><th>Cause</th><th>Fix</th></tr>
-<tr><td>1</td><td><code>MMFSR 0x01</code>, PC <code>0x000BA964</code></td><td><code>plat_test.c</code> in <code>platform_s</code> → idx 1, privileged-execute-only</td><td>compile it into <code>tfm_sprt</code> (<code>ra6m5/CMakeLists.txt:416-442</code>)</td></tr>
+<tr><td>1</td><td><code>MMFSR 0x01</code>, PC <code>0x000BA964</code></td><td><code>plat_test.c</code> in <code>platform_s</code> → idx 1, privileged-execute-only</td><td>compile it into <code>tfm_sprt</code> (<code>ra6m5/CMakeLists.txt:430-456</code>)</td></tr>
 <tr><td>2</td><td><code>MMFSR 0x82</code>, <code>0x20011493</code></td><td>a <code>static bool</code> in that file; <code>tfm_sprt</code>'s .bss is in idx 4</td><td>make SPRT code stateless</td></tr>
-<tr><td>3</td><td><code>MMFSR 0x82</code>, <code>0x400E8008</code></td><td>no MMIO region: the undefined macro</td><td>define it on <code>platform_s</code> (at TF-M <code>b1b9078ff</code>, <code>ra6m5/CMakeLists.txt:495-499</code>; deleted by <a href="ref/DECISIONS.html#d121">D121</a>)</td></tr>
+<tr><td>3</td><td><code>MMFSR 0x82</code>, <code>0x400E8008</code></td><td>no MMIO region: the undefined macro</td><td>define it on <code>platform_s</code> (at TF-M <code>b1b9078ff</code>, <code>ra6m5/CMakeLists.txt:509-513</code>; deleted by <a href="ref/DECISIONS.html#d121">D121</a>)</td></tr>
 <tr><td>4</td><td><code>MMFSR 0x82</code>, <code>0x40006300</code></td><td>FLIH in Thread mode, unprivileged, clearing the ICU</td><td>move the ICU/NVIC clear to the vector entry</td></tr>
 <tr><td>L3</td><td><code>MMFSR 0x82</code>, <code>0x20000400</code></td><td><code>CONFIG_TFM_PARTITION_META</code> undefined too</td><td>define it as well (same lines)</td></tr>
 </table></div>
@@ -689,7 +689,7 @@ static table were "unreachable on every platform". <code>platform/CMakeLists.txt
         ...
         $&lt;$&lt;OR:$&lt;VERSION_GREATER:${TFM_ISOLATION_LEVEL},1&gt;,...&gt;:CONFIG_TFM_ENABLE_MEMORY_PROTECT&gt;
         $&lt;$&lt;BOOL:${TFM_PXN_ENABLE}&gt;:TFM_PXN_ENABLE&gt;</code></pre>
-<p>and the isolation HAL, now a <code>tfm_spm</code> source (<code>ra6m5/CMakeLists.txt:503-506</code>), inherits
+<p>and the isolation HAL, now a <code>tfm_spm</code> source (<code>ra6m5/CMakeLists.txt:517-520</code>), inherits
 <code>platform_s</code>'s PUBLIC definitions because <code>tfm_spm</code> links <code>platform_s</code>
 (<code>secure_fw/spm/CMakeLists.txt:100</code>). Before <a href="ref/DECISIONS.html#d121">D121</a> it was a <code>platform_s</code> source and got
 them directly. <a href="ref/DECISIONS.html#d115">D115</a> corrected <a href="ref/DECISIONS.html#d114">D114</a>. History of that line (<a href="ref/DECISIONS.html#d117">D117</a> §4):</p>
@@ -710,9 +710,11 @@ refers to; the course pages were not yet under version control, so the record ca
 regions — has not been measured, and is deliberately parked (<a href="ref/DECISIONS.html#d126">D126</a> §5). Re-confirmed after
 <a href="ref/DECISIONS.html#d121">D121</a> at isolation 3, on the now <code>tfm_spm</code>-owned object (<a href="ref/DECISIONS.html#d125">D125</a>). PXN stays OFF on this
 port. The ra8m2 CMake comment records all of this, including both halves of <code>d90aa0c44</code>
-(<code>ra8m2/CMakeLists.txt:639-669</code>). The ra6m5 file carries a copy whose last paragraph says a configure
-"of this platform" passes the <code>armv8.1-m.main</code> gate (<code>ra6m5/CMakeLists.txt:535-538</code>). It cannot:
-RA6M5 is a Cortex-M33, so PXN=ON fails <code>check_config.cmake:91</code> there.</p>
+(<code>ra8m2/CMakeLists.txt:653-683</code>). The ra6m5 file carried a copy whose last paragraph said a configure
+"of this platform" passes the <code>armv8.1-m.main</code> gate, which it cannot: RA6M5 is a Cortex-M33, so
+PXN=ON fails <code>check_config.cmake:91</code> there. <a href="ref/DECISIONS.html#d131">D131</a> §4 corrected
+that comment, which now attributes the configure to RA8M2 and keeps only the plumbing claim for RA6M5
+(<code>ra6m5/CMakeLists.txt:562-569</code>).</p>
 </div>
 
 <!-- ============================================================ -->

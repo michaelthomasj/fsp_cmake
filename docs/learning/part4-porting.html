@@ -190,7 +190,7 @@ TLVs (<a href="ref/DECISIONS.html#d081">D081</a>, <a href="ref/DECISIONS.html#d0
 <div class="warn">
 <p><strong>Option-setting memory.</strong> The OFS words are sparse. On the RA6M4 — the part that was bricked — they
 are 92 bytes of real data spread over <code>0x0100A100–0x0100A2CC</code>. On RA6M5 they are 13 groups, 112 bytes, over
-<code>0x0100A100–0x0100A2CF</code> (<code>ra6m5/region_defs.h:287-312</code>). On RA8M2 they sit elsewhere entirely, from
+<code>0x0100A100–0x0100A2CF</code> (<code>ra6m5/region_defs.h:288-313</code>). On RA8M2 they sit elsewhere entirely, from
 <code>0x02C9F040</code>. If the linker sees the groups as one region it emits one <code>PT_LOAD</code> segment and
 zero-fills the gaps, and a debugger loading the ELF writes those zeros across option and configuration memory. Two
 EK-RA6M4 boards were destroyed this way (<a href="ref/DECISIONS.html#d002">D002</a>). <strong>The fill wrote

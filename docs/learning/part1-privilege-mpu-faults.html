@@ -218,7 +218,7 @@ the port's dump prints <code>RLAR &amp; MPU_RLAR_LIMIT_Msk</code>, and the measu
 <h3 id="mpu-layout">The region budget, measured</h3>
 <p>The number of regions is a property of the silicon. TF-M checks it at run time
 (<code>tfm_hal_isolation_v8m.c:286-293</code>) and panics if the static table does not fit, so a successful boot only
-proves "enough", never "how many". <a href="ref/DECISIONS.html#d113">D113</a> added a dump (<code>ra6m5/tfm_hal_platform.c:98-194</code>) and read it:</p>
+proves "enough", never "how many". <a href="ref/DECISIONS.html#d113">D113</a> added a dump (<code>ra6m5/tfm_hal_platform.c:99-194</code>) and read it:</p>
 <pre><code>[MPU] regions in hardware: 8        &lt;- read from MPU-&gt;TYPE; "8" had been an assumption
 [MPU] enabled after static boundaries: 5
 [MPU] CTRL: 7                        &lt;- ENABLE | HFNMIENA | PRIVDEFENA

@@ -55,6 +55,7 @@ SUBJ = {
     "D092": "RA8M2 first boot: the <code>MSAR</code> BusFault",
     "D093": "<code>BSP_TZ_CFG_MSAR=0</code> workaround",
     "D094": "the RA6M4 brick: coalescing proven, the killed field is not",
+    "D131": "a generator and a checker were each passing against their own output",
     "D132": "superseded: the reserved-area-only reading of the RA6M4 brick",
     "D133": "the fill zeroed eight defined option registers; the field is still unnamed",
     "D096": "measured boot confirmed on RA8M2",
