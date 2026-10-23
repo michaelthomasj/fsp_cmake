@@ -392,12 +392,12 @@ privileged.</p>
 <tr><td>isolation 2/3, switch needed — Application RoT</td><td><code>tfm_flih_deprivileged_handling()</code> (<code>:204</code>)</td><td><strong>Thread mode, unprivileged</strong></td></tr>
 </table></div>
 <p>Handler mode is the usual case. <a href="ref/DECISIONS.html#d113">D113</a> first wrote this up as "TF-M runs FLIH handlers in THREAD mode" — the third
-row stated as a rule. It was exactly the case being measured: a correct observation, a wrong generalisation. <a href="ref/DECISIONS.html#d117">D117</a>
+row stated as a rule. It was the case being measured: a correct observation, a wrong generalisation. <a href="ref/DECISIONS.html#d117">D117</a>
 corrected it to this table.</p>
 <div class="note">
 <p><strong>The architecture says Handler mode is always privileged. TF-M arranges for an Application-RoT FLIH handler
-above isolation 1 not to run in Handler mode.</strong> Both statements are true. The design choice is deliberate: an interrupt handler written by
-an Application-RoT developer gets exactly the permissions that developer's partition has, no more.</p>
+above isolation 1 not to run in Handler mode.</strong> Both statements are true. The design choice is intentional: an interrupt handler written by
+an Application-RoT developer gets the permissions that developer's partition has, no more.</p>
 </div>
 
 <h3>What that means on RA</h3>
@@ -535,7 +535,7 @@ handles, and not both privileged".</p>
 <p>For each <code>mmio_region</code> asset of an unprivileged partition (<code>:456-502</code>): check the region is
 32-byte aligned at both ends — <code>(periph_start &amp; ~MPU_RBAR_BASE_Msk) == 0</code> and
 <code>(periph_limit &amp; ~MPU_RLAR_LIMIT_Msk) == 0x1F</code> — then append it at index <code>n_static_regions++</code>.
-Note the post-increment: the "static" count grows, so these regions are never cleared afterwards. At level 2 every
+The post-increment matters: the "static" count grows, so these regions are never cleared afterwards. At level 2 every
 unprivileged partition can therefore reach every other unprivileged partition's peripherals; separating those is what
 level 3 adds.</p>
 
@@ -550,7 +550,7 @@ private data plus MMIO. RA8M2's measured static set has the same shape at differ
 
 <!-- ============================================================ -->
 <h2 id="d113">3.8 Case study: the isolation HAL that never knew its level (<a href="ref/DECISIONS.html#d113">D113</a>–<a href="ref/DECISIONS.html#d126">D126</a>)</h2>
-<p>This is the single most instructive episode in the repository. Read <a href="ref/DECISIONS.html#d113">D113 to D126</a> in
+<p>Read <a href="ref/DECISIONS.html#d113">D113 to D126</a> in
 order afterwards: each later entry corrects something an earlier one stated too broadly.</p>
 
 <h3>The defect</h3>
@@ -596,7 +596,7 @@ any it gains later. What remains:</p>
   <li><strong>ra6e1</strong> moved too. It had neither define, so at isolation 1 it de-privileged ARoT partitions; it
     now takes the <code>== 1</code> arm. Asserted from source; it will not be run.</li>
   <li>On silicon, RA6M5 L2's MPU dump is identical to <a href="ref/DECISIONS.html#d113">D113</a>'s in all six regions (<a href="ref/DECISIONS.html#d122">D122</a>), and
-    RA6M5 L3 moved exactly the three boundaries <a href="ref/DECISIONS.html#d121">D121</a> predicted from symbols, +32 B each
+    RA6M5 L3 moved the three boundaries <a href="ref/DECISIONS.html#d121">D121</a> predicted from symbols, +32 B each
     (<a href="ref/DECISIONS.html#d123">D123</a>). The five RA8M2 trees are built with the move but not re-run.</li>
   <li>The object moved from <code>.ER_PSA_ROT_CODE</code> to <code>.ER_TFM_CODE</code>. Both lie between
     <code>PT_PSA_ROT_CODE_START</code> and <code>_END</code> (<code>platform/ext/common/gcc/tfm_isolation_s.ld.template:215,
@@ -613,7 +613,7 @@ needs the first one already fixed (<code>ra6m5/CMakeLists.txt:482-498</code>; <a
 <tr><td><code>#if TFM_ISOLATION_LEVEL != 3</code> (<code>:205</code>)</td><td>true</td><td>ARoT data region present, correctly by accident</td></tr>
 <tr><td><code>#elif defined(CONFIG_TFM_PARTITION_META)</code> (<code>:225</code>) — level 3, <em>after</em> fix 3 had defined <code>TFM_ISOLATION_LEVEL=3</code></td><td><strong>false</strong></td><td>the <code>!= 3</code> arm is now false too, so neither fires: four static regions, nothing covers <code>TFM_SP_META_PTR</code> (<a href="ref/DECISIONS.html#d114">D114</a>)</td></tr>
 </table></div>
-<p>Note the last row's condition. With <em>both</em> macros undefined, <code>TFM_ISOLATION_LEVEL != 3</code> evaluates
+<p>The last row's condition is the one to read twice. With <em>both</em> macros undefined, <code>TFM_ISOLATION_LEVEL != 3</code> evaluates
 <code>0 != 3</code>, which is true at level 3 as well: the App RoT data arm wins, and every
 <code>#if TFM_ISOLATION_LEVEL == 3</code> block — per-partition reprogramming, the unique handle index,
 <code>MIN_NR_PRIVATE_DATA_REGION</code> — compiles out. A level-3 build would quietly run as level 2 without its MMIO
@@ -707,7 +707,7 @@ refers to; the course pages were not yet under version control, so the record ca
 <p><strong>Status:</strong> confirmed by configuring — a <code>TFM_PXN_ENABLE=ON</code> configure of
 <code>renesas/ra8m2</code> passes the gate at <code>check_config.cmake:91</code> and puts <code>-DTFM_PXN_ENABLE</code> on
 <code>tfm_hal_isolation_v8m.o</code>'s compile line. Its effect — the combined code region splitting in two, six static
-regions — has not been measured, and is deliberately parked (<a href="ref/DECISIONS.html#d126">D126</a> §5). Re-confirmed after
+regions — has not been measured, and is parked (<a href="ref/DECISIONS.html#d126">D126</a> §5). Re-confirmed after
 <a href="ref/DECISIONS.html#d121">D121</a> at isolation 3, on the now <code>tfm_spm</code>-owned object (<a href="ref/DECISIONS.html#d125">D125</a>). PXN stays OFF on this
 port. The ra8m2 CMake comment records all of this, including both halves of <code>d90aa0c44</code>
 (<code>ra8m2/CMakeLists.txt:639-669</code>). The ra6m5 file carries a copy whose last paragraph says a configure
