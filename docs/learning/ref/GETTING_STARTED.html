@@ -64,10 +64,10 @@
 <main id="top" class="ref-doc">
 <p class="src">Rendered from <a href="../../../GETTING_STARTED.md"><code>GETTING_STARTED.md</code></a>. Edit the Markdown, not this page.</p>
 <h1 id="getting-started">Getting started</h1>
-<p><strong>Audience:</strong> someone who has not seen this port before and wants a board running TF-M.
-Follow it top to bottom and you will have the full chain — bootloader, secure image, non-secure
-image — built and running on an EK-RA8M2 or EK-RA6M5. Everything deeper is linked at the end.</p>
-<p><strong>Expect ~1 hour</strong> the first time, most of it tool installation.</p>
+<p>Audience: someone who has not seen this port before and wants a board running TF-M.
+Followed top to bottom, this document builds and runs the full chain — bootloader, secure
+image, non-secure image — on an EK-RA8M2 or EK-RA6M5. Everything deeper is linked at the end.</p>
+<p>Expect about an hour the first time, most of it tool installation.</p>
 <hr>
 <h2 id="s1">1. What you are building</h2>
 <p>Three images, flashed to one part:</p>
@@ -77,13 +77,13 @@ image — built and running on an EK-RA8M2 or EK-RA6M5. Everything deeper is lin
 <tr><td><code>tfm_s</code></td><td>The secure image — TF-M itself plus the crypto, storage and attestation services.</td></tr>
 <tr><td><code>tfm_ns</code></td><td>The non-secure application. Either the port&#x27;s demo app or a test suite.</td></tr>
 </table></div>
-<p>Two repositories, and the relationship between them is the thing to understand first:</p>
+<p>Two repositories:</p>
 <div class="table-wrap"><table>
 <tr><th>Repository</th><th>Holds</th></tr>
-<tr><td><strong><code>trusted-firmware-m</code></strong></td><td>The TF-M fork. The RA ports live in <code>platform/ext/target/renesas/&lt;part&gt;/</code>.</td></tr>
-<tr><td><strong><code>fsp_cmake</code></strong></td><td>The e2 studio / RASC projects, the build scripts, and the design record.</td></tr>
+<tr><td><code>trusted-firmware-m</code></td><td>The TF-M fork. The RA ports live in <code>platform/ext/target/renesas/&lt;part&gt;/</code>.</td></tr>
+<tr><td><code>fsp_cmake</code></td><td>The e2 studio / RASC projects, the build scripts, and the design record.</td></tr>
 </table></div>
-<blockquote><p><strong>RASC is the source of config truth.</strong> The TF-M build <em>consumes</em> the generated FSP projects;
+<blockquote><p>RASC is the source of config truth. The TF-M build consumes the generated FSP projects;
 it does not fork them. Pin numbers, clock settings, the memory partitioning and the
 TrustZone boundaries all come from the e2 solution. See <a href="DESIGN.html">DESIGN.md</a> §1.</p></blockquote>
 <hr>
@@ -92,16 +92,16 @@ TrustZone boundaries all come from the e2 solution. See <a href="DESIGN.html">DE
 what the results in <a href="DECISIONS.html">DECISIONS.md</a> were produced on.</p>
 <div class="table-wrap"><table>
 <tr><th>Tool</th><th>Version</th><th>Notes</th></tr>
-<tr><td><strong>e2 studio</strong> + <strong>RASC</strong></td><td>with FSP <strong>6.7.0-beta0</strong></td><td>Required even for command-line builds — see §4</td></tr>
-<tr><td><strong>Arm GNU Toolchain</strong></td><td>13.2.rel1</td><td><code>arm-none-eabi-gcc</code> on <code>PATH</code></td></tr>
-<tr><td><strong>IAR EWARM</strong></td><td>10.10.2</td><td>Optional — only for the IAR trees</td></tr>
-<tr><td><strong>CMake</strong></td><td>4.1.1</td><td></td></tr>
-<tr><td><strong>Ninja</strong></td><td>1.13.1</td><td></td></tr>
-<tr><td><strong>Python</strong></td><td>3.13</td><td>Needs <code>imgtool</code>&#x27;s dependencies; TF-M installs them</td></tr>
-<tr><td><strong>J-Link</strong></td><td>current</td><td>The on-board debugger on both EK boards</td></tr>
-<tr><td><strong>Visual Studio Build Tools</strong></td><td>2019</td><td><strong>Only</strong> for PSA Arch builds — they compile a host tool with <code>cl.exe</code> (<a href="DECISIONS.html#d083">D083</a>(DECISIONS.md))</td></tr>
+<tr><td>e2 studio + RASC</td><td>with FSP 6.7.0-beta0</td><td>Required even for command-line builds — see §4</td></tr>
+<tr><td>Arm GNU Toolchain</td><td>13.2.rel1</td><td><code>arm-none-eabi-gcc</code> on <code>PATH</code></td></tr>
+<tr><td>IAR EWARM</td><td>10.10.2</td><td>Optional — only for the IAR trees</td></tr>
+<tr><td>CMake</td><td>4.1.1</td><td></td></tr>
+<tr><td>Ninja</td><td>1.13.1</td><td></td></tr>
+<tr><td>Python</td><td>3.13</td><td>Needs <code>imgtool</code>&#x27;s dependencies; TF-M installs them</td></tr>
+<tr><td>J-Link</td><td>current</td><td>The on-board debugger on both EK boards</td></tr>
+<tr><td>Visual Studio Build Tools</td><td>2019</td><td>Only for PSA Arch builds — they compile a host tool with <code>cl.exe</code> (<a href="DECISIONS.html#d083">D083</a>(DECISIONS.md))</td></tr>
 </table></div>
-<p>Hardware: <strong>EK-RA8M2</strong> or <strong>EK-RA6M5</strong>, and a USB cable to the on-board J-Link.</p>
+<p>Hardware: EK-RA8M2 or EK-RA6M5, and a USB cable to the on-board J-Link.</p>
 <hr>
 <h2 id="s3">3. Clone</h2>
 <p>Keep paths short. Build directories under a deep path overrun Windows&#x27; path limit partway
@@ -115,28 +115,27 @@ git clone https://github.com/michaelthomasj/fsp_cmake.git
 rem  Only needed for the test-suite builds in §7
 git clone https://git.trustedfirmware.org/TF-M/tf-m-tests.git
 git clone https://github.com/ARM-software/psa-arch-tests.git</code></pre>
-<p><strong>The <code>psa-arch-tests</code> clone is not sufficient on its own.</strong> The PSA Arch scripts select
+<p>The <code>psa-arch-tests</code> clone is not sufficient on its own. The PSA Arch scripts select
 <code>PSA_API_TEST_TARGET=renesas_ra</code>, whose target directory <code>tgt_dev_apis_tfm_renesas_ra</code> is local
-to this setup and is <strong>not</strong> in the upstream tree, so a plain upstream clone lacks it. Setting
+to this setup and is not in the upstream tree, so a plain upstream clone lacks it. Setting
 <code>PSA_ARCH_TESTS_PATH</code> to a local tree also skips tf-m-tests&#x27; ten <code>fetch_repo</code> patches.</p>
 <p>Both repositories track the same branch:</p>
 <pre><code class="language-bat">cd trusted-firmware-m &amp;&amp; git checkout ra8m2_gen_6_7_TFM &amp;&amp; cd ..
 cd fsp_cmake        &amp;&amp; git checkout ra8m2_gen_6_7_TFM &amp;&amp; cd ..</code></pre>
-<p><strong>You do not clone MCUboot or Mbed TLS.</strong> TF-M fetches both during the first configure
-(<code>MCUBOOT_PATH</code> defaults to <code>DOWNLOAD</code>; <code>MBEDCRYPTO_PATH</code> does <strong>not</strong> - with
+<p>You do not clone MCUboot or Mbed TLS. TF-M fetches both during the first configure.
+<code>MCUBOOT_PATH</code> defaults to <code>DOWNLOAD</code>. <code>MBEDCRYPTO_PATH</code> does not: with
 <code>&lt;PART&gt;_FSP_MBEDTLS</code> ON, which is the default, <code>fsp_mbedtls.cmake</code> FORCE-sets it to an overlay
 built from the secure e2 project&#x27;s <code>ra/arm/mbedtls</code>, and that overlay clone is what hits the
-Windows path-length limit). The first build is therefore
-slower and needs network access.</p>
+Windows path-length limit. The first build is therefore slower and needs network access.</p>
 <hr>
 <h2 id="s4">4. Build the e2 solution first — this is not optional</h2>
-<p>The TF-M build reads two files that <strong>only an e2 studio build produces</strong>:</p>
+<p>The TF-M build reads two files that only an e2 studio build produces:</p>
 <ul>
 <li><code>&lt;project&gt;/Debug/bsp_linker_info.h</code> — the <code>BSP_PARTITION_*</code> addresses the whole memory map
 derives from</li>
 <li><code>&lt;project&gt;/Debug/memory_regions.*</code></li>
 </ul>
-<p>Regenerating the project in RASC is <strong>not</strong> enough; the project must be <em>built</em>.</p>
+<p>Regenerating the project in RASC is not enough. The project must be built.</p>
 <ol>
 <li><p>Open e2 studio, <code>File → Import → Existing Projects into Workspace</code>, and select the
 <code>fsp_cmake</code> folder. Import the solution for your part and all its sub-projects:</p>
@@ -145,7 +144,7 @@ derives from</li>
 <tr><td>RA8M2</td><td><code>ra8m2_gcc</code></td><td><code>ra8m2_gcc_mcuboot</code>, <code>ra8m2_gcc_CPU0_secure</code>, <code>ra8m2_gcc_CPU0_nonsecure</code></td></tr>
 <tr><td>RA6M5</td><td><code>ra6m5_gcc</code></td><td><code>ra6m5_gcc_mcuboot</code>, <code>ra6m5_gcc_secure</code>, <code>ra6m5_gcc_nonsecure</code></td></tr>
 </table></div></li>
-<li><p>Build each sub-project (<code>Project → Build All</code>). Ignore the resulting <code>.elf</code> files — only the
+<li><p>Build each sub-project (<code>Project → Build All</code>). Ignore the resulting <code>.elf</code> files; only the
 generated headers matter here.</p></li>
 <li><p>Confirm the file exists before going on:</p>
 <pre><code class="language-bat">dir ra8m2_gcc_CPU0_secure\Debug\bsp_linker_info.h</code></pre>
@@ -165,18 +164,18 @@ rem  RA8M2, IAR
 scripts\app_build_ra8m2_iar.bat C:\b\m2iapp C:\b\m2iappns</code></pre>
 <p>Build directories live under <code>C:\b\</code> for the path-length reason in §3. They are disposable;
 delete one to force a clean build.</p>
-<p><strong>Read the output, do not just check the exit code.</strong> The install step runs the option-setting
-brick guard over <code>bl2</code> and <code>tfm_s</code>, and it reports by printing.</p>
+<p><strong>Read the output; do not only check the exit code.</strong> The install step runs the
+option-setting brick guard over <code>bl2</code> and <code>tfm_s</code>, and it reports by printing.</p>
 <p>Where the images land:</p>
 <pre><code>C:\b\m2app\bin\bl2.elf                 the bootloader  (flash THIS, see §6)
 C:\b\m2app\bin\tfm_s_signed.bin        the secure image
 C:\b\m2appns\bin\tfm_ns_signed.bin     the non-secure image</code></pre>
 <hr>
 <h2 id="s6">6. Flash and run</h2>
-<p>Use the e2 debug launch configurations — they already carry the correct addresses and the two
+<p>Use the e2 debug launch configurations. They already carry the correct addresses and the two
 safety settings below. For RA8M2 they are in <code>ra8m2_gcc_mcuboot/</code>.</p>
 <blockquote><p><strong>These launches do not flash what §5 just built.</strong> Each names its own build tree -
-<code>m2gflih</code>, <code>m2cry</code>, <code>m2att</code>, <code>m2sto</code> - and <strong>none references <code>m2app</code>/<code>m2appns</code></strong>. Running
+<code>m2gflih</code>, <code>m2cry</code>, <code>m2att</code>, <code>m2sto</code> - and none references <code>m2app</code>/<code>m2appns</code>. Running
 §5 then §6 either flashes different images or fails on missing files; there is no
 application launch for RA8M2. Pick one:</p>
 <ul>
@@ -196,21 +195,22 @@ is not the input to the table below.</p></blockquote>
 <tr><td><code>ra8m2_TFM_update_gcc</code></td><td>the MCUboot secondary-slot upgrade test</td></tr>
 </table></div>
 <p>Each has an <code>_iar</code> twin. In e2: <code>Run → Debug Configurations…</code>, pick one, <code>Debug</code>.</p>
-<h3 id="two-rules-that-have-cost-hardware">Two rules that have cost hardware</h3>
+<h3 id="two-brick-hazards">Two brick hazards</h3>
 <blockquote><p><strong>Flash <code>bl2.elf</code> or <code>bl2.hex</code> — never <code>bl2.bin</code>.</strong> The option-setting words live in discrete
 segments that a flat binary cannot express; a <code>.bin</code> writes them at the wrong addresses and
 can permanently lock the part. <a href="DECISIONS.html#d002">D002</a>(DECISIONS.md), <a href="DECISIONS.html#d065">D065</a>(DECISIONS.md).</p></blockquote>
 <blockquote><p><strong><code>setTZBoundaries</code> must be <code>false</code></strong> in every launch configuration. The debugger otherwise
 derives TrustZone boundaries from the launched project&#x27;s symbols, and launched against BL2 it
-gets them wrong. On RA8M2 the key appears <strong>twice</strong> — <code>...arm.jlink.</code> and <code>...arm.e2lite.</code> —
-and e2 defaults the second to <code>true</code>. Set both. **The five RA8M2 GCC launches in the §6
-table still carry <code>e2lite</code> = <code>true</code>** - inert while J-Link is selected, live the moment
-the probe is switched. <a href="DESIGN.html">DESIGN.md</a> §7.2, <a href="DECISIONS.html#d102">D102</a>(DECISIONS.md).</p></blockquote>
-<p>Also leave <strong>erase code flash</strong> and <strong>erase data flash</strong> enabled on connect. A stale ITS/PS area
-survives a reflash and makes the storage suites fail in ways that look like code faults.</p>
+gets them wrong. On RA8M2 the key appears twice — <code>...arm.jlink.</code> and <code>...arm.e2lite.</code> —
+and e2 defaults the second to <code>true</code>. Set both.</p>
+<p><strong>The five RA8M2 GCC launches in the §6 table still carry <code>e2lite</code> = <code>true</code></strong> - inert while
+J-Link is selected, live the moment the probe is switched. <a href="DESIGN.html">DESIGN.md</a> §7.2,
+<a href="DECISIONS.html#d102">D102</a>(DECISIONS.md).</p></blockquote>
+<p>Also leave erase code flash and erase data flash enabled on connect. **A stale ITS/PS area
+survives a reflash** and makes the storage suites fail in ways that look like code faults.</p>
 <h3 id="pre-flash-verification--run-on-every-new-build">Pre-flash verification — run on every new build</h3>
-<p>Two commands, and they take seconds. Both guard the brick path, and **a clean <code>.srec</code> does not
-prove either of them**.</p>
+<p>Two commands. Both guard the brick path, and **a clean <code>.srec</code> does not prove either of
+them**.</p>
 <pre><code class="language-bat">rem  1. The option-setting words must be SMALL DISCRETE LOAD segments, never one span.
 arm-none-eabi-readelf -l C:\b\m2app\bin\bl2.axf
 
@@ -220,38 +220,40 @@ arm-none-eabi-objdump -s -j .option_setting_ofs0 -j .option_setting_ofs1_sec ^
 <p><strong>Those three values are RA6M5&#x27;s, not RA8M2&#x27;s.</strong> A correct RA8M2 bootloader generates
 OFS0 <code>ffffffff</code>, OFS1_SEC <code>fffffffd</code> (HOCO 48 MHz) and OFS1_SEL <code>00000000</code> (BL2 is the flat
 build, so the <code>#else</code> branch applies) - checking an RA8M2 image against the RA6M5 values fails
-a good image. <strong>Under IAR this check does not work at all:</strong> ILINK renames the sections
-(<code>P1</code>, <code>P7</code>, ...), so <code>-j .option_setting_*</code> dumps nothing and prints no error. One coalesced segment spanning the option memory is
-the failure that cost two EK-RA6M4 boards — the linker gap-fills between the words and writes
-values nobody chose (<a href="DECISIONS.html#d002">D002</a>, <a href="DECISIONS.html#d094">D094</a>). <code>check_ofs.py</code> runs this during the build; these commands
-are how you confirm it by hand on an image you are about to flash.</p>
+a good image.</p>
+<p>Under IAR this check does not work at all: ILINK renames the sections (<code>P1</code>, <code>P7</code>, ...), so
+<code>-j .option_setting_*</code> dumps nothing and prints no error.</p>
+<p>One coalesced segment spanning the option memory is the failure that bricked both EK-RA6M4
+boards: the linker gap-fills between the words and writes values nobody chose (<a href="DECISIONS.html#d002">D002</a>,
+<a href="DECISIONS.html#d094">D094</a>). <code>check_ofs.py</code> runs this during the build; these commands are how you confirm it by
+hand on an image you are about to flash.</p>
 <p>Then:</p>
 <ul>
 <li><strong>Flash <code>bl2.elf</code> or <code>bl2.hex</code>, never <code>bl2.bin</code></strong> (above).</li>
-<li><strong>Re-read the RTT addresses for the exact image you are flashing.</strong> They move on every relink
-<em>and</em> differ per toolchain for the same source on the same part. Nothing in the launch carries
-them, so a wrong address is a silent &quot;prints nothing&quot;, not an error. There is deliberately no
-table of them in this repository — any such table is wrong within one rebuild.</li>
-<li><strong>First flash on an unfamiliar board:</strong> consider <code>-D&lt;PART&gt;_BL2_HALT_AT_MAIN=ON</code>, which spins
+<li>Re-read the RTT addresses for the image you are flashing. They move on every relink
+and differ per toolchain for the same source on the same part. Nothing in the launch carries
+them, so a wrong address is a silent &quot;prints nothing&quot;, not an error. There is no table of
+them in this repository; any such table is wrong within one rebuild.</li>
+<li>First flash on an unfamiliar board: consider <code>-D&lt;PART&gt;_BL2_HALT_AT_MAIN=ON</code>, which spins
 BL2 at <code>main()</code> so option/lifecycle registers can be read back before MCUboot runs. Read
-<strong><code>DLMMON</code></strong> for the lifecycle state — the address is <strong>per part</strong>: <code>0x400E002C</code> on RA6M5,
+<code>DLMMON</code> for the lifecycle state. The address is per part: <code>0x400E002C</code> on RA6M5,
 <code>0x40204038</code> on RA8M2 (<code>R_PSCU-&gt;DLMMON</code>; the register sits at offset <code>0x2C</code> of <code>R_PSCU</code> on
 RA6M5 and <code>0x38</code> on RA8M2, and the two <code>R_PSCU</code> bases differ as well). Reading RA6M5&#x27;s
-address on RA8M2 returns an unrelated register, not an error. <strong>Do not read <code>FAWMON</code>/<code>FSPR</code></strong> — both
-live parts report <code>BSP_FEATURE_FLASH_SUPPORTS_ACCESS_WINDOW = 0</code>, so those registers are not
-implemented and the values are meaningless (<a href="DECISIONS.html#d094">D094</a> made the same point for RA6M4). Note the
-image is <strong>not bootable</strong> with it set, and it does not help capture BL2&#x27;s log — the spin is
-at <code>bl2_main.c:112-125</code>, before any init or logging.</li>
+address on RA8M2 returns an unrelated register, not an error. **Do not read
+<code>FAWMON</code>/<code>FSPR</code>**: both live parts report <code>BSP_FEATURE_FLASH_SUPPORTS_ACCESS_WINDOW = 0</code>, so
+those registers are not implemented and the values are meaningless (<a href="DECISIONS.html#d094">D094</a> made the same
+point for RA6M4). The image is not bootable with it set, and it does not help capture BL2&#x27;s
+log — the spin is at <code>bl2_main.c:112-125</code>, before any init or logging.</li>
 </ul>
 <h3 id="seeing-the-output">Seeing the output</h3>
-<p>Console output goes over <strong>SEGGER RTT</strong>, not a UART. Each image has its own control block and
+<p>Console output goes over SEGGER RTT, not a UART. Each image has its own control block and
 <strong>the address moves on every rebuild</strong>, so read it rather than reusing a remembered value:</p>
 <pre><code class="language-bat">arm-none-eabi-nm C:\b\m2appns\bin\tfm_ns.axf | findstr " _SEGGER_RTT$"</code></pre>
 <p>Point J-Link RTT Viewer at that address.</p>
-<p><strong>BL2&#x27;s log needs a halt.</strong> BL2 and the secure image share RAM, so the secure image&#x27;s startup
-wipes BL2&#x27;s control block microseconds after the chainload — a viewer that auto-detects after
+<p>BL2&#x27;s log needs a halt. BL2 and the secure image share RAM, so the secure image&#x27;s startup
+wipes BL2&#x27;s control block microseconds after the chainload; a viewer that auto-detects after
 reset always finds the secure image&#x27;s. To capture BL2: breakpoint inside it, attach the viewer
-at BL2&#x27;s address <em>while halted</em>, then run. <a href="DECISIONS.html#d100">D100</a>(DECISIONS.md), <a href="DECISIONS.html#d110">D110</a>(DECISIONS.md).</p>
+at BL2&#x27;s address while halted, then run. <a href="DECISIONS.html#d100">D100</a>(DECISIONS.md), <a href="DECISIONS.html#d110">D110</a>(DECISIONS.md).</p>
 <h3 id="what-a-good-run-looks-like">What a good run looks like</h3>
 <pre><code>[INF] Starting bootloader
 [INF] Bootloader chainload address offset: 0x68000
@@ -286,10 +288,10 @@ scripts\reg_build_iar.bat C:\b\m2iflih C:\b\m2iflihns ra8m2 flih</code></pre>
 on a first build:</p>
 <div class="table-wrap"><table>
 <tr><th>Symptom</th><th>Cause</th></tr>
-<tr><td><code>bsp_linker_info.h: No such file</code></td><td>§4 — the e2 solution was not <em>built</em></td></tr>
+<tr><td><code>bsp_linker_info.h: No such file</code></td><td>§4 — the e2 solution was not built</td></tr>
 <tr><td><code>Filename too long</code> on <code>3rdparty/everest/...</code></td><td>build directory path too deep; use <code>C:\b\</code></td></tr>
 <tr><td><code>C1083: stdio.h</code> in a PSA Arch build</td><td><code>scripts\vs_build.bat</code> not run</td></tr>
-<tr><td><code>INVALID CONFIG: TFM_SPM_DEBUG_TRACE AND ... _SILENCE</code></td><td><strong>Any non-Debug build type, given the platform&#x27;s <code>TFM_SPM_DEBUG_TRACE ON</code>.</strong> <code>MinSizeRel</code> and <code>Release</code> set <code>TFM_SPM_LOG_LEVEL</code> to <code>_SILENCE</code>, the platform config then turns <code>TFM_SPM_DEBUG_TRACE</code> ON, and <code>check_config.cmake:119</code> rejects the pair. Pass <code>-DTFM_SPM_LOG_LEVEL=TFM_SPM_LOG_LEVEL_DEBUG</code>, or <code>-DTFM_SPM_DEBUG_TRACE=OFF</code> for the smaller image</td></tr>
+<tr><td><code>INVALID CONFIG: TFM_SPM_DEBUG_TRACE AND ... _SILENCE</code></td><td>Any non-Debug build type, given the platform&#x27;s <code>TFM_SPM_DEBUG_TRACE ON</code>. <code>MinSizeRel</code> and <code>Release</code> set <code>TFM_SPM_LOG_LEVEL</code> to <code>_SILENCE</code>, the platform config then turns <code>TFM_SPM_DEBUG_TRACE</code> ON, and <code>check_config.cmake:119</code> rejects the pair. Pass <code>-DTFM_SPM_LOG_LEVEL=TFM_SPM_LOG_LEVEL_DEBUG</code>, or <code>-DTFM_SPM_DEBUG_TRACE=OFF</code> for the smaller image</td></tr>
 <tr><td>Nothing on RTT</td><td>wrong control-block address (it moves every build), or BL2 — see §6</td></tr>
 <tr><td><code>region CODE_RAM overflowed</code></td><td>see <a href="CONFIGURATION.html">CONFIGURATION.md</a></td></tr>
 </table></div>
@@ -298,12 +300,12 @@ on a first build:</p>
 <div class="table-wrap"><table>
 <tr><th>Document</th><th>Read it when you want</th></tr>
 <tr><td><a href="README.html">README.md</a></td><td>the one-page orientation and repository map</td></tr>
-<tr><td><a href="DESIGN.html">DESIGN.md</a></td><td><strong>how the port works</strong> — the config-truth principle, the memory map, the SAU, MCUboot integration</td></tr>
+<tr><td><a href="DESIGN.html">DESIGN.md</a></td><td>how the port works — the config-truth principle, the memory map, the SAU, MCUboot integration</td></tr>
 <tr><td><a href="CONFIGURATION.html">CONFIGURATION.md</a></td><td>every knob you may legitimately change, with its constraints</td></tr>
 <tr><td><a href="RA8M2_SOLUTION.html">RA8M2_SOLUTION.md</a> / <a href="RA6M5_SOLUTION.html">RA6M5_SOLUTION.md</a></td><td>the per-part memory map, board settings and open items</td></tr>
 <tr><td><a href="scripts_README.html">scripts/README.md</a></td><td>build trees, test configurations, RTT, the upgrade test</td></tr>
-<tr><td><a href="TROUBLESHOOTING.html">TROUBLESHOOTING.md</a></td><td>a symptom you are looking at right now</td></tr>
-<tr><td><a href="DECISIONS.html">DECISIONS.md</a></td><td><strong>why</strong> something is the way it is. Append-only, numbered <code>D001</code>… — the rest of the docs cite it by number</td></tr>
+<tr><td><a href="TROUBLESHOOTING.html">TROUBLESHOOTING.md</a></td><td>a symptom you are looking at now</td></tr>
+<tr><td><a href="DECISIONS.html">DECISIONS.md</a></td><td>why something is the way it is. Append-only, numbered <code>D001</code>… — the rest of the docs cite it by number</td></tr>
 <tr><td><a href="ADDING_FSP_MODULES.html">ADDING_FSP_MODULES.md</a></td><td>you enabled a driver in RASC and TF-M does not link it</td></tr>
 <tr><td><a href="RECONFIGURING_THE_LAYOUT.html">RECONFIGURING_THE_LAYOUT.md</a></td><td>you are resizing a slot or moving the storage area</td></tr>
 <tr><td><a href="PORTING.html">PORTING.md</a></td><td>you are adding a new RA part</td></tr>
@@ -311,11 +313,11 @@ on a first build:</p>
 <tr><td><a href="UPSTREAM_CHANGES.html">UPSTREAM_CHANGES.md</a></td><td>what this port changes outside <code>platform/ext/target/renesas/</code>, and why</td></tr>
 <tr><td><a href="PROJECT_PLAN.html">PROJECT_PLAN.md</a></td><td>milestones, phases and test-coverage gaps</td></tr>
 <tr><td><a href="RA6E1_TEMPLATE_CHECKLIST.html">RA6E1_TEMPLATE_CHECKLIST.md</a></td><td>what a RASC project must emit — the other half of <code>PORTING.md</code></td></tr>
-<tr><td>—</td><td>the planned move to TF-PSA-Crypto (Mbed TLS 4.x) is <strong>not in this repo</strong>: see the sibling <code>fsp_tf_psa_crypto</code>, which carries its plan and its own decision log</td></tr>
+<tr><td>—</td><td>the planned move to TF-PSA-Crypto (Mbed TLS 4.x) is not in this repo: see the sibling <code>fsp_tf_psa_crypto</code>, which carries its plan and its own decision log</td></tr>
 <tr><td><a href="DOCUMENTATION_PLAN.html">DOCUMENTATION_PLAN.md</a></td><td>you are adding to these documents</td></tr>
 </table></div>
-<p><strong>If you read one other document, make it <code>DESIGN.md</code> §1.</strong> It explains why the e2 projects are
-generated rather than edited, which is the constraint most newcomers trip over.</p>
+<p>Read <code>DESIGN.md</code> §1 next. It explains why the e2 projects are generated rather than edited,
+which is the constraint most newcomers trip over.</p>
 </main>
 </div>
 </body>
