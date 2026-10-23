@@ -94,7 +94,7 @@ is fixed**; the test is whether `ra_gen/bsp_clock_cfg.h` emits `BSP_CFG_CLOCKS_S
 after a regenerate. D092, D093.
 
 The trap: nothing in the build warns if the generated value later becomes correct - the port's
-define simply keeps winning, silently, and the deviation outlives its reason.
+define keeps winning, silently, and the deviation outlives its reason.
 ## 2. Repositories
 - `fsp_cmake` — RASC-generated FSP projects (bl2 / s / ns / …) + modular CMake + this doc + status doc
   + bring-up scripts. FSP 6.7.0-beta0 ([D045], [D047]); `GETTING_STARTED.md` §2 is the

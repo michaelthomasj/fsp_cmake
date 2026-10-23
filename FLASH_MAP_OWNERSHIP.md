@@ -111,7 +111,7 @@ contract asks for. Nothing is subverted.
 
 In effect, for a vendor who already has a flash map, yes — and the reason is that the slot
 is singular. A build contains exactly one `flash_map_backend.h`. TF-M has taken it, so a
-platform whose SDK also supplies one (FSP, and Zephyr for the same reason) cannot simply bring
+platform whose SDK also supplies one (FSP, and Zephyr for the same reason) cannot bring
 its own; one of the two must be suppressed.
 
 TF-M provides one opt-out, and its limits are the important part:
