@@ -141,7 +141,9 @@ MRAM - provisioning writing OTP into DF_EMULATION, via `mram_program_control()` 
 
 `BFSR 0x82` (PRECISERR | BFARVALID) with `BFAR` at the `R_MRMS` base is the signature.
 
-**Fix.** e2 secure project, Security -> Clocks = Secure, regenerate. [D092].
+**Fix.** `BSP_TZ_CFG_MSAR=0` in `ra8m2/CMakeLists.txt`, which is already there. Setting
+Security -> Clocks = Secure in the e2 secure project does not fix it: the generator emits
+`BSP_CFG_CLOCKS_SECURE (0)` either way ([D093], which corrects [D092] on this point).
 
 RA6M5 cannot hit this: no MRAM, so no `MSAR`.
 

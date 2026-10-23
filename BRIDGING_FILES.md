@@ -238,7 +238,7 @@ Each hazard gets a mechanism, not a comment:
 |---|---|
 | `Debug/bsp_linker_info.h` | consumed, filtered to `bsp_partitions.h` — macros only, because it also declares C types and a `flash_map[]` that would collide |
 | `Debug/memory_regions.{ld,icf}` | consumed on RA8M2, filtered to `option_settings.h` for the OFS addresses |
-| `bsp_linker.c` | excluded; its three jobs are reimplemented in `bl2_option_setting.c`, `bsp_init_stub.c` and `<part>_ddsc.c` |
+| `bsp_linker.c` | excluded; its jobs are reimplemented in `bl2_option_setting.c` and `bsp_init_stub.c` on every part, plus `ra8m2_ddsc.c` on RA8M2. RA6M5 and RA6E1 have no DDSC bridge and need none: FSP's ITCM/DTCM attribution is the only unconditional user of the `gp_ddsc_*` symbols, and it is guarded on `BSP_FEATURE_BSP_HAS_ITCM` / `_HAS_DTCM`, which the M33 parts do not have - see the comment at the head of `ra8m2_ddsc.c` |
 | `Debug/fsp_gen.{ld,icf}`, `script/fsp.{ld,icf}` | unused — TF-M supplies its own. Worth keeping as the reference for what FSP would have done; they were the source for the discrete-region pattern |
 | port-owned | `<part>_bl2.ld`, `<part>_bl2.icf`, `<part>_fsp_sections.icf` |
 

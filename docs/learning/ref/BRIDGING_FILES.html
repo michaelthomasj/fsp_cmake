@@ -240,7 +240,7 @@ pre-flash verification, <code>GETTING_STARTED.md</code> §6.</li>
 <tr><th>FSP file</th><th>Treatment</th></tr>
 <tr><td><code>Debug/bsp_linker_info.h</code></td><td>consumed, filtered to <code>bsp_partitions.h</code> — macros only, because it also declares C types and a <code>flash_map[]</code> that would collide</td></tr>
 <tr><td><code>Debug/memory_regions.{ld,icf}</code></td><td>consumed on RA8M2, filtered to <code>option_settings.h</code> for the OFS addresses</td></tr>
-<tr><td><code>bsp_linker.c</code></td><td>excluded; its three jobs are reimplemented in <code>bl2_option_setting.c</code>, <code>bsp_init_stub.c</code> and <code>&lt;part&gt;_ddsc.c</code></td></tr>
+<tr><td><code>bsp_linker.c</code></td><td>excluded; its jobs are reimplemented in <code>bl2_option_setting.c</code> and <code>bsp_init_stub.c</code> on every part, plus <code>ra8m2_ddsc.c</code> on RA8M2. RA6M5 and RA6E1 have no DDSC bridge and need none: FSP&#x27;s ITCM/DTCM attribution is the only unconditional user of the <code>gp_ddsc_*</code> symbols, and it is guarded on <code>BSP_FEATURE_BSP_HAS_ITCM</code> / <code>_HAS_DTCM</code>, which the M33 parts do not have - see the comment at the head of <code>ra8m2_ddsc.c</code></td></tr>
 <tr><td><code>Debug/fsp_gen.{ld,icf}</code>, <code>script/fsp.{ld,icf}</code></td><td>unused — TF-M supplies its own. Worth keeping as the reference for what FSP would have done; they were the source for the discrete-region pattern</td></tr>
 <tr><td>port-owned</td><td><code>&lt;part&gt;_bl2.ld</code>, <code>&lt;part&gt;_bl2.icf</code>, <code>&lt;part&gt;_fsp_sections.icf</code></td></tr>
 </table></div>

@@ -169,7 +169,9 @@ set to, so setting &quot;Clocks secure&quot; in RASC does not fix it.</p>
 MRAM - provisioning writing OTP into DF_EMULATION, via <code>mram_program_control()</code> -&gt;
 <code>bsp_prv_clear_pfb()</code>.</p>
 <p><code>BFSR 0x82</code> (PRECISERR | BFARVALID) with <code>BFAR</code> at the <code>R_MRMS</code> base is the signature.</p>
-<p><strong>Fix.</strong> e2 secure project, Security -&gt; Clocks = Secure, regenerate. <a href="DECISIONS.html#d092">D092</a>.</p>
+<p><strong>Fix.</strong> <code>BSP_TZ_CFG_MSAR=0</code> in <code>ra8m2/CMakeLists.txt</code>, which is already there. Setting
+Security -&gt; Clocks = Secure in the e2 secure project does not fix it: the generator emits
+<code>BSP_CFG_CLOCKS_SECURE (0)</code> either way (<a href="DECISIONS.html#d093">D093</a>, which corrects <a href="DECISIONS.html#d092">D092</a> on this point).</p>
 <p>RA6M5 cannot hit this: no MRAM, so no <code>MSAR</code>.</p>
 <h3 id="hfsrforced-set-with-every-cfsr--bfsr--mmfsr--ufsr--sfsr-bit-clear"><code>HFSR.FORCED</code> set with every <code>CFSR</code> / <code>BFSR</code> / <code>MMFSR</code> / <code>UFSR</code> / <code>SFSR</code> bit clear</h3>
 <p>This is the signature of a masked SVCall, not a fault in the code you were running. With
