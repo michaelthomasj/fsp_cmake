@@ -54,10 +54,13 @@ the FCLK divider.
 
 ### 1.3 Option-setting memory (OFS) — ⚠ NOT linked into any image
 **Do not emit OFS/option-setting sections into any TF-M image (BL2/secure/NS).** Flashing an image that
-carries them via J-Link/Ozone permanently bricks the part (`FSPR=0`) — it destroyed two boards
-(DESIGN.md §8/§8.4). If a RASC regeneration re-introduces `bl2_option_setting.c` or `.option_setting_*`
+carries them via J-Link/Ozone permanently bricks the part — it destroyed two boards
+(DESIGN.md §8/§8.4). The cause is the zero fill into the reserved bytes between the option
+groups, which the hardware manual requires be left unwritten ([D132]); the `FSPR=0` reading
+this section used to give was withdrawn by [D094], because RA6M4 has no Flash Access Window. If a RASC regeneration re-introduces `bl2_option_setting.c` or `.option_setting_*`
 linker placements, remove them. Option memory (watchdogs, etc.) is programmed **separately by RFP**, with
-a complete FSPR-preserving config, and verified by reading `FAWMON` back. the OFS brick guard (now `platform/ext/target/renesas/common/check_ofs.py` in the TF-M tree, run automatically by both platform builds) gates
+a complete option-setting config. Do not read `FAWMON`/`FSPR` back: RA6M4 does not implement
+them ([D094]). the OFS brick guard (now `platform/ext/target/renesas/common/check_ofs.py` in the TF-M tree, run automatically by both platform builds) gates
 this. For plain debugging no OFS is required.
 
 ---

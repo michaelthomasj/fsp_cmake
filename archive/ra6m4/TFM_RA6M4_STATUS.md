@@ -26,7 +26,7 @@ this repo (`fsp_cmake`) and consumed by TF-M via `FSP_*_APP_DIR` variables.
 linked into an image. The actual cause was narrower: `ra6m4_bl2.ld` emitted the option words as
 bare addressed sections with **no `> REGION` assignment**, so GNU ld coalesced all of them into one
 PT_LOAD spanning `0x0100A100`–`0x0100A2CC` and **zero-filled the 368 bytes of FCU config in
-between**, including the FSPR permanence word. FSP's generated linker gives each option group its
+between**, which are reserved ([D132]). FSP's generated linker gives each option group its
 own MEMORY region and therefore cannot do this.
 
 OFS emission is **restored**, with thirteen discrete MEMORY regions. Full rationale: **DESIGN.md
@@ -545,7 +545,8 @@ Verify the SAU/veneer attribution on hardware; do NOT program an IDAU NSC region
 - [ ] **(BL2) OFS / option-setting regions — VERIFY ON HARDWARE.** _Status 2026-08-10: the image DOES
       now program OFS again (OFS0 `0x0100A100`, OFS1_SEC `0x0100A200`, OFS1_SEL `0x0100A280`), via
       discrete per-group MEMORY regions — see the 2026-08-10 section and DESIGN.md §8.4. What remains is
-      hardware verification: flash from an erased chip, read FAWMON/FSPR back before trusting it, and
+      hardware verification: flash from an erased chip, read DLMMON (not FAWMON/FSPR, which
+      RA6M4 does not implement - [D094]) before trusting it, and
       confirm clock/watchdog behaviour._ The original analysis below assumed no OFS in the image and is
       kept for the clock reasoning, which still holds:
       - System clock is **PLL from the external 24 MHz crystal** (`bsp_clock_cfg.h`: CLOCK_SOURCE=PLL,
