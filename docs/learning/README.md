@@ -29,7 +29,7 @@ Open `index.html` in a browser. Plain HTML, no build step, no server, no network
 Every claim is tagged **Armv8-M** (architecture), **TF-M** (implementation choice), **RA** (Renesas
 silicon/FSP) or **This port**.
 
-## What it leaves out, deliberately
+## What it leaves out
 
 - Crypto: SCE9/RSIP acceleration, the ALT integration, PSA Arch crypto results.
 - Storage internals (ITS/PS file system), attestation token format.
