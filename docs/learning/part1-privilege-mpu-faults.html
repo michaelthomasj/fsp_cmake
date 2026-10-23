@@ -94,7 +94,7 @@ privileged code someone else wrote — the basis of every operating system on th
 <div class="warn">
 <p><strong>"Handler mode is privileged" does not mean "interrupt handlers are privileged".</strong> The first is
 architecture. The second depends on software. <span class="tag tfm">TF-M</span>, for an Application-RoT partition at isolation 2 and 3, takes an
-interrupt in Handler mode and then deliberately runs the owning partition's handler <em>in Thread mode, at the
+interrupt in Handler mode and then runs the owning partition's handler <em>in Thread mode, at the
 partition's privilege</em>. On this port that turned an ICU register write into a MemManage fault
 (<a href="ref/DECISIONS.html#d113">D113</a> defect 4). Mechanism in <a href="part3-tfm.html#flih">Part 3 §3.6</a>.</p>
 </div>
@@ -170,7 +170,7 @@ programs.</p>
   <li><strong>32-byte granularity.</strong> Base and limit are stored in bits [31:5]. The base's low five bits are
     taken as <code>00000</code>, the limit's as <code>11111</code>. A region therefore starts on a 32-byte boundary
     and its last byte is at <code>…1F</code>. Unlike Armv7-M, sizes need not be powers of two — which is what lets
-    TF-M fit regions exactly around linker sections.</li>
+    TF-M fit regions tightly around linker sections.</li>
   <li><strong>AP</strong>, from <code>ARM_MPU_AP_(RO, NP) = (RO &lt;&lt; 1) | NP</code>
     (<code>armv8m_mpu.h:140</code>): <code>00</code> RW privileged only, <code>01</code> RW any,
     <code>10</code> RO privileged only, <code>11</code> RO any.</li>
@@ -278,7 +278,7 @@ not to scale.</figcaption>
     <a href="part3-tfm.html#static-table">Part 3 §3.7</a>.</li>
   <li><span class="tag port">This port</span> RA6M5 and RA8M2 each have 8 regions
     (<a href="ref/DECISIONS.html#d113">D113</a>, <a href="ref/DECISIONS.html#d115">D115</a>) and five static, leaving
-    <strong>3</strong>. At isolation 2 those 3 are the budget for the <code>mmio_region</code>s of <em>all</em>
+    3. At isolation 2 those 3 are the budget for the <code>mmio_region</code>s of <em>all</em>
     Application-RoT partitions together, since each is appended permanently. With the test suite's AGT0 region bound, 2
     remain spare.</li>
 </ul>
@@ -321,7 +321,7 @@ onto the stack that was in use (MSP or PSP, Secure or Non-secure). Two optional 
   <text x="510" y="300" class="t-sm"><tspan class="t-hl">Secure</tspan> context is interrupted by a</text>
   <text x="510" y="316" class="t-sm"><tspan class="t-hl">Non-secure</tspan> exception, so the NS handler</text>
   <text x="510" y="332" class="t-sm">cannot read Secure R4–R11.</text>
-  <text x="10" y="270" class="t-sm">Hardware stacks exactly the AAPCS caller-saved set, so a C function can be a handler.</text>
+  <text x="10" y="270" class="t-sm">Hardware stacks the AAPCS caller-saved set, so a C function can be a handler.</text>
   <text x="10" y="290" class="t-sm">R4–R11 are stacked by hardware only in the TrustZone case on the right;</text>
   <text x="10" y="310" class="t-sm">otherwise a context switch must save them itself (TF-M's PendSV, §1.7).</text>
   <text x="10" y="350" class="t-sm t-muted">Armv8.1-M with MVE also stacks VPR. Not drawn.</text>
@@ -363,7 +363,7 @@ to unstack.</p>
 <p>TF-M builds three values from these bits (<code>tfm_arch_v8m.h:21-36</code>). Worked out:</p>
 <div class="table-wrap"><table>
 <tr><th>TF-M name</th><th>Bits set</th><th>Value</th><th>Meaning</th></tr>
-<tr><td><code>EXC_RETURN_THREAD_PSP</code></td><td>S DCRS FType Mode SPSEL ES</td><td><code>0xFFFFFFFD</code></td><td>Secure Thread, PSP, no FP — <strong>how every partition thread is started</strong> (<code>tfm_arch.c:165</code>)</td></tr>
+<tr><td><code>EXC_RETURN_THREAD_PSP</code></td><td>S DCRS FType Mode SPSEL ES</td><td><code>0xFFFFFFFD</code></td><td>Secure Thread, PSP, no FP — how every partition thread is started (<code>tfm_arch.c:165</code>)</td></tr>
 <tr><td><code>EXC_RETURN_THREAD_MSP</code></td><td>S DCRS FType Mode ES</td><td><code>0xFFFFFFF9</code></td><td>Secure Thread, MSP</td></tr>
 <tr><td><code>EXC_RETURN_HANDLER</code></td><td>S DCRS FType ES</td><td><code>0xFFFFFFF1</code></td><td>back to a Secure handler</td></tr>
 </table></div>
@@ -431,7 +431,7 @@ examples you will meet:</p>
         ...</code></pre>
 <p class="src"><code>secure_fw/spm/core/arch/tfm_arch.c:80-101</code>; <code>SCB_ICSR_ADDR (0xE000ED04)</code>,
 <code>SCB_ICSR_PENDSVSET_BIT (0x10000000)</code> at <code>tfm_arch_v8m.h:43-44</code></p>
-<p><strong>Note the store to <code>0xE000ED04</code>.</strong> That is a PPB address. The instruction is only legal
+<p>The store to <code>0xE000ED04</code> is the part to notice. That is a PPB address. The instruction is only legal
 from privileged code. Keep that in mind for §1.9.</p>
 
 <h3>…and how it is performed</h3>
@@ -504,9 +504,9 @@ or they escalate to HardFault. <span class="tag port">This port</span> enables a
 
 <h3>Address validity rules</h3>
 <ul>
-  <li><code>MMFAR</code> (<code>0xE000ED34</code>) is meaningful <strong>only if <code>MMARVALID</code></strong> is set.
+  <li><code>MMFAR</code> (<code>0xE000ED34</code>) is meaningful only if <code>MMARVALID</code> is set.
     An instruction-fetch violation (<code>IACCVIOL</code>) never sets it: the faulting address is the stacked PC.</li>
-  <li><code>BFAR</code> (<code>0xE000ED38</code>) is meaningful <strong>only if <code>BFARVALID</code></strong>. An
+  <li><code>BFAR</code> (<code>0xE000ED38</code>) is meaningful only if <code>BFARVALID</code>. An
     imprecise BusFault never sets it — the write that failed retired several instructions ago.</li>
   <li><code>MMFAR</code> and <code>BFAR</code> may share storage in an implementation; read the valid bit, then the
     address, then clear the status.</li>
@@ -548,7 +548,7 @@ that address, and which privilege was the code running at</em>.</p>
   green-run dump (address from an earlier layout)</td>
   <td><code>tfm_sprt</code>'s <em>code</em> is unprivileged but its <code>.bss</code> is not. SPRT code must be stateless.</td><td><a href="ref/DECISIONS.html#d113">D113</a> #2</td></tr>
 <tr><td><code>MMFSR 0x82</code></td><td><code>0x400E8008</code></td>
-  <td>AGT0 register, but <strong>no region</strong> covered it</td>
+  <td>AGT0 register, but no region covered it</td>
   <td>Unprivileged access to an address no region covers faults (no background map for unprivileged). Root cause:
   the MMIO region was never programmed (Part 3 §3.7).</td><td><a href="ref/DECISIONS.html#d113">D113</a> #3</td></tr>
 <tr><td><code>MMFSR 0x82</code></td><td><code>0x40006300</code></td>
@@ -565,7 +565,7 @@ that address, and which privilege was the code running at</em>.</p>
   were not set Secure in e2 (Part 2 §2.7).</td><td><a href="ref/DECISIONS.html#d092">D092</a></td></tr>
 <tr><td><code>HFSR.FORCED</code>, all else 0</td><td>—</td><td>—</td><td>Masked SVC (§1.8).</td><td><a href="ref/DECISIONS.html#d064">D064</a></td></tr>
 </table></div>
-<p>Note the pattern in the MemManage rows: <strong>the same status byte, <code>0x82</code>, for four different
+<p>The MemManage rows share a pattern: <strong>the same status byte, <code>0x82</code>, for four different
 causes.</strong> The status tells you <em>how</em> the access failed; only the address and the region table tell you
 <em>why</em>. Rows 1–2 differ from rows 3–4 in whether a region existed: a privileged region exists but excludes the
 caller, versus no region exists at all.</p>
@@ -592,7 +592,7 @@ PendSV write in <code>arch_attempt_schedule</code>" (<a href="ref/DECISIONS.html
     runs privileged and execution survives into a test body — which is why L1+IPC died <em>earlier in boot</em> than
     L2.</li>
 </ol>
-<p>The two halves of the firmware acted on <strong>different values of the same macro</strong>. That is the sharpest
+<p>The two halves of the firmware acted on different values of the same macro. That is the sharpest
 statement of the defect in Part 3 §3.8.</p>
 <div class="note">
 <p><strong>Status.</strong> With the macro defined on <code>platform_s</code>, RA8M2 L1+IPC passes the full regression
