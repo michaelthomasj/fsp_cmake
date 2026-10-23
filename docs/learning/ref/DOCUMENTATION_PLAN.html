@@ -68,9 +68,9 @@ gap list - the &quot;Still missing&quot; text that follows is the 2026-10-04 sna
 record.</p>
 <p>Done since it was written: <code>README.md</code> is no longer a stub and carries the document map;
 <code>RA8M2_SOLUTION.md</code> exists; the eight RA6M4-era documents are under <code>archive/ra6m4/</code> with an
-index; <code>DESIGN.md</code> has been corrected to the live parts (DECISIONS D086). **Still missing, and
+index; <code>DESIGN.md</code> has been corrected to the live parts (DECISIONS D086). Still missing, and
 still the point of this file: <code>CONFIGURATION.md</code>, <code>RECONFIGURING_THE_LAYOUT.md</code>,
-<code>TROUBLESHOOTING.md</code>, <code>BRIDGING_FILES.md</code>.**</p>
+<code>TROUBLESHOOTING.md</code>, <code>BRIDGING_FILES.md</code>.</p>
 <p>The inventory below is regenerated rather than hand-maintained - the original was months stale
 and understated <code>DECISIONS.md</code> by 3,000 lines.</p>
 <h2 id="the-problem-with-a-worked-example">The problem, with a worked example</h2>
@@ -79,14 +79,14 @@ answer is split across places you can only find if you already know they exist:<
 <div class="table-wrap"><table>
 <tr><th>Where</th><th>What it tells you</th></tr>
 <tr><td><code>region_defs.h</code> lines 83–89 (TF-M repo)</td><td>The whole answer: <code>.ram_from_flash</code> measures <code>0x7d0</code>; ld appends a long-branch veneer <em>inside</em> the section for the RAM code&#x27;s call to <code>flash_hp_enter_pe_df_mode</code>; <code>0x800</code> fit with nothing to spare, hence <code>0xA00</code>; overflow is caught loudly as <code>region CODE_RAM overflowed</code>.</td></tr>
-<tr><td><code>RA6E1_SOLUTION.md</code> §&quot;code-flash P/E routines&quot;</td><td>Why the section exists, the three macros, the upstream ordering bug. <strong>Not</strong> the sizing headroom or the uprev risk.</td></tr>
+<tr><td><code>RA6E1_SOLUTION.md</code> §&quot;code-flash P/E routines&quot;</td><td>Why the section exists, the three macros, the upstream ordering bug. Not the sizing headroom or the uprev risk.</td></tr>
 <tr><td><code>DECISIONS.md</code> D012</td><td>Why a hook rather than a fork. Nothing about size.</td></tr>
 </table></div>
 <p>So the limitation <em>is</em> documented — in a C header, at the fix site, in the other repository. Nobody
 reconfiguring this port would find it. That pattern repeats across the port: the knowledge is good
 and it is written down, but it is organised by <em>where the bug was fixed</em> rather than by *what a
 reader needs to do*.</p>
-<p>Two more found while surveying (<strong>both since resolved</strong>; the line counts in the table below
+<p>Two more found while surveying (both since resolved; the line counts in the table below
 are the 2026-10-04 snapshot and have moved a long way - <code>DECISIONS.md</code> alone is now past 6,500
 lines, and <code>MACHINE_HANDOFF.md</code> was deleted on 2026-10-09):</p>
 <ul>
@@ -114,36 +114,36 @@ to <code>ccmake</code>/<code>cmake-gui</code> and undiscoverable from the build.
 </table></div>
 <p>Most of the operational truth sits in two kinds of file, both engineering diaries:
 <code>DECISIONS.md</code> (append-only, authoritative where anything disagrees) and the per-part
-<code>*_SOLUTION.md</code>. That format earned its place - the reversals in it are worth keeping - but it
+<code>*_SOLUTION.md</code>. That format is worth keeping for the reversals it records, but it
 is not what a user reconfiguring the port needs, and a diary ages badly because nothing in it
 says which entries are still true.</p>
 <h2 id="status-2026-10-09">Status, 2026-10-09</h2>
-<p>Rewritten after five of the seven target documents landed. **What is left is one new document
-and three retirements**, not a programme of writing.</p>
+<p>Rewritten after five of the seven target documents landed. What is left is one new document
+and three retirements, not a programme of writing.</p>
 <div class="table-wrap"><table>
 <tr><th>#</th><th>Document</th><th>State</th></tr>
-<tr><td>1</td><td><code>README.md</code></td><td><strong>done</strong> — one page, repo map, now points at <code>GETTING_STARTED.md</code> for procedure</td></tr>
-<tr><td>2</td><td><del><code>BUILDING.md</code></del></td><td><strong>superseded by <code>GETTING_STARTED.md</code></strong> — see below</td></tr>
-<tr><td>2a</td><td><code>GETTING_STARTED.md</code></td><td><strong>done 2026-10-09</strong> — clone to running board, with a document map</td></tr>
-<tr><td>3</td><td><code>CONFIGURATION.md</code></td><td><strong>done</strong></td></tr>
-<tr><td>4</td><td><code>RECONFIGURING_THE_LAYOUT.md</code></td><td><strong>done 2026-10-09</strong> — the chain that follows automatically, the four things that do not, and the 35 assertions</td></tr>
-<tr><td>5</td><td><code>ADDING_FSP_MODULES.md</code></td><td><strong>done 2026-10-09</strong> — and the earlier claim here that it was &quot;folded into <code>DESIGN.md</code>&quot; was <strong>wrong</strong>: DESIGN.md has no such section. The only guidance was in <code>archive/ra6m4/TFM_INTEGRATION_COMPLETE.md</code>, which this plan had listed for retirement, and <strong>19 live source files pointed at a path that did not exist</strong>. Rescued, rewritten against the live mechanism, all 19 pointers repaired</td></tr>
-<tr><td>6</td><td><code>PORTING.md</code></td><td><strong>done 2026-10-09</strong> — the checklist covers the RASC half only; this is the TF-M platform half, sized by diffing the two live ports (8 files to author, 31 to copy)</td></tr>
-<tr><td>7</td><td><code>TROUBLESHOOTING.md</code></td><td><strong>done</strong></td></tr>
-<tr><td>+</td><td><code>BRIDGING_FILES.md</code></td><td><strong>done</strong> (<a href="DECISIONS.html#d089">D089</a>) — was the highest-value item on the original list</td></tr>
-<tr><td>+</td><td><code>UPSTREAM_CHANGES.md</code></td><td><strong>done</strong>, 16 items - 10 live defect fixes, 2 additions, 2 withdrawn, 2 report-only (<a href="DECISIONS.html#d117">D117</a>, <a href="DECISIONS.html#d120">D120</a>, <a href="DECISIONS.html#d125">D125</a>)</td></tr>
+<tr><td>1</td><td><code>README.md</code></td><td>done — one page, repo map, now points at <code>GETTING_STARTED.md</code> for procedure</td></tr>
+<tr><td>2</td><td><del><code>BUILDING.md</code></del></td><td>superseded by <code>GETTING_STARTED.md</code> — see below</td></tr>
+<tr><td>2a</td><td><code>GETTING_STARTED.md</code></td><td>done 2026-10-09 — clone to running board, with a document map</td></tr>
+<tr><td>3</td><td><code>CONFIGURATION.md</code></td><td>done</td></tr>
+<tr><td>4</td><td><code>RECONFIGURING_THE_LAYOUT.md</code></td><td>done 2026-10-09 — the chain that follows automatically, the four things that do not, and the 35 assertions</td></tr>
+<tr><td>5</td><td><code>ADDING_FSP_MODULES.md</code></td><td>done 2026-10-09 — and the earlier claim here that it was &quot;folded into <code>DESIGN.md</code>&quot; was wrong: DESIGN.md has no such section. The only guidance was in <code>archive/ra6m4/TFM_INTEGRATION_COMPLETE.md</code>, which this plan had listed for retirement, and 19 live source files pointed at a path that did not exist. Rescued, rewritten against the live mechanism, all 19 pointers repaired</td></tr>
+<tr><td>6</td><td><code>PORTING.md</code></td><td>done 2026-10-09 — the checklist covers the RASC half only; this is the TF-M platform half, sized by diffing the two live ports (8 files to author, 31 to copy)</td></tr>
+<tr><td>7</td><td><code>TROUBLESHOOTING.md</code></td><td>done</td></tr>
+<tr><td>+</td><td><code>BRIDGING_FILES.md</code></td><td>done (<a href="DECISIONS.html#d089">D089</a>) — was the highest-value item on the original list</td></tr>
+<tr><td>+</td><td><code>UPSTREAM_CHANGES.md</code></td><td>done, 16 items - 10 live defect fixes, 2 additions, 2 withdrawn, 2 report-only (<a href="DECISIONS.html#d117">D117</a>, <a href="DECISIONS.html#d120">D120</a>, <a href="DECISIONS.html#d125">D125</a>)</td></tr>
 </table></div>
 <h3 id="why-buildingmd-became-getting_startedmd">Why <code>BUILDING.md</code> became <code>GETTING_STARTED.md</code></h3>
 <p>The original plan split &quot;one-page orientation&quot; (README) from &quot;real build procedures&quot;
 (BUILDING). In practice the reader those were written for - someone handed the repository who
 wants a board running - needs one continuous path, not two documents to interleave. A split
-makes the reader decide which half they are in, at exactly the moment they know least.</p>
+makes the reader decide which half they are in, at the moment they know least.</p>
 <p><code>GETTING_STARTED.md</code> is that continuous path: prerequisites with versions, clone, the e2
 solution build (the step everyone misses), the firmware build, flashing, reading RTT, what a
 good run looks like, the first-build failure table, and the map to everything else. README
 keeps the orientation and repository map and hands over.</p>
 <h3 id="revised-2026-10-09--the-target-set-is-complete">Revised 2026-10-09 — the target set is complete</h3>
-<p>Items 1-7 are all done or deliberately resolved. Three were written today (<code>ADDING_FSP_MODULES</code>,
+<p>Items 1-7 are all done or resolved. Three were written today (<code>ADDING_FSP_MODULES</code>,
 <code>PORTING</code>, <code>RECONFIGURING_THE_LAYOUT</code>) after the owner pointed out that the plan&#x27;s own status
 for two of them was wrong: item 5 was recorded as &quot;folded into DESIGN.md&quot; when DESIGN.md has no
 such section, and item 6 as &quot;covered by the checklist&quot; when the checklist is only the RASC half.</p>
@@ -151,38 +151,38 @@ such section, and item 6 as &quot;covered by the checklist&quot; when the checkl
 describe.** That is the argument for item 3 below.</p>
 <h3 id="remaining-work-in-order">Remaining work, in order</h3>
 <ol>
-<li><p><del><strong>A <code>## Settled questions</code> banner table</strong></del> <strong>in place 2026-10-09, 12 of 22 rows written.</strong>
+<li><p><del>A <code>## Settled questions</code> banner table</del> in place 2026-10-09, 12 of 22 rows written.
 At the top of <code>DECISIONS.md</code>, one row per QUESTION rather than per thread. The remaining
 <code>_TBD_</code> rows are the owner&#x27;s to write. Two supporting findings:</p>
 <ul>
 <li><strong>Rule 2 already required the back-annotation I had asked about.</strong> It says a superseded
-entry gets <code>Status: Superseded by Dyyy</code>, and <code>D001</code> shows the form. **One entry of twenty
-threads carried it.** Nine more applied by <code>scripts/decision_threads.py --status --apply</code>;
+entry gets <code>Status: Superseded by Dyyy</code>, and <code>D001</code> shows the form. One entry of twenty
+threads carried it. Nine more applied by <code>scripts/decision_threads.py --status --apply</code>;
 a normalised diff confirms Status values were the only bytes that changed.</li>
 <li><strong><code>D041</code> was excluded by hand.</strong> <code>D044</code> supersedes <em>the second fix in</em> <code>D041</code>; the first
 is still live in shipped FSP code. A <code>Status</code> field cannot say &quot;half superseded&quot;, and an
 attempt to detect that case automatically misfired on three clean entries. The script now
 prints the citing text and a human reads eleven lines.</li>
 </ul></li>
-<li><p><del><strong>Retire the three superseded files</strong></del> <strong>done 2026-10-09.</strong> <code>MACHINE_HANDOFF.md</code>
+<li><p><del>Retire the three superseded files</del> done 2026-10-09. <code>MACHINE_HANDOFF.md</code>
 deleted after its §4 pre-flash checklist was extracted to <code>GETTING_STARTED.md</code> §6 and its
 three live citations repointed; the six references left in <code>DECISIONS.md</code> are historical and
 stay. The other two were already quarantined in <code>archive/ra6m4/</code> and carry nothing live.
 <strong>Deleting it as this plan originally said would have destroyed the brick-safety checklist</strong> -
 the same shape of near-miss as item 5.</p></li>
-<li><p><del><strong>A sweep for stale cross-references.</strong></del> <strong>done 2026-10-09</strong> - <code>scripts/check_docs.py</code>,
+<li><p><del>A sweep for stale cross-references.</del> done 2026-10-09 - <code>scripts/check_docs.py</code>,
 installed as a pre-commit hook by <code>scripts/install_hooks.sh</code>. It found three more broken
 references on its first run, all pointing at files that had been moved to <code>archive/ra6m4/</code>
 without their citations being updated. Now green and enforced. Original note: Three have already been found and fixed by accident
 rather than by checking (<a href="DECISIONS.html#d094">D094</a>&#x27;s wrong D-numbers; <code>RA8M2_SOLUTION.md</code> describing the FSP
 MCUboot backend days after <a href="DECISIONS.html#d091">D091</a> removed it; <code>app_build_ra8m2_iar.bat</code> claiming the two
-project sets were out of sync after they had been reconciled). **There is no check for
-this.** A script that extracts every <code>DECISIONS.md</code> citation from every document and
+project sets were out of sync after they had been reconciled). There is no check for
+this. A script that extracts every <code>DECISIONS.md</code> citation from every document and
 verifies the entry exists and its title matches the claim would have caught all three.</p></li>
 </ol>
-<h3 id="a-documentation-rule-this-port-has-earned">A documentation rule this port has earned</h3>
+<h3 id="a-documentation-rule-this-port-has-adopted">A documentation rule this port has adopted</h3>
 <p>Every one of the stale cross-references above was written true and became false when the code
-moved. The cheap defence is not more prose - it is <strong>citing a command rather than a fact</strong>
+moved. The cheap defence is not more prose - it is citing a command rather than a fact
 wherever possible. <code>BRIDGING_FILES.md</code> already does this: each entry names a check you can run
 instead of a state you must trust. Apply the same to <code>RECONFIGURING_THE_LAYOUT.md</code>.</p>
 <hr>
@@ -199,7 +199,7 @@ the test-suite variants (<code>tf-m-tests</code>, <code>tests_psa_arch</code>) w
 legitimately change: name, default, where it is defined, what it affects, and its constraints.</li>
 <li><strong>RECONFIGURING_THE_LAYOUT.md</strong> — the repartitioning procedure. What follows automatically from
 the solution (the whole <code>bsp_linker_info.h</code> → <code>bsp_partitions.h</code> → <code>region_defs.h</code> chain, all
-three linkers), what does <strong>not</strong> (RDPM boundaries, <code>PS_NUM_ASSETS</code> capacity, the NSC-window LMA
+three linkers), what does not (RDPM boundaries, <code>PS_NUM_ASSETS</code> capacity, the NSC-window LMA
 budget), which <code>_Static_assert</code>s catch mistakes, and the order to do it in.</li>
 <li><strong>ADDING_FSP_MODULES.md</strong> — exists in substance in <code>DESIGN.md</code>; extract and make it standalone.</li>
 <li><strong>PORTING.md</strong> — what a new RA platform must supply. Feeds the RA8x2 work directly.</li>
@@ -221,9 +221,9 @@ the survey already found one that is not a cache variable.</p>
 <code>&lt;PART&gt;_RTT_BLOCKING</code>, <code>&lt;PART&gt;_NS_IN_SPE_BUILD</code> (default OFF on both live parts),
 <code>&lt;PART&gt;_BL2_HALT_AT_MAIN</code>, <code>&lt;PART&gt;_ORPHAN_CHECK_STRICT</code>, <code>TFM_SPM_DEBUG_TRACE</code>,
 <code>TFM_EXCEPTION_INFO_DUMP</code>, <code>PLATFORM_HAS_ISOLATION_L3_SUPPORT</code> (D008). <code>DEFAULT_MCUBOOT_FLASH_MAP</code> and
-<code>DEFAULT_MCUBOOT_FLASH_BACKEND</code> are <strong>not</strong> in this list: <a href="DECISIONS.html#d091">D091</a> left neither set in either
+<code>DEFAULT_MCUBOOT_FLASH_BACKEND</code> are not in this list: <a href="DECISIONS.html#d091">D091</a> left neither set in either
 <code>config.cmake</code> - the map is ON by upstream default and the backend variable no longer exists.</p>
-<p><em>Checked 2026-10-04:</em> the &quot;not a cache variable&quot; defect this file predicted does <strong>not</strong> exist
+<p><em>Checked 2026-10-04:</em> the &quot;not a cache variable&quot; defect this file predicted does not exist
 on ra6m5 or ra8m2. Every user-facing <code>&lt;PART&gt;_*</code> option there is declared <code>CACHE BOOL</code>, some in
 <code>CMakeLists.txt</code> rather than <code>config.cmake</code> - which is why a grep of <code>config.cmake</code> alone
 appears to find the defect. The remaining <code>&lt;PART&gt;_*</code> names are internal configure-time
@@ -233,21 +233,21 @@ variables (<code>BUILDING_BL2</code>, <code>IAR_STACK_*</code>, <code>MAIN_STACK
 <code>TFM_ISOLATION_LEVEL</code> · <code>CONFIG_TFM_SPM_BACKEND</code> · the five <code>TFM_PARTITION_*</code> · the
 <code>PLATFORM_DEFAULT_*</code> set · <code>PS_ENCRYPTION</code> · <code>PS_CRYPTO_AEAD_ALG</code> · <code>CRYPTO_HW_ACCELERATOR</code> ·
 <code>SYMMETRIC_INITIAL_ATTESTATION</code> · <code>PSA_INITIAL_ATTEST_MAX_TOKEN_SIZE</code>. Note explicitly that these
-cache defaults <strong>beat <code>TFM_PROFILE</code></strong> — the trap behind D007.</p>
-<p><strong>MCUboot / layout:</strong> <code>MCUBOOT_IMAGE_NUMBER</code> · <code>MCUBOOT_ALIGN_VAL</code> (128; flag day — images signed at
+cache defaults beat <code>TFM_PROFILE</code> — the trap behind D007.</p>
+<p><strong>MCUboot / layout:</strong> <code>MCUBOOT_IMAGE_NUMBER</code> · <code>MCUBOOT_ALIGN_VAL</code> (128; a change here is a flag day — images signed at
 another value are rejected) · <code>MCUBOOT_UPGRADE_STRATEGY</code> · <code>MCUBOOT_SIGNATURE_TYPE</code> ·
 <code>MCUBOOT_HW_KEY</code> · <code>MCUBOOT_DATA_SHARING</code> · <code>MCUBOOT_MEASURED_BOOT</code> · <code>FLASH_AREA_BL2_*</code> ·
 <code>MCUBOOT_IMAGE_VERSION_S</code> / <code>_NS</code> — and with them the USAGE NOTE that FSP&#x27;s
 <code>MCUBOOT_IMAGE_VERSION</code> environment variable is NOT read by this port and is ignored
 silently. Documented deviation, DESIGN.md 1.1.</p>
-<p><strong>Header-level tunables</strong> — not cache variables, but the ones people actually need to change, and the
+<p><strong>Header-level tunables</strong> — not cache variables, but the ones people need to change, and the
 ones with non-obvious constraints:</p>
 <div class="table-wrap"><table>
 <tr><th>Symbol</th><th>Where</th><th>Constraint to document</th></tr>
 <tr><td><code>S_RAM_CODE_SIZE</code></td><td><code>region_defs.h</code></td><td><code>0xA00</code> for <code>0x7d0</code> of code plus an ld-inserted veneer. Overflow → <code>region CODE_RAM overflowed</code>. Revisit on FSP uprev.</td></tr>
 <tr><td><code>S_RAM_CODE_EXTRA_SECTION_NAME</code></td><td><code>region_defs.h</code></td><td>Bare ld pattern, not a quoted string</td></tr>
 <tr><td><code>S_DATA_EXTRA_NOINIT_SECTION_NAME</code></td><td><code>region_defs.h</code></td><td>Must stay outside <code>__bss_start__..__bss_end__</code>, NOLOAD (D012)</td></tr>
-<tr><td><code>PS_NUM_ASSETS</code></td><td><code>config_tfm_target.h</code></td><td>Cap is <strong>per-part</strong>: 5 on RA6M5 (1,536 B PS block), 155 on RA8M2 (15,872 B). Asserted in <code>&lt;part&gt;_layout_checks.c</code>. <strong>Erase data flash before first boot after any change</strong></td></tr>
+<tr><td><code>PS_NUM_ASSETS</code></td><td><code>config_tfm_target.h</code></td><td>Cap is per-part: 5 on RA6M5 (1,536 B PS block), 155 on RA8M2 (15,872 B). Asserted in <code>&lt;part&gt;_layout_checks.c</code>. <strong>Erase data flash before first boot after any change</strong></td></tr>
 <tr><td><code>PS_MAX_ASSET_SIZE</code></td><td><code>config_tfm_target.h</code></td><td>Not the binding constraint — capacity is a sum</td></tr>
 <tr><td><code>TFM_NV_COUNTERS_AREA_SIZE</code></td><td><code>flash_layout.h</code></td><td>Fixed 2048 B; PS and ITS split what remains</td></tr>
 <tr><td><code>TFM_HAL_PS_SECTORS_PER_BLOCK</code></td><td><code>flash_layout.h</code></td><td><code>(area/sector)/2</code> — <code>num_blocks &lt; 2</code> fails ITS/PS init outright</td></tr>
@@ -255,9 +255,9 @@ ones with non-obvious constraints:</p>
 <tr><td>OFS <code>OPTION_SETTING_*</code></td><td><code>region_defs.h</code></td><td><strong>Brick hazard</strong> — one <code>MEMORY</code> region per word (D002); <code>check_ofs.py</code> enforces</td></tr>
 </table></div>
 <h2 id="ordering">Ordering</h2>
-<p>Write <strong>CONFIGURATION.md</strong> and <strong>RECONFIGURING_THE_LAYOUT.md</strong> first — they are the two with no
+<p>Write CONFIGURATION.md and RECONFIGURING_THE_LAYOUT.md first — they are the two with no
 current home at all, and the layout one is the procedure most likely to damage a board through the
-RDPM step. <strong>README.md</strong> next, because it is cheap and makes the rest findable. <strong>TROUBLESHOOTING.md</strong>
+RDPM step. README.md next, because it is cheap and makes the rest findable. TROUBLESHOOTING.md
 after that, harvested from existing fix-site comments rather than written fresh. The remainder are
 largely extraction and de-duplication.</p>
 <p>Verify every claim against the code as it is written, not against the existing markdown — the survey
@@ -266,7 +266,7 @@ propagates.</p>
 <hr>
 <h2 id="bridging_filesmd--not-yet-written-and-the-highest-value-item-on-this-list">BRIDGING_FILES.md — not yet written, and the highest-value item on this list</h2>
 <p><strong>The concern.</strong> A number of files in the ports exist only to bridge FSP to TF-M: they carry all or
-part of FSP&#x27;s code, or restate FSP-generated configuration, but are <strong>not</strong> FSP files and are not
+part of FSP&#x27;s code, or restate FSP-generated configuration, but are not FSP files and are not
 regenerated when the packs are. When FSP moves version they do not move with it, and nothing in the
 build compares them against their origin. They drift silently, and the failure modes are the worst
 kind — a stale constant that links cleanly and is wrong at run time.</p>
@@ -281,7 +281,7 @@ RA6M5 into a part whose engine directory is <code>rsip_e50d</code>. Both now dis
 <li><code>config.cmake</code> asserted <code>BSP_FEATURE_RSIP_SCE9_SUPPORTED == 1</code> on a part where it is <code>0</code>.</li>
 </ul>
 <p><strong>What the document must do.</strong> For every bridging file: name its FSP origin, say what was changed and
-why, and give the <strong>check</strong> that detects drift — a command, a static assert, or a specific thing to
+why, and give the check that detects drift — a command, a static assert, or a specific thing to
 diff after a pack uprev. A list of filenames is not enough; the check is the point.</p>
 <p><strong>Starting inventory</strong> — to be completed by audit, not trusted as complete. Grouped by how they drift:</p>
 <div class="table-wrap"><table>
@@ -292,28 +292,28 @@ diff after a pack uprev. A list of filenames is not enough; the check is the poi
 <tr><td>Depends on FSP INTERNALS, not its public API</td><td><code>cmsis_drivers/Driver_Flash.c</code> (<code>R_MRAM_Erase</code> block units, <code>InfoGet</code> field layout), <code>ra_sce_init.c</code> and <code>sce_trng.c</code> (private <code>r_sce_adapt.c</code> primitives declared as externs), accelerator <code>crypto_hw.c</code> (<code>psa_aead_setup_vendor</code>), <code>ra8m2_fsp_sections.icf</code> (FSP section names)</td><td>FSP refactors something it never promised to keep</td></tr>
 <tr><td>Selects a SUBSET of what FSP ships</td><td>the ALT source list in the accelerator CMakeLists (CCM excluded, D043/D051)</td><td>FSP adds, removes or fixes a source and the list is unaware — this is how the two session-leak fixes were nearly missed (D052/D053)</td></tr>
 </table></div>
-<p><strong>Cheapest canary found so far</strong>, worth generalising: <code>git diff</code> on <code>ra/fsp/src/rm_psa_crypto/</code> after a
+<p>Lowest-cost check found so far, worth generalising: <code>git diff</code> on <code>ra/fsp/src/rm_psa_crypto/</code> after a
 regenerate. <code>aes_alt.c</code> and <code>cipher_alt.c</code> are the only 2 of 35 that have ever differed between the
 SCE9 and E50D packs, so a diff there is a high-signal, near-zero-cost check (<a href="DECISIONS.html#d053">D053</a>).</p>
 <h3 id="the-linkerofs-family-gets-its-own-section--it-is-the-highest-consequence-case">The linker/OFS family gets its own section — it is the highest-consequence case</h3>
 <p>Everything to do with FSP&#x27;s linker inputs belongs in this document explicitly, because the
-failure mode is not a build error. <strong>Worked hazard, from a real question:</strong> a user changes an OFS
+failure mode is not a build error. Worked hazard, from a real question: a user changes an OFS
 setting in e2, rebuilds the TF-M port, and expects the new value to be programmed.</p>
 <div class="table-wrap"><table>
 <tr><th>Stage</th><th>Where it comes from</th><th>What can go wrong silently</th></tr>
-<tr><td>OFS <strong>values</strong></td><td><code>BSP_CFG_OPTION_SETTING_*</code> in the <strong>bootloader</strong> project&#x27;s <code>ra_cfg/.../bsp_mcu_ofs_cfg.h</code></td><td>Edited in the <strong>secure</strong> project instead — no effect, no warning. <code>bl2_option_setting.c</code> compiles into <code>platform_bl2</code>, so only <code>FSP_BL2_APP_DIR</code> is on the path. Both projects define the same groups, which makes this easy to do and impossible to notice.</td></tr>
-<tr><td>OFS <strong>addresses</strong></td><td>the bootloader project&#x27;s generated <code>Debug/memory_regions.icf</code>, filtered into <code>option_settings.h</code> at configure time</td><td>Were hand-transcribed until 2026-09-24, and were RA6M5&#x27;s — OFS0 linked at <code>0x0100A100</code> instead of <code>0x02c9f040</code> (<a href="DECISIONS.html#d056">D056</a>).</td></tr>
-<tr><td>Which <strong>groups</strong> exist</td><td>the device; FSP only emits a <code>BSP_CFG_OPTION_SETTING_*</code> for what the user sets</td><td>A group enabled in e2 that the port does not emit is <strong>dropped with no diagnostic</strong>. OFS2, OFS3_SEC and OFS3_SEL were configured and dropped exactly this way.</td></tr>
+<tr><td>OFS values</td><td><code>BSP_CFG_OPTION_SETTING_*</code> in the bootloader project&#x27;s <code>ra_cfg/.../bsp_mcu_ofs_cfg.h</code></td><td>Edited in the secure project instead — no effect, no warning. <code>bl2_option_setting.c</code> compiles into <code>platform_bl2</code>, so only <code>FSP_BL2_APP_DIR</code> is on the path. Both projects define the same groups, which makes this easy to do and impossible to notice.</td></tr>
+<tr><td>OFS addresses</td><td>the bootloader project&#x27;s generated <code>Debug/memory_regions.icf</code>, filtered into <code>option_settings.h</code> at configure time</td><td>Were hand-transcribed until 2026-09-24, and were RA6M5&#x27;s — OFS0 linked at <code>0x0100A100</code> instead of <code>0x02c9f040</code> (<a href="DECISIONS.html#d056">D056</a>).</td></tr>
+<tr><td>Which groups exist</td><td>the device; FSP only emits a <code>BSP_CFG_OPTION_SETTING_*</code> for what the user sets</td><td>A group enabled in e2 that the port does not emit is dropped with no diagnostic. OFS2, OFS3_SEC and OFS3_SEL were configured and dropped this way.</td></tr>
 <tr><td><strong>Placement</strong></td><td><code>ra8m2_bl2.ld</code> MEMORY + sections, <code>ra8m2_bl2.icf</code> region + keep + place</td><td>One coalesced <code>PT_LOAD</code> zero-fills the gaps and programs block-protect to 0 → permanent brick (<a href="DECISIONS.html#d002">D002</a>). Invisible in the srec.</td></tr>
 </table></div>
 <p><strong>The checks that now exist for it</strong>, and the pattern the rest of the document should follow —
 each hazard gets a mechanism, not a comment:</p>
 <ul>
 <li><code>bl2_option_setting.c</code> ends in a guard listing every <code>BSP_CFG_OPTION_SETTING_*</code> FSP knows for
-the part that the port does <strong>not</strong> place; any of them being set is an <code>#error</code> naming the
+the part that the port does not place; any of them being set is an <code>#error</code> naming the
 three edits needed. Verified to fire for <code>BPS</code> and <code>OTP_PBPS_SEC</code>, and correctly not to fire
 for the <code>OFS1_SEC_NO_HOCOFRQ</code> variant.</li>
-<li><code>check_ofs.py</code> now <strong>requires</strong> its region: it used to hardcode RA6&#x27;s <code>0x0100A100</code> window and,
+<li><code>check_ofs.py</code> now requires its region: it used to hardcode RA6&#x27;s <code>0x0100A100</code> window and,
 run against an RA8M2 BL2 carrying six OFS segments, printed *&quot;CLEAN (no OFS segments) …
 safe to flash&quot;*. A guard pointed at the wrong window is worse than none, because it reads as
 verification. BL2 additionally passes <code>--require-segments</code>, so an empty result fails.</li>
@@ -322,14 +322,14 @@ verification. BL2 additionally passes <code>--require-segments</code>, so an emp
 <p><strong>FSP linker inputs, and what the port does with each</strong> — the inventory this section needs:</p>
 <div class="table-wrap"><table>
 <tr><th>FSP file</th><th>Port&#x27;s treatment</th></tr>
-<tr><td><code>Debug/bsp_linker_info.h</code></td><td><strong>consumed</strong>, filtered to <code>bsp_partitions.h</code> (macros only; it also declares C types and a <code>flash_map[]</code> that would collide)</td></tr>
-<tr><td><code>Debug/memory_regions.icf</code></td><td><strong>consumed</strong>, filtered to <code>option_settings.h</code> for the OFS addresses</td></tr>
-<tr><td><code>bsp_linker.c</code></td><td><strong>excluded</strong> from the build; its OFS emission is reimplemented in <code>bl2_option_setting.c</code>, its init tables stubbed in <code>bsp_init_stub.c</code>, and its <code>gp_ddsc_*</code> definitions replaced by <code>ra8m2_ddsc.c</code></td></tr>
-<tr><td><code>Debug/fsp_gen.icf</code>, <code>script/fsp.icf</code>, <code>Debug/fsp_gen.ld</code></td><td><strong>unused</strong> — TF-M supplies its own scripts. Worth stating: they are the reference for what FSP would have done, and were the source for the discrete-region pattern.</td></tr>
+<tr><td><code>Debug/bsp_linker_info.h</code></td><td>consumed, filtered to <code>bsp_partitions.h</code> (macros only; it also declares C types and a <code>flash_map[]</code> that would collide)</td></tr>
+<tr><td><code>Debug/memory_regions.icf</code></td><td>consumed, filtered to <code>option_settings.h</code> for the OFS addresses</td></tr>
+<tr><td><code>bsp_linker.c</code></td><td>excluded from the build; its OFS emission is reimplemented in <code>bl2_option_setting.c</code>, its init tables stubbed in <code>bsp_init_stub.c</code>, and its <code>gp_ddsc_*</code> definitions replaced by <code>ra8m2_ddsc.c</code></td></tr>
+<tr><td><code>Debug/fsp_gen.icf</code>, <code>script/fsp.icf</code>, <code>Debug/fsp_gen.ld</code></td><td>unused — TF-M supplies its own scripts. Worth stating: they are the reference for what FSP would have done, and were the source for the discrete-region pattern.</td></tr>
 <tr><td>port-owned</td><td><code>ra8m2_bl2.ld</code>, <code>ra8m2_bl2.icf</code>, <code>ra8m2_fsp_sections.icf</code></td></tr>
 </table></div>
 <p><strong>Sequencing.</strong> Write this BEFORE the pack uprev in PROJECT_PLAN.md&#x27;s TODO, not after — the uprev is
-exactly the event it is meant to survive, and doing it second means auditing from memory.</p>
+the event it is meant to survive, and doing it second means auditing from memory.</p>
 </main>
 </div>
 </body>
