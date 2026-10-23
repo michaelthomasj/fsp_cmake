@@ -1,10 +1,10 @@
-# Troubleshooting — indexed by what you actually see
+# Troubleshooting — indexed by symptom
 
 Each entry: the symptom as it appears, the cause, the fix, and where the full account lives.
 Harvested from `DECISIONS.md` and from comments at the fix sites, so the detail is one hop
 away rather than reproduced here.
 
-**The two that cost hardware are first.** Everything else is recoverable.
+The two brick hazards are first. Everything else is recoverable.
 
 ---
 
@@ -12,33 +12,33 @@ away rather than reproduced here.
 
 ### The part reads back `0xDA` and will not respond
 
-**Permanent. The board is dead.** Two EK-RA6M4 boards were lost this way on 2026-07-21.
-**Which field killed them is not known** — [D094] disproved both attributions that had been
-offered (FSPR permanence, which RA6M4 does not implement, and `OFS1_SEL` content, which was
-byte-identical to a working board). Post-brick readback gave `DLMMON = 0x2` = SSD, an open
+**The board is dead and cannot be recovered.** Two EK-RA6M4 boards were lost this way on
+2026-07-21. Which field killed them is not known: [D094] disproved both attributions that had
+been offered (FSPR permanence, which RA6M4 does not implement, and `OFS1_SEL` content, which
+was byte-identical to a working board). Post-brick readback gave `DLMMON = 0x2` = SSD, an open
 state, not a DLM lock.
 
-**Cause — the mechanism is proven even though the field is not.** A BL2 image whose
-option-setting words were coalesced by the linker into **one** `PT_LOAD`. Measured on the
-preserved image: a segment at `0x0100A100` of **388 bytes** (`0x184`, to `0x0100A283`) holding
-the **three** words that BL2 emitted, of which **376 bytes were zero fill** written across
+**Cause.** The mechanism is proven even though the field is not. A BL2 image whose
+option-setting words were coalesced by the linker into one `PT_LOAD`. Measured on the
+preserved image: a segment at `0x0100A100` of 388 bytes (`0x184`, to `0x0100A283`) holding
+the three words that BL2 emitted, of which 376 bytes were zero fill written across
 configuration memory that should have been left alone.
 
-**What makes it lethal is that nothing warns you.** The linker is content and the srec is clean.
-(The guard did not exist in July 2026 — it was added afterwards, [D002] "Later made automatic".)
+Nothing warns you. The linker is content and the srec is clean. The guard did not exist in
+July 2026; it was added afterwards ([D002] "Later made automatic").
 
-**Separately: the guard has produced a false CLEAN, on RA8M2.** `check_ofs.py --ra6-default`
+The guard has also produced a false CLEAN, on RA8M2. `check_ofs.py --ra6-default`
 validated against a hardcoded RA6 window, and RA8M2's option memory lies outside it, so the
-check passed while inspecting nothing. [D056]. `--require-segments` is now on for every BL2
-precisely so an empty inspection reports as a failure rather than a pass.
+check passed while inspecting nothing ([D056]). `--require-segments` is now on for every BL2,
+so an empty inspection reports as a failure rather than a pass.
 
-**Prevention, all three of which are in place:**
+**Prevention**, all three of which are in place:
 
 - One `MEMORY` region per option word, never a shared span.
-- `readelf -l` on the linked ELF is **the only place the coalescing is visible.** The pre-flash
+- `readelf -l` on the linked ELF is the only place the coalescing is visible. The pre-flash
   checklist in `GETTING_STARTED.md` §6 "Pre-flash verification" runs it. (`MACHINE_HANDOFF.md`
   was deleted 2026-10-09; `check_docs.py` does not catch a backticked filename.)
-- `check_ofs.py` now **requires** its region and BL2 passes `--require-segments`, so an empty
+- `check_ofs.py` requires its region and BL2 passes `--require-segments`, so an empty
   result fails rather than reading as a pass.
 
 **Flash `bl2.elf` or `bl2.hex`, never `bl2.bin`.** The option words live in discrete segments a
@@ -46,11 +46,11 @@ flat binary cannot express. `DESIGN.md` §8.4, [D002], [D065].
 
 ### The part is provisioned with the wrong TrustZone boundaries
 
-**RDPM erases the part** — reflash all three images afterwards. The values are per-part and
+**RDPM erases the part.** Reflash all three images afterwards. The values are per-part and
 derived from the generated layout; they live in `RA6M5_SOLUTION.md` and `RA8M2_SOLUTION.md` and
-nowhere else, deliberately, because a third copy is how one goes stale.
+nowhere else, because a third copy is how one goes stale.
 
-**Also: `setTZBoundaries` must be `false` in every launch configuration.** The debugger
+**`setTZBoundaries` must be `false`** in every launch configuration. The debugger
 otherwise derives boundaries from the launched project's symbols, and launched against BL2 it
 gets them wrong. `DESIGN.md` §7.2.
 
@@ -61,53 +61,54 @@ gets them wrong. `DESIGN.md` §7.2.
 ### `R_FLASH_HP_Open` returns `FSP_ERR_FCLK` (RA6M5)
 
 **Cause.** `BSP_CFG_EARLY_INIT` is 0 in the e2 project. TF-M's `Reset_Handler` runs
-`SystemInit()` *before* the C runtime zeroes `.bss`; with early init off, FSP leaves
+`SystemInit()` before the C runtime zeroes `.bss`; with early init off, FSP leaves
 `SystemCoreClock` in `.bss`, so it is wiped immediately after `SystemInit()` computed it,
 `R_FLASH_HP_Open()` derives FCLK = 0 and refuses. BL2 fails first, because MCUboot opens the
 flash before anything else runs.
 
-**Fix.** e2 → BSP tab → Early BSP Initialization = Enabled, in **both** the secure and
+**Fix.** e2 → BSP tab → Early BSP Initialization = Enabled, in both the secure and
 bootloader projects. Regenerate.
 
-**Now caught at build time** — `<part>_layout_checks.c` and `bl2_option_setting.c` `#error` on
+The build catches this now: `<part>_layout_checks.c` and `bl2_option_setting.c` `#error` on
 it, so it fails the build rather than the board. [D034], `DESIGN.md` §8.1.
 
 ### Bootloader panic immediately, before any MCUboot output
 
-**Historical — applies only if FSP's MCUboot backend is re-linked.** Since [D091] neither part
+Historical. It applies only if FSP's MCUboot backend is re-linked. Since [D091] neither part
 builds `rm_mcuboot_port`, so this cannot occur in a current build.
 
 **Cause.** The flash controller was opened twice: `boot_platform_init()` opened `g_mram0_ctrl` /
 `g_flash0_ctrl`, then FSP's `flash_area_open()` opened the same controller, got
 `FSP_ERR_ALREADY_OPEN` and returned −1. The fix then was
 `<part>_flash_release_for_mcuboot()`, called first from `boot_platform_post_init()` ([D085]).
-**That function no longer exists.** [D091] removed the handover entirely - `mram_open_once()`
+That function no longer exists. [D091] removed the handover entirely - `mram_open_once()`
 tolerates `FSP_ERR_ALREADY_OPEN` - and `boot_platform_post_init()` now begins with
 `bl2_sau_init()`.
 
 ### `[ERR] Image in the primary slot is not valid!` / `Unable to find bootable image`
 
-Work through these in order — the first three are the common causes:
+Work through these in order. The first three are the common causes:
 
 1. **Signed at a different `MCUBOOT_ALIGN_VAL`.** imgtool encodes `max_align` into the trailer
    magic whenever it is not 8, so an image signed at 128 is rejected by a BL2 built at 32.
-   RA6M5 uses 128 and RA8M2 uses 32, so **the two parts' images are not interchangeable.**
+   RA6M5 uses 128 and RA8M2 uses 32, so the two parts' images are not interchangeable.
    Reflash every slot rather than mixing.
 2. **Flashed to the wrong address.** The addresses are per-part; see the per-part solution doc.
-3. **A stale image in the other slot.** Erase code *and* data flash on connect.
+3. **A stale image in the other slot.** Erase code and data flash on connect.
 4. **`FLASH_AREA_IMAGE_SECTOR_SIZE` disagreeing with the device.** At `0x1000` against a real
    `0x8000`, slots come out 9.875 sectors long; every build step accepts it and it fails here.
    [D054].
 
-5. **A `struct flash_area` layout mismatch** — **no longer possible as configured** ([D091]
-   removed FSP's `flash_map.c` from the build, so the two headers never meet; kept because it
-   returns the moment anyone links FSP's backend again, here or on a new part). TF-M's and
-   FSP's headers share the guard `H_UTIL_FLASH_MAP_` and define the struct differently - 16
-   bytes against 12 - so the first one reached silently suppresses the other and every member
-   after `pad16` is read one slot late. The image is fine; `fa_size` is not. The signature in a
-   debugger is `fap->fa_off` holding what should be the size. Or check from DWARF that every
-   linked object reports `sizeof(struct flash_area) == 12` (`BRIDGING_FILES.md` §3). This
-   produced exactly this error on RA6M5 ([D090], which supersedes [D085]).
+5. **A `struct flash_area` layout mismatch**, which is no longer possible as configured
+   ([D091] removed FSP's `flash_map.c` from the build, so the two headers never meet; kept
+   because it returns the moment anyone links FSP's backend again, here or on a new part).
+   TF-M's and FSP's headers share the guard `H_UTIL_FLASH_MAP_` and define the struct
+   differently - 16 bytes against 12 - so the first one reached suppresses the other and every
+   member after `pad16` is read one slot late. The image is fine; `fa_size` is not. The
+   signature in a debugger is `fap->fa_off` holding what should be the size. Or check from
+   DWARF that every linked object reports `sizeof(struct flash_area) == 12`
+   (`BRIDGING_FILES.md` §3). This produced this error on RA6M5 ([D090], which supersedes
+   [D085]).
 
 ### `BOOT_EFLASH` from `boot_read_sectors()`
 
@@ -117,31 +118,33 @@ the partitioning changed without a rebuild. [D054].
 
 ### HardFault in BL2, reading an address like `0x000b0000`
 
-**RA8M2 only.** An MRAM offset used without its alias prefix — the address should be
+RA8M2 only. An MRAM offset used without its alias prefix. The address should be
 `0x020B0000` (secure) or `0x120B0000` (non-secure). `MRAM_ADDR()` in
 `cmsis_drivers/Driver_Flash.c` adds the right one by comparing against the boundary. [D073],
 [D074].
 
 ### HardFault with `BFAR = 0x4013C000` in `bsp_prv_clear_pfb` (RA8M2)
 
-**The fix is `BSP_TZ_CFG_MSAR=0` in `ra8m2/CMakeLists.txt`, already in place ([D093]).** Seeing
-this symptom means that workaround was removed - **not** that you should change the RASC
-setting. [D093] found that the e2 generator emits `BSP_CFG_CLOCKS_SECURE (0)` whatever the
-project is set to, so setting "Clocks secure" in RASC does not fix it. Mechanism: `BSP_CFG_CLOCKS_SECURE (0)` in
-`ra_gen/bsp_clock_cfg.h` sets bit 4 of `BSP_TZ_CFG_MSAR`, and `R_BSP_SecurityInit()` writes
-that to `R_MRMS->MSAR`, assigning the MRAM `MRCPFB` register non-secure. The secure image then
-bus-faults the first time it programs MRAM - provisioning writing OTP into DF_EMULATION, via
-`mram_program_control()` -> `bsp_prv_clear_pfb()`.
+The fix is `BSP_TZ_CFG_MSAR=0` in `ra8m2/CMakeLists.txt`, already in place ([D093]). Seeing
+this symptom means that workaround was removed. **Do not change the RASC setting instead:**
+[D093] found that the e2 generator emits `BSP_CFG_CLOCKS_SECURE (0)` whatever the project is
+set to, so setting "Clocks secure" in RASC does not fix it.
+
+Mechanism: `BSP_CFG_CLOCKS_SECURE (0)` in `ra_gen/bsp_clock_cfg.h` sets bit 4 of
+`BSP_TZ_CFG_MSAR`, and `R_BSP_SecurityInit()` writes that to `R_MRMS->MSAR`, assigning the MRAM
+`MRCPFB` register non-secure. The secure image then bus-faults the first time it programs
+MRAM - provisioning writing OTP into DF_EMULATION, via `mram_program_control()` ->
+`bsp_prv_clear_pfb()`.
 
 `BFSR 0x82` (PRECISERR | BFARVALID) with `BFAR` at the `R_MRMS` base is the signature.
 
-**Fix:** e2 secure project, Security -> Clocks = **Secure**, regenerate. [D092].
+**Fix.** e2 secure project, Security -> Clocks = Secure, regenerate. [D092].
 
 RA6M5 cannot hit this: no MRAM, so no `MSAR`.
 
 ### `HFSR.FORCED` set with every `CFSR` / `BFSR` / `MMFSR` / `UFSR` / `SFSR` bit clear
 
-**This is the signature of a masked SVCall, not a fault in the code you were running.** With
+This is the signature of a masked SVCall, not a fault in the code you were running. With
 PRIMASK set, SVCall is masked and the first `svc` escalates to HardFault. It is easily misread
 as a fault in whatever was being logged from, because the usual trigger is
 `LOG_INFFMT` → `printf` → `tfm_output_unpriv_string()`'s `svc 2`. [D064].
@@ -152,21 +155,21 @@ as a fault in whatever was being logged from, because the usual trigger is
 
 ### `region CODE_RAM overflowed`
 
-**RA6M5 only.** `S_RAM_CODE_SIZE` in `region_defs.h` is too small for the RAM-resident flash
-P/E routines. It is `0xA00` for `0x7d0` of code **plus a long-branch veneer that ld inserts
-inside the section**; `0x800` fit with nothing to spare. Revisit on any FSP uprev. RA8M2 has no
-such window — `r_mram.c` needs no RAM-resident code.
+RA6M5 only. `S_RAM_CODE_SIZE` in `region_defs.h` is too small for the RAM-resident flash
+P/E routines. It is `0xA00` for `0x7d0` of code plus a long-branch veneer that ld inserts
+inside the section; `0x800` fit with nothing to spare. Revisit on any FSP uprev. RA8M2 has no
+such window: `r_mram.c` needs no RAM-resident code.
 
 ### `region FLASH overflowed` while the map shows tens of KB free
 
-**This is a linker error, so it is not about imgtool.** ld knows nothing about the TLV block or
+This is a linker error, so it is not about imgtool. ld knows nothing about the TLV block or
 the trailer - those are added after linking. Check that `TFM_LINKER_VENEERS_OWN_REGION` is in
 effect ([D063]); without it the pinned veneers drag FLASH's allocation pointer and everything
 after them is placed beyond the veneers.
 
 ### `Image size + trailer exceeds requested size` from imgtool
 
-This is the *slot* overflowing, after a clean link: the signed image carries a
+This is the slot overflowing, after a clean link: the signed image carries a
 ~275 B imgtool TLV block and a 16-byte trailer on top of the raw image, and the slot must hold
 all of it. True spare is 1,693 B on RA6M5 and 670 B on RA8M2 — see `README.md` §"Freeing space
 in the secure image" for what to turn off, and [D087] for why the older, larger figures were
@@ -174,27 +177,27 @@ wrong.
 
 ### ``undefined symbol `Image$ARM_LIB_STACK$ZI$Base` `` — with single `$`
 
-**A CMake/Ninja escaping difference, not a missing symbol.** The symbol needs `$$`, and how
+A CMake/Ninja escaping difference, not a missing symbol. The symbol needs `$$`, and how
 many `$` a CMake string needs to survive as two on the link line is version dependent: the
 literal worked under CMake 3.27.6 / Ninja 1.11.1 and was halved under 4.1.1 / 1.13.1.
 
-**Fix, already in place.** The option is written to a response file with `file(WRITE)` and
+**Fix**, already in place. The option is written to a response file with `file(WRITE)` and
 passed as `-Wl,@file`, so no escaping layer is left to disagree. [D010].
 
 ### `'ielftool' is not recognized` — after a successful link
 
-IAR's post-link steps need `C:\iar\ewarmc-10.10.2\arm\bin` on `PATH`. Note **`ewarmc`**, not
-`ewarm`; the missing `c` was frozen into four PSA-arch build trees' caches and survived
-`--regenerate-during-build`, because regeneration reads the same cache. `scripts\vs_build.bat`
-prepends it. [D083].
+IAR's post-link steps need `C:\iar\ewarmc-10.10.2\arm\bin` on `PATH`. The directory is
+`ewarmc`, not `ewarm`; the missing `c` was frozen into four PSA-arch build trees' caches and
+survived `--regenerate-during-build`, because regeneration reads the same cache.
+`scripts\vs_build.bat` prepends it. [D083].
 
 ### `targetConfigGen.c(1): fatal error C1083: Cannot open include file: 'stdio.h'`
 
-**The MSVC installation is fine.** `stdio.h` is a **UCRT** header from the Windows SDK and has
+The MSVC installation is fine. `stdio.h` is a UCRT header from the Windows SDK and has
 never shipped in the MSVC toolset, so its absence from `VC\Tools\MSVC\<ver>\include` is normal.
 The real failure is that `INCLUDE` was unset.
 
-**Cause.** The psa-arch-tests build compiles `targetConfigGen.c` with `cl.exe` as a **host**
+**Cause.** The psa-arch-tests build compiles `targetConfigGen.c` with `cl.exe` as a host
 tool. Only a Visual Studio developer environment sets `INCLUDE` and `LIB`.
 
 **Fix.** Build through `scripts\vs_build.bat`. Required for every PSA Arch build and nothing
@@ -202,41 +205,41 @@ else. [D083].
 
 ### `'vswhere.exe' is not recognized` from vcvars
 
-**Cosmetic.** vcvars falls back to the registry and sets the SDK paths correctly. This is why
-`vs_build.bat` checks the *result* — does `INCLUDE` mention "Windows Kits" — rather than
+Cosmetic. vcvars falls back to the registry and sets the SDK paths correctly. This is why
+`vs_build.bat` checks the result — does `INCLUDE` mention "Windows Kits" — rather than
 vcvars' exit code. [D083].
 
 ### An option you set appears to have no effect
 
-**Check `CMakeCache.txt` in the build tree, not the config file.** `set(X ON CACHE BOOL "")`
-does **not** overwrite an existing cache entry without `FORCE`, so a value added to
+Check `CMakeCache.txt` in the build tree, not the config file. `set(X ON CACHE BOOL "")`
+does not overwrite an existing cache entry without `FORCE`, so a value added to
 `config.cmake` after a tree was first configured never reaches it. Either pass `-DX=...`
 explicitly or delete the tree.
 
 This has produced two false conclusions already: a tree carrying hand-set debug options that no
 script reproduced ([D084]), and a stale tool path surviving regeneration ([D083]).
 
-Also check you are not expecting `TFM_PROFILE` to win. **It loses to the port's cache
-defaults** — `TFM_ISOLATION_LEVEL` and the `TFM_PARTITION_*` set are already in the cache by
+Also check you are not expecting `TFM_PROFILE` to win. It loses to the port's cache
+defaults: `TFM_ISOLATION_LEVEL` and the `TFM_PARTITION_*` set are already in the cache by
 the time the profile file is read. [D007].
 
 ### The secure primary slot generates as 512 bytes
 
-**Partition emission order in the e2 solution**, not geometry — and the direction matters:
-`__BL_0_P_H` was emitted **before** `__BL_0_S_T`. `S_T` first is the correct order, which is
-what RA6M5 generates. The generator sums partitions until it meets a `_T`; with `S_T` first it
-closes the secondary slot cleanly and `P_H` then opens the primary, and with `P_H` first the
+The cause is partition emission order in the e2 solution, not geometry, and the direction
+matters: `__BL_0_P_H` was emitted before `__BL_0_S_T`. `S_T` first is the correct order, which
+is what RA6M5 generates. The generator sums partitions until it meets a `_T`; with `S_T` first
+it closes the secondary slot cleanly and `P_H` then opens the primary, and with `P_H` first the
 primary closes immediately at 0x200.
 
-**Do not check that the two STARTs are equal.** They coincide in the broken layout *and* the
-correct one — 0x68000 on RA8M2, 0xA0000 on RA6M5 — so equality proves nothing. That coincidence
-was the first hypothesis and it was wrong.
+**Do not check that the two STARTs are equal.** They coincide in the broken layout and the
+correct one — 0x68000 on RA8M2, 0xA0000 on RA6M5 — so equality proves nothing. That
+coincidence was the first hypothesis and it was wrong.
 
-**The check that works:** read `FLASH_AREA_0P`'s `.fa_size` out of `Debug/bsp_linker_info.h`.
+The check that works: read `FLASH_AREA_0P`'s `.fa_size` out of `Debug/bsp_linker_info.h`.
 A 512-byte secure primary slot is the defect; it should carry `FLASH_CPU0_S` and `FLASH_CPU0_C`
 too. Or read the partition order directly out of `solution.xml`. [D078].
 
-**Note the port will not catch this for you.** TF-M's `flash_layout.h` computes slot sizes with
+The port will not catch this for you. TF-M's `flash_layout.h` computes slot sizes with
 `TFM_SLOT_SPAN` — header start to trailer end — which is address-based and immune, and since
 [D091] the port does not consume FSP's `flash_map[]` at all. This is a solution-generation
 defect that a clean TF-M build will not notice.
@@ -247,39 +250,38 @@ defect that a clean TF-M build will not notice.
 
 ### RTT prints nothing
 
-**Re-read the `_SEGGER_RTT` address for the exact image you flashed.** It moves on every
-relink, and — the part that actually bites — it differs **per toolchain** for the same source
-on the same part. Nothing in the launch configuration carries it, so a wrong address is a
-silent "prints nothing", not an error.
+Re-read the `_SEGGER_RTT` address for the image you flashed. It moves on every
+relink, and it differs per toolchain for the same source on the same part. Nothing in the
+launch configuration carries it, so a wrong address is a silent "prints nothing", not an error.
 
 ```
 arm-none-eabi-nm <image>.axf | grep -w _SEGGER_RTT
 ```
 
-Also: BL2 logs at any `MCUBOOT_LOG_LEVEL` above `OFF` (`ERROR`/`WARNING`/`INFO`/`DEBUG`).
+BL2 logs at any `MCUBOOT_LOG_LEVEL` above `OFF` (`ERROR`/`WARNING`/`INFO`/`DEBUG`).
 TF-M's default is `INFO`; only `MinSizeRel` and `Release` set `OFF`, and at `OFF` the
 symbol is absent, which is expected rather than broken.
 
 ### The attestation suite passes, so measured boot works
 
-**It does not follow.** With `component_cnt == 0` under the default
+It does not follow. With `component_cnt == 0` under the default
 `ATTEST_TOKEN_PROFILE_PSA_IOT_1`, `attest_add_all_sw_components()` emits
-`IAT_NO_SW_COMPONENTS` and returns **success**. The suite passes whether or not measured boot
+`IAT_NO_SW_COMPONENTS` and returns success. The suite passes whether or not measured boot
 is enabled, and every attestation pass recorded before 2026-10-02 was on a token with no
 measurements.
 
-**Verify by reading the boot record** at the start of secure RAM instead: look for
+Verify by reading the boot record at the start of secure RAM instead: look for
 `SHARED_DATA_TLV_INFO_MAGIC` = `0x2016`. [D080], [D081].
 
 ### Setting `MCUBOOT_IMAGE_VERSION` changes nothing
 
-Correct, and **it fails silently.** That environment variable is FSP's, read by
+Correct, and it fails silently. That environment variable is FSP's, read by
 `rm_mcuboot_port_sign.py`. This port uses TF-M's `MCUBOOT_IMAGE_VERSION_S` / `_NS`. A
 documented deviation — `DESIGN.md` §1.1.
 
 ### ITS partition init fails and reports pid 257
 
-The reported pid is ITS, but **it is usually the PS half that failed** — the ITS half succeeds
+The reported pid is ITS, but it is usually the PS half that failed; the ITS half succeeds
 silently first. `tfm_its_init()` initialises both, and both go through
 `its_flash_fs_validate_config()`. Check the PS geometry: `num_blocks < 2` fails outright, and
 `PS_MAX_ASSET_SIZE` has both a ceiling and a floor that move with `PS_NUM_ASSETS`. See
@@ -291,4 +293,4 @@ silently first. `tfm_its_init()` initialises both, and both go through
 
 The decision log is searchable and indexed by cause rather than symptom:
 `grep -n "^## D0" DECISIONS.md`. Entries are append-only, so a later one may supersede what an
-earlier one concluded — the later entry always says so.
+earlier one concluded; the later entry always says so.
