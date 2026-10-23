@@ -100,7 +100,7 @@ Nothing supersedes these. The title is the position. Where a later entry correct
 | `D062` | 2026-09-27 | RA declares test capabilities; ra6m4 could not build TEST_S at all | Accepted | — | — |
 | `D063` | 2026-09-28 | Pinned CMSE veneers get their own MEMORY region; the regression suite now links | Accepted | — | — |
 | `D064` | 2026-09-29 | BL2 masking interrupts is sound and complete; the SPMON hazard does not exist on these parts | Accepted | — | — |
-| `D065` | 2026-09-29 | the flat-binary brick guard is now on all four ports, and a stale `.bin` is as lethal as a fresh one | Accepted | `D120`, `D132` | — |
+| `D065` | 2026-09-29 | the flat-binary brick guard is now on all four ports, and a stale `.bin` is as lethal as a fresh one | Accepted | `D120`, `D132` (superseded by `D133`) | — |
 | `D066` | 2026-09-29 | RA8M2's partition comments described RA6M5, including the values that get provisioned | Accepted | — | — |
 | `D067` | 2026-09-29 | first full tf-m-tests regression pass on hardware, and two suites that report PASSED without testing | Accepted | — | — |
 | `D068` | 2026-09-30 | the FLIH/SLIH fixture, and two silent defects the IAR build found in D065 | Accepted | — | — |
@@ -124,10 +124,10 @@ Nothing supersedes these. The title is the position. Where a later entry correct
 | `D091` | 2026-10-05 | Option 3 adopted: both parts take TF-M's MCUboot backend, FSP's HAL behind fa_driver | Accepted | `D092` | — |
 | `D092` | 2026-10-05 | RA8M2's first boot: BL2 works; the secure image needs Clocks set Secure in e2 | Accepted | — | — |
 | `D093` | 2026-10-06 | `BSP_TZ_CFG_MSAR=0` on RA8M2: a workaround for an e2 generator defect, to be removed | Accepted, **temporary** | `D094` | — |
-| `D094` | 2026-10-06 | the RA6M4 brick: coalescing is proven, the killed field is not; [D093]'s attribution corrected | Accepted | `D132` | — |
+| `D094` | 2026-10-06 | the RA6M4 brick: coalescing is proven, the killed field is not; [D093]'s attribution corrected | Accepted | `D132` (superseded by `D133`) | — |
 | `D095` | 2026-10-06 | RA8M2 passes the full regression on hardware; both live parts now proven under [D091] | Accepted | `D096` | — |
 | `D096` | 2026-10-06 | measured boot confirmed on RA8M2 by decoding the boot record; [D095] had assumed it | Accepted | — | — |
-| `D097` | 2026-10-08 | RA8M2 PSA Arch: storage clean, crypto has one real failure — RSIP-E50D cannot generate RSA-2048 keys | Accepted | `D098` | — |
+| `D097` | 2026-10-08 | RA8M2 PSA Arch: storage clean, crypto has one real failure — RSIP-E50D cannot generate RSA-2048 keys | Accepted | `D098` (superseded by `D111`) | — |
 | `D099` | 2026-10-08 | closes [D097]'s gap: RA8M2 crypto is 62/1/1, and the sole delta from RA6M5 is test 216 | Accepted | `D111` | — |
 | `D100` | 2026-10-08 | the MCUboot upgrade path runs on RA8M2: both images installed, secondary erased | Accepted | — | — |
 | `D101` | 2026-10-08 | the three RA8M2 IAR project gaps are closed; IAR and GCC are now configuration-identical | Accepted | — | — |
@@ -147,7 +147,7 @@ Nothing supersedes these. The title is the position. Where a later entry correct
 | `D117` | 2026-10-21 | six corrections from an external review: [D113] overstated FLIH, [D116] closed a question that was answerable, and three ports deny the IDAU exists | Accepted | `D120`, `D126` | — |
 | `D118` | 2026-10-21 | first IAR run above isolation 1: RA8M2 L2 green, and the MMIO region is the only toolchain-invariant in the table | Accepted | — | — |
 | `D119` | 2026-10-21 | [D114]'s second macro confirmed under IAR; RA8M2 is complete at every level on both toolchains | Accepted | `D126` | — |
-| `D120` | 2026-10-22 | the isolation-macro gap is this port's, not upstream's; [D113]'s root cause was wrong and upstream item 15 is withdrawn | Accepted | `D125`, `D128`, `D132` | — |
+| `D120` | 2026-10-22 | the isolation-macro gap is this port's, not upstream's; [D113]'s root cause was wrong and upstream item 15 is withdrawn | Accepted | `D125`, `D128`, `D132` (superseded by `D133`) | — |
 | `D121` | 2026-10-22 | the shared isolation HAL moves to `tfm_spm`; [D113]'s workaround is deleted, not documented | Accepted | `D125` | — |
 | `D122` | 2026-10-22 | the `tfm_spm` move is MPU-neutral on silicon, and RA6M5 L1+IPC is green for the first time — cause unexplained | Accepted | `D125` | — |
 | `D123` | 2026-10-22 | RA6M5 isolation 3 confirms [D121]'s predicted boundary shift to the byte; RA6M5 IAR runs above isolation 1 for the first time | Accepted | `D125` | — |

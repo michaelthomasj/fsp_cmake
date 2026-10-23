@@ -239,7 +239,16 @@ def render(entries):
     w("| # | Date | Position | Status | Corrected by | Closed by |")
     w("|---|---|---|---|---|---|")
     for e in sorted(live, key=lambda x: x["id"]):
-        corr = ", ".join("`%s`" % c for c in
+        # A correction made by an entry that has itself been superseded is not a live
+        # correction: D132 corrected D065, D094 and D120, and D133 then replaced D132 and
+        # returned to D094's position. Printing a bare "corrected by D132" told the reader
+        # the opposite of the record (F354), so the superseder is named with it.
+        def _corrector(c):
+            if c in superseded:
+                return "`%s` (superseded by %s)" % (
+                    c, ", ".join("`%s`" % x for x in sorted({t for t, _ in superseded[c]})))
+            return "`%s`" % c
+        corr = ", ".join(_corrector(c) for c in
                          sorted({s for s, _ in corrected.get(e["id"], [])}))
         shut = ", ".join("`%s`" % c for c in sorted(set(closed.get(e["id"], []))))
         st = e["status"] or "Accepted"

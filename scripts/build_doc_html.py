@@ -47,11 +47,30 @@ COURSE_DIR = os.path.join(ROOT, "docs", "learning")
 EXTRA_SOURCES = ["scripts/README.md"]
 GENERATOR = "scripts/build_doc_html.py"
 
+# A review pass is started by dropping an empty START_*.md in the repository root and is
+# deleted afterwards. Those files are not reference documents: rendering one adds a page AND
+# a sidebar entry to every other page, so --check reports all two dozen pages stale for as
+# long as the trigger exists, and the regeneration lands in whatever the next doc commit
+# happens to be (F355). An empty root document is skipped for the same reason - there is
+# nothing to render and its only effect would be on every other page's sidebar.
+TRIGGER_NAME = re.compile(r"^START_[A-Z0-9_]*\.md$")
+
+
+def is_trigger(name):
+    if TRIGGER_NAME.match(name):
+        return True
+    try:
+        with open(os.path.join(ROOT, name), encoding="utf-8") as f:
+            return f.read().strip() == ""
+    except OSError:
+        return False
+
 
 # --------------------------------------------------------------------------- sources
 
 def source_list():
-    names = sorted(f for f in os.listdir(ROOT) if f.endswith(".md"))
+    names = sorted(f for f in os.listdir(ROOT)
+                   if f.endswith(".md") and not is_trigger(f))
     return names + [p for p in EXTRA_SOURCES if os.path.exists(os.path.join(ROOT, p))]
 
 

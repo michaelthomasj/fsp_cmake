@@ -143,9 +143,25 @@ def standing():
             shut = []
             if "Closed by" in hdr and hdr.index("Closed by") < len(row):
                 shut = list(dict.fromkeys(re.findall(r"`(D\d{3})`", row[hdr.index("Closed by")])))
+            # A Corrected-by cell may qualify a corrector that has itself been superseded:
+            # "`D132` (superseded by `D133`)". Parse the pair, so the page says the same
+            # thing as SETTLED.md instead of listing D133 as a second corrector (F354).
+            pairs = re.findall(r"`(D\d{3})`(?:\s*\(superseded by ([^)]*)\))?", main)
+            refs = []
+            for who, by in pairs:
+                if who in [r.split()[0] for r in refs]:
+                    continue
+                sup = re.findall(r"`?(D\d{3})`?", by)
+                refs.append(who + ("|" + ",".join(sup) if sup else ""))
+            def _render(r):
+                who, _, sup = r.partition("|")
+                out = link(who)
+                if sup:
+                    out += " (superseded by %s)" % ", ".join(link(x) for x in sup.split(","))
+                return out
             txt = "stands"
             if refs:
-                txt += "; corrected by " + ", ".join(map(link, refs))
+                txt += "; corrected by " + ", ".join(_render(r) for r in refs)
             if shut:
                 txt += "; closed by " + ", ".join(map(link, shut))
             out[m.group(1)] = txt
