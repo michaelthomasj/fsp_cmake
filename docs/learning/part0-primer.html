@@ -160,7 +160,7 @@ and a callee. Compilers obey it; hand-written assembly must.</p>
 <tr><td><code>SP</code></td><td>Must be <strong>8-byte aligned</strong> at every public function boundary</td><td>Callee</td></tr>
 <tr><td><code>LR</code></td><td>Return address</td><td>Callee (pushes it if it calls anything)</td></tr>
 </table></div>
-<p><strong>Why it matters here.</strong> The hardware saves exactly the caller-saved set (R0–R3, R12, LR, plus PC
+<p><strong>Why it matters here.</strong> The hardware saves the caller-saved set (R0–R3, R12, LR, plus PC
 and xPSR) when an exception is taken. Because the callee-saved set is preserved by any AAPCS-compliant function, an
 ordinary C function can be an interrupt handler with no assembly wrapper. A context switch, however, moves to a
 <em>different</em> function's stack and must save R4–R11 by hand. Real code from TF-M, the IPC backend's entry
@@ -297,7 +297,7 @@ const VECTOR_TABLE_Type __VECTOR_TABLE[RA6M5_VECTOR_TABLE_ENTRIES] __VECTOR_TABL
     <code>startup_ra6m5.c:105-107</code>).</li>
   <li><span class="tag port">This port</span> Every interrupt slot defaults to <code>Default_Handler</code>, a
     <code>while(1)</code>. The one interrupt the port services, the AGT0 timer, is overridden by a later designated
-    initializer. In C, when an index is initialized twice, the <strong>last</strong> initializer wins, so the order
+    initializer. In C, when an index is initialized twice, the last initializer wins, so the order
     of these two lines is load-bearing (comment at <code>startup_ra6m5.c:139-153</code>).</li>
 </ul>
 <p>The reset handler itself:</p>
@@ -335,7 +335,7 @@ FSP's ISR would call the driver callback directly and bypass the secure partitio
 <!-- ============================================================ -->
 <h2 id="exceptions">0.6 Exception numbers and priorities</h2>
 <p><span class="tag arch">Armv8-M</span> An <strong>exception</strong> is any event that makes the core stop what
-it is doing and run a handler: an interrupt from a peripheral, a fault, or a deliberate request from software. Each
+it is doing and run a handler: an interrupt from a peripheral, a fault, or an explicit request from software. Each
 has a number, which is its index into the vector table.</p>
 <div class="table-wrap"><table>
 <tr><th>No.</th><th>CMSIS IRQn</th><th>Exception</th><th>Priority</th><th>Raised by</th></tr>
@@ -358,7 +358,7 @@ vector-table index <code>[16 + 0]</code>.</p>
 
 <h3>Priority</h3>
 <ul>
-  <li><span class="tag arch">Armv8-M</span> <strong>Lower number = more urgent.</strong> A pending exception
+  <li><span class="tag arch">Armv8-M</span> Lower number = more urgent. A pending exception
     preempts the running one only if its priority number is strictly lower.</li>
   <li><span class="tag arch">Armv8-M</span> Priority fields are 8 bits wide, but an implementation keeps only the
     top <code>__NVIC_PRIO_BITS</code> bits. <span class="tag ra">RA</span> RA6M5 and RA8M2 keep 4, so there
@@ -367,7 +367,7 @@ vector-table index <code>[16 + 0]</code>.</p>
   <li><span class="tag arch">Armv8-M</span> Reset, NMI and HardFault have fixed negative priorities and always
     win.</li>
 </ul>
-<p>Values TF-M actually programs on RA:</p>
+<p>Values TF-M programs on RA:</p>
 <div class="table-wrap"><table>
 <tr><th>Exception</th><th>Level</th><th>Register value</th><th>Source</th></tr>
 <tr><td>SVCall, MemManage, BusFault, SecureFault</td><td>0</td><td><code>0x00</code></td><td><code>secure_fw/spm/include/tfm_arch.h:39-43</code>, applied at <code>tfm_arch_v8m_main.c:241-245</code></td></tr>
@@ -380,7 +380,7 @@ all non-secure priorities to <code>0x80–0xFF</code>. See <a href="part2-trustz
 <h3>Masking</h3>
 <ul>
   <li><code>PRIMASK = 1</code> (<code>cpsid i</code>, CMSIS <code>__disable_irq()</code>) masks every exception
-    with configurable priority — <strong>including SVCall</strong>.</li>
+    with configurable priority — including SVCall.</li>
   <li><code>BASEPRI = x</code> masks exceptions whose priority number is ≥ <code>x</code>.</li>
   <li><code>FAULTMASK</code> masks everything except NMI.</li>
 </ul>
@@ -521,8 +521,8 @@ Space</strong> (SCS) at <code>0xE000E000</code>:</p>
 <tr><td>SCS, non-secure alias</td><td><code>0xE002E000</code></td><td>the non-secure copies of banked registers, visible to Secure code only</td></tr>
 </table></div>
 <p class="src">Bases: <code>core_cm33.h:2038-2087</code>. Register offsets within the SCB are architectural.</p>
-<p><span class="tag arch">Armv8-M</span> The rule that matters most later: <strong>the PPB is accessible only to
-privileged software.</strong> An unprivileged access to it takes a BusFault. This is a property of the architecture,
+<p><span class="tag arch">Armv8-M</span> The rule that matters most later: the PPB is accessible only to
+privileged software. An unprivileged access to it takes a BusFault. This is a property of the architecture,
 not a setting: the MPU (Part 1) does not apply to PPB addresses, so no MPU region can grant unprivileged code access
 to them. The exceptions are a few registers with their own unprivileged-access controls — <code>STIR</code>
 (<code>0xE000EF00</code>) when <code>CCR.USERSETMPEND</code> = 1, and the ITM stimulus ports under
