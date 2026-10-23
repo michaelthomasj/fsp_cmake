@@ -47,7 +47,7 @@
     <ol class="doc-toc">
       <li><a href="#top">TROUBLESHOOTING.md</a>
         <ol>
-          <li><a href="#brick-hazards">Brick hazards</a></li>
+          <li><a href="#hazards">Hazards</a></li>
           <li><a href="#boot-failures">Boot failures</a></li>
           <li><a href="#link-and-build-failures">Link and build failures</a></li>
           <li><a href="#things-that-look-like-failures-and-are-not">Things that look like failures and are not</a></li>
@@ -64,9 +64,10 @@
 <p>Each entry: the symptom as it appears, the cause, the fix, and where the full account lives.
 Harvested from <code>DECISIONS.md</code> and from comments at the fix sites, so the detail is one hop
 away rather than reproduced here.</p>
-<p>The two brick hazards are first. Everything else is recoverable.</p>
+<p>The two hazards are first: the first is permanent, the second is recovered by reprogramming
+the boundaries.</p>
 <hr>
-<h2 id="brick-hazards">Brick hazards</h2>
+<h2 id="hazards">Hazards</h2>
 <h3 id="the-part-reads-back-0xda-and-will-not-respond">The part reads back <code>0xDA</code> and will not respond</h3>
 <p><strong>The board is dead and cannot be recovered.</strong> Two EK-RA6M4 boards were lost this way on
 2026-07-21. The coalesced segment wrote <code>0x00</code> into eight defined option registers - DUALSEL,
@@ -143,7 +144,9 @@ TF-M&#x27;s and FSP&#x27;s headers share the guard <code>H_UTIL_FLASH_MAP_</code
 differently - 16 bytes against 12 - so the first one reached suppresses the other and every
 member after <code>pad16</code> is read one slot late. The image is fine; <code>fa_size</code> is not. The
 signature in a debugger is <code>fap-&gt;fa_off</code> holding what should be the size. Or check from
-DWARF that every linked object reports <code>sizeof(struct flash_area) == 12</code>
+DWARF that every <code>bootutil</code> and <code>flash_map</code> object reports
+<code>sizeof(struct flash_area) == 16</code>, which is TF-M&#x27;s size; an <code>fsp_bsp_bl2</code> object reports 12
+and that is correct, because FSP&#x27;s header is PRIVATE to that library
 (<code>BRIDGING_FILES.md</code> §3). This produced this error on RA6M5 (<a href="DECISIONS.html#d090">D090</a>, which supersedes
 <a href="DECISIONS.html#d085">D085</a>).</p></li>
 </ol>
@@ -220,8 +223,8 @@ vcvars&#x27; exit code. <a href="DECISIONS.html#d083">D083</a>.</p>
 does not overwrite an existing cache entry without <code>FORCE</code>, so a value added to
 <code>config.cmake</code> after a tree was first configured never reaches it. Either pass <code>-DX=...</code>
 explicitly or delete the tree.</p>
-<p>This has produced two false conclusions already: a tree carrying hand-set debug options that no
-script reproduced (<a href="DECISIONS.html#d084">D084</a>), and a stale tool path surviving regeneration (<a href="DECISIONS.html#d083">D083</a>).</p>
+<p>This has caught the port twice: a tree carrying hand-set debug options that no script
+reproduced (<a href="DECISIONS.html#d084">D084</a>), and a stale tool path that survived regeneration (<a href="DECISIONS.html#d083">D083</a>).</p>
 <p>Also check you are not expecting <code>TFM_PROFILE</code> to win. It loses to the port&#x27;s cache
 defaults: <code>TFM_ISOLATION_LEVEL</code> and the <code>TFM_PARTITION_*</code> set are already in the cache by
 the time the profile file is read. <a href="DECISIONS.html#d007">D007</a>.</p>

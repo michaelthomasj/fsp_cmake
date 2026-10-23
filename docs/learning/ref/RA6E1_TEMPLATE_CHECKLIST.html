@@ -95,7 +95,7 @@ the secure project&#x27;s copy is the one parsed)</li>
 generated-header include set in <code>cmake/modules/fsp_bsp.cmake</code>. Keep it emitted.</li>
 </ul>
 <blockquote><p>The port hardcodes <code>Debug/</code>. RASC writes these to the project root instead — a known
-divergence, left unabstracted while e2 is the only shape that produces solutions.</p></blockquote>
+divergence, deliberately not abstracted while e2 is the only shape that produces solutions.</p></blockquote>
 <hr>
 <h2 id="s3">3. Partition symbols — the actual contract</h2>
 <p><code>bsp_linker_info.h</code> is filtered down to its <code>#define BSP_PARTITION_*</code> lines at configure time
@@ -133,7 +133,7 @@ NSC size without moving its start was caught this way.</li>
 <p>A module reaches a TF-M image only if the port declares it. Enabling more in e2 is harmless for
 the standalone build but produces a configure-time warning naming the module as not-in-image.</p>
 <div class="table-wrap"><table>
-<tr><th>Project</th><th>Must have</th><th>Also enabled, never linked into TF-M</th></tr>
+<tr><th>Project</th><th>Must have</th><th>Also enabled, deliberately never linked into TF-M</th></tr>
 <tr><td><code>ra6e1_secure</code></td><td>BSP + IOPORT, <code>r_flash_hp</code>, <code>r_sce</code></td><td>—</td></tr>
 <tr><td><code>ra6e1_mcuboot</code></td><td>BSP + IOPORT, <code>r_flash_hp</code></td><td><code>r_sce</code>, <code>rm_psa_crypto</code>, <code>rm_mcuboot_port</code></td></tr>
 <tr><td><code>ra6e1_nonsecure</code></td><td>whatever the NS app needs</td><td>— (whole tree is globbed)</td></tr>

@@ -94,7 +94,7 @@ privileged code someone else wrote — the basis of every operating system on th
 <div class="warn">
 <p><strong>"Handler mode is privileged" does not mean "interrupt handlers are privileged".</strong> The first is
 architecture. The second depends on software. <span class="tag tfm">TF-M</span>, for an Application-RoT partition at isolation 2 and 3, takes an
-interrupt in Handler mode and then runs the owning partition's handler <em>in Thread mode, at the
+interrupt in Handler mode and then deliberately runs the owning partition's handler <em>in Thread mode, at the
 partition's privilege</em>. On this port that turned an ICU register write into a MemManage fault
 (<a href="ref/DECISIONS.html#d113">D113</a> defect 4). Mechanism in <a href="part3-tfm.html#flih">Part 3 §3.6</a>.</p>
 </div>

@@ -182,7 +182,7 @@ Non-secure <em>alias</em>, so it has to enable the SAU itself:</p>
  * secure one on the address, the non-secure one on the attribute.</code></pre>
 <p class="src"><code>ra8m2/bl2_boot_hal.c:34-38</code>; the single SAU region it programs, and the enable, are at <code>:91-95</code></p>
 <p>FSP's <code>R_BSP_SAUInit()</code> would normally do this, but it is reached only under
-<code>BSP_TZ_SECURE_BUILD</code>, and BL2 is built as a flat, TrustZone-unaware FSP project
+<code>BSP_TZ_SECURE_BUILD</code>, and BL2 is deliberately built as a flat, TrustZone-unaware FSP project
 (<code>bl2_boot_hal.c:40-43</code>). History: <a href="ref/DECISIONS.html#d073">D073</a>–<a href="ref/DECISIONS.html#d076">D076</a>, <a href="ref/DECISIONS.html#d079">D079</a>, <a href="ref/DECISIONS.html#d091">D091</a>.</p>
 
 <div class="note" id="target-cfg-comment">

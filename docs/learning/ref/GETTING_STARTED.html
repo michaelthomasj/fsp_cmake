@@ -196,7 +196,7 @@ is not the input to the table below.</p></blockquote>
 <tr><td><code>ra8m2_TFM_update_gcc</code></td><td>the MCUboot secondary-slot upgrade test</td></tr>
 </table></div>
 <p>Each has an <code>_iar</code> twin. In e2: <code>Run → Debug Configurations…</code>, pick one, <code>Debug</code>.</p>
-<h3 id="two-brick-hazards">Two brick hazards</h3>
+<h3 id="two-safety-rules">Two safety rules</h3>
 <blockquote><p><strong>Flash <code>bl2.elf</code> or <code>bl2.hex</code> — never <code>bl2.bin</code>.</strong> The option-setting words live in discrete
 segments that a flat binary cannot express; a <code>.bin</code> writes them at the wrong addresses and
 can permanently lock the part. <a href="DECISIONS.html#d002">D002</a>(DECISIONS.md), <a href="DECISIONS.html#d065">D065</a>(DECISIONS.md).</p></blockquote>

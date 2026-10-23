@@ -87,7 +87,8 @@ your -D on the command line wins over both</code></pre>
 read. To change them, pass them explicitly.</p>
 <p><strong>The second trap:</strong> <code>set(X ON CACHE BOOL "")</code> does not overwrite an existing cache entry
 without <code>FORCE</code>. If an option appears not to take effect, check <code>CMakeCache.txt</code> in the build
-tree, not the config file. This has produced two false conclusions (<a href="DECISIONS.html#d083">D083</a>, <a href="DECISIONS.html#d084">D084</a>).</p>
+tree, not the config file. This has caught the port twice: a tree of hand-set debug options
+no script reproduced (<a href="DECISIONS.html#d084">D084</a>), and a stale tool path that survived regeneration (<a href="DECISIONS.html#d083">D083</a>).</p>
 <hr>
 <h2 id="s1">1. Build inputs — required</h2>
 <div class="table-wrap"><table>

@@ -163,7 +163,7 @@ authority for tool versions.</li>
 <li><code>flash_layout.h</code> + <code>region_defs.h</code> are authoritative for the build (MCUboot and TF-M read
 them). No <code>FLASH_*_PARTITION_*</code> cache variable is set by either live part - only mps3 platforms
 consume them, and the RA6M4-era note that they were &quot;kept for documentation&quot; no longer applies.</li>
-<li>Per-part layouts are not repeated here (see §7 for why). The 1 MB single-bank
+<li>Per-part layouts are deliberately not repeated here (see §7 for why). The 1 MB single-bank
 map this section used to print was RA6M4&#x27;s and matches neither live part: RA6M5 uses the whole
 2 MB with BL2 at 96 KB, and RA8M2 is MRAM based at <code>0x02000000</code>. The authoritative figures live
 in <code>RA6M5_SOLUTION.md</code> and <code>RA8M2_SOLUTION.md</code>, generated from each solution&#x27;s
@@ -266,7 +266,7 @@ own generated linker via the <code>region_defs.h</code> macros <code>TFM_LINKER_
 secure linker — the nordic/laird upstream pattern. Fixed rather than end-of-code so the NSC
 window is stable across firmware updates, which matters because RA TZ boundaries are set once
 at provisioning.</li>
-<li>Boundaries to program: not listed here. They are per-part, they are RDPM
+<li>Boundaries to program: deliberately not listed here. They are per-part, they are RDPM
 input, and a stale copy in a third document is how a board gets provisioned wrong. The owning
 documents are <code>RA6M5_SOLUTION.md</code> §&quot;TrustZone boundary values&quot; and <code>RA8M2_SOLUTION.md</code>
 (<code>RA6E1_SOLUTION.md</code> for the dormant part); all
@@ -362,8 +362,8 @@ a driver entry point re-entered per device, not about a one-shot boot hook.</p>
 <li>Declare <code>.ram_noinit</code> explicitly in <code>&lt;part&gt;_bl2.ld</code>: before <code>.bss</code> (so the prefixed
 <code>.bss.ram_noinit</code> variant isn&#x27;t swallowed by <code>*(.bss*)</code>) and <code>NOLOAD</code> (so it emits no flash
 image and is neither copied nor zeroed), placed outside <code>ADDR(.bss)..SIZEOF(.bss)</code> so the
-zero table never covers it. As an orphan section it survived only by ld&#x27;s default placement and
-wasted flash.</li>
+zero table never covers it. As an orphan section its placement was not guaranteed - it
+survived on ld&#x27;s default ordering - and it wasted flash.</li>
 <li>Keep the one-time <code>SystemCoreClockUpdate()</code> in <code>tfm_hal_platform_init()</code>. Not redundant: the
 secure image uses TF-M&#x27;s generated linker, which has no <code>.ram_noinit</code> rule, so its
 <code>.ram_noinit</code> is still an orphan whose placement isn&#x27;t guaranteed across TF-M versions.
@@ -471,7 +471,8 @@ The back-port of the per-part guards to RA6M5 and RA6E1 is still open (<a href="
 <p>Both are functions in the part&#x27;s <code>CMakeLists.txt</code>, cited by name because a comment edit above
 them moves their line numbers (<a href="DECISIONS.html#d129">D129</a>).</p>
 <p>RA8M2&#x27;s limit is <code>4</code> because <code>bl2_option_setting.c</code> places only 4-byte words there —
-tighter than the <code>0x80</code> a BPS word would need, to be raised only if BPS/PBPS are ever placed.
+deliberately tighter than the <code>0x80</code> a BPS word would need, to be raised only if BPS/PBPS
+are ever placed.
 BL2 also passes <code>--require-segments</code>, so an empty result fails rather than passing.</p>
 <blockquote><p>Known tension, not yet resolved. RA6M5&#x27;s widest defined groups are <code>0x10</code>
 (<code>BPS</code>/<code>PBPS</code> and mirrors, the <code>OPTION_SETTING_*</code> block in <code>region_defs.h</code>) while its guard limit is <code>--max-word 0xC</code>,

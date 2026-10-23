@@ -102,7 +102,7 @@ to get right. `cmsis_drivers/Driver_Flash.c` picks the alias from it:
 ```
 
 `MRAM_NS_BASE` is `FLASH_BASE_ADDRESS + BSP_FEATURE_TZ_NS_OFFSET` — the family-fixed offset,
-not `FLASH_AREA_1_OFFSET`, which would move if the slots were repartitioned
+deliberately not `FLASH_AREA_1_OFFSET`, which would move if the slots were repartitioned
 (D074). `MRAM_NS_BOUNDARY` derives from `BSP_PARTITION_FLASH_CPU0_C_START + _SIZE`, so it
 follows the generated layout. `ra8m2_layout_checks.c` asserts both aliases agree with FSP's
 feature macro, and that every secure area lies below the boundary and both NS areas at or above
@@ -112,7 +112,7 @@ Getting this wrong is what produced the first RA8M2 BL2 HardFault: a `memcpy` fr
 missing the `0x02` or `0x12` alias prefix entirely. D073.
 
 There is no data flash. ITS, PS and the MCUboot NV counters share `DF_EMULATION`, a 64 KB
-MRAM region held outside every MCUboot area so an image update cannot erase
+MRAM region held deliberately outside every MCUboot area so an image update cannot erase
 stored assets. NV counters take 2048 B; PS and ITS get about 31,744 B each — roughly 10x the
 RA6M5 allocation, which has only 8 KB of real data flash. 64 KB is the smallest size that
 splits without a remainder (`flash_layout.h:130`).
@@ -198,7 +198,7 @@ present with `ipl = _disabled`, which emits no vector entry at all - `vector_dat
 
 One difference remains and is inert. `BSP_PARTITION_RAM_BL_CPU0_S_SIZE` is `0x2600` on IAR
 against `0x1200` on GCC (secure and NS trees; absent from both mcuboot trees). Nothing consumes
-it - `region_defs.h:217` ignores that partition as FSP's own bootloader budget,
+it - `region_defs.h:217` deliberately ignores that partition as FSP's own bootloader budget,
 smaller than TF-M's BL2 needs, so `BL2_DATA_*` comes from `RAM_CPU0_S`. The ~24 extra NS
 properties on the GCC side (AWS WiFi, DA16XXX, SCI-B UART) are likewise inert - neither tree
 instantiates those modules.

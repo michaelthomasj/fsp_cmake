@@ -30,7 +30,8 @@ read. To change them, pass them explicitly.
 
 **The second trap:** `set(X ON CACHE BOOL "")` does not overwrite an existing cache entry
 without `FORCE`. If an option appears not to take effect, check `CMakeCache.txt` in the build
-tree, not the config file. This has produced two false conclusions ([D083], [D084]).
+tree, not the config file. This has caught the port twice: a tree of hand-set debug options
+no script reproduced ([D084]), and a stale tool path that survived regeneration ([D083]).
 
 ---
 

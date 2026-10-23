@@ -36,7 +36,7 @@ Emitted into `<project>/Debug/` by the e2 build, so they exist only after a buil
       generated-header include set in `cmake/modules/fsp_bsp.cmake`. Keep it emitted.
 
 > The port hardcodes `Debug/`. RASC writes these to the project root instead — a known
-> divergence, left unabstracted while e2 is the only shape that produces solutions.
+> divergence, deliberately not abstracted while e2 is the only shape that produces solutions.
 
 ---
 
@@ -79,7 +79,7 @@ port needs exactly these, in `_START` / `_SIZE` pairs unless noted:
 A module reaches a TF-M image only if the port declares it. Enabling more in e2 is harmless for
 the standalone build but produces a configure-time warning naming the module as not-in-image.
 
-| Project | Must have | Also enabled, never linked into TF-M |
+| Project | Must have | Also enabled, deliberately never linked into TF-M |
 |---|---|---|
 | `ra6e1_secure` | BSP + IOPORT, `r_flash_hp`, `r_sce` | — |
 | `ra6e1_mcuboot` | BSP + IOPORT, `r_flash_hp` | `r_sce`, `rm_psa_crypto`, `rm_mcuboot_port` |

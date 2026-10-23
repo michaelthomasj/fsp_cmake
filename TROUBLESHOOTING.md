@@ -4,11 +4,12 @@ Each entry: the symptom as it appears, the cause, the fix, and where the full ac
 Harvested from `DECISIONS.md` and from comments at the fix sites, so the detail is one hop
 away rather than reproduced here.
 
-The two brick hazards are first. Everything else is recoverable.
+The two hazards are first: the first is permanent, the second is recovered by reprogramming
+the boundaries.
 
 ---
 
-## Brick hazards
+## Hazards
 
 ### The part reads back `0xDA` and will not respond
 
@@ -106,7 +107,9 @@ Work through these in order. The first three are the common causes:
    differently - 16 bytes against 12 - so the first one reached suppresses the other and every
    member after `pad16` is read one slot late. The image is fine; `fa_size` is not. The
    signature in a debugger is `fap->fa_off` holding what should be the size. Or check from
-   DWARF that every linked object reports `sizeof(struct flash_area) == 12`
+   DWARF that every `bootutil` and `flash_map` object reports
+   `sizeof(struct flash_area) == 16`, which is TF-M's size; an `fsp_bsp_bl2` object reports 12
+   and that is correct, because FSP's header is PRIVATE to that library
    (`BRIDGING_FILES.md` §3). This produced this error on RA6M5 ([D090], which supersedes
    [D085]).
 
@@ -216,8 +219,8 @@ does not overwrite an existing cache entry without `FORCE`, so a value added to
 `config.cmake` after a tree was first configured never reaches it. Either pass `-DX=...`
 explicitly or delete the tree.
 
-This has produced two false conclusions already: a tree carrying hand-set debug options that no
-script reproduced ([D084]), and a stale tool path surviving regeneration ([D083]).
+This has caught the port twice: a tree carrying hand-set debug options that no script
+reproduced ([D084]), and a stale tool path that survived regeneration ([D083]).
 
 Also check you are not expecting `TFM_PROFILE` to win. It loses to the port's cache
 defaults: `TFM_ISOLATION_LEVEL` and the `TFM_PARTITION_*` set are already in the cache by

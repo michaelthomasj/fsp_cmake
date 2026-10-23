@@ -216,7 +216,7 @@ absent.
 
 FSP marks the r_flash_hp code-flash program/erase routines `PLACE_IN_RAM_SECTION`
 (`.ram_from_flash`) because the FCU makes the **entire code flash unreadable** while a code-flash
-P/E is in progress. The data-flash path is not RAM-placed — `flash_hp_df_write`,
+P/E is in progress. The data-flash path is deliberately not RAM-placed — `flash_hp_df_write`,
 `flash_hp_df_erase`, `flash_hp_enter_pe_df_mode` carry no attribute — because code flash stays
 readable during data-flash P/E.
 
@@ -327,7 +327,7 @@ and `.noinit*` through the generic `S_DATA_EXTRA_NOINIT_SECTION_NAME` hook into 
 Warning, not error, by default — a TF-M or FSP update can add a benign section and that should not
 block a build. `RA6E1_ORPHAN_CHECK_STRICT=ON` escalates to a hard failure; use it in CI.
 
-Still open, by choice. The check tells you a section was placed by guesswork; it cannot tell
+Still open, deliberately. The check tells you a section was placed by guesswork; it cannot tell
 you whether the guess was wrong. It also only covers the two images built here. And it complements
 rather than replaces the existing unclaimed-module warning in `fsp_add_modules()`, which catches the
 C-source half. Adding an FSP module to the secure or BL2 image remains a port change, not a
@@ -361,7 +361,7 @@ What each result establishes:
 * `version=0x00000101` - PSA Firmware Framework 1.1 negotiated across the boundary, not a
   stale constant.
 * Step 4 - the SCE9 TRNG works through PSA's external-RNG hook (`sce_trng.c`). This port
-  does not use a stored NV seed, whose default provisioning value is a
+  deliberately does not use a stored NV seed, whose default provisioning value is a
   constant shared by every device.
 * Steps 9-11 - PS round-trips with `PS_ENCRYPTION` ON, so AES-GCM runs *inside* the secure
   side, exercising crypto from the secure caller rather than only from NS.
@@ -411,7 +411,7 @@ stale signed image sitting beside the real ones is what gets flashed by mistake.
 making no secure calls, useful only for answering "does the S->NS jump still work" without
 the install step in between.
 
-The combined `tfm_s_ns_signed.bin` is not built. It was byte-for-byte the
+The combined `tfm_s_ns_signed.bin` is deliberately not built. It was byte-for-byte the
 two signed images end to end, nothing consumed it (BL2 verifies two separate images in two
 separate slots), and as an extra row in the debug session's program list it carries no
 address of its own — entered at its SIZE (`0x70000`) instead of its start (`0x58000`) it

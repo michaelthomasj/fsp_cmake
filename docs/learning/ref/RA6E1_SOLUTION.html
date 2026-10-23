@@ -246,7 +246,7 @@ populated secondary slot. That is the next meaningful test.</p>
 absent.</p>
 <p>FSP marks the r_flash_hp code-flash program/erase routines <code>PLACE_IN_RAM_SECTION</code>
 (<code>.ram_from_flash</code>) because the FCU makes the <strong>entire code flash unreadable</strong> while a code-flash
-P/E is in progress. The data-flash path is not RAM-placed — <code>flash_hp_df_write</code>,
+P/E is in progress. The data-flash path is deliberately not RAM-placed — <code>flash_hp_df_write</code>,
 <code>flash_hp_df_erase</code>, <code>flash_hp_enter_pe_df_mode</code> carry no attribute — because code flash stays
 readable during data-flash P/E.</p>
 <p><code>tfm_s</code> uses TF-M&#x27;s generated <code>tfm_isolation_s.ld</code>, which had no <code>.ram_from_flash</code> handling, so ld
@@ -334,7 +334,7 @@ and <code>.noinit*</code> through the generic <code>S_DATA_EXTRA_NOINIT_SECTION_
 </table></div>
 <p>Warning, not error, by default — a TF-M or FSP update can add a benign section and that should not
 block a build. <code>RA6E1_ORPHAN_CHECK_STRICT=ON</code> escalates to a hard failure; use it in CI.</p>
-<p>Still open, by choice. The check tells you a section was placed by guesswork; it cannot tell
+<p>Still open, deliberately. The check tells you a section was placed by guesswork; it cannot tell
 you whether the guess was wrong. It also only covers the two images built here. And it complements
 rather than replaces the existing unclaimed-module warning in <code>fsp_add_modules()</code>, which catches the
 C-source half. Adding an FSP module to the secure or BL2 image remains a port change, not a
@@ -361,7 +361,7 @@ client library at all. All 13 steps pass on hardware.</p>
 <li><code>version=0x00000101</code> - PSA Firmware Framework 1.1 negotiated across the boundary, not a
 stale constant.</li>
 <li>Step 4 - the SCE9 TRNG works through PSA&#x27;s external-RNG hook (<code>sce_trng.c</code>). This port
-does not use a stored NV seed, whose default provisioning value is a
+deliberately does not use a stored NV seed, whose default provisioning value is a
 constant shared by every device.</li>
 <li>Steps 9-11 - PS round-trips with <code>PS_ENCRYPTION</code> ON, so AES-GCM runs <em>inside</em> the secure
 side, exercising crypto from the secure caller rather than only from NS.</li>
@@ -400,7 +400,7 @@ stale signed image sitting beside the real ones is what gets flashed by mistake.
 <p><code>RA6E1_NS_IN_SPE_BUILD=ON</code> restores the old single-build path — a plain FSP application
 making no secure calls, useful only for answering &quot;does the S-&gt;NS jump still work&quot; without
 the install step in between.</p>
-<p>The combined <code>tfm_s_ns_signed.bin</code> is not built. It was byte-for-byte the
+<p>The combined <code>tfm_s_ns_signed.bin</code> is deliberately not built. It was byte-for-byte the
 two signed images end to end, nothing consumed it (BL2 verifies two separate images in two
 separate slots), and as an extra row in the debug session&#x27;s program list it carries no
 address of its own — entered at its SIZE (<code>0x70000</code>) instead of its start (<code>0x58000</code>) it

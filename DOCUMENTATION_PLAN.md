@@ -97,7 +97,7 @@ keeps the orientation and repository map and hands over.
 
 ### Revised 2026-10-09 — the target set is complete
 
-Items 1-7 are all done or resolved. Three were written today (`ADDING_FSP_MODULES`,
+Items 1-7 are all done or deliberately resolved. Three were written today (`ADDING_FSP_MODULES`,
 `PORTING`, `RECONFIGURING_THE_LAYOUT`) after the owner pointed out that the plan's own status
 for two of them was wrong: item 5 was recorded as "folded into DESIGN.md" when DESIGN.md has no
 such section, and item 6 as "covered by the checklist" when the checklist is only the RASC half.

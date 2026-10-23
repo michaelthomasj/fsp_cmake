@@ -147,7 +147,7 @@ to get right. <code>cmsis_drivers/Driver_Flash.c</code> picks the alias from it:
      ((uint32_t)(off) &gt;= MRAM_NS_BOUNDARY ? MRAM_NS_BASE                 \
                                           : (uint32_t)(FLASH_BASE_ADDRESS)))</code></pre>
 <p><code>MRAM_NS_BASE</code> is <code>FLASH_BASE_ADDRESS + BSP_FEATURE_TZ_NS_OFFSET</code> — the family-fixed offset,
-not <code>FLASH_AREA_1_OFFSET</code>, which would move if the slots were repartitioned
+deliberately not <code>FLASH_AREA_1_OFFSET</code>, which would move if the slots were repartitioned
 (D074). <code>MRAM_NS_BOUNDARY</code> derives from <code>BSP_PARTITION_FLASH_CPU0_C_START + _SIZE</code>, so it
 follows the generated layout. <code>ra8m2_layout_checks.c</code> asserts both aliases agree with FSP&#x27;s
 feature macro, and that every secure area lies below the boundary and both NS areas at or above
@@ -155,7 +155,7 @@ it.</p>
 <p>Getting this wrong is what produced the first RA8M2 BL2 HardFault: a <code>memcpy</code> from <code>0xb0000</code>,
 missing the <code>0x02</code> or <code>0x12</code> alias prefix entirely. D073.</p>
 <p>There is no data flash. ITS, PS and the MCUboot NV counters share <code>DF_EMULATION</code>, a 64 KB
-MRAM region held outside every MCUboot area so an image update cannot erase
+MRAM region held deliberately outside every MCUboot area so an image update cannot erase
 stored assets. NV counters take 2048 B; PS and ITS get about 31,744 B each — roughly 10x the
 RA6M5 allocation, which has only 8 KB of real data flash. 64 KB is the smallest size that
 splits without a remainder (<code>flash_layout.h:130</code>).</p>
@@ -226,7 +226,7 @@ present with <code>ipl = _disabled</code>, which emits no vector entry at all - 
 (<a href="DECISIONS.html#d061">D061</a>); Disabled silently produces a project that looks configured and is not.</p>
 <p>One difference remains and is inert. <code>BSP_PARTITION_RAM_BL_CPU0_S_SIZE</code> is <code>0x2600</code> on IAR
 against <code>0x1200</code> on GCC (secure and NS trees; absent from both mcuboot trees). Nothing consumes
-it - <code>region_defs.h:217</code> ignores that partition as FSP&#x27;s own bootloader budget,
+it - <code>region_defs.h:217</code> deliberately ignores that partition as FSP&#x27;s own bootloader budget,
 smaller than TF-M&#x27;s BL2 needs, so <code>BL2_DATA_*</code> comes from <code>RAM_CPU0_S</code>. The ~24 extra NS
 properties on the GCC side (AWS WiFi, DA16XXX, SCI-B UART) are likewise inert - neither tree
 instantiates those modules.</p>

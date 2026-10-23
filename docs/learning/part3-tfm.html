@@ -707,7 +707,7 @@ refers to; the course pages were not yet under version control, so the record ca
 <p><strong>Status:</strong> confirmed by configuring — a <code>TFM_PXN_ENABLE=ON</code> configure of
 <code>renesas/ra8m2</code> passes the gate at <code>check_config.cmake:91</code> and puts <code>-DTFM_PXN_ENABLE</code> on
 <code>tfm_hal_isolation_v8m.o</code>'s compile line. Its effect — the combined code region splitting in two, six static
-regions — has not been measured, and is parked (<a href="ref/DECISIONS.html#d126">D126</a> §5). Re-confirmed after
+regions — has not been measured, and is deliberately parked (<a href="ref/DECISIONS.html#d126">D126</a> §5). Re-confirmed after
 <a href="ref/DECISIONS.html#d121">D121</a> at isolation 3, on the now <code>tfm_spm</code>-owned object (<a href="ref/DECISIONS.html#d125">D125</a>). PXN stays OFF on this
 port. The ra8m2 CMake comment records all of this, including both halves of <code>d90aa0c44</code>
 (<code>ra8m2/CMakeLists.txt:639-669</code>). The ra6m5 file carries a copy whose last paragraph says a configure

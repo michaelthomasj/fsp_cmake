@@ -179,7 +179,7 @@ safety settings below. For RA8M2 they are in `ra8m2_gcc_mcuboot/`.
 
 Each has an `_iar` twin. In e2: `Run → Debug Configurations…`, pick one, `Debug`.
 
-### Two brick hazards
+### Two safety rules
 
 > **Flash `bl2.elf` or `bl2.hex` — never `bl2.bin`.** The option-setting words live in discrete
 > segments that a flat binary cannot express; a `.bin` writes them at the wrong addresses and

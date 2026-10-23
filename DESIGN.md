@@ -105,7 +105,7 @@ define keeps winning, silently, and the deviation outlives its reason.
 - `flash_layout.h` + `region_defs.h` are authoritative for the build (MCUboot and TF-M read
   them). No `FLASH_*_PARTITION_*` cache variable is set by either live part - only mps3 platforms
   consume them, and the RA6M4-era note that they were "kept for documentation" no longer applies.
-- Per-part layouts are not repeated here (see §7 for why). The 1 MB single-bank
+- Per-part layouts are deliberately not repeated here (see §7 for why). The 1 MB single-bank
   map this section used to print was RA6M4's and matches neither live part: RA6M5 uses the whole
   2 MB with BL2 at 96 KB, and RA8M2 is MRAM based at `0x02000000`. The authoritative figures live
   in `RA6M5_SOLUTION.md` and `RA8M2_SOLUTION.md`, generated from each solution's
@@ -211,7 +211,7 @@ Attribution itself is entirely what is burned via RFP/RDPM — see §7.1.
   secure linker — the nordic/laird upstream pattern. Fixed rather than end-of-code so the NSC
   window is stable across firmware updates, which matters because RA TZ boundaries are set once
   at provisioning.
-- Boundaries to program: not listed here. They are per-part, they are RDPM
+- Boundaries to program: deliberately not listed here. They are per-part, they are RDPM
   input, and a stale copy in a third document is how a board gets provisioned wrong. The owning
   documents are `RA6M5_SOLUTION.md` §"TrustZone boundary values" and `RA8M2_SOLUTION.md`
   (`RA6E1_SOLUTION.md` for the dormant part); all
@@ -323,8 +323,8 @@ a driver entry point re-entered per device, not about a one-shot boot hook.
 - Declare `.ram_noinit` explicitly in `<part>_bl2.ld`: before `.bss` (so the prefixed
   `.bss.ram_noinit` variant isn't swallowed by `*(.bss*)`) and `NOLOAD` (so it emits no flash
   image and is neither copied nor zeroed), placed outside `ADDR(.bss)..SIZEOF(.bss)` so the
-  zero table never covers it. As an orphan section it survived only by ld's default placement and
-  wasted flash.
+  zero table never covers it. As an orphan section its placement was not guaranteed - it
+  survived on ld's default ordering - and it wasted flash.
 - Keep the one-time `SystemCoreClockUpdate()` in `tfm_hal_platform_init()`. Not redundant: the
   secure image uses TF-M's generated linker, which has no `.ram_noinit` rule, so its
   `.ram_noinit` is still an orphan whose placement isn't guaranteed across TF-M versions.
@@ -447,7 +447,8 @@ Both are functions in the part's `CMakeLists.txt`, cited by name because a comme
 them moves their line numbers ([[D129]]).
 
 RA8M2's limit is `4` because `bl2_option_setting.c` places only 4-byte words there —
-tighter than the `0x80` a BPS word would need, to be raised only if BPS/PBPS are ever placed.
+deliberately tighter than the `0x80` a BPS word would need, to be raised only if BPS/PBPS
+are ever placed.
 BL2 also passes `--require-segments`, so an empty result fails rather than passing.
 
 > Known tension, not yet resolved. RA6M5's widest defined groups are `0x10`
