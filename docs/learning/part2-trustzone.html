@@ -112,7 +112,7 @@ or <strong>Non-secure</strong> state. Every address is <strong>Secure</strong>, 
 Non-secure code (§2.3). Which partitions are unprivileged depends on the TF-M isolation level (Part 3 §3.3).</figcaption>
 </figure>
 
-<p>The port's <code>tfm_hal_memory_check()</code> asks exactly this two-axis question when a partition hands the SPM a
+<p>The port's <code>tfm_hal_memory_check()</code> asks this two-axis question when a partition hands the SPM a
 buffer: is it accessible to <em>this</em> caller, privileged or not, Secure or not? It uses the CMSE intrinsic
 <code>cmse_check_address_range()</code>, which compiles to the <code>TT</code> (Test Target) instruction that reports
 both the MPU permission and the SAU/IDAU attribution of an address:</p>
@@ -182,7 +182,7 @@ Non-secure <em>alias</em>, so it has to enable the SAU itself:</p>
  * secure one on the address, the non-secure one on the attribute.</code></pre>
 <p class="src"><code>ra8m2/bl2_boot_hal.c:34-38</code>; the single SAU region it programs, and the enable, are at <code>:91-95</code></p>
 <p>FSP's <code>R_BSP_SAUInit()</code> would normally do this, but it is reached only under
-<code>BSP_TZ_SECURE_BUILD</code>, and BL2 is deliberately built as a flat, TrustZone-unaware FSP project
+<code>BSP_TZ_SECURE_BUILD</code>, and BL2 is built as a flat, TrustZone-unaware FSP project
 (<code>bl2_boot_hal.c:40-43</code>). History: <a href="ref/DECISIONS.html#d073">D073</a>–<a href="ref/DECISIONS.html#d076">D076</a>, <a href="ref/DECISIONS.html#d079">D079</a>, <a href="ref/DECISIONS.html#d091">D091</a>.</p>
 
 <div class="note" id="target-cfg-comment">
@@ -209,7 +209,7 @@ every address Secure. TF-M <code>c75693277</code> and <code>f1d31a404</code> (<a
 ports (<code>ra6m5/target_cfg.c:41-55</code>, <code>:67-68</code>, <code>:74-75</code>), and
 <code>ra8m2/bl2_boot_hal.c:45-47</code>.</p>
 <p>Why it survived through a working port: the function is a no-op on these parts whichever way the comment reads. A
-wrong statement about a part's security architecture has no runtime symptom — and is exactly the kind that gets
+wrong statement about a part's security architecture has no runtime symptom — and is the kind that gets
 believed.</p>
 </div>
 
@@ -399,7 +399,7 @@ entry in the generated event-link table. So:</p>
 with a real interrupt priority (<a href="ref/DECISIONS.html#d061">D061</a>). It is a build-time property, set by the configurator.</p></div>
 <p><span class="tag tfm">TF-M</span> Every Arm reference platform instead makes an interrupt Secure at run time by
 calling CMSIS <code>NVIC_ClearTargetState()</code> in the partition's IRQ init. <span class="tag port">This port</span>
-does not, deliberately:</p>
+does not, by design:</p>
 <pre><code> * and on RA that single call leaves the interrupt in an INCONSISTENT state. Target state
  * is held in two places that must agree: NVIC-&gt;ITNS and R_CPSCU-&gt;ICUSARG. FSP writes them
  * as a pair in bsp_irq_cfg() (bsp_irq.c). NVIC_ClearTargetState() is plain CMSIS and knows
@@ -465,7 +465,7 @@ struct platform_data_t tfm_peripheral_timer0 = {
 <p class="src"><code>ra6m5/tfm_peripherals_def.c:12-40</code>; the no-ops at <code>ra6m5/target_cfg.c:80-108</code>;
 the guarded call at <code>tfm_hal_isolation_v8m.c:445-455</code></p>
 
-<h3>The azone is where peripheral security actually lives</h3>
+<h3>The azone is where peripheral security lives</h3>
 <p><a href="ref/DECISIONS.html#d112">D112</a>: a property-by-property diff of the RA8M2 IAR and GCC e2 projects showed them identical, yet the IAR project was
 missing an <code>ICU.IRQ0</code> security assignment. Peripheral-to-zone assignments are stored in the
 <code>.secure_azone</code> file, which the diff never read. When checking that two projects attribute peripherals the same
@@ -521,7 +521,7 @@ image's first MRAM write then took a precise BusFault, <code>BFSR 0x82</code>, <
     <details><summary>Answer</summary>Whether <code>g_interrupt_event_link_select</code> is the strong definition from
     <code>vector_data.c</code> (<code>T</code>) or FSP's weak zero fallback (<code>V</code>), and its contents (<a href="ref/DECISIONS.html#d069">D069</a>).</details></li>
   <li>RA6M5 has no PPC. What does TF-M's call to <code>ppc_configure_to_secure()</code> do on this port, and where is
-    the peripheral's security actually set?
+    the peripheral's security set?
     <details><summary>Answer</summary>Nothing — it is a no-op, and is never reached because every
     <code>platform_data_t</code> carries <code>PPC_SP_DO_NOT_CONFIGURE</code>. Security is set in the PSCU's PSAR registers
     by FSP's <code>R_BSP_SecurityInit()</code>, from the e2 project's configuration.</details></li>
