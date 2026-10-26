@@ -8,7 +8,7 @@ Live parts: RA6M5 and RA8M2. RA6M4 and RA6E1 are in-tree but dormant — both EK
 were bricked by the OFS coalescing defect (DECISIONS D002). Sections below are part-neutral
 unless they name a part; per-part specifics live in `RA6M5_SOLUTION.md` and `RA8M2_SOLUTION.md`
 (and `RA6E1_SOLUTION.md` for the dormant part),
-and the RA6M4-era documents are under `archive/ra6m4/`.
+and the RA6M4-era documents left the tree in [D137].
 
 > This file is the stable companion to `DECISIONS.md`, which is the append-only log of why.
 > Where the two disagree, DECISIONS.md is authoritative and carries the date.

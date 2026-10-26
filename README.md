@@ -121,8 +121,7 @@ every build today and is pure diagnostics.
 |---|---|
 | `PROJECT_PLAN.md` | schedule and open tasks |
 | `DOCUMENTATION_PLAN.md` | the target document set and the gap list; retire it once the set exists |
-| `archive/ra6m4/` | the RA6M4 era, 2025-10 to 2026-09. Nothing in it describes the active ports; see its README for what is still worth reading |
-| `bringup/bricking_evidence/` | the evidence behind D002, the OFS coalescing brick |
+| `bringup/bricking_evidence/` | the preserved image behind [D133], the OFS coalescing brick |
 
 Still to write, per `DOCUMENTATION_PLAN.md`: the repartition
 procedure.

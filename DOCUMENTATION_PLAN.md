@@ -6,8 +6,8 @@ gap list - the "Still missing" text that follows is the 2026-10-04 snapshot, lef
 record.
 
 Done since it was written: `README.md` is no longer a stub and carries the document map;
-`RA8M2_SOLUTION.md` exists; the eight RA6M4-era documents are under `archive/ra6m4/` with an
-index; `DESIGN.md` has been corrected to the live parts (DECISIONS D086). Still missing, and
+`RA8M2_SOLUTION.md` exists; the eight RA6M4-era documents left the tree in [D137] and are
+on the legacy branch; `DESIGN.md` has been corrected to the live parts (DECISIONS D086). Still missing, and
 still the point of this file: `CONFIGURATION.md`, `RECONFIGURING_THE_LAYOUT.md`,
 `TROUBLESHOOTING.md`, `BRIDGING_FILES.md`.
 
@@ -42,7 +42,7 @@ lines, and `MACHINE_HANDOFF.md` was deleted on 2026-10-09):
 
 ## What exists today
 
-Regenerated 2026-10-04. Live top-level documents only; `archive/ra6m4/` holds eight more.
+Regenerated 2026-10-04. Live top-level documents only; eight RA6M4-era ones left in [D137].
 
 | File | Lines | Last change |
 |---|---|---|
