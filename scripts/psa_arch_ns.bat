@@ -1,5 +1,5 @@
 @echo off
-rem  RA6M5 PSA Arch non-secure app, GCC or IAR.
+rem  PSA Arch non-secure app, GCC or IAR. Part-agnostic: the build dir is argument 1.
 rem
 rem    psa_arch_ns.bat <build-dir> <spe-api_ns-dir> <TEST_PSA_API> [iar]
 rem    psa_arch_ns.bat C:\b\m5att  C:\b\m5cry\api_ns  INITIAL_ATTESTATION

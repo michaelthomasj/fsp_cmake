@@ -80,7 +80,7 @@ CITES = [
     ("ra8m2",  857, r"^\s+if\(CRYPTO_HW_ACCELERATOR\)",          "the accelerator-only ra_sce_init block"),
     ("ra8m2",  858, r"^\s+target_sources\(bl2 PRIVATE$",         "bl2 sources, block 3"),
     ("ra8m2",  868, r"^\s+target_sources\(platform_bl2 PRIVATE$", "platform_bl2 RTT stdout"),
-    ("ra8m2", 1205, r"^\s+target_sources\(tfm_ns PRIVATE",       "tfm_ns sources"),
+    ("ra8m2", 1204, r"^\s+target_sources\(tfm_ns PRIVATE",       "tfm_ns sources"),
 ]
 
 # Upstream citations. Separate because these move only when TF-M is uprevved.

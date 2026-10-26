@@ -16,7 +16,7 @@ rem  configuration (1 / SFN). They exist because the regression suite had NEVER 
 rem  isolation 1 - every tests_reg build in C:\b is L1/SFN, and every L3 build is PSA Arch,
 rem  which is a different test body. Two things therefore had no coverage at all:
 rem
-rem    - isolation 2, which has never been built or run on this port (DECISIONS D015)
+rem    - isolation 2, unbuilt and unrun when this was written (D015); run since (D113, D118)
 rem    - the MMIO MPU-region path. tests_reg is the ONLY test body that declares mmio_region
 rem      (tfm_secure_client_service, tfm_flih_test_service, tfm_slih_test_service), and at
 rem      L1 no MPU region is created from a declaration. So the code that programs peripheral
@@ -64,12 +64,12 @@ rem  client service is PSA-RoT, so its MMIO costs nothing (the L2 path guards on
 rem  So L2 should land on 6 and L3 on 7 of the 8 regions. tfm_hal_platform.c logs what the
 rem  hardware reports; read it rather than trusting this comment.
 rem
-rem  RA8M2 WILL NOT FIT and the script does not stop you trying. tfm_s is 293,564 B against a
-rem  294,400 B slot - 670 B spare after the imgtool TLVs (DECISIONS D057, corrected by D087) -
-rem  at MinSizeRel / isolation 1 / SFN. Isolation 3 cost +972 B of secure text on RA6E1
-rem  (DECISIONS D008), and the IPC backend is larger than SFN. Expect the signing step to
-rem  fail, or the link. Growing the slot is a layout revision, not a tweak. Use ra6m5, which
-rem  has 1,693 B spare.
+rem  RA8M2 IS TIGHT ABOVE L1, and the script does not stop you trying. tfm_s is 293,564 B
+rem  against a 294,400 B slot - 670 B spare after the imgtool TLVs (DECISIONS D057, corrected
+rem  by D087) - at MinSizeRel / isolation 1 / SFN. Isolation 3 cost +972 B of secure text on
+rem  RA6E1 (DECISIONS D008), and the IPC backend is larger than SFN. It has nevertheless been
+rem  built and run at L2 and L3 (D113, D118), so expect a tight fit rather than the certain
+rem  signing or link failure an earlier revision of this note predicted.
 rem
 rem  IRQ ARGUMENT. FLIH and SLIH are mutually exclusive in tf-m-tests: enabling both fails
 rem  configure. 'flih' (the default) sets TEST_NS_FLIH_IRQ, 'slih' sets TEST_NS_SLIH_IRQ,

@@ -54,7 +54,8 @@ LINK_EXEMPT = {DECISIONS}
 # entries that do not exist yet ("needs a superseding entry (D120)") and files as they were on the
 # review date, so they are not held to resolution. Checking them blocked every .md commit until
 # someone wrote the entry a review merely proposed.
-PATH_EXEMPT = ("docs/artifacts",)  # docs/artifacts/, docs/artifacts_v2/, ...
+PATH_EXEMPT = ("docs/artifacts",          # docs/artifacts/, docs/artifacts_v2/, ...
+               "docs/General_tech_review")  # the 2026-10 port and upstream-comparison reviews
 
 RE_ENTRY = re.compile(r"^## (D\d+) — ", re.M)
 RE_CITE = re.compile(r"\bD(\d{3})\b")
@@ -133,8 +134,11 @@ def main():
         return 1
 
     if not a.quiet:
-        print(f"check_docs: ok — {len(entries)} entries, {len(docs)} docs, "
-              f"{len(builds)} build files, all references resolve")
+        n_exempt = sum(1 for p in docs
+                       if os.path.relpath(p, ROOT).replace("\\", "/").startswith(PATH_EXEMPT))
+        print(f"check_docs: ok — {len(entries)} entries, {len(docs) - n_exempt} docs checked "
+              f"({n_exempt} review snapshots exempt), {len(builds)} build files, "
+              f"all references resolve")
     return 0
 
 
