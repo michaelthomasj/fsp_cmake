@@ -50,6 +50,7 @@
           <li><a href="#start-here">Start here</a></li>
           <li><a href="#shortest-path-to-a-build">Shortest path to a build</a></li>
           <li><a href="#freeing-space-in-the-secure-image">Freeing space in the secure image</a></li>
+          <li><a href="#reading-the-port-as-a-diff">Reading the port as a diff</a></li>
           <li><a href="#the-documents">The documents</a></li>
         </ol>
       </li>
@@ -138,6 +139,17 @@ flash. The PSA Arch scripts pass them on the command line rather than setting th
 against the real headroom of 1,693 B on RA6M5 and 670 B on RA8M2 (<a href="DECISIONS.html#d087">D087</a>) would not link.</p>
 <p><code>TFM_EXCEPTION_INFO_DUMP</code> is the one worth considering for a production image. It is on for
 every build today and is pure diagnostics.</p>
+<h2 id="reading-the-port-as-a-diff">Reading the port as a diff</h2>
+<p><code>e2_baseline/</code> holds the RA6M5 and RA8M2 GCC solutions as e2 studio first creates them, on
+exactly the FSP pack the port uses. Every RASC decision the port makes is therefore readable
+as a diff rather than taken on trust:</p>
+<pre><code>git diff HEAD:e2_baseline/ra6m5_gcc_secure/.secure_azone \
+         HEAD:ra6m5_gcc_secure/.secure_azone</code></pre>
+<p>That one comparison carries the whole RA6M5 layout decision: both image slots doubled, the
+NSC window moved, data flash made wholly secure, AGT0 and IRQ0 made secure.
+<code>e2_baseline/README.md</code> lists the five other comparisons worth making and what each shows.</p>
+<p>The same files are also on the orphan branch <code>e2-baseline</code>, which shares no history with the
+port. The copy in this tree is byte-identical and is the one to use (<a href="DECISIONS.html#d140">D140</a>).</p>
 <h2 id="the-documents">The documents</h2>
 <p><strong>Start here, in this order.</strong></p>
 <div class="table-wrap"><table>
@@ -168,6 +180,7 @@ every build today and is pure diagnostics.</p>
 <tr><td><code>PROJECT_PLAN.md</code></td><td>schedule and open tasks</td></tr>
 <tr><td><code>DOCUMENTATION_PLAN.md</code></td><td>the target document set and the gap list; retire it once the set exists</td></tr>
 <tr><td><code>bringup/bricking_evidence/</code></td><td>the preserved image behind <a href="DECISIONS.html#d133">D133</a>, the OFS coalescing brick</td></tr>
+<tr><td><code>e2_baseline/</code></td><td>the two GCC solutions as e2 first creates them, for reading the port&#x27;s RASC choices as a diff (<a href="DECISIONS.html#d140">D140</a>)</td></tr>
 </table></div>
 <p>Still to write, per <code>DOCUMENTATION_PLAN.md</code>: the repartition
 procedure.</p>

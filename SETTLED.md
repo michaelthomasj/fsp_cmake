@@ -6,8 +6,8 @@
 
 | | |
 |---|---|
-| Entries | **139** |
-| Standing | **126** |
+| Entries | **140** |
+| Standing | **127** |
 | Superseded | **13** |
 | Standing but corrected on some point | **36** |
 | Standing, but the question they left open is closed | **3** |
@@ -34,7 +34,7 @@ A later entry **supersedes** an earlier one: same question, newer answer. Citing
 
 ---
 
-## Standing (126)
+## Standing (127)
 
 Nothing supersedes these. The title is the position. Where a later entry corrects one, the correction is named - the entry stands apart from that. **Where the Closed by column is filled, read the status as historical:** the entry describes a problem that a later entry shut, so its own "Open" or "Provisional" is no longer true.
 
@@ -166,6 +166,7 @@ Nothing supersedes these. The title is the position. Where a later entry correct
 | `D137` | 2026-10-26 | what ships to a customer: RA6M4 and the working material leave the branch, RA6E1 and the brick evidence stay | Accepted | — | — |
 | `D138` | 2026-10-26 | the RA6M4 platform leaves the TF-M tree too; the brick record keeps its subject and loses only its path | Accepted | — | — |
 | `D139` | 2026-10-26 | three delivery questions answered: RA6E1 ships, the `CMSE_NONSECURE` fallback is removed, the base stays TF-Mv2.2.0 | Accepted | — | — |
+| `D140` | 2026-10-26 | the e2 baseline ships inside the deliverable, not as a branch beside it | Accepted | — | — |
 
 ---
 

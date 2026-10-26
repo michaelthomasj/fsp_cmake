@@ -97,6 +97,24 @@ against the real headroom of 1,693 B on RA6M5 and 670 B on RA8M2 ([D087]) would 
 `TFM_EXCEPTION_INFO_DUMP` is the one worth considering for a production image. It is on for
 every build today and is pure diagnostics.
 
+## Reading the port as a diff
+
+`e2_baseline/` holds the RA6M5 and RA8M2 GCC solutions as e2 studio first creates them, on
+exactly the FSP pack the port uses. Every RASC decision the port makes is therefore readable
+as a diff rather than taken on trust:
+
+```
+git diff HEAD:e2_baseline/ra6m5_gcc_secure/.secure_azone \
+         HEAD:ra6m5_gcc_secure/.secure_azone
+```
+
+That one comparison carries the whole RA6M5 layout decision: both image slots doubled, the
+NSC window moved, data flash made wholly secure, AGT0 and IRQ0 made secure.
+`e2_baseline/README.md` lists the five other comparisons worth making and what each shows.
+
+The same files are also on the orphan branch `e2-baseline`, which shares no history with the
+port. The copy in this tree is byte-identical and is the one to use ([D140]).
+
 ## The documents
 
 **Start here, in this order.**
@@ -131,6 +149,7 @@ every build today and is pure diagnostics.
 | `PROJECT_PLAN.md` | schedule and open tasks |
 | `DOCUMENTATION_PLAN.md` | the target document set and the gap list; retire it once the set exists |
 | `bringup/bricking_evidence/` | the preserved image behind [D133], the OFS coalescing brick |
+| `e2_baseline/` | the two GCC solutions as e2 first creates them, for reading the port's RASC choices as a diff ([D140]) |
 
 Still to write, per `DOCUMENTATION_PLAN.md`: the repartition
 procedure.

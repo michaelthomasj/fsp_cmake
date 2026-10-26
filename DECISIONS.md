@@ -7693,3 +7693,72 @@ Three things make this safe rather than a guess:
   binaries and moved the finding from medium to low.
 
 `UPSTREAM_CHANGES.md` now records the file at `+47` lines rather than `+51`.
+
+---
+
+## D140 — the e2 baseline ships inside the deliverable, not as a branch beside it
+
+**Date:** 2026-10-26 · **Status:** Accepted ·
+**Evidence:** `git merge-base e2-baseline ra8m2_gen_6_7_TFM` exits 1; all 138 staged blobs
+compared against `e2-baseline:<path>` with `git rev-parse`, 0 mismatches
+
+[D137] decided what a customer receives. It did not answer how a customer reads the port's
+RASC choices, which until now had no recorded left-hand side: the four original add commits
+`8d5ae77`, `ad7792b`, `6947e5a` and `78afdd6` already contain configured projects, so every
+choice made in RASC before that point is invisible to `git`.
+
+Fresh RA6M5 and RA8M2 GCC solutions were created on pack
+`Renesas.RA.6.7.0-beta0+20260925.818e720c`, which is exactly the pack the port uses, and
+committed to the orphan branch `e2-baseline` in a separate worktree. The branch stays and is
+pushed. **It cannot serve the comparison on its own.** An orphan branch has no common
+ancestor with `ra8m2_gen_6_7_TFM` - `git merge-base` exits 1 - and GitHub's compare view needs
+one, so `compare/e2-baseline...ra8m2_gen_6_7_TFM` renders no diff.
+
+**The 138 files are therefore copied into the delivery branch under `e2_baseline/`.** Both
+trees land in one checkout, and the comparison becomes a path diff that needs no second clone
+and no remote. 2.2 MB and 138 files, against 8,056 already tracked.
+
+The copy was taken with `git archive e2-baseline` and verified file by file: every staged blob
+hash equals the one on the branch. The two files whose purpose changed were rewritten -
+`README.md`, which described a worktree to create projects in, and `.gitignore`, whose header
+said the generated trees were tracked elsewhere. The original text of both stays on
+`e2-baseline`.
+
+**Generated output stays out of the baseline.** `ra/`, `ra_gen/` and `ra_cfg/` are reproducible
+from the tracked `configuration.xml` and the pack version, and would add about 1,200 files for
+no information. The baseline does not build until RASC generates into it, and `README.md`
+there says so.
+
+**Compare committed content, not bytes on disk.** This repository sets `core.autocrlf=true`
+and sets no `text` attribute, so a working-tree file carries whatever line endings the tool
+that wrote it produced while the committed blob is normalised to LF. A disk-level `diff` of
+the three RA6M5 `.secure_rzone` files reported 932 changed lines each, all of it line endings:
+`git diff` on the committed files reports them identical. `e2_baseline/README.md` gives the
+`git diff HEAD:<path> HEAD:<path>` form for this reason.
+
+**What the baseline establishes.** Six comparisons carry the port's configuration decisions,
+and two of them are the whole story:
+
+| compare | numstat | finding |
+|---|---|---|
+| `ra6m5_gcc_secure/.secure_azone` | 20+/15- | both image slots doubled (`__BL_0_S_I` `0x3FE00` to `0x7FE00`), NSC window to `0x11F800`, data flash `0x1000`/`0x1000` to `0x2000`/`0x0`, a `0x8000` scratch region added, AGT0 and IRQ0 secure |
+| `ra8m2_gcc_CPU0_secure/.secure_azone` | 5+/1- | the RA8M2 layout is the e2 template's, unchanged. One reordered line at offset `0x68000`, then AGT0 and IRQ0 secure |
+| `ra6m5_gcc_secure/ra_cfg.txt` | 347+/3- | `flash_on_flash_hp`, `psa_crypto`, `rm_psa_crypto`, `sce9.plaintext`, `timer_on_agt` |
+| `ra8m2_gcc_CPU0_secure/ra_cfg.txt` | 343+/3- | `flash_on_mram`, `psa_crypto`, `rm_psa_crypto`, `rsip_e50d.plaintext`, `timer_on_agt`, stack `0x400` to `0x1000`, heap `0` to `0x1500` |
+| `ra6m5_gcc_mcuboot/.secure_azone` | 16+/15- | the same layout as the bootloader sees it |
+| `ra6m5_gcc_nonsecure/configuration.xml` | 7+/275- | what the non-secure project drops relative to a stock one |
+
+`.secure_rzone` is identical to the baseline in all six projects. The port assigns peripheral
+security through `.secure_azone` and changes nothing in `.secure_rzone`. No review before this
+baseline had established that.
+
+**One divergence the baseline surfaced, and left.** The RA6M5 GCC scratch region is named
+`UNUSED_SCRAtTCH` in all three `.secure_azone` files at this commit. The IAR solution spells it
+`UNUSED_SCRATCH`. `ra6m5_gcc/solution.xml` was corrected in `126d09d`, and regeneration did not
+propagate the correction: `ra6m5_gcc_mcuboot/.secure_azone` still carries the typo, and
+`.secure_azone` is an input RASC reads rather than output it writes from `solution.xml`. The
+name reaches `bsp_linker_info.h`, `memory_regions.ld` and `fsp_gen.ld` as
+`BSP_PARTITION_UNUSED_SCRAtTCH_START` and `_SIZE`, all three under `Debug/`, which is not
+tracked. Nothing reads either macro, so no build depends on the spelling and no image changes
+when it is corrected. The owner stopped chasing the propagation and left the name as it is;
+this entry records that so a customer reading the diff finds the typo already accounted for.
