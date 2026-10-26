@@ -1,0 +1,26 @@
+# Generated FSP trees.
+#
+# Everything under <project>/ra/, <project>/ra_gen/ and <project>/ra_cfg/ is produced by
+# RASC from that project's configuration.xml and the FSP pack version. None of it is
+# hand-written: DESIGN.md 1 states the principle, and 1.1 lists the documented exceptions.
+#
+# Marking it linguist-generated collapses it by default in GitHub diffs and pull requests,
+# and keeps it out of the repository's language statistics. It changes nothing about how
+# git stores or merges the files - they are still tracked, still diffable, still expandable
+# with one click.
+#
+# The point is signal. A secure project is about 630 tracked files, of which roughly 607
+# are generated and 23 carry human decisions: configuration.xml (modules, clocks, stacks),
+# .secure_rzone / .secure_azone / .secure_xml (the TrustZone partitioning), .project and
+# .cproject, and src/. Those are what a reviewer should see first.
+*/ra/**            linguist-generated=true
+*/ra_gen/**        linguist-generated=true
+*/ra_cfg/**        linguist-generated=true
+
+# Deliberately NOT set here: any text, eol or working-tree-encoding attribute.
+#
+# This repository holds FSP sources, e2 studio project metadata and J-Link scripts whose
+# line endings are whatever the tool that wrote them produced. Adding `* text=auto` would
+# renormalise thousands of tracked files in one commit, rewrite every blame, and risk
+# changing files that e2 and RASC round-trip. The CRLF warnings git prints on checkout are
+# cosmetic and were accepted on that basis.
