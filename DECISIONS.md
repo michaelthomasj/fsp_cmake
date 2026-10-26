@@ -7496,3 +7496,64 @@ cited, and all three files are the length they were.
 [D133] asked for after [D132] was written from a report. One of the eight fixes above is the
 2026-10-22 sweep's own residue in `check_ofs.py`, found by reading the file rather than by a
 checker: no checker in this repository reads the port's printed output.
+
+---
+
+## D136 — the review's no-hardware tier: eleven fixes, verified by build and by the guard's own failure cases
+
+**Date:** 2026-10-26 · **Status:** Accepted · **Evidence:** [D134], [D135]; `build_ra6m5`
+reconfigured and relinked, and both OFS guard targets run; the extracted toolchain guard run
+against four toolchain files and the unset case
+
+[D135] split the 2026-10-23 review into what could be fixed without hardware and what could
+not. This entry records the first half, done.
+
+**Guard.** `check_ofs.py` gains two options.
+
+- `--forbid-segments`, the inverse of `--require-segments`, now used for `tfm_s` on both parts
+  (R099). Without it the guard asked only that option words be *discrete*, so a secure image
+  that picked one up passed as "1 discrete OFS segment". All three built `tfm_s` images were
+  checked first and carry none, so this enforces a property that already held.
+- `--quarantine`, used by every guard call, renames the image and its flashable siblings
+  (`.axf .bin .elf .hex .srec`) to `*.UNSAFE` on failure (R095). A failing build left them in
+  `bin/`, and the committed launches flash `bl2.elf` with `ATTR_BUILD_BEFORE_LAUNCH` disabled,
+  so a failed guard did not stop the next launch programming the image it had just rejected.
+  **Renamed, not deleted:** the image is the evidence, and `bringup/bricking_evidence` is why
+  [D133] could be written at all.
+
+**R096 is NOT closed.** `cmake --build --target bl2_bin` still writes the coalesced binary.
+The `OUTPUT bin/bl2.bin` rule belongs to `bl2/`'s directory scope, and `add_custom_command(...
+APPEND)` only works in the scope that created the rule, so closing it needs one of [D135]'s
+three routes - generic toolchain change, a platform-owned flat-binary rule, or a
+`cmake_language(DEFER DIRECTORY)` into `bl2/`. That is still a route choice. The decisive test
+now exists either way: build `bl2_bin` alone and read the size. Safe is 55,876 B on RA6M5;
+unsafe is about 16.8 MB.
+
+**Fixed, with the judgement calls named.**
+
+| Finding | Change |
+|---|---|
+| R099, R095 | Above. |
+| P17 (R157, R113) | `ra6m5/postbuild.cmake` and `ra8m2/postbuild.cmake` deleted, 76 lines each, unreferenced tree-wide. |
+| R116 | GNUARM and IAR only; anything else fails the configure by name. **Placed at the end of `config.cmake`, not the top of `CMakeLists.txt`**, so that no cited line in either part moves. `config.cmake` is read before `project()`, so the message still lands early. Inert when `TFM_TOOLCHAIN_FILE` is unset. |
+| R106 | `CONFIGURE_DEPENDS` on the S and BL2 module globs; the NS glob already had it. |
+| R098 | The five RA8M2 OFS windows are defined once as `RA8M2_OFS_REGIONS` and used by both the guard and the safe-binary emitter. They were two hand-kept copies, and the comment on the second said so. |
+| R163 | `flash_layout.h` claimed the driver adds the DF_EMULATION base to the offsets PS/ITS pass. It does not: `Driver_FLASH1` uses `addr` directly, unlike `Driver_FLASH0`, which converts through `MRAM_ADDR()`. **The code was right and the header comment was wrong**, so the comment changed. |
+| R147 | `ra_sce_init.c` on both parts said BL2 "finishes with it before it hands over". It does not. The de-initialisation itself is still open. |
+| R013 | The E50D `CMakeLists.txt` and `ra8m2/config.cmake` still carried [D052]'s known defect and its predicted PSA Arch crypto cascade, which [D053] withdrew on 2026-09-24. `ra8m2/config.cmake` also opened with "SCE9 cipher acceleration" and the `sce9` path. `crypto_hw.c` on both engines said BL2 is not accelerated while the same accelerator builds its SHA-256. |
+| R138 | `startup_ra8m2.c` called CPU0 a Cortex-M33; `ra8m2/tfm_hal_platform.c` read "1,693 B spare on RA8M2 and 670 B on RA8M2" where [D087] says RA6M5 and RA8M2; both `tfm_hal_platform.c` files said the `target_cfg.h` hooks "are called by TF-M framework" when they have no caller ([D134] P06); `ra8m2/bl2_boot_hal.c` said it is built only with `CRYPTO_HW_ACCELERATOR` and named sce9, where it is built unconditionally because it enables the SAU. |
+| R090 | Both `tfm_tests_config.cmake` files named a secure project with no AGT vector; all four now generate `VECTOR_NUMBER_AGT0_INT`. `reg_build_gcc.bat` said isolation 2 "has never been built or run" and that RA8M2 "WILL NOT FIT" above L1, both contradicted by [D113] and [D118]. `psa_arch_ns.bat` called itself RA6M5-only and is part-agnostic. |
+| check_docs | `docs/General_tech_review` joins `docs/artifacts` in `PATH_EXEMPT`, the mechanism already there for outside-reviewer snapshots. The summary now separates documents checked from snapshots exempt: the count had drifted 58 to 66 on untracked scratch and read as though the port had grown ten documents. |
+
+**Two R090 items were checked and are not defects.** `plat_test.c`'s "THIS USES THE FSP DRIVER"
+heading is qualified 65 lines later at `:83-90`, which states the split between the privileged
+`R_AGT_Open` path and the direct `AGTCR` writes. And "clear_intr() ... may use the NVIC" reads
+as permission, not description, which is correct: it runs in Handler mode.
+
+**Verification.** Every file cited by line was edited word-for-word with its line count
+unchanged, except `ra8m2/CMakeLists.txt`, which lost one line to the R098 dedupe;
+`check_arch_lines.py` caught the single citation that moved (`:1205` to `:1204`) and both it and
+`BUILD_ARCHITECTURE.md` were updated. `build_ra6m5` reconfigures, relinks and runs both guard
+targets green. The toolchain guard was extracted verbatim and run against ARMCLANG and CLANG
+(rejected), GNUARM and IAR (accepted) and unset (inert). `--quarantine` was exercised on a copy
+of the bricked image - five files renamed - and on a passing image, where it left them alone.

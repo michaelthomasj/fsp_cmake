@@ -183,6 +183,7 @@
           <li><a href="#d133">D133 — the coalesced fill zeroes eight DEFINED option registers, not only reserved bytes; [D132] overstated the reserved-area reading</a></li>
           <li><a href="#d134">D134 — the 2026-10-23 technical review: the five high findings hold against source</a></li>
           <li><a href="#d135">D135 — eight defects from the 2026-10-23 review are fixed now; P01-P05 and the brick-path restructure are the owner&#x27;s</a></li>
+          <li><a href="#d136">D136 — the review&#x27;s no-hardware tier: eleven fixes, verified by build and by the guard&#x27;s own failure cases</a></li>
         </ol>
       </li>
     </ol>
@@ -5978,6 +5979,59 @@ cited, and all three files are the length they were.</p>
 <a href="DECISIONS.html#d133">D133</a> asked for after <a href="DECISIONS.html#d132">D132</a> was written from a report. One of the eight fixes above is the
 2026-10-22 sweep&#x27;s own residue in <code>check_ofs.py</code>, found by reading the file rather than by a
 checker: no checker in this repository reads the port&#x27;s printed output.</p>
+<hr>
+<h2 id="d136">D136 — the review&#x27;s no-hardware tier: eleven fixes, verified by build and by the guard&#x27;s own failure cases</h2>
+<p><strong>Date:</strong> 2026-10-26 · <strong>Status:</strong> Accepted · <strong>Evidence:</strong> <a href="DECISIONS.html#d134">D134</a>, <a href="DECISIONS.html#d135">D135</a>; <code>build_ra6m5</code>
+reconfigured and relinked, and both OFS guard targets run; the extracted toolchain guard run
+against four toolchain files and the unset case</p>
+<p><a href="DECISIONS.html#d135">D135</a> split the 2026-10-23 review into what could be fixed without hardware and what could
+not. This entry records the first half, done.</p>
+<p><strong>Guard.</strong> <code>check_ofs.py</code> gains two options.</p>
+<ul>
+<li><code>--forbid-segments</code>, the inverse of <code>--require-segments</code>, now used for <code>tfm_s</code> on both parts
+(R099). Without it the guard asked only that option words be <em>discrete</em>, so a secure image
+that picked one up passed as &quot;1 discrete OFS segment&quot;. All three built <code>tfm_s</code> images were
+checked first and carry none, so this enforces a property that already held.</li>
+<li><code>--quarantine</code>, used by every guard call, renames the image and its flashable siblings
+(<code>.axf .bin .elf .hex .srec</code>) to <code>*.UNSAFE</code> on failure (R095). A failing build left them in
+<code>bin/</code>, and the committed launches flash <code>bl2.elf</code> with <code>ATTR_BUILD_BEFORE_LAUNCH</code> disabled,
+so a failed guard did not stop the next launch programming the image it had just rejected.
+<strong>Renamed, not deleted:</strong> the image is the evidence, and <code>bringup/bricking_evidence</code> is why
+<a href="DECISIONS.html#d133">D133</a> could be written at all.</li>
+</ul>
+<p><strong>R096 is NOT closed.</strong> <code>cmake --build --target bl2_bin</code> still writes the coalesced binary.
+The <code>OUTPUT bin/bl2.bin</code> rule belongs to <code>bl2/</code>&#x27;s directory scope, and <code>add_custom_command(...
+APPEND)</code> only works in the scope that created the rule, so closing it needs one of <a href="DECISIONS.html#d135">D135</a>&#x27;s
+three routes - generic toolchain change, a platform-owned flat-binary rule, or a
+<code>cmake_language(DEFER DIRECTORY)</code> into <code>bl2/</code>. That is still a route choice. The decisive test
+now exists either way: build <code>bl2_bin</code> alone and read the size. Safe is 55,876 B on RA6M5;
+unsafe is about 16.8 MB.</p>
+<p><strong>Fixed, with the judgement calls named.</strong></p>
+<div class="table-wrap"><table>
+<tr><th>Finding</th><th>Change</th></tr>
+<tr><td>R099, R095</td><td>Above.</td></tr>
+<tr><td>P17 (R157, R113)</td><td><code>ra6m5/postbuild.cmake</code> and <code>ra8m2/postbuild.cmake</code> deleted, 76 lines each, unreferenced tree-wide.</td></tr>
+<tr><td>R116</td><td>GNUARM and IAR only; anything else fails the configure by name. <strong>Placed at the end of <code>config.cmake</code>, not the top of <code>CMakeLists.txt</code></strong>, so that no cited line in either part moves. <code>config.cmake</code> is read before <code>project()</code>, so the message still lands early. Inert when <code>TFM_TOOLCHAIN_FILE</code> is unset.</td></tr>
+<tr><td>R106</td><td><code>CONFIGURE_DEPENDS</code> on the S and BL2 module globs; the NS glob already had it.</td></tr>
+<tr><td>R098</td><td>The five RA8M2 OFS windows are defined once as <code>RA8M2_OFS_REGIONS</code> and used by both the guard and the safe-binary emitter. They were two hand-kept copies, and the comment on the second said so.</td></tr>
+<tr><td>R163</td><td><code>flash_layout.h</code> claimed the driver adds the DF_EMULATION base to the offsets PS/ITS pass. It does not: <code>Driver_FLASH1</code> uses <code>addr</code> directly, unlike <code>Driver_FLASH0</code>, which converts through <code>MRAM_ADDR()</code>. <strong>The code was right and the header comment was wrong</strong>, so the comment changed.</td></tr>
+<tr><td>R147</td><td><code>ra_sce_init.c</code> on both parts said BL2 &quot;finishes with it before it hands over&quot;. It does not. The de-initialisation itself is still open.</td></tr>
+<tr><td>R013</td><td>The E50D <code>CMakeLists.txt</code> and <code>ra8m2/config.cmake</code> still carried <a href="DECISIONS.html#d052">D052</a>&#x27;s known defect and its predicted PSA Arch crypto cascade, which <a href="DECISIONS.html#d053">D053</a> withdrew on 2026-09-24. <code>ra8m2/config.cmake</code> also opened with &quot;SCE9 cipher acceleration&quot; and the <code>sce9</code> path. <code>crypto_hw.c</code> on both engines said BL2 is not accelerated while the same accelerator builds its SHA-256.</td></tr>
+<tr><td>R138</td><td><code>startup_ra8m2.c</code> called CPU0 a Cortex-M33; <code>ra8m2/tfm_hal_platform.c</code> read &quot;1,693 B spare on RA8M2 and 670 B on RA8M2&quot; where <a href="DECISIONS.html#d087">D087</a> says RA6M5 and RA8M2; both <code>tfm_hal_platform.c</code> files said the <code>target_cfg.h</code> hooks &quot;are called by TF-M framework&quot; when they have no caller (<a href="DECISIONS.html#d134">D134</a> P06); <code>ra8m2/bl2_boot_hal.c</code> said it is built only with <code>CRYPTO_HW_ACCELERATOR</code> and named sce9, where it is built unconditionally because it enables the SAU.</td></tr>
+<tr><td>R090</td><td>Both <code>tfm_tests_config.cmake</code> files named a secure project with no AGT vector; all four now generate <code>VECTOR_NUMBER_AGT0_INT</code>. <code>reg_build_gcc.bat</code> said isolation 2 &quot;has never been built or run&quot; and that RA8M2 &quot;WILL NOT FIT&quot; above L1, both contradicted by <a href="DECISIONS.html#d113">D113</a> and <a href="DECISIONS.html#d118">D118</a>. <code>psa_arch_ns.bat</code> called itself RA6M5-only and is part-agnostic.</td></tr>
+<tr><td>check_docs</td><td><code>docs/General_tech_review</code> joins <code>docs/artifacts</code> in <code>PATH_EXEMPT</code>, the mechanism already there for outside-reviewer snapshots. The summary now separates documents checked from snapshots exempt: the count had drifted 58 to 66 on untracked scratch and read as though the port had grown ten documents.</td></tr>
+</table></div>
+<p><strong>Two R090 items were checked and are not defects.</strong> <code>plat_test.c</code>&#x27;s &quot;THIS USES THE FSP DRIVER&quot;
+heading is qualified 65 lines later at <code>:83-90</code>, which states the split between the privileged
+<code>R_AGT_Open</code> path and the direct <code>AGTCR</code> writes. And &quot;clear_intr() ... may use the NVIC&quot; reads
+as permission, not description, which is correct: it runs in Handler mode.</p>
+<p><strong>Verification.</strong> Every file cited by line was edited word-for-word with its line count
+unchanged, except <code>ra8m2/CMakeLists.txt</code>, which lost one line to the R098 dedupe;
+<code>check_arch_lines.py</code> caught the single citation that moved (<code>:1205</code> to <code>:1204</code>) and both it and
+<code>BUILD_ARCHITECTURE.md</code> were updated. <code>build_ra6m5</code> reconfigures, relinks and runs both guard
+targets green. The toolchain guard was extracted verbatim and run against ARMCLANG and CLANG
+(rejected), GNUARM and IAR (accepted) and unset (inert). <code>--quarantine</code> was exercised on a copy
+of the bricked image - five files renamed - and on a passing image, where it left them alone.</p>
 </main>
 </div>
 </body>
