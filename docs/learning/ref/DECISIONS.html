@@ -186,6 +186,7 @@
           <li><a href="#d136">D136 — the review&#x27;s no-hardware tier: eleven fixes, verified by build and by the guard&#x27;s own failure cases</a></li>
           <li><a href="#d137">D137 — what ships to a customer: RA6M4 and the working material leave the branch, RA6E1 and the brick evidence stay</a></li>
           <li><a href="#d138">D138 — the RA6M4 platform leaves the TF-M tree too; the brick record keeps its subject and loses only its path</a></li>
+          <li><a href="#d139">D139 — three delivery questions answered: RA6E1 ships, the CMSE_NONSECURE fallback is removed, the base stays TF-Mv2.2.0</a></li>
         </ol>
       </li>
     </ol>
@@ -6105,6 +6106,43 @@ branch.</li>
 </ul>
 <p><strong>The divergence count is unchanged at 38.</strong> The command in <code>UPSTREAM_CHANGES.md</code> excludes
 <code>platform/ext/target/renesas</code> wholesale, so a platform directory never counted toward it.</p>
+<hr>
+<h2 id="d139">D139 — three delivery questions answered: RA6E1 ships, the <code>CMSE_NONSECURE</code> fallback is removed, the base stays TF-Mv2.2.0</h2>
+<p><strong>Date:</strong> 2026-10-26 · <strong>Status:</strong> Accepted · <strong>Corrects:</strong> <a href="DECISIONS.html#d136">D136</a> ·
+<strong>Evidence:</strong> <code>git show TF-Mv2.2.0:platform/include/cmsis_override.h</code>; <code>ninja -C build_ra6m5 tfm_s</code></p>
+<p>A review of the port history proposed rebuilding the TF-M fork as a short series on a release
+tag, and raised three questions with it. The rebuild itself was <strong>not</strong> done - work stopped so
+that the Mbed TLS v4 and TF-M 2.3 migration could start instead - but the three answers stand
+and one of them required a change.</p>
+<p><strong>RA6E1 stays in the deliverable. No action needed.</strong> The proposal grouped it with RA6M4 as a
+&quot;dormant part&quot; to be split onto its own branch. It is not dormant: M1, M2 and M3 were met on it,
+it builds under both toolchains, and the port&#x27;s own bundled-project plan targets it. 46 files in
+the TF-M tree and 1,551 in fsp_cmake, all already present and untouched.</p>
+<p><strong>The base stays TF-Mv2.2.0. No action needed.</strong> An earlier answer said to rebuild on
+TF-Mv2.2.2 and was reversed before anything was built. 2.2.0 is the base every result in this
+log was measured on, and shipping a base the evidence does not cover would repeat the problem
+P08 already records. **TFMV-9 - the unchecked TLV payload length in MCUboot, fixed in 2.2.2 -
+is therefore a known gap in the deliverable and belongs in the handover in writing.** The move
+is mechanical when it comes: <code>git rebase --onto TF-Mv2.2.2 TF-Mv2.2.0</code>, and 2.2.2 touches only
+6 of the 24 common files this port modifies.</p>
+<p><strong>The <code>CMSE_NONSECURE</code> fallback is removed.</strong> This corrects <a href="DECISIONS.html#d136">D136</a>, which set it to <code>18</code>.</p>
+<p><a href="DECISIONS.html#d136">D136</a> fixed the value and left the mechanism. The mechanism was the defect. <code>CMSE_NONSECURE</code>
+comes from the compiler&#x27;s <code>arm_cmse.h</code>, not from CMSIS, so a fallback in a force-included header
+can only ever mask a missing include - and it masked it with <code>1</code> for the life of the port. With
+the block gone, a translation unit that forgets <code>&lt;arm_cmse.h&gt;</code> fails to compile instead of
+silently taking a wrong value.</p>
+<p>Three things make this safe rather than a guess:</p>
+<ul>
+<li><strong>It was never upstream.</strong> <code>platform/include/cmsis_override.h</code> at <code>TF-Mv2.2.0</code> contains no
+<code>CMSE_NONSECURE</code> at all; the block is one of the port&#x27;s additions. Removing it restores
+upstream behaviour, so no platform that built without it can be affected.</li>
+<li><strong>The one live user includes the header itself</strong> - <code>platform/ext/common/tfm_hal_isolation_v8m.c:11</code>
+has <code>#include &lt;arm_cmse.h&gt;</code>, and its two uses are in <code>tfm_hal_memory_check</code> at <code>:709</code> and <code>:725</code>.</li>
+<li><strong>Built and checked.</strong> <code>tfm_s</code> relinks with FLASH <code>179,520 B</code> and RAM <code>54,100 B</code>, the same as
+before the removal, which is what the v6 review predicted when it measured <code>18</code> in both RA6M5
+binaries and moved the finding from medium to low.</li>
+</ul>
+<p><code>UPSTREAM_CHANGES.md</code> now records the file at <code>+47</code> lines rather than <code>+51</code>.</p>
 </main>
 </div>
 </body>

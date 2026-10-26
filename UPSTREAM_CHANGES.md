@@ -354,7 +354,7 @@ visible rather than silent:
 
 ### `cmsis_override.h` additions
 
-`platform/include/cmsis_override.h` (pre-existing upstream file, +51 lines)
+`platform/include/cmsis_override.h` (pre-existing upstream file, +47 lines)
 
 CMSIS-5 fallbacks for `__TZ_set_MSP_NS` / `__TZ_get_CONTROL_NS` / `SCB_NS` /
 `__tz_naked_veneer`, and the `__INITIAL_SP` / `__STACK_LIMIT` mappings for GNU and IAR. Guarded

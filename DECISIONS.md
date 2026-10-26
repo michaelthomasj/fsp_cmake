@@ -7647,3 +7647,49 @@ PBPS are `0xC`; RA6M5 has `0x10` for both ([D136], R155).
 
 **The divergence count is unchanged at 38.** The command in `UPSTREAM_CHANGES.md` excludes
 `platform/ext/target/renesas` wholesale, so a platform directory never counted toward it.
+
+---
+
+## D139 — three delivery questions answered: RA6E1 ships, the `CMSE_NONSECURE` fallback is removed, the base stays TF-Mv2.2.0
+
+**Date:** 2026-10-26 · **Status:** Accepted · **Corrects:** [D136] ·
+**Evidence:** `git show TF-Mv2.2.0:platform/include/cmsis_override.h`; `ninja -C build_ra6m5 tfm_s`
+
+A review of the port history proposed rebuilding the TF-M fork as a short series on a release
+tag, and raised three questions with it. The rebuild itself was **not** done - work stopped so
+that the Mbed TLS v4 and TF-M 2.3 migration could start instead - but the three answers stand
+and one of them required a change.
+
+**RA6E1 stays in the deliverable. No action needed.** The proposal grouped it with RA6M4 as a
+"dormant part" to be split onto its own branch. It is not dormant: M1, M2 and M3 were met on it,
+it builds under both toolchains, and the port's own bundled-project plan targets it. 46 files in
+the TF-M tree and 1,551 in fsp_cmake, all already present and untouched.
+
+**The base stays TF-Mv2.2.0. No action needed.** An earlier answer said to rebuild on
+TF-Mv2.2.2 and was reversed before anything was built. 2.2.0 is the base every result in this
+log was measured on, and shipping a base the evidence does not cover would repeat the problem
+P08 already records. **TFMV-9 - the unchecked TLV payload length in MCUboot, fixed in 2.2.2 -
+is therefore a known gap in the deliverable and belongs in the handover in writing.** The move
+is mechanical when it comes: `git rebase --onto TF-Mv2.2.2 TF-Mv2.2.0`, and 2.2.2 touches only
+6 of the 24 common files this port modifies.
+
+**The `CMSE_NONSECURE` fallback is removed.** This corrects [D136], which set it to `18`.
+
+[D136] fixed the value and left the mechanism. The mechanism was the defect. `CMSE_NONSECURE`
+comes from the compiler's `arm_cmse.h`, not from CMSIS, so a fallback in a force-included header
+can only ever mask a missing include - and it masked it with `1` for the life of the port. With
+the block gone, a translation unit that forgets `<arm_cmse.h>` fails to compile instead of
+silently taking a wrong value.
+
+Three things make this safe rather than a guess:
+
+- **It was never upstream.** `platform/include/cmsis_override.h` at `TF-Mv2.2.0` contains no
+  `CMSE_NONSECURE` at all; the block is one of the port's additions. Removing it restores
+  upstream behaviour, so no platform that built without it can be affected.
+- **The one live user includes the header itself** - `platform/ext/common/tfm_hal_isolation_v8m.c:11`
+  has `#include <arm_cmse.h>`, and its two uses are in `tfm_hal_memory_check` at `:709` and `:725`.
+- **Built and checked.** `tfm_s` relinks with FLASH `179,520 B` and RAM `54,100 B`, the same as
+  before the removal, which is what the v6 review predicted when it measured `18` in both RA6M5
+  binaries and moved the finding from medium to low.
+
+`UPSTREAM_CHANGES.md` now records the file at `+47` lines rather than `+51`.
