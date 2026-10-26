@@ -5,9 +5,18 @@ lives in the companion repository, `trusted-firmware-m`, under
 `platform/ext/target/renesas/<part>/`; this repository holds the generated FSP projects it
 consumes, the build scripts, and the design record.
 
-Active parts: RA6M5 and RA8M2. Both pass the full regression suite on hardware
-(DECISIONS D091, D095). RA6E1 and RA6M4 are in-tree but dormant; both EK-RA6M4
-boards are bricked (DECISIONS D002).
+Active parts: RA6M5, RA8M2 and RA6E1. RA6M5 and RA8M2 pass the full regression suite on
+hardware (DECISIONS D091, D095); RA6E1 carries milestones M1-M3. RA6M4 was removed from
+both repositories (DECISIONS D137, D138) after both EK-RA6M4 boards were bricked
+(DECISIONS D002, D133); it is preserved on the `legacy/ra6m4-*` branches.
+
+**TF-M base.** The port is built and tested on TF-Mv2.2.0, the base every test result in
+`DECISIONS.md` was measured on. Upstream TF-Mv2.2.2 adds the TFMV-9 fix (CVE-2025-53022,
+an unchecked TLV payload length in the Firmware Update partition). The shipped
+configuration is not affected, because `TFM_PARTITION_FIRMWARE_UPDATE` is OFF on all three
+parts and FWU is untested here. **Turn FWU on and the advisory applies: move to TF-Mv2.2.2
+first.** That move is mechanical and touches 6 of the 24 common files this port modifies
+(DECISIONS D139).
 
 ---
 
