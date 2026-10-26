@@ -7557,3 +7557,51 @@ unchanged, except `ra8m2/CMakeLists.txt`, which lost one line to the R098 dedupe
 targets green. The toolchain guard was extracted verbatim and run against ARMCLANG and CLANG
 (rejected), GNUARM and IAR (accepted) and unset (inert). `--quarantine` was exercised on a copy
 of the bricked image - five files renamed - and on a passing image, where it left them alone.
+
+---
+
+## D137 — what ships to a customer: RA6M4 and the working material leave the branch, RA6E1 and the brick evidence stay
+
+**Date:** 2026-10-26 · **Status:** Accepted · **Evidence:** branch
+`legacy/ra6m4-archive-bringup-scripts` at `047e929`, cut before any deletion
+
+The port is being handed to a customer. Everything removed here is reachable on that branch and
+in history; nothing is lost, and the question was only what a recipient should receive.
+
+**Removed: the RA6M4 tree, 1,576 files.** Six `FSP_Project_ra6m4*` project directories, the
+nine-file `archive/` (seven of them RA6M4 status documents), and five `bringup/` scripts. RA6M4
+is the part whose two boards were bricked on 2026-07-21 ([D002], [D133]); work moved to RA6E1
+and the projects have not been built since. Three of the five scripts were RA6M4-only
+(`bringup_ra6m4.sh`, `flash_ra6m4.jlink`, `recover_ra6m4.sh`).
+
+**Removed: two RA6E1 scripts that were never run.** `capture_config_ra6e1.sh` and
+`sign_ra6e1_secondary.sh`. They may well work. Nothing in this repository says they do, and a
+script a customer runs against hardware is not the place to find out.
+
+**Kept: `bringup/bricking_evidence/`.** Four files - the README and `bl2_BRICKED` in `.elf`,
+`.hex` and `.srec`. This is the artifact [D133] rests on, the one that showed the coalesced
+`PT_LOAD` zeroing eight defined option registers, and `DESIGN.md` 8.4, `TROUBLESHOOTING.md` and
+`check_ofs.py` all point at it. A hazard warning with its evidence removed is a claim.
+
+**Kept: RA6E1.** `ra6e1_mcuboot`, `ra6e1_secure` and `ra6e1_nonsecure`, 1,551 files. It is a
+live, built and run part, not legacy.
+
+**Not part of the deliverable, now ignored.** `.claude/`, `START_REVIEW.md`,
+`docs/artifacts*/`, `docs/General_tech_review/` and `tz_test/`. These are working material:
+agent state, a trigger file, outside-reviewer snapshots with their CSVs, and a scratch e2
+project. They stay on disk and out of the repository. `check_docs.py` already exempted the
+review directories from reference resolution, so this changes nothing it checks.
+
+**Three references had to be repaired**, because they named files that no longer exist:
+`ra6m4/CMakeLists.txt` pointed at `archive/ra6m4/TFM_RA6M4_STATUS.md`, and
+`ADDING_FSP_MODULES.md` and `DOCUMENTATION_PLAN.md` both cited
+`archive/ra6m4/TFM_INTEGRATION_COMPLETE.md` as their provenance. The provenance claim is still
+true and still worth stating, so the text now names the document without the dead path.
+`.gitignore` also lost its `!FSP_Project_ra6m4_ns/secure.o` exception, which was the only
+tracked `.o` in the tree, and its `.jlink` note no longer cites a deleted example.
+
+**Still open, and the owner's call: TF-M's own `ra6m4` platform directory.** This entry removes
+RA6M4 from fsp_cmake only. `platform/ext/target/renesas/ra6m4/` remains in the TF-M tree, builds
+nothing anyone runs, and still carries the isolation HAL in `platform_s` that the live parts
+moved out of ([D113]-[D121]). Leaving it is defensible - it is the part the brick record is
+about - but it should be a decision rather than an oversight.

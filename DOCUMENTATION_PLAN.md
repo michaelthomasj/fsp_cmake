@@ -77,7 +77,7 @@ and three retirements, not a programme of writing.
 | 2a | `GETTING_STARTED.md` | done 2026-10-09 — clone to running board, with a document map |
 | 3 | `CONFIGURATION.md` | done |
 | 4 | `RECONFIGURING_THE_LAYOUT.md` | done 2026-10-09 — the chain that follows automatically, the four things that do not, and the 35 assertions |
-| 5 | `ADDING_FSP_MODULES.md` | done 2026-10-09 — and the earlier claim here that it was "folded into `DESIGN.md`" was wrong: DESIGN.md has no such section. The only guidance was in `archive/ra6m4/TFM_INTEGRATION_COMPLETE.md`, which this plan had listed for retirement, and 19 live source files pointed at a path that did not exist. Rescued, rewritten against the live mechanism, all 19 pointers repaired |
+| 5 | `ADDING_FSP_MODULES.md` | done 2026-10-09 — and the earlier claim here that it was "folded into `DESIGN.md`" was wrong: DESIGN.md has no such section. The only guidance was in the RA6M4 `TFM_INTEGRATION_COMPLETE.md`, which this plan had listed for retirement, and 19 live source files pointed at a path that did not exist. Rescued, rewritten against the live mechanism, all 19 pointers repaired |
 | 6 | `PORTING.md` | done 2026-10-09 — the checklist covers the RASC half only; this is the TF-M platform half, sized by diffing the two live ports (8 files to author, 31 to copy) |
 | 7 | `TROUBLESHOOTING.md` | done |
 | + | `BRIDGING_FILES.md` | done ([D089]) — was the highest-value item on the original list |

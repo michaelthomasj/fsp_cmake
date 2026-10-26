@@ -67,11 +67,11 @@
 <p>Audience: someone who has enabled a driver in the e2 project and now needs TF-M to compile
 and link it.
 Scope: the CMake side only. Enabling the module in RASC is a prerequisite, not covered here.</p>
-<blockquote><p>Provenance. This replaces <code>archive/ra6m4/TFM_INTEGRATION_COMPLETE.md</code> §&quot;Adding New FSP
-Modules&quot;, which describes the superseded RA6M4 arrangement (<code>FSP_Project_ra6m4</code>,
-<code>GeneratedSrc_Modular.cmake</code>, an <code>fsp_uart</code> module) and matches nothing in the live ports.
-Nineteen source files pointed at <code>fsp_cmake/TFM_INTEGRATION_COMPLETE.md</code>, a path that does not
-exist; they now point here.</p></blockquote>
+<blockquote><p>Provenance. This replaces the RA6M4 document <code>TFM_INTEGRATION_COMPLETE.md</code> §&quot;Adding New
+FSP Modules&quot;, which described a superseded arrangement (an <code>FSP_Project_ra6m4</code> tree, a
+<code>GeneratedSrc_Modular.cmake</code>, an <code>fsp_uart</code> module) matching nothing in the live ports.
+Nineteen source files pointed at a path that did not exist; they now point here. The RA6M4
+projects and that document left the deliverable in <a href="DECISIONS.html#d137">D137</a> and remain on the legacy branch.</p></blockquote>
 <hr>
 <h2 id="s1">1. The model, in one paragraph</h2>
 <p>FSP drivers are opt-in, per role. Nothing from <code>ra/fsp/src/</code> reaches an image unless a

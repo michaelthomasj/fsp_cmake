@@ -12,8 +12,8 @@
 Debug/
 
 # J-Link session logs, written into whichever project was launched.
-# NOT *.jlink - those are flash/debug command SCRIPTS (bringup/flash_ra6m4.jlink and the
-# per-project Debug_SSD ones) and are tracked deliberately.
+# NOT *.jlink - those are flash/debug command SCRIPTS (the per-project Debug_SSD and
+# ra*_TFM* ones) and are tracked deliberately.
 JLinkLog.log
 
 # Compiled output. Nothing built should be committed.
@@ -28,12 +28,31 @@ JLinkLog.log
 *.sbd
 *.rpd
 
-# ...except the CMSE import library. It is a LINK INPUT, not build output: the secure
-# build emits it with --out-implib and the non-secure image links against it to resolve
-# the veneers. Tracked deliberately.
-!FSP_Project_ra6m4_ns/secure.o
-
 # Python bytecode. imgtool is invoked from ra6e1_mcuboot/ra/mcu-tools during
 # signing, which leaves __pycache__ inside the vendored MCUboot copy.
 __pycache__/
 *.pyc
+
+# ------------------------------------------------------------------------------------
+# NOT PART OF THE DELIVERABLE
+#
+# Working material that is useful here and meaningless to anyone receiving the port.
+# Everything below stays on disk and out of the repository.
+# ------------------------------------------------------------------------------------
+
+# Agent session state.
+.claude/
+
+# Trigger file: an empty document that asks for the next review round. It carries no
+# content, and build_doc_html.py skips it by name for the same reason.
+START_REVIEW.md
+
+# Outside-reviewer snapshots: the doc-accuracy rounds and the 2026-10 technical and
+# upstream-comparison reviews, with their CSVs and the triage generated from them.
+# check_docs.py already exempts these paths from reference resolution (PATH_EXEMPT).
+docs/artifacts/
+docs/artifacts_v*/
+docs/General_tech_review/
+
+# Scratch e2 project for TrustZone experiments. Not referenced by the port.
+tz_test/

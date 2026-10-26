@@ -6,8 +6,8 @@
 
 | | |
 |---|---|
-| Entries | **136** |
-| Standing | **123** |
+| Entries | **137** |
+| Standing | **124** |
 | Superseded | **13** |
 | Standing but corrected on some point | **35** |
 | Standing, but the question they left open is closed | **3** |
@@ -34,7 +34,7 @@ A later entry **supersedes** an earlier one: same question, newer answer. Citing
 
 ---
 
-## Standing (123)
+## Standing (124)
 
 Nothing supersedes these. The title is the position. Where a later entry corrects one, the correction is named - the entry stands apart from that. **Where the Closed by column is filled, read the status as historical:** the entry describes a problem that a later entry shut, so its own "Open" or "Provisional" is no longer true.
 
@@ -163,6 +163,7 @@ Nothing supersedes these. The title is the position. Where a later entry correct
 | `D134` | 2026-10-23 | the 2026-10-23 technical review: the five high findings hold against source | Accepted | — | — |
 | `D135` | 2026-10-23 | eight defects from the 2026-10-23 review are fixed now; P01-P05 and the brick-path restructure are the owner's | Accepted | — | — |
 | `D136` | 2026-10-26 | the review's no-hardware tier: eleven fixes, verified by build and by the guard's own failure cases | Accepted | — | — |
+| `D137` | 2026-10-26 | what ships to a customer: RA6M4 and the working material leave the branch, RA6E1 and the brick evidence stay | Accepted | — | — |
 
 ---
 

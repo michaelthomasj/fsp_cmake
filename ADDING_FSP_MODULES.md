@@ -4,11 +4,11 @@ Audience: someone who has enabled a driver in the e2 project and now needs TF-M 
 and link it.
 Scope: the CMake side only. Enabling the module in RASC is a prerequisite, not covered here.
 
-> Provenance. This replaces `archive/ra6m4/TFM_INTEGRATION_COMPLETE.md` §"Adding New FSP
-> Modules", which describes the superseded RA6M4 arrangement (`FSP_Project_ra6m4`,
-> `GeneratedSrc_Modular.cmake`, an `fsp_uart` module) and matches nothing in the live ports.
-> Nineteen source files pointed at `fsp_cmake/TFM_INTEGRATION_COMPLETE.md`, a path that does not
-> exist; they now point here.
+> Provenance. This replaces the RA6M4 document `TFM_INTEGRATION_COMPLETE.md` §"Adding New
+> FSP Modules", which described a superseded arrangement (an `FSP_Project_ra6m4` tree, a
+> `GeneratedSrc_Modular.cmake`, an `fsp_uart` module) matching nothing in the live ports.
+> Nineteen source files pointed at a path that did not exist; they now point here. The RA6M4
+> projects and that document left the deliverable in [D137] and remain on the legacy branch.
 
 ---
 
