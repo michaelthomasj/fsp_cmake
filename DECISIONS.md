@@ -7605,3 +7605,45 @@ RA6M4 from fsp_cmake only. `platform/ext/target/renesas/ra6m4/` remains in the T
 nothing anyone runs, and still carries the isolation HAL in `platform_s` that the live parts
 moved out of ([D113]-[D121]). Leaving it is defensible - it is the part the brick record is
 about - but it should be a decision rather than an oversight.
+
+---
+
+## D138 — the RA6M4 platform leaves the TF-M tree too; the brick record keeps its subject and loses only its path
+
+**Date:** 2026-10-26 · **Status:** Accepted · **Evidence:** branch `legacy/ra6m4-platform` in
+the TF-M clone at `0b8479d46`, cut before the deletion
+
+[D137] removed RA6M4 from fsp_cmake and left `platform/ext/target/renesas/ra6m4/` in the TF-M
+tree as an open question. The owner has closed it: the platform goes as well. **The statement
+in [D137] that it "remains in the TF-M tree" no longer holds.**
+
+165 files. Nothing outside the directory referenced it - no CMake, no platform list, no
+citation in `check_arch_lines.py` - so the deletion is self-contained. The three live platforms
+are `ra6e1`, `ra6m5` and `ra8m2`, plus `common`.
+
+**The brick documentation stays, and nothing about it weakens.** The guard logic is
+part-independent: `check_ofs.py --ra6-default` covers `0x0100A100:0x0100A2D0`, the map RA6E1,
+RA6M4 and RA6M5 share, and the RA6M5 and RA8M2 guards are wired and tested. The hazard is a
+property of how GNU ld coalesces addressed sections with no `> REGION`, not of any one part.
+
+**What the deletion does cost is one path, not one fact.** [D133]'s evidence line crosses the
+preserved image against `ra6m4/region_defs.h`'s thirteen `OPTION_SETTING_*` groups, and that
+file is now only on the legacy branch. The entry is not edited - this log is append-only - and
+it does not need to be: the eight zeroed registers are tabulated in [D133] itself with their
+addresses and lengths, so the finding stands on its own text. A reader who wants the original
+map reads it at `legacy/ra6m4-platform`. Note the lengths are the RA6M4 ones, where BPS and
+PBPS are `0xC`; RA6M5 has `0x10` for both ([D136], R155).
+
+**Two live references were repaired.**
+
+- `UPSTREAM_CHANGES.md` said the Renesas MCUboot fork URL is "set in `ra6m4/config.cmake`,
+  inside the port". `ra6m4/config.cmake:67` was the **only** consumer of the
+  `${MCUBOOT_GIT_REPOSITORY}` hook that `lib/ext/mcuboot/CMakeLists.txt` adds, so the hook now
+  has none. It stays upstreamable on its own merits - it replaces a hard-coded URL with an
+  overridable one - but the document no longer claims a user it does not have.
+- `docs/learning/part3-tfm.html` cited `ra6m4/CMakeLists.txt:71` for the isolation HAL in
+  `platform_s`. That contrast is the point of the row and is kept; the citation now names the
+  branch.
+
+**The divergence count is unchanged at 38.** The command in `UPSTREAM_CHANGES.md` excludes
+`platform/ext/target/renesas` wholesale, so a platform directory never counted toward it.

@@ -306,8 +306,8 @@ visible rather than silent:</p>
 <ul>
 <li><code>cmake/install.cmake</code> - an <code>AND TARGET signing_layout_ns</code> guard (<code>2d0d32d8f</code>).</li>
 <li><code>lib/ext/mcuboot/CMakeLists.txt</code> - replaces the hard-coded upstream <code>GIT_REPOSITORY</code> with
-an overridable <code>${MCUBOOT_GIT_REPOSITORY}</code> hook (<code>c76fd57bf</code>). The Renesas fork URL itself is
-set in <code>ra6m4/config.cmake</code>, inside the port.</li>
+an overridable <code>${MCUBOOT_GIT_REPOSITORY}</code> hook (<code>c76fd57bf</code>). It now has NO in-tree
+consumer: <code>ra6m4/config.cmake</code> was its only one and left in <a href="DECISIONS.html#d138">D138</a>. Still upstreamable.</li>
 <li><code>toolchain_ARMCLANG.cmake</code> (+11) and <code>toolchain_CLANG.cmake</code> (+2) - the <code>.srec</code> output of
 item 8&#x27;s own commit <code>d7df90820</code>, which item 8 does not list. Item 8 should name all four
 toolchain files, not two.</li>

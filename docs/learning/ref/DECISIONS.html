@@ -185,6 +185,7 @@
           <li><a href="#d135">D135 — eight defects from the 2026-10-23 review are fixed now; P01-P05 and the brick-path restructure are the owner&#x27;s</a></li>
           <li><a href="#d136">D136 — the review&#x27;s no-hardware tier: eleven fixes, verified by build and by the guard&#x27;s own failure cases</a></li>
           <li><a href="#d137">D137 — what ships to a customer: RA6M4 and the working material leave the branch, RA6E1 and the brick evidence stay</a></li>
+          <li><a href="#d138">D138 — the RA6M4 platform leaves the TF-M tree too; the brick record keeps its subject and loses only its path</a></li>
         </ol>
       </li>
     </ol>
@@ -6070,6 +6071,40 @@ RA6M4 from fsp_cmake only. <code>platform/ext/target/renesas/ra6m4/</code> remai
 nothing anyone runs, and still carries the isolation HAL in <code>platform_s</code> that the live parts
 moved out of (<a href="DECISIONS.html#d113">D113</a>-<a href="DECISIONS.html#d121">D121</a>). Leaving it is defensible - it is the part the brick record is
 about - but it should be a decision rather than an oversight.</p>
+<hr>
+<h2 id="d138">D138 — the RA6M4 platform leaves the TF-M tree too; the brick record keeps its subject and loses only its path</h2>
+<p><strong>Date:</strong> 2026-10-26 · <strong>Status:</strong> Accepted · <strong>Evidence:</strong> branch <code>legacy/ra6m4-platform</code> in
+the TF-M clone at <code>0b8479d46</code>, cut before the deletion</p>
+<p><a href="DECISIONS.html#d137">D137</a> removed RA6M4 from fsp_cmake and left <code>platform/ext/target/renesas/ra6m4/</code> in the TF-M
+tree as an open question. The owner has closed it: the platform goes as well. **The statement
+in <a href="DECISIONS.html#d137">D137</a> that it &quot;remains in the TF-M tree&quot; no longer holds.**</p>
+<p>165 files. Nothing outside the directory referenced it - no CMake, no platform list, no
+citation in <code>check_arch_lines.py</code> - so the deletion is self-contained. The three live platforms
+are <code>ra6e1</code>, <code>ra6m5</code> and <code>ra8m2</code>, plus <code>common</code>.</p>
+<p><strong>The brick documentation stays, and nothing about it weakens.</strong> The guard logic is
+part-independent: <code>check_ofs.py --ra6-default</code> covers <code>0x0100A100:0x0100A2D0</code>, the map RA6E1,
+RA6M4 and RA6M5 share, and the RA6M5 and RA8M2 guards are wired and tested. The hazard is a
+property of how GNU ld coalesces addressed sections with no <code>&gt; REGION</code>, not of any one part.</p>
+<p><strong>What the deletion does cost is one path, not one fact.</strong> <a href="DECISIONS.html#d133">D133</a>&#x27;s evidence line crosses the
+preserved image against <code>ra6m4/region_defs.h</code>&#x27;s thirteen <code>OPTION_SETTING_*</code> groups, and that
+file is now only on the legacy branch. The entry is not edited - this log is append-only - and
+it does not need to be: the eight zeroed registers are tabulated in <a href="DECISIONS.html#d133">D133</a> itself with their
+addresses and lengths, so the finding stands on its own text. A reader who wants the original
+map reads it at <code>legacy/ra6m4-platform</code>. Note the lengths are the RA6M4 ones, where BPS and
+PBPS are <code>0xC</code>; RA6M5 has <code>0x10</code> for both (<a href="DECISIONS.html#d136">D136</a>, R155).</p>
+<p><strong>Two live references were repaired.</strong></p>
+<ul>
+<li><code>UPSTREAM_CHANGES.md</code> said the Renesas MCUboot fork URL is &quot;set in <code>ra6m4/config.cmake</code>,
+inside the port&quot;. <code>ra6m4/config.cmake:67</code> was the <strong>only</strong> consumer of the
+<code>${MCUBOOT_GIT_REPOSITORY}</code> hook that <code>lib/ext/mcuboot/CMakeLists.txt</code> adds, so the hook now
+has none. It stays upstreamable on its own merits - it replaces a hard-coded URL with an
+overridable one - but the document no longer claims a user it does not have.</li>
+<li><code>docs/learning/part3-tfm.html</code> cited <code>ra6m4/CMakeLists.txt:71</code> for the isolation HAL in
+<code>platform_s</code>. That contrast is the point of the row and is kept; the citation now names the
+branch.</li>
+</ul>
+<p><strong>The divergence count is unchanged at 38.</strong> The command in <code>UPSTREAM_CHANGES.md</code> excludes
+<code>platform/ext/target/renesas</code> wholesale, so a platform directory never counted toward it.</p>
 </main>
 </div>
 </body>
