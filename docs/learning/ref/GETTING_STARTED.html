@@ -184,6 +184,21 @@ C:\b\m2app\bin\tfm_s_signed.bin        the secure image
 C:\b\m2appns\bin\tfm_ns_signed.bin     the non-secure image</code></pre>
 <hr>
 <h2 id="s6">6. Flash and run</h2>
+<h3 id="program-the-trustzone-boundaries-first--once-per-board">Program the TrustZone boundaries first — once per board</h3>
+<p>The boundaries live in the part, not in the firmware, so a new board needs this step before its
+first flash. Use the Renesas Device Partition Manager: in e2 studio,
+<code>Run → Renesas Debug Tools</code>.</p>
+<p>The screen takes six fields, in KB, and the values differ per part. Each part guide lists them
+in the order the screen asks, with the address each one derives from:</p>
+<div class="table-wrap"><table>
+<tr><th>Part</th><th>Values</th></tr>
+<tr><td>RA6M5</td><td><a href="RA6M5_SOLUTION.html">RA6M5_SOLUTION.md</a></td></tr>
+<tr><td>RA8M2</td><td><a href="RA8M2_SOLUTION.html">RA8M2_SOLUTION.md</a></td></tr>
+</table></div>
+<p><strong>RDPM erases both code flash and data flash.</strong> Reflash all three images afterwards. The step
+repeats only if you change the layout, which is
+<a href="RECONFIGURING_THE_LAYOUT.html">RECONFIGURING_THE_LAYOUT.md</a>.</p>
+<h3 id="the-launches">The launches</h3>
 <p>Use the e2 debug launch configurations. They already carry the correct addresses and the two
 safety settings below. For RA8M2 they are in <code>ra8m2_gcc_mcuboot/</code>.</p>
 <blockquote><p><strong>These launches do not flash what §5 just built.</strong> Each names its own build tree -

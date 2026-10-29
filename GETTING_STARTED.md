@@ -167,6 +167,26 @@ C:\b\m2appns\bin\tfm_ns_signed.bin     the non-secure image
 
 ## 6. Flash and run
 
+### Program the TrustZone boundaries first — once per board
+
+The boundaries live in the part, not in the firmware, so a new board needs this step before its
+first flash. Use the Renesas Device Partition Manager: in e2 studio,
+`Run → Renesas Debug Tools`.
+
+The screen takes six fields, in KB, and the values differ per part. Each part guide lists them
+in the order the screen asks, with the address each one derives from:
+
+| Part | Values |
+|---|---|
+| RA6M5 | [RA6M5_SOLUTION.md](RA6M5_SOLUTION.md) |
+| RA8M2 | [RA8M2_SOLUTION.md](RA8M2_SOLUTION.md) |
+
+**RDPM erases both code flash and data flash.** Reflash all three images afterwards. The step
+repeats only if you change the layout, which is
+[RECONFIGURING_THE_LAYOUT.md](RECONFIGURING_THE_LAYOUT.md).
+
+### The launches
+
 Use the e2 debug launch configurations. They already carry the correct addresses and the two
 safety settings below. For RA8M2 they are in `ra8m2_gcc_mcuboot/`.
 
