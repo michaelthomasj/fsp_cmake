@@ -61,6 +61,7 @@
           <li><a href="#s10">10. Non-secure app</a></li>
           <li><a href="#s11">11. Toolchains</a></li>
           <li><a href="#s12">12. Bring-up</a></li>
+          <li><a href="#s13">13. Production hardening</a></li>
         </ol>
       </li>
     </ol>
@@ -504,8 +505,15 @@ Security Attribution register, handled by <code>BSP_TZ_CFG_MSAR=0</code> (§1.1)
 <code>bl2.bin</code> to ~16.8 MB, zero-filling the reserved bytes among them — the brick, from an ELF
 that passes every check. <strong>Flash <code>bl2.hex</code> or <code>bl2.srec</code>, never <code>bl2.bin</code>.</strong></p>
 <p>Since 2026-09-29 all four ports re-emit the flat binary and verify the result with
-<code>check_ofs.py --check-flat-bin</code>, so a <code>.bin</code> from a current build is safe - 33,388 B on RA6M5
-and 27,888 B on RA8M2. The re-emission is address-driven, not name-driven:
+<code>check_ofs.py --check-flat-bin</code>. **That check runs only when the full build runs. Building the
+<code>bl2_bin</code> target on its own still writes the coalesced image, and the result is unsafe** - the
+<code>OUTPUT bin/bl2.bin</code> rule belongs to <code>bl2/</code>&#x27;s own directory scope, where an appended command
+cannot reach it (D135, D136). Build everything, never <code>bl2_bin</code> alone, and flash <code>bl2.hex</code> or
+<code>bl2.srec</code> rather than relying on a size. The failure is unmistakable when you do look: a safe
+flat binary is tens of kilobytes, a coalesced one is about 16.8 MB. Do not treat any single
+figure as the test - the safe size differs between build configurations, which is why DECISIONS
+records 33,388 B for one RA6M5 build and 55,876 B for another. The re-emission is
+address-driven, not name-driven:
 <code>check_ofs.py --emit-safe-bin</code> walks the program headers, because <a href="DECISIONS.html#d068">D068</a> found that
 <code>--remove-section=.option_setting*</code> matches nothing under IAR ILINK, which renames those
 sections <code>P1</code>/<code>P7</code>/<code>P11</code> - the pattern silently succeeds and emits the full 16.8 MB brick.
@@ -547,6 +555,65 @@ and GCC images must be <code>MinSizeRel</code> (<code>CONFIGURATION.md</code> §
 are programmed with RDPM (§7.1), not RFP. Historic note follows: images were Debug builds (full symbols for
 GDB/Ozone). Flash from an erased chip; program the TZ boundaries (§7) via RFP; OFS (§8) is in <code>bl2.hex</code>.</li>
 </ul>
+<h2 id="s13">13. Production hardening</h2>
+<p><code>README.md</code> §&quot;Security status&quot; lists what the shipped configuration does not do. This section
+says how to address each item. The numbering matches that list.</p>
+<h3 id="s13-1">13.1 Signing keys and provisioning</h3>
+<p>Two independent things have to change, and changing one without the other leaves the image
+trusting sample keys.</p>
+<div class="table-wrap"><table>
+<tr><th>Step</th><th>What to do</th></tr>
+<tr><td>Key material</td><td>Generate your own EC-P256 key pair. <code>MCUBOOT_SIGNATURE_TYPE</code> is <code>EC-P256</code> in every part&#x27;s <code>config.cmake</code>; keep the curve or the solution&#x27;s slot sizes stop matching.</td></tr>
+<tr><td>Signing</td><td>Point <code>MCUBOOT_KEY_S</code> and <code>MCUBOOT_KEY_NS</code> at your private keys. This changes what signs the image.</td></tr>
+<tr><td>Verification</td><td>This is the step that is easy to miss. BL2 verifies against the public key compiled into <code>bl2/ext/mcuboot/keys.c</code>, so either regenerate that file from your key pair, or set <code>MCUBOOT_HW_KEY=ON</code> and provision the ROTPK hashes.</td></tr>
+<tr><td>Provisioning</td><td>Set <code>TFM_DUMMY_PROVISIONING=OFF</code> and supply real HUK and IAK values through a provisioning flow of your own. With it <code>ON</code>, every device shares one dummy identity.</td></tr>
+</table></div>
+<p>Verify the result rather than assuming it: sign an image with a <em>different</em> key and confirm BL2
+rejects it. A build that still trusts <code>keys.c</code> accepts both.</p>
+<h3 id="s13-2">13.2 Anti-rollback</h3>
+<p><code>MCUBOOT_SECURITY_COUNTER_S</code> and <code>_NS</code> are left at the upstream default of <code>1</code>, so every release
+is interchangeable with every other. Assign a counter value per release, increasing it whenever
+you fix something you do not want downgraded past, and test that BL2 refuses an image carrying a
+lower value.</p>
+<p>The counters are held in emulated OTP on both parts, which means they are only as immutable as
+the surrounding flash protection. Treat real anti-rollback as requiring both the counter policy
+and the lifecycle work in §13.4.</p>
+<h3 id="s13-3">13.3 Peripheral security attribution</h3>
+<p>RASC generates <code>BSP_CFG_CLOCKS_SECURE (0)</code>, which leaves the clock, wait-state and low-power
+registers writable from the non-secure world. Setting Clocks to Secure in the Security tab does
+not change the generated value; §1.1 records why.</p>
+<p>Override the individual security attribution registers through <code>FSP_COMPILE_DEFS</code> for the
+registers you need secure, and confirm on hardware that a non-secure write faults. **Do not
+force <code>BSP_CFG_CLOCKS_SECURE=1</code> as a shortcut.** The generated BSP still reads <code>0</code>, so the two
+disagree, and on RA8 parts the port&#x27;s <code>BSP_TZ_CFG_MSAR=0</code> workaround depends on the generated
+value (§1.1).</p>
+<h3 id="s13-4">13.4 Secure debug and the device lifecycle</h3>
+<p>The firmware never reads the DLM state, and the lifecycle value in an attestation token comes
+from emulated OTP rather than from the device. Two consequences: a debugger can attach to a
+shipped device, and an attestation token&#x27;s lifecycle claim does not describe the part it came
+from.</p>
+<p>Both belong to provisioning. Decide the DLM transition for your product, implement debug
+authentication, and make the attested lifecycle read the real state. §7.1 and §7.2 cover what
+the port does and does not do with TrustZone boundaries, which is a separate matter from the
+lifecycle.</p>
+<h3 id="s13-5">13.5 The multi-part crypto engine lock</h3>
+<p>While a multi-part AES, GCM or CMAC operation is open it holds the SCE9 or RSIP engine, and
+<code>psa_generate_random</code> fails for every caller until that operation completes or is aborted. This
+comes from reading the driver, not from an observed failure, and no suite this port runs
+exercises the pattern.</p>
+<p>If your application interleaves random generation with long multi-part operations, test for it
+directly. Finishing or aborting each multi-part operation promptly avoids it.</p>
+<h3 id="s13-6">13.6 Release build settings</h3>
+<p>The build scripts produce development images. For a release build, turn off what is purely
+diagnostic and re-measure the result against the slot, because the secure slot has little spare
+room on either part. <code>CONFIGURATION.md</code> lists each option with its default and its constraint,
+and <code>README.md</code> §&quot;Freeing space in the secure image&quot; gives the measured cost of the
+diagnostics.</p>
+<h3 id="s13-7">13.7 Re-test what you ship</h3>
+<p>The configuration the scripts build is isolation 1 with the SFN backend, and its last hardware
+regression predates a later change to the isolation HAL. Re-run <code>tf-m-tests</code> against your own
+build and your own keys before shipping. <code>TEST_RESULTS.md</code> records what has run here, including
+the configurations that have never run at all.</p>
 <hr>
 <p><em>Maintainer note: when bumping TF-M, re-check §5 (bootutil glue), §7 (veneer macros still honored by the
 generated linker), and §8 (<code>&lt;part&gt;_bl2.ld</code> vs the new <code>tfm_common_bl2.ld</code>). When bumping FSP, the RASC

@@ -48,6 +48,7 @@
     <ol class="doc-toc">
       <li><a href="#top">README.md</a>
         <ol>
+          <li><a href="#security-status-development-configuration-not-for-production">Security status: development configuration, not for production</a></li>
           <li><a href="#the-two-repositories">The two repositories</a></li>
           <li><a href="#start-here">Start here</a></li>
           <li><a href="#shortest-path-to-a-build">Shortest path to a build</a></li>
@@ -67,10 +68,14 @@
 lives in the companion repository, <code>trusted-firmware-m</code>, under
 <code>platform/ext/target/renesas/&lt;part&gt;/</code>; this repository holds the generated FSP projects it
 consumes, the build scripts, and the design record.</p>
-<p>Active parts: RA6M5, RA8M2 and RA6E1. RA6M5 and RA8M2 pass the full regression suite on
-hardware (DECISIONS D091, D095); RA6E1 carries milestones M1-M3. RA6M4 was removed from
-both repositories (DECISIONS D137, D138) after both EK-RA6M4 boards were bricked
-(DECISIONS D002, D133); it is preserved on the <code>legacy/ra6m4-*</code> branches.</p>
+<p>Supported parts: RA6M5 and RA8M2, on FSP 6.7.0-beta0, GNUARM 13.2 or IAR 10.10, and
+TF-Mv2.2.0. RA6E1 is included for reference only.</p>
+<p>Both supported parts have passed the full <code>tf-m-tests</code> regression suite on hardware, at
+isolation 1 with the SFN backend (2026-10-05 on RA6M5, 2026-10-06 on RA8M2) and again at
+isolation 2 and 3. **The isolation 1 runs predate a later change to the isolation HAL, and the
+configuration the build scripts produce has not been re-tested on hardware since.** Isolation 2
+and 3 were re-run after that change. <code>TEST_RESULTS.md</code> records every run, what it covered and
+what it did not.</p>
 <p><strong>TF-M base.</strong> The port is built and tested on TF-Mv2.2.0, the base every test result in
 <code>DECISIONS.md</code> was measured on. Upstream TF-Mv2.2.2 adds the TFMV-9 fix (CVE-2025-53022,
 an unchecked TLV payload length in the Firmware Update partition). The shipped
@@ -78,6 +83,45 @@ configuration is not affected, because <code>TFM_PARTITION_FIRMWARE_UPDATE</code
 parts and FWU is untested here. **Turn FWU on and the advisory applies: move to TF-Mv2.2.2
 first.** That move is mechanical and touches 6 of the 24 common files this port modifies
 (DECISIONS D139).</p>
+<hr>
+<h2 id="security-status-development-configuration-not-for-production">Security status: development configuration, not for production</h2>
+<p>Do not deploy devices built from this port unchanged. Each item below must be addressed first.
+<code>DESIGN.md</code> §13 &quot;Production hardening&quot; says how to address each one; <code>KNOWN_LIMITATIONS.md</code>
+carries the full list of what is and is not covered.</p>
+<ol>
+<li><strong>Signing keys and provisioning are development values.</strong> BL2 trusts the public TF-M sample
+keys compiled into <code>bl2/ext/mcuboot/keys.c</code>, because <code>MCUBOOT_HW_KEY</code> is <code>OFF</code> in every
+part&#x27;s <code>config.cmake</code>. <code>TFM_DUMMY_PROVISIONING</code> is <code>ON</code>, which supplies dummy HUK and IAK
+values; TF-M&#x27;s own default marks it &quot;NOT to be used in production&quot;. **Changing
+<code>MCUBOOT_KEY_S</code> and <code>MCUBOOT_KEY_NS</code> alone is not sufficient.** You must also regenerate
+<code>keys.c</code>, or enable <code>MCUBOOT_HW_KEY</code> with provisioned ROTPK hashes, and supply a real
+provisioning flow.</li>
+<li><strong>Anti-rollback is inactive.</strong> <code>MCUBOOT_SECURITY_COUNTER_S</code> and <code>_NS</code> are both left at the
+upstream default of <code>1</code>, and the counters live in emulated OTP. Set a counter per release and
+test that a downgrade is rejected.</li>
+<li><strong>Clock, wait-state and low-power registers are writable from the non-secure world.</strong> RASC
+generates <code>BSP_CFG_CLOCKS_SECURE (0)</code>, and setting Clocks to Secure in the Security tab does
+not change it. Override the individual security attribution registers through
+<code>FSP_COMPILE_DEFS</code> and validate on hardware. Do not instead force
+<code>BSP_CFG_CLOCKS_SECURE=1</code>: the generated BSP still reads <code>0</code>, and on RA8 parts the port
+relies on that value through its <code>BSP_TZ_CFG_MSAR=0</code> workaround (<code>DESIGN.md</code> §1.1).</li>
+<li><strong>Secure debug and the device lifecycle are not enforced.</strong> The firmware never reads the DLM
+state, and the attested lifecycle comes from emulated OTP. Debug authentication and the DLM
+transition belong to your provisioning flow.</li>
+<li><strong>Known issue, from code analysis and not observed at runtime.</strong> While a multi-part AES, GCM
+or CMAC operation is open it holds the SCE9 or RSIP engine, and until that operation
+completes or is aborted <code>psa_generate_random</code> fails for every caller.</li>
+<li><strong>The scripts build development images.</strong> SPM trace and exception-info dump are on, logging
+is verbose, IAR application builds are <code>Debug</code>, and the console is SEGGER RTT.
+<code>CONFIGURATION.md</code> describes a release build.</li>
+<li><strong>The shipped default configuration has not been re-tested since the isolation-HAL change.</strong>
+Isolation 1 with the SFN backend is what the scripts build, and its last hardware regression
+predates that change. Isolation 2 and 3 were re-run after it. Re-run <code>tf-m-tests</code> against
+your own build. Firmware Update is off and untested. <code>TEST_RESULTS.md</code> is the single record
+of what has and has not run.</li>
+<li><strong>TF-M base is v2.2.0.</strong> If you enable Firmware Update, advisory TFMV-9 (CVE-2025-53022)
+applies and you should move to v2.2.2 first.</li>
+</ol>
 <hr>
 <h2 id="the-two-repositories">The two repositories</h2>
 <div class="table-wrap"><table>
@@ -102,8 +146,8 @@ enough.</li>
 <code>app_build_iar.bat</code> (RA6M5 IAR; there is no RA6M5 GCC application script), and
 so on. Each builds BL2 + secure, installs the SPE, then builds the non-secure image.</li>
 <li>Flash with the e2 debug launch configurations. RA6M5&#x27;s are in <code>ra6m5_gcc_nonsecure/</code>,
-RA8M2&#x27;s are in <code>ra8m2_gcc_mcuboot/</code> (<code>ra8m2_gcc_CPU0_nonsecure/</code> holds only the stock e2
-<code>Debug_SSD</code> launch). None of them loads what step 2 builds; see <code>GETTING_STARTED.md</code> §6.</li>
+RA8M2&#x27;s are in <code>ra8m2_gcc_mcuboot/</code>. <strong>None of them loads what step 2 builds</strong>, so read
+<code>GETTING_STARTED.md</code> §6 before flashing.</li>
 </ol>
 <p>PSA Arch builds additionally need <code>scripts\vs_build.bat</code>. They compile a host tool with
 <code>cl.exe</code>, which needs a Visual Studio developer environment. See DECISIONS D083.</p>
@@ -161,16 +205,19 @@ port. The copy in this tree is byte-identical and is the one to use (<a href="DE
 <tr><td><code>TROUBLESHOOTING.md</code></td><td>indexed by the symptom you see. The two brick hazards are first</td></tr>
 <tr><td><code>CONFIGURATION.md</code></td><td>every knob you may change: default, where it is defined, and the constraint that bites. Start with its &quot;how the three layers interact&quot; section</td></tr>
 <tr><td><code>RA6M5_SOLUTION.md</code>, <code>RA8M2_SOLUTION.md</code></td><td>per-part: the layout, the RDPM boundary values, what the e2 projects must provide, and current status. The RDPM values live here and nowhere else</td></tr>
+<tr><td><code>KNOWN_LIMITATIONS.md</code></td><td><strong>read before committing to this port.</strong> What it does not do, what is untested, and what is known broken: crypto per part, boot and upgrade, the open hazards</td></tr>
 <tr><td><code>DECISIONS.md</code></td><td>why, append-only. Superseded entries stay; later ones say so</td></tr>
 </table></div>
 <p><strong>Reference.</strong></p>
 <div class="table-wrap"><table>
 <tr><th></th><th></th></tr>
+<tr><td><code>TEST_RESULTS.md</code></td><td>every hardware run, with its result and the DECISIONS entry that recorded it. Read it with <code>PROJECT_PLAN.md</code> §&quot;Test coverage gaps&quot;, which lists what has never run</td></tr>
 <tr><td><code>BUILD_ARCHITECTURE.md</code></td><td>the CMake target graph: the two projects and the <code>api_ns/</code> handoff, every link edge with its file and line, what the port adds to each upstream target, the FSP module registry, and the post-link checks</td></tr>
 <tr><td><code>FLASH_MAP_OWNERSHIP.md</code></td><td>design review: what MCUboot&#x27;s porting contract is, how TF-M narrows it, what other vendors do, and where this port diverges from the two standing objectives</td></tr>
 <tr><td><code>BRIDGING_FILES.md</code></td><td><strong>read before any FSP pack uprev.</strong> Every file that carries FSP code or restates an FSP-generated value, and the check that detects drift in each</td></tr>
 <tr><td><code>UPSTREAM_CHANGES.md</code></td><td>the patch queue against upstream TF-M, with the rationale for each</td></tr>
 <tr><td><code>scripts/README.md</code></td><td>what each build script does</td></tr>
+<tr><td><code>RECONFIGURING_THE_LAYOUT.md</code></td><td><strong>read before changing the partitioning.</strong> Resizing a slot, moving the storage area or growing the bootloader: what follows automatically, the four things that do not, and the 35 assertions</td></tr>
 <tr><td><code>RA6E1_TEMPLATE_CHECKLIST.md</code></td><td>the contract a new part&#x27;s RASC projects must satisfy</td></tr>
 <tr><td><code>RA8x2_DUAL_CORE_DESIGN.md</code></td><td>forward design for the dual-core parts</td></tr>
 <tr><td><a href="GETTING_STARTED.html">GETTING_STARTED.md</a></td><td>clone to running board; §6 carries the <strong>pre-flash verification</strong> — the brick-safety steps to run on every new build</td></tr>
@@ -184,8 +231,7 @@ port. The copy in this tree is byte-identical and is the one to use (<a href="DE
 <tr><td><code>bringup/bricking_evidence/</code></td><td>the preserved image behind <a href="DECISIONS.html#d133">D133</a>, the OFS coalescing brick</td></tr>
 <tr><td><code>e2_baseline/</code></td><td>the two GCC solutions as e2 first creates them, for reading the port&#x27;s RASC choices as a diff (<a href="DECISIONS.html#d140">D140</a>)</td></tr>
 </table></div>
-<p>Still to write, per <code>DOCUMENTATION_PLAN.md</code>: the repartition
-procedure.</p>
+<p><code>DOCUMENTATION_PLAN.md</code> tracks the target document set and what is still outstanding.</p>
 </main>
 </div>
 </body>

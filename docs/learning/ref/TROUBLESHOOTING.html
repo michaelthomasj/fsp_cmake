@@ -70,7 +70,7 @@ reprogramming the boundaries.</p>
 <hr>
 <h2 id="hazards">Hazards</h2>
 <h3 id="the-part-reads-back-0xda-and-will-not-respond">The part reads back <code>0xDA</code> and will not respond</h3>
-<p><strong>The board is dead and cannot be recovered.</strong> Two EK-RA6M4 boards were lost this way on
+<p><strong>No recovery is known.</strong> Two EK-RA6M4 boards were lost this way on
 2026-07-21. The coalesced segment wrote <code>0x00</code> into eight defined option registers - DUALSEL,
 OFS1, BANKSEL, BPS, PBPS, BANKSEL_SEC, BPS_SEC, PBPS_SEC - and into the reserved bytes between
 them (<a href="DECISIONS.html#d133">D133</a>). Which of the eight killed the boards is not established. Post-brick readback

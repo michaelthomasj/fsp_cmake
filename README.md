@@ -5,10 +5,15 @@ lives in the companion repository, `trusted-firmware-m`, under
 `platform/ext/target/renesas/<part>/`; this repository holds the generated FSP projects it
 consumes, the build scripts, and the design record.
 
-Active parts: RA6M5, RA8M2 and RA6E1. RA6M5 and RA8M2 pass the full regression suite on
-hardware (DECISIONS D091, D095); RA6E1 carries milestones M1-M3. RA6M4 was removed from
-both repositories (DECISIONS D137, D138) after both EK-RA6M4 boards were bricked
-(DECISIONS D002, D133); it is preserved on the `legacy/ra6m4-*` branches.
+Supported parts: RA6M5 and RA8M2, on FSP 6.7.0-beta0, GNUARM 13.2 or IAR 10.10, and
+TF-Mv2.2.0. RA6E1 is included for reference only.
+
+Both supported parts have passed the full `tf-m-tests` regression suite on hardware, at
+isolation 1 with the SFN backend (2026-10-05 on RA6M5, 2026-10-06 on RA8M2) and again at
+isolation 2 and 3. **The isolation 1 runs predate a later change to the isolation HAL, and the
+configuration the build scripts produce has not been re-tested on hardware since.** Isolation 2
+and 3 were re-run after that change. `TEST_RESULTS.md` records every run, what it covered and
+what it did not.
 
 **TF-M base.** The port is built and tested on TF-Mv2.2.0, the base every test result in
 `DECISIONS.md` was measured on. Upstream TF-Mv2.2.2 adds the TFMV-9 fix (CVE-2025-53022,
@@ -17,6 +22,47 @@ configuration is not affected, because `TFM_PARTITION_FIRMWARE_UPDATE` is OFF on
 parts and FWU is untested here. **Turn FWU on and the advisory applies: move to TF-Mv2.2.2
 first.** That move is mechanical and touches 6 of the 24 common files this port modifies
 (DECISIONS D139).
+
+---
+
+## Security status: development configuration, not for production
+
+Do not deploy devices built from this port unchanged. Each item below must be addressed first.
+`DESIGN.md` §13 "Production hardening" says how to address each one; `KNOWN_LIMITATIONS.md`
+carries the full list of what is and is not covered.
+
+1. **Signing keys and provisioning are development values.** BL2 trusts the public TF-M sample
+   keys compiled into `bl2/ext/mcuboot/keys.c`, because `MCUBOOT_HW_KEY` is `OFF` in every
+   part's `config.cmake`. `TFM_DUMMY_PROVISIONING` is `ON`, which supplies dummy HUK and IAK
+   values; TF-M's own default marks it "NOT to be used in production". **Changing
+   `MCUBOOT_KEY_S` and `MCUBOOT_KEY_NS` alone is not sufficient.** You must also regenerate
+   `keys.c`, or enable `MCUBOOT_HW_KEY` with provisioned ROTPK hashes, and supply a real
+   provisioning flow.
+2. **Anti-rollback is inactive.** `MCUBOOT_SECURITY_COUNTER_S` and `_NS` are both left at the
+   upstream default of `1`, and the counters live in emulated OTP. Set a counter per release and
+   test that a downgrade is rejected.
+3. **Clock, wait-state and low-power registers are writable from the non-secure world.** RASC
+   generates `BSP_CFG_CLOCKS_SECURE (0)`, and setting Clocks to Secure in the Security tab does
+   not change it. Override the individual security attribution registers through
+   `FSP_COMPILE_DEFS` and validate on hardware. Do not instead force
+   `BSP_CFG_CLOCKS_SECURE=1`: the generated BSP still reads `0`, and on RA8 parts the port
+   relies on that value through its `BSP_TZ_CFG_MSAR=0` workaround (`DESIGN.md` §1.1).
+4. **Secure debug and the device lifecycle are not enforced.** The firmware never reads the DLM
+   state, and the attested lifecycle comes from emulated OTP. Debug authentication and the DLM
+   transition belong to your provisioning flow.
+5. **Known issue, from code analysis and not observed at runtime.** While a multi-part AES, GCM
+   or CMAC operation is open it holds the SCE9 or RSIP engine, and until that operation
+   completes or is aborted `psa_generate_random` fails for every caller.
+6. **The scripts build development images.** SPM trace and exception-info dump are on, logging
+   is verbose, IAR application builds are `Debug`, and the console is SEGGER RTT.
+   `CONFIGURATION.md` describes a release build.
+7. **The shipped default configuration has not been re-tested since the isolation-HAL change.**
+   Isolation 1 with the SFN backend is what the scripts build, and its last hardware regression
+   predates that change. Isolation 2 and 3 were re-run after it. Re-run `tf-m-tests` against
+   your own build. Firmware Update is off and untested. `TEST_RESULTS.md` is the single record
+   of what has and has not run.
+8. **TF-M base is v2.2.0.** If you enable Firmware Update, advisory TFMV-9 (CVE-2025-53022)
+   applies and you should move to v2.2.2 first.
 
 ---
 
@@ -48,8 +94,8 @@ The condensed version follows.
    `app_build_iar.bat` (RA6M5 IAR; there is no RA6M5 GCC application script), and
    so on. Each builds BL2 + secure, installs the SPE, then builds the non-secure image.
 3. Flash with the e2 debug launch configurations. RA6M5's are in `ra6m5_gcc_nonsecure/`,
-   RA8M2's are in `ra8m2_gcc_mcuboot/` (`ra8m2_gcc_CPU0_nonsecure/` holds only the stock e2
-   `Debug_SSD` launch). None of them loads what step 2 builds; see `GETTING_STARTED.md` §6.
+   RA8M2's are in `ra8m2_gcc_mcuboot/`. **None of them loads what step 2 builds**, so read
+   `GETTING_STARTED.md` §6 before flashing.
 
 PSA Arch builds additionally need `scripts\vs_build.bat`. They compile a host tool with
 `cl.exe`, which needs a Visual Studio developer environment. See DECISIONS D083.
@@ -126,17 +172,20 @@ port. The copy in this tree is byte-identical and is the one to use ([D140]).
 | `TROUBLESHOOTING.md` | indexed by the symptom you see. The two brick hazards are first |
 | `CONFIGURATION.md` | every knob you may change: default, where it is defined, and the constraint that bites. Start with its "how the three layers interact" section |
 | `RA6M5_SOLUTION.md`, `RA8M2_SOLUTION.md` | per-part: the layout, the RDPM boundary values, what the e2 projects must provide, and current status. The RDPM values live here and nowhere else |
+| `KNOWN_LIMITATIONS.md` | **read before committing to this port.** What it does not do, what is untested, and what is known broken: crypto per part, boot and upgrade, the open hazards |
 | `DECISIONS.md` | why, append-only. Superseded entries stay; later ones say so |
 
 **Reference.**
 
 | | |
 |---|---|
+| `TEST_RESULTS.md` | every hardware run, with its result and the DECISIONS entry that recorded it. Read it with `PROJECT_PLAN.md` §"Test coverage gaps", which lists what has never run |
 | `BUILD_ARCHITECTURE.md` | the CMake target graph: the two projects and the `api_ns/` handoff, every link edge with its file and line, what the port adds to each upstream target, the FSP module registry, and the post-link checks |
 | `FLASH_MAP_OWNERSHIP.md` | design review: what MCUboot's porting contract is, how TF-M narrows it, what other vendors do, and where this port diverges from the two standing objectives |
 | `BRIDGING_FILES.md` | **read before any FSP pack uprev.** Every file that carries FSP code or restates an FSP-generated value, and the check that detects drift in each |
 | `UPSTREAM_CHANGES.md` | the patch queue against upstream TF-M, with the rationale for each |
 | `scripts/README.md` | what each build script does |
+| `RECONFIGURING_THE_LAYOUT.md` | **read before changing the partitioning.** Resizing a slot, moving the storage area or growing the bootloader: what follows automatically, the four things that do not, and the 35 assertions |
 | `RA6E1_TEMPLATE_CHECKLIST.md` | the contract a new part's RASC projects must satisfy |
 | `RA8x2_DUAL_CORE_DESIGN.md` | forward design for the dual-core parts |
 | [GETTING_STARTED.md](GETTING_STARTED.md) | clone to running board; §6 carries the **pre-flash verification** — the brick-safety steps to run on every new build |
@@ -151,5 +200,4 @@ port. The copy in this tree is byte-identical and is the one to use ([D140]).
 | `bringup/bricking_evidence/` | the preserved image behind [D133], the OFS coalescing brick |
 | `e2_baseline/` | the two GCC solutions as e2 first creates them, for reading the port's RASC choices as a diff ([D140]) |
 
-Still to write, per `DOCUMENTATION_PLAN.md`: the repartition
-procedure.
+`DOCUMENTATION_PLAN.md` tracks the target document set and what is still outstanding.

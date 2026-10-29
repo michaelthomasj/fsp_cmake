@@ -13,7 +13,7 @@ reprogramming the boundaries.
 
 ### The part reads back `0xDA` and will not respond
 
-**The board is dead and cannot be recovered.** Two EK-RA6M4 boards were lost this way on
+**No recovery is known.** Two EK-RA6M4 boards were lost this way on
 2026-07-21. The coalesced segment wrote `0x00` into eight defined option registers - DUALSEL,
 OFS1, BANKSEL, BPS, PBPS, BANKSEL_SEC, BPS_SEC, PBPS_SEC - and into the reserved bytes between
 them ([D133]). Which of the eight killed the boards is not established. Post-brick readback
