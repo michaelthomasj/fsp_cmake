@@ -27,6 +27,7 @@
       <li><a href="DOCUMENTATION_PLAN.html">DOCUMENTATION_PLAN.md</a></li>
       <li><a href="FLASH_MAP_OWNERSHIP.html">FLASH_MAP_OWNERSHIP.md</a></li>
       <li><a href="GETTING_STARTED.html">GETTING_STARTED.md</a></li>
+      <li><a href="KNOWN_LIMITATIONS.html">KNOWN_LIMITATIONS.md</a></li>
       <li><a href="PORTING.html">PORTING.md</a></li>
       <li><a href="PROJECT_PLAN.html">PROJECT_PLAN.md</a></li>
       <li><a href="RA6E1_SOLUTION.html">RA6E1_SOLUTION.md</a></li>
@@ -37,6 +38,7 @@
       <li><a href="README.html">README.md</a></li>
       <li><a href="RECONFIGURING_THE_LAYOUT.html">RECONFIGURING_THE_LAYOUT.md</a></li>
       <li><a href="SETTLED.html">SETTLED.md</a></li>
+      <li><a href="TEST_RESULTS.html">TEST_RESULTS.md</a></li>
       <li><a href="TROUBLESHOOTING.html">TROUBLESHOOTING.md</a></li>
       <li><a href="UPSTREAM_CHANGES.html">UPSTREAM_CHANGES.md</a></li>
       <li><a href="scripts_README.html">scripts/README.md</a></li>
@@ -123,15 +125,14 @@ the firmware sets them. See <code>DESIGN.md</code> §7.1 for the granularity rul
 <p><strong>RDPM erases the part</strong> — reflash all three images afterwards.</p>
 <p>Every launch configuration must keep
 <code>com.renesas.hardwaredebug.arm.jlink.setTZBoundaries</code> = <code>false</code> (<code>DESIGN.md</code> §7.2).</p>
-<blockquote><p><strong>Nine of the 47 shipped launches break this rule today</strong> (audited 2026-10-22):</p>
-<ul>
-<li><code>jlink</code> key <code>true</code> in the four stock e2 <code>*_nonsecure Debug_SSD.launch</code> files
-(<code>ra6m5_gcc_nonsecure</code>, <code>ra6m5_iar_nonsecure</code>, <code>ra8m2_gcc_CPU0_nonsecure</code>,
-<code>ra8m2_iar_CPU0_nonsecure</code>). These are e2 output, not the <code>*_TFM_*</code> launches used here.</li>
-<li><code>e2lite</code> key <code>true</code> in the five RA8M2 GCC TFM launches (<code>flih</code>, <code>test_attestation</code>,
-<code>test_crypto</code>, <code>test_storage</code>, <code>update</code>). Their <code>jlink</code> key is <code>false</code>, so this is inert
-while J-Link is the selected probe - <strong>switching probe arms it</strong> (<a href="DECISIONS.html#d102">D102</a>).</li>
-</ul>
+<blockquote><p>The four stock e2 <code>*_nonsecure Debug_SSD.launch</code> files carried the <code>jlink</code> key as <code>true</code> and
+have been deleted. They were e2 output rather than the <code>*_TFM_*</code> launches used here, and no
+procedure needed them.</p>
+<p>Five RA8M2 GCC launches (<code>flih</code>, <code>test_attestation</code>, <code>test_crypto</code>, <code>test_storage</code>, <code>update</code>)
+still carry the <code>e2lite</code> key as <code>true</code>. Their <code>jlink</code> key is <code>false</code>, so the setting is inert
+while J-Link is the selected probe. <strong>Switching probe arms it</strong> (<a href="DECISIONS.html#d102">D102</a>).</p>
+<p>The two copies under <code>e2_baseline/</code> keep the <code>jlink</code> key as <code>true</code> deliberately: that
+directory exists to show e2&#x27;s unmodified output. Do not launch from it.</p>
 <p>Check before flashing anything unfamiliar:
 <code>grep -rn "setTZBoundaries" &lt;launch&gt;</code></p></blockquote>
 <p><strong>Dual-bank mode must be off.</strong> The OFS <code>DUALSEL</code> word must select linear mode. In dual-bank

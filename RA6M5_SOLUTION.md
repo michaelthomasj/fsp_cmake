@@ -76,13 +76,16 @@ Resulting NS regions: 896 KB of code flash from 0x120000, 256 KB of SRAM from 0x
 Every launch configuration must keep
 `com.renesas.hardwaredebug.arm.jlink.setTZBoundaries` = `false` (`DESIGN.md` §7.2).
 
-> **Nine of the 47 shipped launches break this rule today** (audited 2026-10-22):
-> - `jlink` key `true` in the four stock e2 `*_nonsecure Debug_SSD.launch` files
->   (`ra6m5_gcc_nonsecure`, `ra6m5_iar_nonsecure`, `ra8m2_gcc_CPU0_nonsecure`,
->   `ra8m2_iar_CPU0_nonsecure`). These are e2 output, not the `*_TFM_*` launches used here.
-> - `e2lite` key `true` in the five RA8M2 GCC TFM launches (`flih`, `test_attestation`,
->   `test_crypto`, `test_storage`, `update`). Their `jlink` key is `false`, so this is inert
->   while J-Link is the selected probe - **switching probe arms it** ([D102]).
+> The four stock e2 `*_nonsecure Debug_SSD.launch` files carried the `jlink` key as `true` and
+> have been deleted. They were e2 output rather than the `*_TFM_*` launches used here, and no
+> procedure needed them.
+>
+> Five RA8M2 GCC launches (`flih`, `test_attestation`, `test_crypto`, `test_storage`, `update`)
+> still carry the `e2lite` key as `true`. Their `jlink` key is `false`, so the setting is inert
+> while J-Link is the selected probe. **Switching probe arms it** ([D102]).
+>
+> The two copies under `e2_baseline/` keep the `jlink` key as `true` deliberately: that
+> directory exists to show e2's unmodified output. Do not launch from it.
 >
 > Check before flashing anything unfamiliar:
 > `grep -rn "setTZBoundaries" <launch>`

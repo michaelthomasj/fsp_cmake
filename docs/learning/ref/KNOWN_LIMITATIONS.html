@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Known limitations</title>
+<meta name="description" content="Rendered from KNOWN_LIMITATIONS.md by scripts/build_doc_html.py.">
+<link rel="stylesheet" href="../assets/style.css">
+<script src="../assets/site.js"></script>
+</head>
+<body>
+<!-- GENERATED from KNOWN_LIMITATIONS.md by scripts/build_doc_html.py. Do not edit: the next commit touching the Markdown overwrites it. -->
+<div class="layout">
+<aside class="sidebar">
+  <div class="brand"><a href="../index.html">Cortex-M, TrustZone &amp; TF-M on Renesas RA</a><button class="menu-toggle" aria-expanded="false">Menu</button></div>
+  <nav>
+    <ol>
+      <li><a href="../index.html">← Course</a></li>
+      <li><a href="index.html">Reference documents</a>
+        <ol>
+      <li><a href="ADDING_FSP_MODULES.html">ADDING_FSP_MODULES.md</a></li>
+      <li><a href="BRIDGING_FILES.html">BRIDGING_FILES.md</a></li>
+      <li><a href="BUILD_ARCHITECTURE.html">BUILD_ARCHITECTURE.md</a></li>
+      <li><a href="CONFIGURATION.html">CONFIGURATION.md</a></li>
+      <li><a href="DECISIONS.html">DECISIONS.md</a></li>
+      <li><a href="DESIGN.html">DESIGN.md</a></li>
+      <li><a href="DOCUMENTATION_PLAN.html">DOCUMENTATION_PLAN.md</a></li>
+      <li><a href="FLASH_MAP_OWNERSHIP.html">FLASH_MAP_OWNERSHIP.md</a></li>
+      <li><a href="GETTING_STARTED.html">GETTING_STARTED.md</a></li>
+      <li><a href="KNOWN_LIMITATIONS.html" aria-current="page">KNOWN_LIMITATIONS.md</a></li>
+      <li><a href="PORTING.html">PORTING.md</a></li>
+      <li><a href="PROJECT_PLAN.html">PROJECT_PLAN.md</a></li>
+      <li><a href="RA6E1_SOLUTION.html">RA6E1_SOLUTION.md</a></li>
+      <li><a href="RA6E1_TEMPLATE_CHECKLIST.html">RA6E1_TEMPLATE_CHECKLIST.md</a></li>
+      <li><a href="RA6M5_SOLUTION.html">RA6M5_SOLUTION.md</a></li>
+      <li><a href="RA8M2_SOLUTION.html">RA8M2_SOLUTION.md</a></li>
+      <li><a href="RA8x2_DUAL_CORE_DESIGN.html">RA8x2_DUAL_CORE_DESIGN.md</a></li>
+      <li><a href="README.html">README.md</a></li>
+      <li><a href="RECONFIGURING_THE_LAYOUT.html">RECONFIGURING_THE_LAYOUT.md</a></li>
+      <li><a href="SETTLED.html">SETTLED.md</a></li>
+      <li><a href="TEST_RESULTS.html">TEST_RESULTS.md</a></li>
+      <li><a href="TROUBLESHOOTING.html">TROUBLESHOOTING.md</a></li>
+      <li><a href="UPSTREAM_CHANGES.html">UPSTREAM_CHANGES.md</a></li>
+      <li><a href="scripts_README.html">scripts/README.md</a></li>
+        </ol>
+      </li>
+    </ol>
+    <ol class="doc-toc">
+      <li><a href="#top">KNOWN_LIMITATIONS.md</a>
+        <ol>
+          <li><a href="#s1">1. Before production</a></li>
+          <li><a href="#s2">2. Crypto</a></li>
+          <li><a href="#s3">3. Boot and upgrade</a></li>
+          <li><a href="#s4">4. Open hazards</a></li>
+          <li><a href="#s5">5. Debug and logging</a></li>
+          <li><a href="#s6">6. Platform scope</a></li>
+          <li><a href="#s7">7. Planned work</a></li>
+        </ol>
+      </li>
+    </ol>
+    <button class="theme-toggle" type="button">Dark theme</button>
+  </nav>
+</aside>
+<main id="top" class="ref-doc">
+<p class="src">Rendered from <a href="../../../KNOWN_LIMITATIONS.md"><code>KNOWN_LIMITATIONS.md</code></a>. Edit the Markdown, not this page.</p>
+<h1 id="known-limitations">Known limitations</h1>
+<p>What this port does not do, what has not been tested, and what is known to be broken. Read it
+with <code>README.md</code> §&quot;Security status&quot;, which lists what must change before production, and
+<code>TEST_RESULTS.md</code>, which records what has run on hardware.</p>
+<p>Everything here is a current statement about the delivered code. <code>DECISIONS.md</code> holds the
+reasoning and the history.</p>
+<hr>
+<h2 id="s1">1. Before production</h2>
+<p>The shipped configuration is a development configuration. <code>README.md</code> §&quot;Security status&quot; is the
+list; <code>DESIGN.md</code> §13 says how to address each item. In short: the signing keys are the public
+TF-M sample keys, provisioning supplies dummy HUK and IAK values, anti-rollback counters are
+left at <code>1</code>, the clock and low-power registers are writable from the non-secure world, and the
+device lifecycle and secure debug are not enforced.</p>
+<p><strong>None of these is a defect in the port.</strong> They are the settings a development board needs and a
+product must not keep.</p>
+<hr>
+<h2 id="s2">2. Crypto</h2>
+<p>Both parts route PSA crypto through FSP&#x27;s Mbed TLS <code>*_ALT</code> sources, so what the hardware
+accelerates depends on the engine fitted to the part.</p>
+<h3 id="accelerated">Accelerated</h3>
+<div class="table-wrap"><table>
+<tr><th>Part</th><th>Engine</th><th>Accelerated</th></tr>
+<tr><td>RA6M5</td><td>SCE9</td><td>AES (128/192/256, ECB/CBC/CTR), AES-GCM, CMAC, SHA-256, ECP and ECDSA, RSA</td></tr>
+<tr><td>RA8M2</td><td>RSIP-E50D</td><td>the same set, with the RSA key-generation exception below</td></tr>
+</table></div>
+<p>BL2 also hashes images on the engine rather than in software.</p>
+<h3 id="in-software-by-choice">In software, by choice</h3>
+<p><strong>AES-CCM.</strong> FSP&#x27;s SCE9 CCM caps associated data at 110 bytes and Protected Storage exceeds
+that, so CCM is built from software. It still reaches the engine block by block through the
+cipher and AES paths, so the cost is the mode logic rather than the block operation.</p>
+<h3 id="unavailable">Unavailable</h3>
+<p>These are turned off in the accelerator configuration for both engines
+(<code>platform/ext/accelerator/renesas/{sce9,rsip_e50d}/crypto_accelerator_config.h</code>):</p>
+<div class="table-wrap"><table>
+<tr><th>Algorithm</th><th>Why</th></tr>
+<tr><td><code>PSA_WANT_ALG_DETERMINISTIC_ECDSA</code></td><td>neither engine implements RFC 6979. The attestation key signs with plain <code>PSA_ALG_ECDSA</code>. PSA Arch crypto test 252 skips for this reason</td></tr>
+<tr><td><code>PSA_WANT_ECC_SECP_R1_521</code></td><td>not supported by the engines</td></tr>
+<tr><td><code>PSA_WANT_ECC_MONTGOMERY_255</code></td><td>not supported by the engines</td></tr>
+</table></div>
+<p>**RSA-2048 key generation in plaintext format is unavailable on RA8M2, and there is no switch
+for it.** The guard is in FSP&#x27;s <code>rsa_alt_process.c</code>: <code>mbedtls_rsa_gen_key()</code> returns
+<code>MBEDTLS_ERR_PLATFORM_FEATURE_UNSUPPORTED</code> unless the part is SCE7, SCE9 or RSIP-E51A, and E50D
+is not in that list. RA6M5 passes because SCE9 is. Every other RSA-2048 operation works on both
+parts. Hardware RSA key generation on E50D requires the caller to request a wrapped key.
+Raising <code>PSA_CRYPTO_CFG_RSA_FORMAT</code> does not help, because it is already <code>3</code> and is not what
+selects the failing path. This is the single PSA Arch crypto failure on RA8M2, test 216 check 4.</p>
+<h3 id="untested">Untested</h3>
+<p><strong>ECDSA P-384 is untested here and probably works.</strong> <code>PSA_WANT_ECC_SECP_R1_384</code> is not
+disabled, so the algorithm is built, but the regression test that would exercise it
+(<code>TFM_S_CRYPTO_TEST_1056</code> / <code>TFM_NS_CRYPTO_TEST_1056</code>) self-skips on every platform that is not
+Arm CryptoCell — its gate tests <code>CC3XX_RUNTIME_ENABLED</code>. The test reports PASSED without
+testing anything. <strong>Do not read a passing regression run as P-384 coverage.</strong> It needs a
+standalone check before anyone claims P-384 support.</p>
+<p><strong>The multi-part engine lock.</strong> While a multi-part AES, GCM or CMAC operation is open it holds
+the engine, and <code>psa_generate_random</code> fails for every caller until that operation completes or
+is aborted. This comes from reading the driver, not from an observed failure, and no suite run
+here exercises the pattern.</p>
+<p><strong>A software CTR defect no suite here can reach.</strong> FSP 6.7&#x27;s <code>mbedtls_aes_crypt_ctr()</code> ignores
+<code>nc_off</code> and <code>stream_block</code> and mishandles partial blocks. PSA Arch tests 236 and 237 pass on
+both parts, short-input CTR checks included, because the PSA cipher layer never reaches that
+function with a partial block. A direct Mbed TLS CTR caller still hits it. Closing this needs a
+unit test against the function itself, not another PSA-level suite.</p>
+<hr>
+<h2 id="s3">3. Boot and upgrade</h2>
+<p><strong>The MCUboot upgrade path has been exercised on RA8M2 only.</strong> Both images install from their
+secondary slots and a second reset erases the secondary, under both toolchains. RA6M5 has no
+upgrade launch and the path has never run there. RA6E1 sets <code>MCUBOOT_ALIGN_VAL</code> to 128 to match
+its code-flash write unit, and that fix has never been exercised, because it only takes effect
+once BL2 writes code flash.</p>
+<p><strong>Image alignment is not interchangeable.</strong> Images signed at one alignment are rejected by a BL2
+built at another, because the trailer magic differs. Reflash every slot after changing it and do
+not mix.</p>
+<p><strong>Slot order is reversed for image 0 on RA8M2.</strong> The secure secondary sits below the secure
+primary, so <code>rsp.br_image_off</code> of <code>0x68000</code> is the primary. Image 1 is the usual way round.
+Anything that reads a <code>boot_rsp</code> or computes a flash row must account for this.</p>
+<p><strong>Firmware Update is off and untested.</strong> <code>TFM_PARTITION_FIRMWARE_UPDATE</code> is <code>OFF</code> on all parts.
+Turning it on brings advisory TFMV-9 (CVE-2025-53022) into scope and you should move to
+TF-Mv2.2.2 first.</p>
+<p><strong>Measured boot is on, and a passing attestation suite does not prove it works.</strong> With no
+software components recorded, <code>attest_add_all_sw_components()</code> emits <code>IAT_NO_SW_COMPONENTS</code> and
+returns success, so the attestation suite passes either way. Read the boot record directly to
+confirm it.</p>
+<hr>
+<h2 id="s4">4. Open hazards</h2>
+<h3 id="flashing-a-flat-binary-can-destroy-the-board">Flashing a flat binary can destroy the board</h3>
+<p>The option-setting words live in discrete flash regions. A plain <code>objcopy -O binary</code> coalesces
+them into one segment and zero-fills the reserved bytes between, which writes <code>0x00</code> into
+defined option registers. Two EK-RA6M4 boards were lost this way; no recovery is known.</p>
+<p><strong>Flash <code>bl2.hex</code> or <code>bl2.srec</code>, never <code>bl2.bin</code>.</strong></p>
+<p>The full build re-emits a safe flat binary and verifies it, but **building the <code>bl2_bin</code> target
+on its own still writes the coalesced image.** The rule that follows is: build everything, never
+<code>bl2_bin</code> alone. If you must look at a flat binary, a safe one is tens of kilobytes and a
+coalesced one is about 16.8 MB. Do not use any single byte count as the test — the safe size
+differs between build configurations.</p>
+<h3 id="the-debugger-will-program-the-trustzone-boundaries-wrongly">The debugger will program the TrustZone boundaries wrongly</h3>
+<p>Every launch configuration must keep
+<code>com.renesas.hardwaredebug.arm.jlink.setTZBoundaries</code> = <code>false</code>. Launched against BL2, the
+debugger derives the boundaries from the wrong symbols.</p>
+<p>Five RA8M2 GCC launches carry the equivalent <code>e2lite</code> key as <code>true</code>. Their <code>jlink</code> key is
+<code>false</code>, so the setting is inert while J-Link is the selected probe. **Switching probe arms
+it.** The two <code>Debug_SSD</code> launches under <code>e2_baseline/</code> keep the <code>jlink</code> key as <code>true</code>
+deliberately, because that directory shows e2&#x27;s unmodified output; do not launch from it.</p>
+<h3 id="re-partitioning-erases-the-part">Re-partitioning erases the part</h3>
+<p>Programming the TrustZone boundaries with RDPM erases both code and data flash. Reflash all
+three images afterwards. <code>RECONFIGURING_THE_LAYOUT.md</code> is the procedure.</p>
+<h3 id="the-secure-slot-is-nearly-full">The secure slot is nearly full</h3>
+<p>RA6M5 has about 1.7 KB spare and RA8M2 about 0.7 KB, measured against the signed payload rather
+than the raw image. Enabling a diagnostic option that costs a few kilobytes will fail to link.
+<code>README.md</code> §&quot;Freeing space in the secure image&quot; gives the measured cost of each.</p>
+<hr>
+<h2 id="s5">5. Debug and logging</h2>
+<p><strong>RTT is unreliable across the boot chain by construction.</strong> BL2, the secure image and the
+non-secure image each initialise their own RTT control block, and the address differs per build.
+A capture can also truncate silently: if output stops after a result line and the next test is
+never announced, suspect the capture rather than the target.</p>
+<p><strong>The shipped launches do not load what the build scripts produce.</strong> They load BL2 from an
+absolute path into a build tree, plus the e2 project&#x27;s own non-secure ELF. Read
+<code>GETTING_STARTED.md</code> §6 before flashing.</p>
+<hr>
+<h2 id="s6">6. Platform scope</h2>
+<div class="table-wrap"><table>
+<tr><th>Part</th><th>Status</th></tr>
+<tr><td>RA6M5</td><td>supported, both toolchains</td></tr>
+<tr><td>RA8M2</td><td>supported, both toolchains. CPU1 is unused; the port is single-core</td></tr>
+<tr><td>RA6E1</td><td>reference only. It is the port the two supported parts derive from, and it is not maintained against the current build</td></tr>
+</table></div>
+<p>RA6M4 is not part of this delivery.</p>
+<p><strong>The RA8M2 project sets target different board revisions between toolchains.</strong> The GCC projects
+select <code>ra8m2_ek</code> and the IAR projects <code>ra8m2_ek_v2</code>. Both have passed on hardware, so the
+difference is tolerable, but regenerating either set against the other&#x27;s board changes the
+generated BSP. The RA6M5 projects differ similarly in pin configuration: the GCC solution
+selects <code>RA6M5_2 CK</code> and the IAR solution <code>RA6M5 CK</code>, which changes the security attribution of
+16 pins.</p>
+<hr>
+<h2 id="s7">7. Planned work</h2>
+<p>Listed without dates, because none is committed.</p>
+<ul>
+<li><strong>Mbed TLS v4 and TF-M 2.3.</strong> Gated on FSP&#x27;s own migration to Mbed TLS v4.1. The port stays on
+TF-Mv2.2.0 and Mbed TLS 3.6.3 until then.</li>
+<li><strong>Move the project set to RASC.</strong> The delivered projects are generated by e2 studio. The
+standalone FSP Smart Configurator emits an equivalent CMake project set, and the layout and
+module configuration already match on RA6M5. What is not yet solved is the debug front end:
+RASC projects cannot be imported into e2 studio, and their own launch mechanism has not been
+shown to flash three images with the required erase and boundary settings.</li>
+<li><strong>Firmware Update.</strong> The bootloader half is proven on RA8M2; what FWU adds is the API that
+places an image in the secondary slot.</li>
+<li><strong>SLIH above isolation 1, and on RA8M2 at all.</strong> Never run. The trees and launches have to be
+made first.</li>
+<li><strong>PSA Arch Firmware Framework suite.</strong> Only the crypto, attestation and storage suites have
+been built.</li>
+</ul>
+</main>
+</div>
+</body>
+</html>

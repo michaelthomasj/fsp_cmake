@@ -33,6 +33,13 @@ and the pack version, so storing them again would add about 1,200 files and no i
 
 These projects do not build as they stand. Open the solution in e2 studio and generate first.
 
+**Do not flash or debug from this directory.** The two `*_nonsecure Debug_SSD.launch` files
+here carry `com.renesas.hardwaredebug.arm.jlink.setTZBoundaries` = `true`, which
+`DESIGN.md` §7.2 forbids: launched against BL2 the debugger derives the TrustZone
+boundaries from the wrong symbols. They keep that value deliberately, because this
+directory exists to show what e2 generates before any change. The equivalents were deleted
+from the live project set.
+
 ## How to read the difference
 
 Both trees are in this checkout, so compare the committed files by path:
