@@ -14,10 +14,16 @@ rem
 rem  Override any of the paths by setting the variable before calling.
 
 if "%GCC_BIN%"==""    set GCC_BIN=C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/13.2 Rel1/bin
-if "%TFM_SRC%"==""    set TFM_SRC=C:/Users/Michael/Documents/GitHub/trusted-firmware-m
-if "%TFM_TESTS%"==""  set TFM_TESTS=C:\Users\Michael\Documents\GitHub\tf-m-tests
-if "%PSA_TESTS%"==""  set PSA_TESTS=C:/Users/Michael/Documents/GitHub/psa-arch-tests
-if "%FSP_CMAKE%"==""  set FSP_CMAKE=C:/Users/Michael/Documents/GitHub/fsp_cmake
+rem  Repository roots. This repository locates itself, so its directory may be named
+rem  anything; the other three default to siblings of it. Set any of these in the
+rem  environment to use a different layout. scripts/README.md lists every variable.
+for %%I in ("%~dp0..")    do set "REPO_ROOT=%%~fI"
+for %%I in ("%~dp0..\..") do set "GH_ROOT=%%~fI"
+set "GH_ROOT_FWD=%GH_ROOT:\=/%"
+if "%TFM_SRC%"==""    set TFM_SRC=%GH_ROOT_FWD%/trusted-firmware-m
+if "%TFM_TESTS%"==""  set TFM_TESTS=%GH_ROOT%\tf-m-tests
+if "%PSA_TESTS%"==""  set PSA_TESTS=%GH_ROOT_FWD%/psa-arch-tests
+if "%FSP_CMAKE%"==""  set FSP_CMAKE=%REPO_ROOT:\=/%
 
 set BUILD=%1
 set SUITE=%2

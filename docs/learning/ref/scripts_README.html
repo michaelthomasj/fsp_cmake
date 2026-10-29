@@ -48,6 +48,7 @@
     <ol class="doc-toc">
       <li><a href="#top">scripts/README.md</a>
         <ol>
+          <li><a href="#environment-variables">Environment variables</a></li>
           <li><a href="#three-configurations-on-purpose">Three configurations, on purpose</a></li>
           <li><a href="#build-trees">Build trees</a></li>
           <li><a href="#building">Building</a></li>
@@ -68,6 +69,34 @@
 <code>DECISIONS.md</code> (D046 for the arrangement, D084 for why the options are stated rather than
 defaulted, D101 for the RA8M2 IAR project parity); layouts and board settings are in
 <code>RA6M5_SOLUTION.md</code> and <code>RA8M2_SOLUTION.md</code>.</p>
+<h2 id="environment-variables">Environment variables</h2>
+<p>Every variable below is read as <code>if "%VAR%"=="" set VAR=&lt;default&gt;</code>, so setting it in the
+environment overrides the default and setting nothing uses it.</p>
+<p>The four repository roots default to a side-by-side layout, resolved from the script&#x27;s own
+location rather than written as absolute paths. With the repositories cloned as siblings no
+variable has to be set at all.</p>
+<div class="table-wrap"><table>
+<tr><th>Variable</th><th>Default</th><th>What it is</th></tr>
+<tr><td><code>TFM_SRC</code></td><td><code>&lt;parent of this repository&gt;\trusted-firmware-m</code></td><td>the TF-M fork carrying the RA platform ports</td></tr>
+<tr><td><code>FSP_CMAKE</code></td><td>this repository, located from the script itself</td><td>its directory may be named anything. Forward slashes, because it reaches CMake</td></tr>
+<tr><td><code>TFM_TESTS</code></td><td><code>&lt;parent of this repository&gt;\tf-m-tests</code></td><td><code>tf-m-tests</code>, for the regression and PSA Arch non-secure builds</td></tr>
+<tr><td><code>PSA_TESTS</code></td><td><code>&lt;parent of this repository&gt;\psa-arch-tests</code></td><td><code>psa-arch-tests</code>, for the PSA Arch suites</td></tr>
+<tr><td><code>GCC_BIN</code></td><td>per script</td><td>the GNUARM <code>bin</code> directory</td></tr>
+<tr><td><code>IAR_BIN</code></td><td>per script</td><td>the IAR <code>arm\bin</code> directory</td></tr>
+<tr><td><code>VS_VCVARS</code> / <code>MSVC_VARS</code></td><td>per script</td><td><code>vcvars64.bat</code>, needed only by the PSA Arch builds, which compile a host tool with <code>cl.exe</code></td></tr>
+</table></div>
+<p>So a layout like this needs nothing set:</p>
+<pre><code>&lt;anywhere&gt;\
+  fsp_cmake\
+  trusted-firmware-m\
+  tf-m-tests\
+  psa-arch-tests\</code></pre>
+<p>and a different layout needs only the roots that moved:</p>
+<pre><code>set TFM_SRC=D:\src\trusted-firmware-m
+set TFM_TESTS=D:\src\tf-m-tests</code></pre>
+<p>The toolchain variables have no sensible default and will need setting on any machine but the
+one these scripts were written on. <code>GETTING_STARTED.md</code> §2 is the authority for which tool
+versions the port is built and tested with.</p>
 <h2 id="three-configurations-on-purpose">Three configurations, on purpose</h2>
 <div class="table-wrap"><table>
 <tr><th></th><th>PSA Arch suites</th><th>Regression suites</th><th>User application</th></tr>

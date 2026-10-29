@@ -85,9 +85,9 @@ construct into <code>ra8m2/CMakeLists.txt</code> rather than the ra6m5 line.</p>
 <code>cmake/toolchain_ns_GNUARM.cmake</code>.</li>
 <li>The NS project needs both <code>CONFIG_SPE_PATH</code> and <code>TFM_TOOLCHAIN_FILE</code> pointing into it.</li>
 </ul>
-<p>The <code>-S</code> source differs by what you are building. Regression (<code>reg_build_gcc.bat:144,168</code>)
+<p>The <code>-S</code> source differs by what you are building. Regression (<code>reg_build_gcc.bat:150,174</code>)
 configures the SPE from <code>tf-m-tests/tests_reg/spe</code> and the NS project from
-<code>tf-m-tests/tests_reg</code>. Application (<code>app_build_ra8m2_gcc.bat:44,63</code>) configures the SPE
+<code>tf-m-tests/tests_reg</code>. Application (<code>app_build_ra8m2_gcc.bat:50,69</code>) configures the SPE
 from the TF-M root and the NS project from
 <code>platform/ext/target/renesas/&lt;part&gt;/ns_app</code>. Everything else below is identical; the diagram
 shows the regression flow.</p>

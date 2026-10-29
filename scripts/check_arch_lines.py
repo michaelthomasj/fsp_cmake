@@ -128,10 +128,10 @@ PORT_PATHS = [
 
 # Citations into this repository's own files. Separate list because the path root differs.
 LOCAL = [
-    ("scripts/reg_build_gcc.bat",      144, r"cmake -S %TFM_TESTS%\\tests_reg\\spe"),
-    ("scripts/reg_build_gcc.bat",      168, r"cmake -S %TFM_TESTS%\\tests_reg -B"),
-    ("scripts/app_build_ra8m2_gcc.bat", 44, r"cmake -S %TFM_SRC% -B"),
-    ("scripts/app_build_ra8m2_gcc.bat", 63, r"ra8m2\\ns_app -B"),
+    ("scripts/reg_build_gcc.bat",      150, r"cmake -S %TFM_TESTS%\\tests_reg\\spe"),
+    ("scripts/reg_build_gcc.bat",      174, r"cmake -S %TFM_TESTS%\\tests_reg -B"),
+    ("scripts/app_build_ra8m2_gcc.bat", 50, r"cmake -S %TFM_SRC% -B"),
+    ("scripts/app_build_ra8m2_gcc.bat", 69, r"ra8m2\\ns_app -B"),
 ]
 
 

@@ -29,8 +29,14 @@ rem  Build directories must be SHORT. Under a deep path the Mbed TLS overlay clo
 rem  "Filename too long" on 3rdparty/everest/..., which is why the defaults are under C:\b.
 
 if "%IAR_BIN%"==""   set IAR_BIN=C:\iar\ewarmc-10.10.2\arm\bin
-if "%TFM_SRC%"==""   set TFM_SRC=C:\Users\Michael\Documents\GitHub\trusted-firmware-m
-if "%FSP_CMAKE%"=="" set FSP_CMAKE=C:/Users/Michael/Documents/GitHub/fsp_cmake
+rem  Repository roots. This repository locates itself, so its directory may be named
+rem  anything; the other three default to siblings of it. Set any of these in the
+rem  environment to use a different layout. scripts/README.md lists every variable.
+for %%I in ("%~dp0..")    do set "REPO_ROOT=%%~fI"
+for %%I in ("%~dp0..\..") do set "GH_ROOT=%%~fI"
+set "GH_ROOT_FWD=%GH_ROOT:\=/%"
+if "%TFM_SRC%"==""   set TFM_SRC=%GH_ROOT%\trusted-firmware-m
+if "%FSP_CMAKE%"=="" set FSP_CMAKE=%REPO_ROOT:\=/%
 
 set SPE=%1
 set NS=%2

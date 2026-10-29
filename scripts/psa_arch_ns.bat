@@ -20,8 +20,14 @@ rem    - IAR on PATH, and the ASM architecture id CMake cannot detect.
 
 if "%IAR_BIN%"==""    set IAR_BIN=C:\iar\ewarmc-10.10.2\arm\bin
 if "%MSVC_VARS%"==""  set MSVC_VARS=C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\VC\Auxiliary\Build\vcvars64.bat
-if "%TFM_TESTS%"==""  set TFM_TESTS=C:\Users\Michael\Documents\GitHub\tf-m-tests
-if "%PSA_TESTS%"==""  set PSA_TESTS=C:\Users\Michael\Documents\GitHub\psa-arch-tests
+rem  Repository roots. This repository locates itself, so its directory may be named
+rem  anything; the other three default to siblings of it. Set any of these in the
+rem  environment to use a different layout. scripts/README.md lists every variable.
+for %%I in ("%~dp0..")    do set "REPO_ROOT=%%~fI"
+for %%I in ("%~dp0..\..") do set "GH_ROOT=%%~fI"
+set "GH_ROOT_FWD=%GH_ROOT:\=/%"
+if "%TFM_TESTS%"==""  set TFM_TESTS=%GH_ROOT%\tf-m-tests
+if "%PSA_TESTS%"==""  set PSA_TESTS=%GH_ROOT%\psa-arch-tests
 
 set BUILD=%1
 set SPE=%2

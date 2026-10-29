@@ -27,9 +27,9 @@ The secure and non-secure sides are separate CMake projects. The first installs 
   `cmake/toolchain_ns_GNUARM.cmake`.
 - The NS project needs both `CONFIG_SPE_PATH` and `TFM_TOOLCHAIN_FILE` pointing into it.
 
-The `-S` source differs by what you are building. Regression (`reg_build_gcc.bat:144,168`)
+The `-S` source differs by what you are building. Regression (`reg_build_gcc.bat:150,174`)
 configures the SPE from `tf-m-tests/tests_reg/spe` and the NS project from
-`tf-m-tests/tests_reg`. Application (`app_build_ra8m2_gcc.bat:44,63`) configures the SPE
+`tf-m-tests/tests_reg`. Application (`app_build_ra8m2_gcc.bat:50,69`) configures the SPE
 from the TF-M root and the NS project from
 `platform/ext/target/renesas/<part>/ns_app`. Everything else below is identical; the diagram
 shows the regression flow.

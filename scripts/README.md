@@ -5,6 +5,46 @@ How the test images are built and flashed, for both toolchains and both parts. R
 defaulted, D101 for the RA8M2 IAR project parity); layouts and board settings are in
 `RA6M5_SOLUTION.md` and `RA8M2_SOLUTION.md`.
 
+## Environment variables
+
+Every variable below is read as `if "%VAR%"=="" set VAR=<default>`, so setting it in the
+environment overrides the default and setting nothing uses it.
+
+The four repository roots default to a side-by-side layout, resolved from the script's own
+location rather than written as absolute paths. With the repositories cloned as siblings no
+variable has to be set at all.
+
+| Variable | Default | What it is |
+|---|---|---|
+| `TFM_SRC` | `<parent of this repository>\trusted-firmware-m` | the TF-M fork carrying the RA platform ports |
+| `FSP_CMAKE` | this repository, located from the script itself | its directory may be named anything. Forward slashes, because it reaches CMake |
+| `TFM_TESTS` | `<parent of this repository>\tf-m-tests` | `tf-m-tests`, for the regression and PSA Arch non-secure builds |
+| `PSA_TESTS` | `<parent of this repository>\psa-arch-tests` | `psa-arch-tests`, for the PSA Arch suites |
+| `GCC_BIN` | per script | the GNUARM `bin` directory |
+| `IAR_BIN` | per script | the IAR `arm\bin` directory |
+| `VS_VCVARS` / `MSVC_VARS` | per script | `vcvars64.bat`, needed only by the PSA Arch builds, which compile a host tool with `cl.exe` |
+
+So a layout like this needs nothing set:
+
+```
+<anywhere>\
+  fsp_cmake\
+  trusted-firmware-m\
+  tf-m-tests\
+  psa-arch-tests\
+```
+
+and a different layout needs only the roots that moved:
+
+```
+set TFM_SRC=D:\src\trusted-firmware-m
+set TFM_TESTS=D:\src\tf-m-tests
+```
+
+The toolchain variables have no sensible default and will need setting on any machine but the
+one these scripts were written on. `GETTING_STARTED.md` §2 is the authority for which tool
+versions the port is built and tested with.
+
 ## Three configurations, on purpose
 
 | | PSA Arch suites | Regression suites | User application |
