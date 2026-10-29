@@ -6,8 +6,8 @@
 
 | | |
 |---|---|
-| Entries | **140** |
-| Standing | **127** |
+| Entries | **143** |
+| Standing | **130** |
 | Superseded | **13** |
 | Standing but corrected on some point | **36** |
 | Standing, but the question they left open is closed | **3** |
@@ -34,7 +34,7 @@ A later entry **supersedes** an earlier one: same question, newer answer. Citing
 
 ---
 
-## Standing (127)
+## Standing (130)
 
 Nothing supersedes these. The title is the position. Where a later entry corrects one, the correction is named - the entry stands apart from that. **Where the Closed by column is filled, read the status as historical:** the entry describes a problem that a later entry shut, so its own "Open" or "Provisional" is no longer true.
 
@@ -52,7 +52,7 @@ Nothing supersedes these. The title is the position. Where a later entry correct
 | `D011` | 2026-09-07 | Guard the secure-only half of `tfm_hal_platform.c` on a port-private macro | Accepted | — | — |
 | `D012` | 2026-08-30 | When the generated linker lacks a hook, add a generic one upstream rather than fork | Accepted | — | — |
 | `D013` | 2026-09-08 | Keep TF-M's `flash_map[]` and area IDs; do not adopt the solution's | Accepted | — | — |
-| `D014` | 2026-09-08 | The PSA Arch test tree is a local clone with tf-m-tests' patches applied by hand | ~~**Provisional — works, but the manual step is a known hazard**~~ | — | `D017` |
+| `D014` | 2026-09-08 | The PSA Arch test tree is a local clone with tf-m-tests' patches applied by hand | ~~**Provisional — works, but the manual step is a known hazard**~~ | — | `D017`, `D142` |
 | `D015` | 2026-09-08 | Isolation 3 + IPC confirmed on hardware; D008 is no longer provisional | Accepted | — | — |
 | `D016` | 2026-09-09 | RA6M5 is the upstream target; RA6M4 is skipped | Accepted | — | — |
 | `D017` | 2026-09-09 | The PSA Arch target stays a local patch for RA6E1; the RA6M5 one goes upstream | Accepted | — | — |
@@ -167,6 +167,9 @@ Nothing supersedes these. The title is the position. Where a later entry correct
 | `D138` | 2026-10-26 | the RA6M4 platform leaves the TF-M tree too; the brick record keeps its subject and loses only its path | Accepted | — | — |
 | `D139` | 2026-10-26 | three delivery questions answered: RA6E1 ships, the `CMSE_NONSECURE` fallback is removed, the base stays TF-Mv2.2.0 | Accepted | — | — |
 | `D140` | 2026-10-26 | the e2 baseline ships inside the deliverable, not as a branch beside it | Accepted | — | — |
+| `D141` | 2026-10-27 | the test record becomes a document; four claims are weaker than their wording, and one result has no entry behind it | Accepted | — | — |
+| `D142` | 2026-10-29 | the PSA Arch tree ships as a fork with the patches committed, which closes D014's reproduction gap | Accepted | — | — |
+| `D143` | 2026-10-29 | the deliverable repository moves into the Renesas organisation; the scripts stop depending on its directory name; the rename waits on admin | Accepted | — | — |
 
 ---
 

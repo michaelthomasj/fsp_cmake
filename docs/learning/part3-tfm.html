@@ -575,12 +575,10 @@ shared source</strong>.</p>
 <p>So inside <code>tfm_hal_isolation_v8m.c</code> the macro was undefined, and <strong>C's preprocessor evaluates an
 undefined identifier in <code>#if</code> as 0, without a diagnostic</strong> (unless built with <code>-Wundef</code>).</p>
 <div class="note">
-<p><strong>Not an upstream defect at all — the story was corrected twice.</strong> <a href="ref/DECISIONS.html#d113">D113</a>, UPSTREAM_CHANGES item 15 and the
-first editions of this page said every platform using the shared HAL loses the macro. The accuracy review of 2026-10-22
-blamed the attest-HAL setting instead. The second agent's follow-up found that it too is only a contributor: mps4 sets
-<code>PLATFORM_DEFAULT_ATTEST_HAL</code> OFF and is unaffected, because it compiles the HAL in <code>tfm_spm</code>. The
-trigger is the target.</p>
-<p>Measured, not read: the an519 build at isolation 2 in <code>C:&#92;b&#92;an519chk</code> (2026-10-22) compiles the HAL as
+<p><strong>Not an upstream defect.</strong> The trigger is the target that compiles the HAL, not the
+attest-HAL setting. A platform that sets <code>PLATFORM_DEFAULT_ATTEST_HAL</code> OFF is unaffected if it compiles the
+HAL in <code>tfm_spm</code>, which is what mps4 does.</p>
+<p>Measured rather than read: an an519 build at isolation 2 compiles the HAL as
 <code>tfm_spm.dir/…/tfm_hal_isolation_v8m.o</code> with <code>-DTFM_ISOLATION_LEVEL=2</code>,
 <code>-DCONFIG_TFM_PARTITION_META</code> and <code>-DCONFIG_TFM_ENABLE_MEMORY_PROTECT</code>.</p>
 <p>Recorded in <a href="ref/DECISIONS.html#d120">D120</a>, which withdraws UPSTREAM_CHANGES item 15, as item 13 was. D120 also corrects a

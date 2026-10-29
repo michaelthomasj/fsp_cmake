@@ -112,18 +112,28 @@ does not mention length.</p>
 <pre><code class="language-bat">cd C:\Users\&lt;you&gt;\Documents\GitHub
 
 git clone https://github.com/renesas/trusted-firmware-m.git
-git clone https://github.com/michaelthomasj/fsp_cmake.git
+git clone https://github.com/renesas/fsp_cmake.git
 
 rem  Only needed for the test-suite builds in §7
 git clone https://git.trustedfirmware.org/TF-M/tf-m-tests.git
-git clone https://github.com/ARM-software/psa-arch-tests.git</code></pre>
-<p>The <code>psa-arch-tests</code> clone is not sufficient on its own. The PSA Arch scripts select
-<code>PSA_API_TEST_TARGET=renesas_ra</code>, whose target directory <code>tgt_dev_apis_tfm_renesas_ra</code> is local
-to this setup and is not in the upstream tree, so a plain upstream clone lacks it. Setting
-<code>PSA_ARCH_TESTS_PATH</code> to a local tree also skips tf-m-tests&#x27; ten <code>fetch_repo</code> patches.</p>
-<p>Both repositories track the same branch:</p>
+git clone https://github.com/renesas/psa-arch-tests.git</code></pre>
+<p>The two port repositories track the same branch:</p>
 <pre><code class="language-bat">cd trusted-firmware-m &amp;&amp; git checkout ra8m2_gen_6_7_TFM &amp;&amp; cd ..
 cd fsp_cmake        &amp;&amp; git checkout ra8m2_gen_6_7_TFM &amp;&amp; cd ..</code></pre>
+<p>The two test repositories are pinned rather than tracked. Neither follows a branch of this
+port, both move upstream, and these are the revisions the results in <code>TEST_RESULTS.md</code> were
+produced against:</p>
+<pre><code class="language-bat">cd tf-m-tests     &amp;&amp; git checkout e0a433c              &amp;&amp; cd ..
+cd psa-arch-tests &amp;&amp; git checkout renesas-ra-tfm-2.2.0 &amp;&amp; cd ..</code></pre>
+<p>That <code>psa-arch-tests</code> URL is the Renesas fork, not <code>ARM-software</code>, and the tag carries the
+difference. The tag sits on branch <code>dev-api-tfm-renesas-ra-v24.03</code> and is upstream
+<code>v24.03_API1.6_CRYPTO_1.1.0</code> plus four things: the <code>tgt_dev_apis_tfm_renesas_ra</code> target the
+scripts select with <code>PSA_API_TEST_TARGET=renesas_ra</code>, a host-compiler fix in the target-config
+generator, deterministic ECDSA gated off because neither crypto engine implements it, and
+tf-m-tests&#x27; ten <code>fetch_repo</code> patches already applied. **A plain upstream clone has none of
+these.** Supplying <code>PSA_ARCH_TESTS_PATH</code> also makes TF-M skip the patch step without warning,
+which is why the patches are committed in the fork rather than left to <code>git apply</code>
+(<a href="DECISIONS.html#d014">D014</a>(DECISIONS.md)).</p>
 <p>You do not clone MCUboot or Mbed TLS. TF-M fetches both during the first configure.
 <code>MCUBOOT_PATH</code> defaults to <code>DOWNLOAD</code>. <code>MBEDCRYPTO_PATH</code> does not: with
 <code>&lt;PART&gt;_FSP_MBEDTLS</code> ON, which is the default, <code>fsp_mbedtls.cmake</code> FORCE-sets it to an overlay

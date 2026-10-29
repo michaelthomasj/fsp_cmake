@@ -7762,3 +7762,183 @@ name reaches `bsp_linker_info.h`, `memory_regions.ld` and `fsp_gen.ld` as
 tracked. Nothing reads either macro, so no build depends on the spelling and no image changes
 when it is corrected. The owner stopped chasing the propagation and left the name as it is;
 this entry records that so a customer reading the diff finds the typo already accounted for.
+
+---
+
+## D141 — the test record becomes a document; four claims are weaker than their wording, and one result has no entry behind it
+
+**Date:** 2026-10-27 · **Status:** Accepted · **Evidence:** assembled from the entries it cites; no run was repeated
+
+Asked whether any document listed the test runs and their results, the answer was no. The record
+existed and was spread across five places: the 24 entries of this log that record a run,
+[D124]'s isolation matrix, `RA8M2_SOLUTION.md`'s PSA Arch table, `RA6M5_SOLUTION.md`'s dated
+narrative, and `PROJECT_PLAN.md`'s coverage-gap table, which is the complement rather than the
+record. A reviewer asking what ran, on what, with what result had to reconstruct it from 49
+tracked launch configurations and 67 build trees.
+
+`TEST_RESULTS.md` now indexes it. Eight sections: the regression matrix by isolation level, the
+PSA Arch tallies, FLIH and SLIH, the MCUboot upgrade path, measured boot, RA6E1, the provenance
+caveats, and the one defect no suite here can reach. Every row cites the entry that recorded the
+run. **The document adds no result of its own, and no run was repeated to write it.**
+
+`BUILD_TEST_RESULTS.md` is not its ancestor. That file was RA6M4-era, moved to `archive/ra6m4/`
+and deleted in `55cd783`; it survives on `legacy/ra6m4-archive-bringup-scripts`.
+`DOCUMENTATION_PLAN.md` still lists it under "to retire or fold in once the above exist", and
+nothing had replaced it for the live parts.
+
+### Four claims that outrun their evidence
+
+Three were already recorded as corrections and are now collected where a reader meets the result
+rather than the correction. The fourth is new.
+
+| Claim | What the evidence is | Source |
+|---|---|---|
+| [D122]'s RA6M5 L2 and L1+IPC cells read "green" | secure 9/9 with the non-secure half truncated; from [D113] onward "green" means both halves | [D125] §4 |
+| [D123] §2's RA6M5 IAR L2 cell | non-secure 7/7 captured, secure half reported rather than recorded, as [D123] says itself | [D128] §4 |
+| [D115] §1's RA8M2 L3 secure half | "passed as far as the captured log runs"; the non-secure half was captured cleanly and separately | [D115] §1, [D116] §3 |
+| **RA8M2 GCC PSA Arch attestation, 1 / 0 / 0** | **no entry records this run.** The figure appears in [D106]'s M5 table and in `RA8M2_SOLUTION.md`, uncited in both | new |
+
+The attestation figure is almost certainly right. [D096] decoded the RA8M2 boot record from the
+attestation launch, which boots `m2cry` / `m2att`, so that tree did run on GCC. [D097] calls its
+own two suites "third and fourth", which implies two earlier ones. What is missing is the tally's
+provenance, not the run. Re-running `ra8m2_TFM_test_attestation_gcc` and recording it would close
+it; until then the cell is marked in `TEST_RESULTS.md` rather than printed as though sourced.
+
+### The build-tree names now have a legend
+
+Entries cite trees as `m5il3`, `m2gl2ns` and so on, 52 times across this log, and no document
+decoded them. `TEST_RESULTS.md` gives the scheme: part, toolchain, isolation level or suite, with
+`ns` for the non-secure half. The 67 trees live in `C:\b` and are not in the repository, so the
+names are the only handle a reader has on them.
+
+### What this does not change
+
+No result moved. [D124]'s matrix is still complete in the sense it claimed: every cell with a
+tree has run. **SLIH still has never run on RA8M2 on either toolchain, and has never run above
+isolation 1 on any part** ([D102], [D126] §4) - that was already the standing position and is now
+stated where the FLIH results are read.
+
+---
+
+## D142 — the PSA Arch tree ships as a fork with the patches committed, which closes D014's reproduction gap
+
+**Date:** 2026-10-29 · **Status:** Accepted · **Closes:** [D014] · **Builds on:** [D014], [D017], [D018] · **Evidence:** repository state and upstream reachability checks; no run was repeated
+
+**Context.** A customer-readiness review found the `renesas_ra` PSA Arch target in neither shipped
+repository, so the suites in `TEST_RESULTS.md` §2 could not be reproduced outside Renesas. D014
+had already identified the gap and left it open deliberately for the development vehicle, telling
+whoever revisited it to reconsider the rejected option once the target settled. It has settled.
+
+**What the local clone actually held.** Four commits on the tagged upstream release
+`v24.03_API1.6_CRYPTO_1.1.0`, working tree clean, nothing to author:
+
+| Commit | What |
+|---|---|
+| `509e2b2` | the ten `tf-m-tests` `tests_psa_arch/fetch_repo` patches, applied and committed |
+| `55cd71c` | `target_cfg`: let CMake identify the host compiler for the generator (+11/−1) |
+| `4cc7830` | `tgt_dev_apis_tfm_renesas_ra`, 7 files, 971 lines |
+| `8a4f437` | deterministic ECDSA gated off (+7) |
+
+`509e2b2` is why a fork beats vendoring the target. The gap D014 described has two halves — the
+missing target and the ten unapplied patches — and copying seven files into `fsp_cmake` or the TF-M
+fork closes only the first. **An unpatched tree fails `psa_verify_hash` check 13 on any platform**,
+which D014 recorded as a failure that reads like a port defect. Committing the patches turns
+D014's `git apply` ritual and its pre-run "are the patches applied?" check into a `git checkout`.
+
+**Decision.** Distribute the tree from the Renesas organisation's existing fork,
+`renesas/psa-arch-tests`, on branch `dev-api-tfm-renesas-ra-v24.03`, tagged
+`renesas-ra-tfm-2.2.0`. `GETTING_STARTED.md` §3 clones that fork and pins both test
+repositories.
+
+**Rejected.** Vendoring the target into either shipped repository — closes half the gap, and the
+half whose symptom is misleading. Carrying the target as an eleventh `fetch_repo` patch, which is
+D014's own rejected option: `tf-m-tests` is a clean upstream clone with zero local modifications,
+and this would turn one modified repository into two. Marking the suites not reproducible outside
+Renesas — unjustifiable when the fix is four commits that already exist.
+
+**D017 still stands, and the fork is not its branch.** `509e2b2` is labelled LOCAL ONLY because
+nine of the ten patches are Arm's own, so it can never reach an upstream pull request. Upstreaming
+the target needs a separate branch carrying `55cd71c`, `4cc7830` and `8a4f437` rebased onto current
+`main`, which has moved 102 commits past the base. Several of the ten are likely merged upstream by
+now, which should shrink that branch to the target plus the host-compiler fix.
+
+**Both test repositories are now pinned, which they were not.** No document had ever recorded a
+`tf-m-tests` revision — `GETTING_STARTED.md` carried a bare `git clone`, and a grep of the doc set
+for the commit returned nothing. The pin is `e0a433c`, verified reachable from upstream `main`,
+which has moved 137 commits past it. A bare clone of either repository's default branch is not what
+produced the results in `TEST_RESULTS.md`.
+
+**It ships from the Renesas organisation rather than a personal account.**
+`renesas/psa-arch-tests` already existed as a fork of `ARM-software/psa-arch-tests`, and its `main`
+is identical to upstream. It matches `renesas/trusted-firmware-m`, which `GETTING_STARTED.md` §3
+already clones; it keeps the directory name the scripts default `PSA_TESTS` to, so the clone needs
+no directory argument; and it does not tie a customer deliverable to an individual's account. The
+branch name follows the convention already in that fork, `dev-api-tfm-<part>-<upstream version>`,
+beside `dev-api-tfm-ra6m4-v23.06` and `dev-api-tfm-ra8d1-v23.06`. The v24.03 base is an ancestor of
+that fork's `main`, so the push carries the four commits and nothing else. A fork created under a
+personal account while this was being settled was abandoned unpushed.
+
+**Consequence.** The suites are reproducible outside Renesas for the first time. Whoever upreves
+either test repository has to move the pin deliberately and re-run rather than inherit upstream
+drift, and whoever upstreams the target under D017 builds the branch described above rather than
+pushing this one.
+
+---
+
+## D143 — the deliverable repository moves into the Renesas organisation; the scripts stop depending on its directory name; the rename waits on admin
+
+**Date:** 2026-10-29 · **Status:** Accepted · **Builds on:** [D142] · **Evidence:** repository and script inspection, and one refused API call; no run was repeated
+
+**Context.** [D142] moved the PSA Arch tree into the Renesas organisation, on the grounds that a
+customer deliverable should not depend on an individual's account. The same objection applied
+harder to this repository, which `GETTING_STARTED.md` §3 cloned from a personal account while every
+other URL it lists is organisational. The name was a second, separate problem: `fsp_cmake`
+describes the mechanism, FSP projects plus CMake glue, and not the deliverable, which is a TF-M
+port.
+
+**Decision.** Transfer the repository to `renesas/fsp_cmake`, and keep that name for now. All four
+clone URLs in `GETTING_STARTED.md` §3 are now organisational.
+
+**The rename to `fsp_tfm_cmake` was attempted and refused.** Transferring into the organisation
+replaced ownership with the organisation's default member access:
+
+```
+renesas/fsp_cmake        viewerPermission: WRITE   viewerCanAdminister: false
+renesas/psa-arch-tests   viewerPermission: ADMIN
+```
+
+Renaming needs admin, and **GitHub answers an admin operation you lack rights for with `404 Not
+Found` rather than `403`**, which reads as a missing repository and is worth recognising next time.
+Admin has been requested. Until it arrives the repository keeps its name, and the documents say
+`fsp_cmake` rather than describing something a customer cannot clone.
+
+**The change that makes the rename cheap is kept.** Seven of the eight build scripts hard-coded
+this repository's directory name, as `set FSP_CMAKE=%GH_ROOT_FWD%/fsp_cmake`. They now locate the
+repository from the script's own path:
+
+```
+for %%I in ("%~dp0..")    do set "REPO_ROOT=%%~fI"
+for %%I in ("%~dp0..\..") do set "GH_ROOT=%%~fI"
+...
+if "%FSP_CMAKE%"=="" set FSP_CMAKE=%REPO_ROOT:\=/%
+```
+
+The directory may now be named anything, so the name is a documentation detail and nothing more.
+The idiom was checked with a real `.bat` at matching depth under a directory named
+`fsp_tfm_cmake`, not reasoned about. When admin arrives, the rename is 17 textual references across
+nine documents and no functional change.
+
+**The variable name `FSP_CMAKE` stays.** A grep of the whole TF-M repository returns **zero**
+references to it. TF-M receives concrete `-DFSP_S_APP_DIR`, `-DFSP_BL2_APP_DIR` and
+`-DFSP_NS_APP_DIR` values, so the variable is script-local and carries no cross-repository
+contract. Renaming it would have been churn with no reader on the other side.
+
+**Cost already paid.** The script preamble shifted four `.bat` lines that `check_arch_lines.py`
+cites, by one line each, renumbered in both the checker table and `BUILD_ARCHITECTURE.md` — the
+second time this session that adding a preamble moved cited lines, and the checker caught it both
+times.
+
+**Consequence.** The old personal URL redirects, so nothing published earlier breaks. A local clone
+whose `origin` was repointed at the intended new name has to be set back to
+`https://github.com/renesas/fsp_cmake.git`, because the renamed repository does not exist yet.
+Whoever completes the rename changes the documents and this log, not any script.

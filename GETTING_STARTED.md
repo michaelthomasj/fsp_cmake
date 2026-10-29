@@ -61,24 +61,38 @@ does not mention length.
 cd C:\Users\<you>\Documents\GitHub
 
 git clone https://github.com/renesas/trusted-firmware-m.git
-git clone https://github.com/michaelthomasj/fsp_cmake.git
+git clone https://github.com/renesas/fsp_cmake.git
 
 rem  Only needed for the test-suite builds in §7
 git clone https://git.trustedfirmware.org/TF-M/tf-m-tests.git
-git clone https://github.com/ARM-software/psa-arch-tests.git
+git clone https://github.com/renesas/psa-arch-tests.git
 ```
 
-The `psa-arch-tests` clone is not sufficient on its own. The PSA Arch scripts select
-`PSA_API_TEST_TARGET=renesas_ra`, whose target directory `tgt_dev_apis_tfm_renesas_ra` is local
-to this setup and is not in the upstream tree, so a plain upstream clone lacks it. Setting
-`PSA_ARCH_TESTS_PATH` to a local tree also skips tf-m-tests' ten `fetch_repo` patches.
-
-Both repositories track the same branch:
+The two port repositories track the same branch:
 
 ```bat
 cd trusted-firmware-m && git checkout ra8m2_gen_6_7_TFM && cd ..
 cd fsp_cmake        && git checkout ra8m2_gen_6_7_TFM && cd ..
 ```
+
+The two test repositories are pinned rather than tracked. Neither follows a branch of this
+port, both move upstream, and these are the revisions the results in `TEST_RESULTS.md` were
+produced against:
+
+```bat
+cd tf-m-tests     && git checkout e0a433c              && cd ..
+cd psa-arch-tests && git checkout renesas-ra-tfm-2.2.0 && cd ..
+```
+
+That `psa-arch-tests` URL is the Renesas fork, not `ARM-software`, and the tag carries the
+difference. The tag sits on branch `dev-api-tfm-renesas-ra-v24.03` and is upstream
+`v24.03_API1.6_CRYPTO_1.1.0` plus four things: the `tgt_dev_apis_tfm_renesas_ra` target the
+scripts select with `PSA_API_TEST_TARGET=renesas_ra`, a host-compiler fix in the target-config
+generator, deterministic ECDSA gated off because neither crypto engine implements it, and
+tf-m-tests' ten `fetch_repo` patches already applied. **A plain upstream clone has none of
+these.** Supplying `PSA_ARCH_TESTS_PATH` also makes TF-M skip the patch step without warning,
+which is why the patches are committed in the fork rather than left to `git apply`
+([D014](DECISIONS.md)).
 
 You do not clone MCUboot or Mbed TLS. TF-M fetches both during the first configure.
 `MCUBOOT_PATH` defaults to `DOWNLOAD`. `MBEDCRYPTO_PATH` does not: with
