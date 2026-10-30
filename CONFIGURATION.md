@@ -197,7 +197,7 @@ Read the region figures from the linker's own `Memory region` table in the build
 | `<PART>_ORPHAN_CHECK_STRICT` | OFF | makes an orphan section fatal; intended for CI |
 | `<PART>_NS_IN_SPE_BUILD` | OFF | builds the NS image inside the secure build |
 | `MCUBOOT_LOG_LEVEL` | `INFO` upstream; `OFF` only under `MinSizeRel`/`Release` | `INFO` costs BL2 text +5,960 B and bss +4,284 B. BL2 has its own region, so this does not touch the secure slot |
-| `TFM_SPM_LOG_LEVEL`, `TFM_PARTITION_LOG_LEVEL`, `CONFIG_TFM_HALT_ON_CORE_PANIC` | silent / OFF | secure text +3,785 B for the three together — more than RA6M5's real 1,693 B of headroom ([D087]), so they cannot be enabled globally |
+| `TFM_SPM_LOG_LEVEL`, `TFM_PARTITION_LOG_LEVEL`, `CONFIG_TFM_HALT_ON_CORE_PANIC` | silent / OFF | secure text +3,785 B for the three together, which both parts have region room for. The PSA Arch scripts pass them explicitly so the ordinary builds stay smaller, not because they would fail to link |
 
 The PSA Arch scripts pass the last two groups explicitly, because `profile_large` at isolation 3
 has the room and the ordinary builds do not. That is why they are per-script rather than in
