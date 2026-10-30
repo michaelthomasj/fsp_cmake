@@ -4,23 +4,23 @@
 # BUILD_ARCHITECTURE.md cites ~40 line numbers in the RA port CMakeLists. Those numbers
 # move when a TF-M *comment* is edited above them, which is how they drifted twice on
 # 2026-10-22: the D129 comment pass, and the PXN comment commit recorded in D131 section 4.
-# fsp_cmake's own pre-commit cannot see it: a TF-M commit never
-# runs it, so the drift was caught only at the next fsp_cmake commit that happened to stage
+# The companion repository's own pre-commit cannot see it: a TF-M commit never
+# runs it, so the drift was caught only at the next commit there that happened to stage
 # the document, or by a manual run (F321).
 #
 # This hook closes that gap from the other side: edit a renesas port file in TF-M and the
 # check runs here, at the commit that causes the drift.
 #
-# Install:   sh fsp_cmake/scripts/install_hooks.sh      (installs both repositories' hooks)
+# Install:   sh <companion>/scripts/install_hooks.sh    (installs both repositories' hooks)
 # Bypass:    git commit --no-verify
 #
-# It only reports. Fixing means editing fsp_cmake/BUILD_ARCHITECTURE.md and the table in
+# It only reports. Fixing means editing BUILD_ARCHITECTURE.md there and the table in
 # check_arch_lines.py together, which is a judgement call about which construct each
 # citation means - not something to regenerate.
 #
 # LIMIT: the checker reads the WORKING TREE, not the index, so a partly staged comment edit
 # is checked against the file on disk rather than against what is being committed. That is
-# the opposite of what fsp_cmake's hook does for the documents, and it is deliberate: the
+# the opposite of what that repository's hook does for the documents, and it is deliberate: the
 # alternative is a temporary checkout of the whole port on every commit. It means the check
 # can report a line that this commit does not move, and can miss one that it does.
 
@@ -28,9 +28,21 @@ changed=$(git diff --cached --name-only --diff-filter=ACMR)
 echo "$changed" | grep -q '^platform/ext/target/renesas/' || exit 0
 
 root=$(git rev-parse --show-toplevel)
-checker="$root/../fsp_cmake/scripts/check_arch_lines.py"
-if [ ! -f "$checker" ]; then
-    echo "pre-commit: no fsp_cmake beside this clone, so BUILD_ARCHITECTURE.md's line"
+
+# FIND THE COMPANION REPOSITORY BY CONTENT, NOT BY NAME. This line used to read
+#     checker="$root/../fsp_cmake/scripts/check_arch_lines.py"
+# which is the one place the rename to ra_fsp_cmake_tfm would have broken something rather
+# than just reading oddly: the .bat scripts already locate themselves, and this hook did not.
+checker=
+for d in "$root"/../*/scripts/check_arch_lines.py; do
+    if [ -f "$d" ]; then
+        checker="$d"
+        break
+    fi
+done
+if [ -z "$checker" ]; then
+    echo "pre-commit: no companion repository beside this clone carries"
+    echo "            scripts/check_arch_lines.py, so BUILD_ARCHITECTURE.md's line"
     echo "            citations are not checked for this commit."
     exit 0
 fi
@@ -39,9 +51,9 @@ python "$checker"
 status=$?
 if [ $status -ne 0 ]; then
     echo
-    echo "pre-commit: this commit moves lines that fsp_cmake/BUILD_ARCHITECTURE.md cites (above)."
+    echo "pre-commit: this commit moves lines that BUILD_ARCHITECTURE.md cites (above)."
     echo "            Update that document and the table in check_arch_lines.py together,"
-    echo "            or commit with --no-verify and fix it in the fsp_cmake commit."
+    echo "            or commit with --no-verify and fix it in the companion commit."
     exit $status
 fi
 exit 0

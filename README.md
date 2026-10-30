@@ -1,4 +1,4 @@
-# fsp_cmake
+# ra_fsp_cmake_tfm
 
 The RASC/e2 studio project set and build glue for the TF-M port to Renesas RA. The port itself
 lives in the companion repository, `trusted-firmware-m`, under
@@ -78,7 +78,7 @@ Two rules it will repeat, because neither failure is recoverable:
 
 | | |
 |---|---|
-| `fsp_cmake` (here) | the e2 studio solutions and generated FSP projects, `scripts/`, and the documents below |
+| `ra_fsp_cmake_tfm` (here) | the e2 studio solutions and generated FSP projects, `scripts/`, and the documents below |
 | `trusted-firmware-m` | the TF-M fork carrying the RA platform ports, and a small patch queue against upstream |
 
 RASC is the source of configuration truth: the TF-M build consumes the generated projects and

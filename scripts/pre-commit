@@ -55,7 +55,7 @@ fi
 #     there is nothing to generate - a human has to look.
 #
 #     THIS STEP DOES NOT CATCH THE DRIFT AT ITS SOURCE. The cause is a TF-M comment edit, and
-#     a TF-M commit never runs this hook, so this step fires only at the next fsp_cmake commit
+#     a TF-M commit never runs this hook, so this step fires only at the next commit here
 #     that stages the document. scripts/pre-commit-tfm covers the other side and is installed
 #     into the TF-M clone by install_hooks.sh. After editing a renesas port file without that
 #     hook, run `python scripts/check_arch_lines.py` by hand. Skipped when TF-M is absent.

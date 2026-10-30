@@ -98,7 +98,7 @@ after a regenerate. D092, D093.
 The trap: nothing in the build warns if the generated value later becomes correct - the port's
 define keeps winning, silently, and the deviation outlives its reason.
 ## 2. Repositories
-- `fsp_cmake` — RASC-generated FSP projects (bl2 / s / ns / …) + modular CMake + this doc + status doc
+- `ra_fsp_cmake_tfm` — RASC-generated FSP projects (bl2 / s / ns / …) + modular CMake + this doc + status doc
   + bring-up scripts. FSP 6.7.0-beta0 ([D045], [D047]); [GETTING_STARTED.md](GETTING_STARTED.md) §2 is the
   authority for tool versions.
 - `trusted-firmware-m` — the port under `platform/ext/target/renesas/<part>/`. Base `TF-Mv2.2.0`.
@@ -519,7 +519,7 @@ indication — over ~1 MB means it spans the option memory.
   linker/OFS/veneer decisions expressible for a third toolchain (§7/§8).
 
 ## 12. Bring-up
-- `fsp_cmake/bringup/` — RA6M4/RA6E1-era J-Link flash and RTT scripts, plus the preserved
+- `bringup/` — RA6M4/RA6E1-era J-Link flash and RTT scripts, plus the preserved
   bricking evidence. The live parts are flashed through the e2 launch configurations instead,
   and GCC images must be `MinSizeRel` ([CONFIGURATION.md](CONFIGURATION.md) §1), not Debug. TrustZone boundaries
   are programmed with RDPM (§7.1), not RFP. Historic note follows: images were Debug builds (full symbols for

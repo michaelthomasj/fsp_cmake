@@ -6,12 +6,12 @@
 
 | | |
 |---|---|
-| Entries | **154** |
+| Entries | **155** |
 | Standing | **141** |
-| Superseded | **13** |
+| Superseded | **14** |
 | Standing but corrected on some point | **40** |
 | Standing, but the question they left open is closed | **3** |
-| Supersede lineages | **10** |
+| Supersede lineages | **11** |
 
 ---
 
@@ -31,6 +31,7 @@ A later entry **supersedes** an earlier one: same question, newer answer. Citing
 | D102 → **D103** | `D103` | D103 supersedes D102 |
 | D107 → **D108** | `D108` | D108 supersedes D107 |
 | D132 → **D133** | `D133` | D132 corrects D094, D065, D120; D133 supersedes D132; D133 corrects D132 |
+| D143 → **D155** | `D155` | D155 supersedes D143 |
 
 ---
 
@@ -169,7 +170,6 @@ Nothing supersedes these. The title is the position. Where a later entry correct
 | `D140` | 2026-10-26 | the e2 baseline ships inside the deliverable, not as a branch beside it | Accepted | `D145` | — |
 | `D141` | 2026-10-27 | the test record becomes a document; four claims are weaker than their wording, and one result has no entry behind it | Accepted | — | — |
 | `D142` | 2026-10-29 | the PSA Arch tree ships as a fork with the patches committed, which closes D014's reproduction gap | Accepted | — | — |
-| `D143` | 2026-10-29 | the deliverable repository moves into the Renesas organisation; the scripts stop depending on its directory name; the rename waits on admin | Accepted | — | — |
 | `D144` | 2026-10-29 | the application chain gets its fourth script and its first RA8M2 launches; the pre-flash check becomes per part and works under IAR | Accepted | `D152` | — |
 | `D145` | 2026-10-29 | `.secure_azone` is generated from the solution, not read as input; [D140]'s mechanism claim was wrong | Accepted | — | — |
 | `D146` | 2026-10-29 | the documents become a three-tier set; six maintainer documents and the rendered mirror leave the repository | Accepted | — | — |
@@ -181,10 +181,11 @@ Nothing supersedes these. The title is the position. Where a later entry correct
 | `D152` | 2026-10-29 | every application build tree moves under `C:\b`; [D144] chose the one default a launch cannot have | Accepted | — | — |
 | `D153` | 2026-10-29 | the second review pass: nine wrong statements, a renderer that would have shipped withheld documents, and the limits of the checks | Accepted | `D154` | — |
 | `D154` | 2026-10-29 | the release recipe did not build, and the space budget measured the wrong thing | Accepted | — | — |
+| `D155` | 2026-10-29 | the repository is `ra_fsp_cmake_tfm`; one reference was load-bearing and [D143] had missed it | Accepted | — | — |
 
 ---
 
-## Superseded (13)
+## Superseded (14)
 
 Kept for the reasoning. **Do not cite one of these without reading what replaced it** — in several cases the later entry reverses the earlier claim outright.
 
@@ -203,4 +204,5 @@ Kept for the reasoning. **Do not cite one of these without reading what replaced
 | `D102` | 2026-10-08 | RA8M2 IAR: all six trees build, five launches generated; the ewarm staleness was already gone | `D103` |
 | `D107` | 2026-10-09 | BL2 is silent under IAR because DLIB buffers stdout; `rtt_stdout.c` now makes it unbuffered | `D108` (also corrected by `D110`) |
 | `D132` | 2026-10-22 | the RA6M4 brick is a write to a reserved area; no field needs naming | `D133` |
+| `D143` | 2026-10-29 | the deliverable repository moves into the Renesas organisation; the scripts stop depending on its directory name; the rename waits on admin | `D155` |
 

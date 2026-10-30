@@ -29,7 +29,7 @@ Two repositories:
 | Repository | Holds |
 |---|---|
 | `trusted-firmware-m` | The TF-M fork. The RA ports live in `platform/ext/target/renesas/<part>/`. |
-| `fsp_cmake` | The e2 studio / RASC projects, the build scripts, and the design record. |
+| `ra_fsp_cmake_tfm` | The e2 studio / RASC projects, the build scripts, and the design record. |
 
 > RASC is the source of config truth. The TF-M build consumes the generated FSP projects;
 > it does not fork them. Pin numbers, clock settings, the memory partitioning and the
@@ -67,7 +67,7 @@ does not mention length.
 cd C:\Users\<you>\Documents\GitHub
 
 git clone https://github.com/renesas/trusted-firmware-m.git
-git clone https://github.com/renesas/fsp_cmake.git
+git clone https://github.com/renesas/ra_fsp_cmake_tfm.git
 
 rem  Only needed for the test-suite builds in §7
 git clone https://git.trustedfirmware.org/TF-M/tf-m-tests.git
@@ -78,7 +78,7 @@ The two port repositories track the same branch:
 
 ```bat
 cd trusted-firmware-m && git checkout ra8m2_gen_6_7_TFM && cd ..
-cd fsp_cmake        && git checkout ra8m2_gen_6_7_TFM && cd ..
+cd ra_fsp_cmake_tfm && git checkout ra8m2_gen_6_7_TFM && cd ..
 ```
 
 The two test repositories are pinned rather than tracked. Neither follows a branch of this port,
@@ -119,7 +119,7 @@ The TF-M build reads two files that only an e2 studio build produces:
 Regenerating the project in RASC is not enough. The project must be built.
 
 1. Open e2 studio, `File → Import → Existing Projects into Workspace`, and select the
-   `fsp_cmake` folder. Import the solution for your part and all its sub-projects:
+   `ra_fsp_cmake_tfm` folder. Import the solution for your part and all its sub-projects:
 
    | Part | Solution | Sub-projects |
    |---|---|---|
@@ -146,7 +146,7 @@ Each script builds BL2 + the secure image, installs the SPE interface into `api_
 builds the non-secure image against it. There is one script per part and toolchain:
 
 ```bat
-cd C:\Users\<you>\Documents\GitHub\fsp_cmake
+cd C:\Users\<you>\Documents\GitHub\ra_fsp_cmake_tfm
 
 scripts\app_build_ra6m5_gcc.bat
 scripts\app_build_iar.bat

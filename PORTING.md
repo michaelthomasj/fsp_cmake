@@ -8,7 +8,7 @@ The two halves:
 
 | Half | Where | Covered by |
 |---|---|---|
-| What the generated e2 project must emit | `fsp_cmake/<part>_*/` | [E2_PROJECT_REQUIREMENTS.md](E2_PROJECT_REQUIREMENTS.md) |
+| What the generated e2 project must emit | `<part>_*/` in this repository | [E2_PROJECT_REQUIREMENTS.md](E2_PROJECT_REQUIREMENTS.md) |
 | What the TF-M platform must supply | `platform/ext/target/renesas/<part>/` | this document |
 
 Neither works alone. Do the checklist first — the platform reads the project.

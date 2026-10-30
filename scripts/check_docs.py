@@ -402,7 +402,7 @@ def main():
         rel = os.path.relpath(path, TFM).replace("\\", "/")
         for name in sorted(set(RE_MDNAME.findall(read(path)))):
             bare = os.path.basename(name)
-            if (os.path.isfile(os.path.join(ROOT, name))        # path relative to fsp_cmake
+            if (os.path.isfile(os.path.join(ROOT, name))        # path relative to this repository
                     or os.path.isfile(os.path.join(ROOT, bare))  # bare name at its root
                     or os.path.isfile(os.path.join(os.path.dirname(path), bare))
                     or os.path.isfile(os.path.join(TFM, name))):

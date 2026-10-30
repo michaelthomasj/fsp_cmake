@@ -28,7 +28,7 @@ So a layout like this needs nothing set:
 
 ```
 <anywhere>\
-  fsp_cmake\
+  ra_fsp_cmake_tfm\
   trusted-firmware-m\
   tf-m-tests\
   psa-arch-tests\

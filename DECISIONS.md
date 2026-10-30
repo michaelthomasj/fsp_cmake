@@ -8512,3 +8512,47 @@ accelerator config marks both to be restored. Its Mbed TLS version was 3.6.3; th
 came from *correcting* something: the previous pass fixed a figure, a limit and a procedure, and
 each fix carried a new wrong statement. A checker can confirm a reference resolves and a number
 is present. It cannot confirm the number answers the question the sentence asks.
+
+## D155 — the repository is `ra_fsp_cmake_tfm`; one reference was load-bearing and [D143] had missed it
+
+**Date:** 2026-10-29 · **Status:** Accepted · **Supersedes:** [D143] · **Evidence:** `git grep` across both repositories before and after; `sh -n` on both hooks; all four checkers after the sweep
+
+**What changed.** The rename [D143] was waiting on admin for has happened, and the name is
+`ra_fsp_cmake_tfm`, not the `fsp_tfm_cmake` that entry proposed. The clone URL is
+`https://github.com/renesas/ra_fsp_cmake_tfm.git`.
+
+**[D143] said the rename was "17 textual references across nine documents and no functional
+change". The second half was wrong.** `scripts/pre-commit-tfm` resolved the companion repository
+by name:
+
+```sh
+checker="$root/../fsp_cmake/scripts/check_arch_lines.py"
+```
+
+That hook is installed into the TF-M clone, so it cannot use the `%~dp0` self-location trick
+[D143] gave the `.bat` scripts — and it was the one place the rename would have broken something
+rather than merely read oddly, with the failure being silent: the hook prints "no companion
+repository, so the citations are not checked" and exits 0. **It now finds the companion by
+content**, globbing the siblings of the TF-M clone for one that carries
+`scripts/check_arch_lines.py`, so no directory name appears in it at all.
+
+**The sweep.** 20 prose references here across 9 files, and 52 across 22 files in the TF-M tree,
+of which **every CMake mention was a comment** — checked by grepping for the name on a line that
+is not a comment, which returned nothing.
+
+Three categories were deliberately left alone:
+
+- **`DECISIONS.md` and `SETTLED.md`.** Append-only; their mentions are the record of what the
+  repository was called.
+- **`FSP_CMAKE`, the script variable.** [D143]'s reasoning still holds: zero references to it in
+  the TF-M tree, so it carries no cross-repository contract, and renaming it would be churn with
+  no reader on the other side. It also still reads correctly — the repository is FSP projects
+  plus CMake glue, whatever its directory is called.
+- **Two historical quotes.** `check_docs.py` narrates nineteen build files that once pointed at
+  `fsp_cmake/TFM_INTEGRATION_COMPLETE.md`, and `pre-commit-tfm` now quotes the line it replaced.
+  Changing either would falsify the thing it is reporting.
+
+**The local directory is still named `fsp_cmake`, and nothing requires renaming it.** The eight
+`.bat` scripts locate themselves ([D143]), the hook no longer names anything, and `TFM_SRC`
+derives from the script's own path. A clone made from the new URL lands in
+`ra_fsp_cmake_tfm/` and works identically, which is what `GETTING_STARTED.md` §3 now says.
