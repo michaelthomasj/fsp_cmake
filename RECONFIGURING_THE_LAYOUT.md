@@ -33,35 +33,20 @@ One edit propagates through four stages, and you touch none of them:
 
 Consequences worth knowing:
 
-- **Rebuild the e2 project, do not just regenerate.** `bsp_linker_info.h` is a build artefact.
-  Regenerating alone leaves the old values and the TF-M build uses them.
+- **Build the e2 project, do not just regenerate** ([GETTING_STARTED.md](GETTING_STARTED.md) §4).
 - **Never hand-edit `bsp_partitions.h`.** It is generated into the build directory and
   regenerated every configure.
 - If the grep finds no `BSP_PARTITION_*` lines the configure stops with a message naming the
   cause — that error means step 1 did not happen.
 
-### Why `bsp_partitions.h` exists at all
-
-`flash_layout.h` and `region_defs.h` are consumed by C and preprocessed into the linker
-scripts with `-xc`. `bsp_linker_info.h` cannot serve the second: alongside the macros it declares
-C types and externs (`typedef enum e_bsp_init_mem`, `gp_ddsc_*`) that land verbatim in the
-preprocessed linker script and fail to parse. It also defines a `static const struct flash_area
-flash_map[]` under `FLASH_MAP_C` that would collide with TF-M's own.
-
-So the CMakeLists extracts only the `#define BSP_PARTITION_*` lines.
-
----
-
 ## 2. What does NOT follow — the four
 
 ### 2.1 RDPM boundary values ⚠ *fails on silicon*
 
-The TrustZone boundaries are programmed into the device, not the image, through the Renesas
-Device Partition Manager. Nothing in the build knows what you set. RA8M2 is `703/1/0/935/1/0`.
-
-- Change the layout, and the RDPM values almost certainly change with it.
-- **RDPM erases the part.** Reflash all three images afterwards.
-- Getting them wrong gives a secure image that will not start, with no console output.
+The boundaries are programmed into the device and change with the layout. Re-derive them (the
+SOLUTION documents show how), then reprogram with RDPM, which erases the part
+([GETTING_STARTED.md](GETTING_STARTED.md) §6). Wrong values give a secure image that never
+starts, with no output.
 
 ### 2.2 `PS_NUM_ASSETS` capacity *fails at runtime*
 
@@ -75,35 +60,19 @@ storage suites then fail in ways that look like code faults.
 
 ### 2.3 The NSC window LMA budget *fails at link, obscurely*
 
-The non-secure callable veneers sit at a fixed address at the top of the secure region, and the
-MCUboot trailer occupies the slot tail. Both constrain how much the secure image can grow.
-The symptom before [D063] was `region FLASH overflowed` with apparently free space: pinned
-veneers dragged FLASH's allocation pointer to their end, so everything after them started
-beyond the veneers. `TFM_LINKER_VENEERS_OWN_REGION` (`4025eedff`) fixed that and is set on
-every RA port, so a plain overflow now means the code genuinely reached the NSC window.
-**That link failure is the one to expect when the code grows**, and imgtool is not: the flat
-binary already spans the region, so the signed image is region-sized whatever the image costs
-([CONFIGURATION.md](CONFIGURATION.md) §6). imgtool refusing with "Image size + trailer exceeds
-requested size" means the slot, region and header sizes disagree with each other, which is a
-repartitioning mistake rather than a size one.
-
-Related: `ih_img_size` is set by the layout, not by how much code you emitted — the image
-runs to the veneers at their fixed address. Both toolchains report the same value for this
-reason ([D106]).
+The NSC veneers are pinned at the top of the secure region, so the code budget is the region
+([CONFIGURATION.md](CONFIGURATION.md) §6) and exceeding it fails the link. When you resize, keep
+the slot ≥ region + 0x200 header + ~275 B of TLVs + trailer, or imgtool refuses after a clean
+link.
 
 ### 2.4 `MCUBOOT_ALIGN_VAL` compatibility *fails as a verification error*
 
-imgtool encodes the alignment in the boot magic, so **images signed before and after a change
-are not interchangeable**. RA6M5 uses 128 (trailer `0x180`), RA8M2 uses 32 (`0x60`). Changing
-it means reflashing everything, including any secondary-slot images.
-
----
+Images signed at one `MCUBOOT_ALIGN_VAL` are rejected by a BL2 built at another; reflash every
+slot after a change ([CONFIGURATION.md](CONFIGURATION.md) §3).
 
 ## 3. The assertions that catch you
 
-`<part>_layout_checks.c` carries 35 compile-time assertions on RA8M2. They turn a layout
-mistake into a compile error instead of a boot failure with no console output. A sample of what
-they cover, with the message each prints:
+`<part>_layout_checks.c` turns layout mistakes into compile errors. Examples:
 
 | Checks | Catches |
 |---|---|
@@ -125,20 +94,19 @@ assertions do not cover, add one.
    The bootloader one matters because the OFS addresses come from its `Debug/memory_regions.*`
    on RA8M2, and [PORTING.md](PORTING.md) §5 asks for all three. Confirm
    `<project>/Debug/bsp_linker_info.h` has the new values before going on.
-3. Reconfigure TF-M from scratch. Delete the build directory. A stale `CMakeCache.txt`
-   carries the old generated values with no diagnostic — this has bitten the port repeatedly
-   ([D089], [D102]).
+3. Reconfigure TF-M from a deleted build directory; a stale `CMakeCache.txt` keeps the old values
+   silently.
 4. Build and read the assertions (§3).
 5. Revisit the four (§2): RDPM, `PS_NUM_ASSETS`, the NSC/trailer budget, `MCUBOOT_ALIGN_VAL`.
 6. Check the OFS guard output. `check_ofs.py` runs during the build; a layout change can move
    the option-setting words. ⚠ [DESIGN.md](DESIGN.md) §8.4.
 7. Reprogram RDPM if the boundaries moved, then reflash all three images. **RDPM erases
    the part.**
-8. Erase code and data flash on the first connect after any storage change.
-9. Re-run the full regression and the storage suite. Storage is the one most sensitive to
-   layout, and test 403 ("insufficient space") exercises the boundary directly.
-10. Resign any secondary-slot images with `scripts/sign_secondary.py`. They are built against
-    the old layout otherwise.
+8. Erase code and data flash on the first connect after a storage change
+   ([GETTING_STARTED.md](GETTING_STARTED.md) §6).
+9. Re-run the full regression and the storage suite (test 403 exercises the boundary).
+10. Re-sign secondary-slot images with `scripts/sign_secondary.py`
+    ([scripts/README.md](scripts/README.md)).
 
 ---
 
@@ -160,8 +128,5 @@ assertions do not cover, add one.
 
 ## 6. See also
 
-- [DESIGN.md](DESIGN.md) §1 config truth, §3 the authoritative memory map, §8.4 OFS ⚠
-- [CONFIGURATION.md](CONFIGURATION.md) — every layout symbol and its constraint
-- [RA8M2_SOLUTION.md](RA8M2_SOLUTION.md) / [RA6M5_SOLUTION.md](RA6M5_SOLUTION.md) — the current maps and RDPM values
-- [PORTING.md](PORTING.md) — a new part rather than a new layout
-- [GETTING_STARTED.md](GETTING_STARTED.md) §4 — why the e2 build is a prerequisite
+[DESIGN.md](DESIGN.md) §3, [CONFIGURATION.md](CONFIGURATION.md) §7, the SOLUTION documents,
+[PORTING.md](PORTING.md) for a new part.
