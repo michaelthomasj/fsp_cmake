@@ -8660,3 +8660,78 @@ characters and were written into `GETTING_STARTED.md`'s tool table — found by 
 tracked file for control bytes, not by any checker — and a line-wrapper has to treat
 `[text](link)`, `` `code` `` and `§"Title"` as unbreakable, or it splits a citation across lines
 and breaks the section check.
+
+---
+
+## D158 — the pass-5 items, and two checks that would have caught most of them
+
+**Date:** 2026-10-30 · **Status:** Accepted · **Corrects:** [D157] · **Builds on:** [D156], [D157] · **Evidence:** every reported item verified in source before editing; all four checkers plus --clean-clone after each batch
+
+**Context.** Pass 5 reviewed the result of [D157]'s concision edits and found one blocker, 11
+major items and 110 minor ones. **Most were caused by the cuts themselves**, which is the
+finding that matters: a deleted sentence, a table emptied, or a link that still resolves and no
+longer answers.
+
+**The blocker.** The import step said to select the part's solution folder. `ra8m2_gcc/` and
+`ra6m5_gcc/` hold only `build/` and `solution.xml`; the fifteen sub-projects are siblings of
+them at the repository root, and `e2_baseline/` declares the **same project names**, so a root
+import offers both and e2 will import neither pair. Nobody could have followed it. It is now
+"select the repository root, tick your part's solution and its three sub-projects, untick
+everything under `e2_baseline/`".
+
+**Four rules, two of them now mechanical.** The pass named four method rules; rules 3 and 4
+are now `check_docs.py` checks rather than things to remember.
+
+1. **An edit plan must carry final text, never instructions.** A plan row read "Restore
+   ea720b0 rows 540-566 without the source column"; it was applied literally and left
+   `<table></table>` in `part1-privilege-mpu-faults.html`. Eight fault diagnoses that exist
+   nowhere else were gone, the prose below still said "Rows 1-2" and "rows 3-4", and **all four
+   checkers passed.**
+2. **Before each cut, list the facts it removes and confirm each is stated at its owner.** The
+   SSD lifecycle prerequisite for the Device Partition Manager left every customer document.
+   RA8M2's single-core status left the main path when `KNOWN_LIMITATIONS` started pointing at a
+   README row that did not carry it.
+3. **Check 10: content, not only references.** Empty tables and lists, paragraphs that end
+   mid-sentence, a count in prose over a list of a different length, and editing instructions
+   left in the text. It found the empty table immediately.
+4. **Check 11: `--clean-clone`.** Re-runs everything against `git archive HEAD`. Check 3 now
+   also resolves against the tracked set, and check 3 scans `.c`, `.h`, `.ld` and `.icf` as
+   well as `.cmake`.
+
+**What widening check 3 found that review had not.** Six comments in the TF-M tree named
+documents the delivery withholds or has deleted — `RA6E1_SOLUTION.md` five times and
+`PROJECT_PLAN.md` once — and every one resolved on this machine because the withheld files are
+still on disk. A seventh named `BRIDGING_FILES.md`, deleted in the pass-3 restructure. The
+review found four of the seven; the other three sat in a `.h` and a `.c`, which the
+`.cmake`-only scan could not see. **The narrow extension list was never a decision**, just the
+first thing that was written.
+
+**`build_doc_html.py --check` could not be run the way rule 4 wants.** `ref/` is gitignored
+([D146]), so on a clean clone every page read as stale and the check exited 1. Never built and
+stale are now separate states: a directory that has never been rendered reports "not built" and
+exits 0, while a page that exists and differs still fails.
+
+**Three of my own edits had broken HTML the checkers cannot see**, each a span one line short
+of its element: `</code></pre>` with no opening tag, a table row with no `</tr>`, a paragraph
+with no `</p>`. A tag-balance count against each file's pre-edit state found them, and turned
+up two older defects in `part4-porting.html` as well.
+
+**And one correction of a correction.** [D157] changed `RA8M2_SOLUTION`'s flash-backend
+citation from `DESIGN` §4 to §5, because §5 is headed "MCUboot / BL2" and that is where the
+subject belongs. The paragraph is in §4, "Flash driver geometry". The citation was right before
+I touched it. That is [D154]'s pattern — a checker confirms a reference resolves, not that it
+answers the sentence — recurring at section level, and it is why every pass-5 citation was read
+in source before being changed.
+
+**Measured rather than taken.** The review listed 31 concision items from a word count over
+tag-stripped HTML, where a page's sidebar and ASCII diagrams concatenate into one
+pseudo-sentence; that method reports 173. Counting Markdown prose per paragraph gives 15, all
+now split, and the Markdown set is at zero over the 35-word ceiling. The launch-field claim was
+checked with `git` rather than quoted: no launch carries an `svdFile`, 44 of 47 carry
+`ioFilePath`, 27 carry a source-lookup path, 8 RA6M5 IAR launches are tracked rather than six,
+and no launch carries `e2lite.setTZBoundaries` true, so the generator no longer rewrites it.
+
+**[D045] now records that it closes [D036], [D037], [D039] and [D040].** All four read
+"Provisional — builds; not yet run on silicon" with nothing closing them, months after the
+RA6M5 SCE9 crypto run that settled them. Rule 7 governs: the metadata line is an index and may
+be corrected in place, the entry prose is untouched, and this entry states the change.
