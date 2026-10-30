@@ -5,7 +5,7 @@ RASC is a prerequisite.
 
 ---
 
-## 1. The model, in one paragraph
+## 1. The model
 
 **Secure image and BL2: drivers are opt-in.** A driver reaches them only if a
 `cmake/modules/fsp_<name>.cmake` declares it and the platform lists it in `FSP_MODULES_S` or

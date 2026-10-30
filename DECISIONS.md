@@ -44,7 +44,7 @@ wins.
 | Why did RA8M2's first boot HardFault? | **MRAM's MRCPFB was non-secure.** `BSP_CFG_CLOCKS_SECURE (0)` clears `BSP_TZ_CFG_MSAR` bit 4 and the first MRAM access faults at `0x4013C000`. Worked around with `BSP_TZ_CFG_MSAR=0`, **still open** pending an e2 generator fix. | D092→**D093** |
 | Why was BL2 silent on RTT under IAR? | **Two independent blockers.** TF-M's `toolchain_IARARM.cmake` redirects `__write` to DLIB's buffered writer, so the port's hook is unreachable and output goes to semihosting — fixed by implementing `__dwrite`. DLIB also buffers stdout and BL2 never flushes — fixed by `setvbuf`. Neither alone is sufficient. | D107→D108→**D110** |
 | Does a passing attestation suite prove measured boot? | **No.** With `component_cnt == 0` the token carries `IAT_NO_SW_COMPONENTS` and the suite passes anyway. Read the boot record at the start of secure RAM and match both measurements to the images' SHA-256 TLVs. | D080→**D081** |
-| How must OFS memory be linked? | **One linker `MEMORY` region per OFS group.** ⚠ Coalescing lets the linker gap-fill between words and write values nobody chose. Flash `bl2.elf`/`bl2.hex`, never `bl2.bin`. `check_ofs.py` enforces it. | **D002** (supersedes D001) |
+| How must OFS memory be linked? | **One linker `MEMORY` region per OFS group.** ⚠ Coalescing lets the linker gap-fill between words and write values nobody chose. Flashing rule: [GETTING_STARTED.md](GETTING_STARTED.md) §6. `check_ofs.py` enforces the linking rule. | **D002** (supersedes D001) |
 | What bricked the two EK-RA6M4 boards? | **The coalesced `PT_LOAD` wrote `0x00` into eight defined option registers** - DUALSEL, OFS1, BANKSEL, BPS, PBPS, BANKSEL_SEC, BPS_SEC, PBPS_SEC - as well as the reserved bytes between them. Measured gap fill is `0x00 ×376`, not `0xFF`. **Which of the eight killed the boards is not established**; PBPS is a candidate, not a finding. | D093→D094→D132→**D133** |
 | Why is DF_EMULATION 64 KB on RA8M2? | **FSP's MRAM sector size forces it.** On a 1 MB device with a 64 KB BL2 it is the only value that leaves a workable split. ITS, PS and the NV counters share it; the part has no data flash. | D041→D043→D044→D051→**D054** |
 | Is deterministic ECDSA available? | **No — FSP does not support it, by design.** PSA Arch test 252 skips with code `0x2d` on every part and both toolchains. | D036→D037→**D038** |
@@ -1381,7 +1381,7 @@ the caching back in front of it.
 
 ## D045 — Confirmed on FSP 6.7.0-beta0: 63/64 with no port-local rm_psa_crypto patches
 
-**Date:** 2026-09-22 · **Status:** Accepted · **Builds on:** [D043], [D044]
+**Date:** 2026-09-22 · **Status:** Accepted · **Closes:** [D036], [D037], [D039], [D040] · **Builds on:** [D043], [D044]
 
 **Result.** PSA Arch crypto on RA6M5 with SCE9: **63 passed, 0 failed, 1 skipped** of 64, with
 

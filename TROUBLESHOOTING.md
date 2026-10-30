@@ -92,7 +92,8 @@ disagree: check them against each other ([CONFIGURATION.md](CONFIGURATION.md) §
 ### `'ielftool' is not recognized` — after a successful link
 
 Set `IAR_BIN` to your EWARM `arm\bin` directory before running the scripts
-([scripts/README.md](scripts/README.md)).
+([scripts/README.md](scripts/README.md)). The default install directory is `ewarmc-10.10.2`,
+not `ewarm`; the missing `c` is the usual cause.
 
 ### `C1083: Cannot open include file: 'stdio.h'` (PSA Arch builds)
 

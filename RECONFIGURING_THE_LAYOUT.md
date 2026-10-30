@@ -63,7 +63,8 @@ storage suites then fail in ways that look like code faults.
 The NSC veneers are pinned at the top of the secure region, so the code budget is the region
 ([CONFIGURATION.md](CONFIGURATION.md) §6) and exceeding it fails the link. When you resize, keep
 the slot ≥ region + 0x200 header + ~275 B of TLVs + trailer, or imgtool refuses after a clean
-link.
+link. The trailer is `0x180` on RA6M5, where `MCUBOOT_ALIGN_VAL` is 128, and `0x60` on RA8M2,
+where it is 32.
 
 ### 2.4 `MCUBOOT_ALIGN_VAL` compatibility *fails as a verification error*
 

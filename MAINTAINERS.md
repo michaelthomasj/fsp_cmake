@@ -42,6 +42,7 @@ the three project attributes above, and rewriting `e2lite.setTZBoundaries` from 
 refuses to write a launch that still names a GCC tree or the GCC project, or that has
 `setTZBoundaries` true anywhere. Run `--check` first: it reports `same` when the generator
 reproduces what is on disk, which is how a hand edit gets folded back in rather than lost.
+
 ---
 
 ## Packaging a release archive

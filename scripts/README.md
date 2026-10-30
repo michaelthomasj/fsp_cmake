@@ -73,8 +73,10 @@ scripts\reg_build_gcc.bat     C:\b\m2gflih C:\b\m2gflihns ra8m2 flih 1 SFN
 scripts\reg_build_iar.bat     C:\b\m2iflih C:\b\m2iflihns ra8m2 flih
 
 rem  Application chain; run bare for the defaults.
-scripts\app_build_ra6m5_gcc.bat & scripts\app_build_iar.bat
-scripts\app_build_ra8m2_gcc.bat & scripts\app_build_ra8m2_iar.bat
+scripts\app_build_ra6m5_gcc.bat
+scripts\app_build_iar.bat
+scripts\app_build_ra8m2_gcc.bat
+scripts\app_build_ra8m2_iar.bat
 
 rem  Retarget a launch to other trees; rebuild a PSA Arch tree by hand
 python scripts\mk_level_launch.py <launch> <old-spe> <old-ns> <new-spe> <new-ns> <new-name>
@@ -111,9 +113,7 @@ The launch files live in `ra6m5_gcc_nonsecure/` (RA6M5) and `ra8m2_gcc_mcuboot/`
 Names carry the toolchain: `_gcc` or `_iar`.
 
 Generate the IAR launches from their GCC twins with `mk_iar_launches.py --check`, then
-without `--check`. It refuses to write a launch that still names a GCC tree or the GCC
-project, or that sets `setTZBoundaries` true anywhere. What it rewrites, and why the two
-parts use different host projects, is in [../MAINTAINERS.md](../MAINTAINERS.md).
+without `--check`. What it checks and rewrites is in [../MAINTAINERS.md](../MAINTAINERS.md).
 
 Every launch keeps `setTZBoundaries` false and erase-on-download on; the rules are in
 [GETTING_STARTED.md](../GETTING_STARTED.md) §6.

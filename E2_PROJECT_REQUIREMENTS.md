@@ -107,7 +107,7 @@ enabled in e2 produces a configure-time warning.
 
 | Setting | Where | Consequence if wrong |
 |---|---|---|
-| Early BSP Initialization enabled | secure and bootloader | `SystemCoreClock` is zero after `SystemInit()` and the flash driver fails to open with `FSP_ERR_FCLK` |
+| Early BSP Initialization (`BSP_CFG_EARLY_INIT` = 1) | secure and bootloader | `SystemCoreClock` is zero after `SystemInit()` and the flash driver fails to open with `FSP_ERR_FCLK` |
 | Main stack size | all three | it replaces the `g_init_info` and `g_main_stack` that the excluded `bsp_linker.c` would have defined, and it must match the secure image stack size the build expects |
 | Option-setting words | bootloader only | the bootloader project is the only one whose option settings reach an image. Editing them in the secure project has no effect and gives no warning |
 

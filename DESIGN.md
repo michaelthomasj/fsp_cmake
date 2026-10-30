@@ -66,9 +66,9 @@ image layout still comes from the solution: `FLASH_AREA_*_OFFSET/SIZE` derive fr
   and no FSP MCUboot source is built (no `FSP_MODULES_S` / `FSP_MODULES_BL2` entry declares
   `rm_mcuboot_port`). Do not point `MCUBOOT_PATH` at the RASC tree: RASC strips TF-M's build glue
   and adds hooks TF-M's copy does not call.
-- Signing: TF-M's default flow, which invokes `${MCUBOOT_PATH}/scripts/imgtool.py` — i.e. RASC's
-  imgtool when `MCUBOOT_PATH` is the RASC tree. The RASC `rm_mcuboot_port_sign.py` wrapper is NOT used
-  (it's for standalone RASC MCUboot projects).
+- Signing: TF-M's default flow, `${MCUBOOT_PATH}/scripts/imgtool.py` from the MCUboot it
+  downloads. FSP's `rm_mcuboot_port_sign.py` wrapper is not used; it is for standalone RASC
+  MCUboot projects.
 - NV rollback counters: TF-M's `bl2/src/security_cnt.c` (not provided by `rm_mcuboot_port`).
 
 ## 6. Crypto
@@ -184,7 +184,7 @@ code flash; (b) two images programming OFS would collide. FSP's `bsp_linker.c` g
 `bl2_option_setting.c` emits the option words from the RASC values (`BSP_CFG_OPTION_SETTING_*`)
 and is linked straight into `bl2`, because nothing references it.
 
-**⚠ The critical decision — one MEMORY region per option group.** The option-setting map is
+⚠ The critical decision is one `MEMORY` region per option group. The option-setting map is
 sparse: on RA6M5, thirteen groups hold 112 bytes across a 464-byte span from `0x0100A100`;
 RA8M2's option memory is in five windows. **A coalesced segment writes every byte in its span**,
 including defined registers (two of them one-time) and reserved bytes the hardware manual says
@@ -282,7 +282,7 @@ trusting sample keys.
 
 | Step | What to do |
 |---|---|
-| Key material | Generate your own EC-P256 key pair. `MCUBOOT_SIGNATURE_TYPE` is `EC-P256` in every part's `config.cmake`; keep the curve or the solution's slot sizes stop matching |
+| Key material | Generate your own EC-P256 key pair. `MCUBOOT_SIGNATURE_TYPE` is `EC-P256` in every part's `config.cmake`. Changing it changes the signature size, so re-check the slot fit ([CONFIGURATION.md](CONFIGURATION.md) §6) |
 | Signing | Point `MCUBOOT_KEY_S` and `MCUBOOT_KEY_NS` at your private keys. This changes what signs the image, and nothing else |
 | Verification | BL2 trusts only the key arrays compiled into `bl2/ext/mcuboot/keys.c`. If they still hold the sample keys, images you sign with your own keys are rejected, and sample-signed images still boot. See below |
 | Provisioning | Set `TFM_DUMMY_PROVISIONING=OFF` and supply real HUK and IAK values through a flow of your own. With it `ON`, every device shares one dummy identity |
@@ -369,8 +369,6 @@ re-measure against the region as §6 there describes.
 
 Re-run `tf-m-tests` against your own build and keys before shipping.
 [TEST_RESULTS.md](TEST_RESULTS.md) lists what has and has not run.
-
----
 
 ### 13.8 TF-M base version
 

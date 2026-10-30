@@ -6,7 +6,7 @@ options sit on top.
 
 ---
 
-## How the three layers interact, and the one trap
+## How the three layers interact, and two cache traps
 
 ```
 e2 / RASC solution          partitions, FSP modules, OFS values, BSP_CFG_*
@@ -118,8 +118,6 @@ AES-CCM runs in software by design ([KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md)
 ---
 
 ## 6. Diagnostics — and what they cost
-
-The code budget is the secure region, not the slot:
 
 **"Region" below means the secure *code* region**, the one the linker fills and reports —
 `0x47A00` (293,376 B) on RA8M2. Two larger figures circulate for the same part and both are

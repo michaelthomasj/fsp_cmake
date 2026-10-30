@@ -64,6 +64,7 @@ Program these once per board with the Renesas Device Partition Manager, in KB
 | Data flash Secure | 8 | whole device |
 | SRAM Secure | 255 | S + NSC = 256 = 32 × 8 ✓ |
 | SRAM NSC | 1 | |
+| Data flash NSC | 0 | the whole device is Secure |
 
 Resulting NS regions: 896 KB of code flash from 0x120000, 256 KB of SRAM from 0x20040000.
 
@@ -105,10 +106,8 @@ Space budget: [CONFIGURATION.md](CONFIGURATION.md) §6.
 
 ### Measured on the built images
 
-Measured at Debug and isolation 1, as flash LOAD bytes inside each region — the same thing the
-linker's `Memory region` table reports. **Do not read a `.bin` size as the image size**: the
-veneers are pinned at the top of the secure region, so the flat binary spans the whole region
-whatever the image costs ([CONFIGURATION.md](CONFIGURATION.md) §6).
+Debug, isolation 1, flash LOAD bytes. The secure-image budget and how to measure it:
+[CONFIGURATION.md](CONFIGURATION.md) §6.
 
 | Image | Used | Region | Spare |
 |---|---|---|---|

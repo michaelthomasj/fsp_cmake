@@ -19,6 +19,5 @@ Audience, reading order, the four claim tags and the list of parts are on `index
 ## What it leaves out, deliberately
 
 Crypto acceleration and the PSA Arch results, storage internals, the attestation token format,
-the build and flash procedure, multi-core topology, Armv8.1-M features beyond PXN, and the
-the parts other than RA6M5 and RA8M2.
+the build and flash procedure, multi-core topology, Armv8.1-M features beyond PXN, and the parts other than RA6M5 and RA8M2.
 

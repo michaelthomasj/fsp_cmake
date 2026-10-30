@@ -44,7 +44,8 @@ EK-RA8M2 or CK-RA6M5 V2 and a USB cable.
 
 ## 3. Clone
 
-Clone into a short path: deep paths fail with `Filename too long` (§8).
+Build trees must sit on a short path - the scripts use `C:\b\`. A deep one fails partway
+through the Mbed TLS overlay clone with `Filename too long` (§8).
 
 ```bat
 cd C:\Users\<you>\Documents\GitHub
@@ -109,7 +110,7 @@ Regenerating is not enough: build the projects in e2 studio, which writes these 
 3. Confirm the file exists before going on:
 
    ```bat
-   dir ra8m2_gcc_CPU0_secure\Debug\bsp_linker_info.h
+   dir <secure project>\Debug\bsp_linker_info.h    rem  ra6m5_gcc_secure, ra8m2_gcc_CPU0_secure, or the _iar_ equivalent
    ```
 
 If it is missing, the e2 build did not finish; every later step fails without saying why.
@@ -205,12 +206,14 @@ Gaps in the table are real coverage gaps ([KNOWN_LIMITATIONS.md](KNOWN_LIMITATIO
 > **Flash `bl2.elf`, `.hex` or `.srec`, never `bl2.bin`:** a flat binary writes the option words
 > at the wrong addresses and can brick the part ([DESIGN.md](DESIGN.md) §8.4).
 
-> **Keep `setTZBoundaries` false** for every probe key (`...jlink.` and `...e2lite.`). Every
-> shipped launch does; never launch from `e2_baseline/` ([DESIGN.md](DESIGN.md) §7.2).
+> **Keep `setTZBoundaries` false** for every probe key (`...jlink.` and `...e2lite.`), or the
+> debugger reprograms the boundaries from the launched project's symbols and gets them wrong
+> against BL2. Every shipped launch does; never launch from `e2_baseline/`
+> ([DESIGN.md](DESIGN.md) §7.2).
 > Check an unfamiliar launch with `findstr setTZBoundaries <launch>`.
 
-Also leave erase code flash and erase data flash enabled on connect. **A stale ITS/PS area
-survives a reflash** and makes the storage suites fail in ways that look like code faults.
+Also leave the J-Link options to erase code flash and data flash **on download** enabled
+(`eraseRomOnDownload`, `eraseDataRomOnDownload`). **A stale ITS/PS area survives a reflash** and makes the storage suites fail in ways that look like code faults.
 
 ### Pre-flash verification — run on every new build
 
@@ -271,6 +274,7 @@ value. Both toolchains produce these bytes:
 
 Optional, on an unfamiliar board: `-D<PART>_BL2_HALT_AT_MAIN=ON` stops BL2 at `main()` (the image
 does not boot) so you can read `DLMMON` — `0x400E002C` on RA6M5, `0x40204038` on RA8M2.
+Reading the other part's address returns an unrelated register rather than an error.
 `FAWMON`/`FSPR` are not implemented on these parts.
 
 ### Seeing the output
@@ -279,7 +283,7 @@ Console output goes over SEGGER RTT, not a UART. Each image has its own control 
 **the address moves on every rebuild**, so read it rather than reusing a remembered value:
 
 ```bat
-arm-none-eabi-nm C:\b\m2appns\bin\tfm_ns.axf | findstr " _SEGGER_RTT$"
+arm-none-eabi-nm C:\b\m2gns\bin\tfm_ns.axf | findstr " _SEGGER_RTT$"
 ```
 
 Point J-Link RTT Viewer at that address.
@@ -288,6 +292,8 @@ BL2's log: the secure image wipes BL2's control block at chainload, so set a bre
 attach the viewer at BL2's address while halted, then run.
 
 ### What a good run looks like
+
+RA8M2; RA6M5 prints a chainload offset of `0xa0000`.
 
 ```
 [INF] Starting bootloader

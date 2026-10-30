@@ -14,6 +14,7 @@ The secure and non-secure sides are separate CMake projects. The first installs 
 - `api_ns/` carries `interface/{include,src,lib}`, `image_signing/` and
   `cmake/toolchain_ns_GNUARM.cmake`.
 - The NS project needs both `CONFIG_SPE_PATH` and `TFM_TOOLCHAIN_FILE` pointing into it.
+
 Regression builds configure the SPE from `tf-m-tests/tests_reg/spe` and the NS project from
 `tf-m-tests/tests_reg`; application builds use the TF-M root and `<part>/ns_app`. The diagram
 shows the regression flow.
@@ -49,8 +50,8 @@ ra6m5_gcc_nonsecure --NS_APP_DIR-->   | cmake --build <spe> -- install
   partition addresses) and the OFS values.
 - The SPE project records `FSP_NS_APP_DIR` into `api_ns` so the NS project builds against the
   same e2 project; it compiles NS sources only under `<PART>_NS_IN_SPE_BUILD` (OFF).
-- BL2 is not signed and is flashed raw ([GETTING_STARTED.md](GETTING_STARTED.md) §6). Only
-  `tfm_s` and `tfm_ns` go through `imgtool`.
+- BL2 is not signed; flash `bl2.elf`, `.hex` or `.srec`, never `bl2.bin`
+  ([GETTING_STARTED.md](GETTING_STARTED.md) §6). Only `tfm_s` and `tfm_ns` go through `imgtool`.
 
 The invocations are in `scripts/` — see [scripts/README.md](scripts/README.md).
 

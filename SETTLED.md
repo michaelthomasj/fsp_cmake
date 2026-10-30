@@ -10,7 +10,7 @@
 | Standing | **143** |
 | Superseded | **14** |
 | Standing but corrected on some point | **41** |
-| Standing, but the question they left open is closed | **3** |
+| Standing, but the question they left open is closed | **7** |
 | Supersede lineages | **11** |
 
 ---
@@ -53,10 +53,10 @@ The rest carry a status, a correction or a closure:
 | `D009` | 2026-09-07 | RA6M4 keeps its in-SPE NS app by default, behind a switch | Accepted | `D016` | — |
 | `D014` | 2026-09-08 | The PSA Arch test tree is a local clone with tf-m-tests' patches applied by hand | ~~**Provisional — works, but the manual step is a known hazard**~~ | — | `D017`, `D142` |
 | `D029` | 2026-09-14 | OPEN DEFECT: `.ram_from_flash` is excluded from copy-init at `profile_large` / L3 | ~~**Open - diagnosed, not fixed**~~ | — | `D048` |
-| `D036` | 2026-09-21 | SCE9 acceleration via FSP `*_ALT`: AES, AES-GCM, SHA-256 first; ECC held back | **Provisional - builds; not yet run on silicon** | `D037` | — |
-| `D037` | 2026-09-21 | SCE9 ECC enabled; P-521, Curve25519 and deterministic ECDSA removed from RA6M5 | **Provisional - builds; not yet run on silicon** | — | — |
-| `D039` | 2026-09-21 | BL2 SHA-256 on the SCE9; P-256 verify stays on p256-m | **Provisional - builds; not yet run on silicon** | — | — |
-| `D040` | 2026-09-21 | PSA Arch crypto on RA6M5 SCE9: generic Renesas target, deterministic ECDSA gated | **Provisional - built, not yet run** | — | — |
+| `D036` | 2026-09-21 | SCE9 acceleration via FSP `*_ALT`: AES, AES-GCM, SHA-256 first; ECC held back | ~~**Provisional - builds; not yet run on silicon**~~ | `D037` | `D045` |
+| `D037` | 2026-09-21 | SCE9 ECC enabled; P-521, Curve25519 and deterministic ECDSA removed from RA6M5 | ~~**Provisional - builds; not yet run on silicon**~~ | — | `D045` |
+| `D039` | 2026-09-21 | BL2 SHA-256 on the SCE9; P-256 verify stays on p256-m | ~~**Provisional - builds; not yet run on silicon**~~ | — | `D045` |
+| `D040` | 2026-09-21 | PSA Arch crypto on RA6M5 SCE9: generic Renesas target, deterministic ECDSA gated | ~~**Provisional - built, not yet run**~~ | — | `D045` |
 | `D041` | 2026-09-22 | Two FSP `aes_alt.c` fixes carried in the RA6M5 secure project; PSA Arch crypto 61/64 | Accepted for the TF-M port; the fixes belong in rm_psa_crypto | `D044` | — |
 | `D042` | 2026-09-22 | TF-M's crypto is built from FSP's Mbed TLS, not upstream | Accepted for RA6M5 (`RA6M5_FSP_MBEDTLS`, default ON) | — | — |
 | `D047` | 2026-09-23 | FSP 6.7 is the baseline | Accepted | `D131` | — |

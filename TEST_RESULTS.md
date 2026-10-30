@@ -85,8 +85,7 @@ Only RA8M2 has run the upgrade path.
 | `ra8m2_TFM_update_iar` | 2026-10-09 | install confirmed from `rsp.br_hdr`: `ih_ver` 2.3.0 at `br_image_off 0x68000`, which the launch had flashed at 2.2.0 | [D106] |
 
 The IAR run confirms the install only; the erase on second boot was shown under GCC. RA6M5 has no
-upgrade launch. Images signed at one `MCUBOOT_ALIGN_VAL` are rejected by a BL2 built at another
-([CONFIGURATION.md](CONFIGURATION.md)).
+upgrade launch.
 
 Image-0 slot order is reversed on RA8M2 ([RA8M2_SOLUTION.md](RA8M2_SOLUTION.md)).
 
@@ -140,6 +139,4 @@ Gaps in coverage, not known failures.
 | Multi-core | `TEST_NS_MULTI_CORE` | `TFM_MULTI_CORE_TOPOLOGY` is OFF and the second core is unused | Not applicable while the port is single-core |
 
 Covered: PS, ITS, crypto, attestation, platform, SFN, FLIH on both parts and toolchains, and the
-three PSA Arch suites. Not a suite but a gap: **the shipped default (isolation 1, SFN) has not
-been re-run since the isolation-HAL move — re-run `tf-m-tests` on your build**
-([DESIGN.md](DESIGN.md) §13.7).
+three PSA Arch suites. Not a suite but a gap: the shipped default, which §1 covers.

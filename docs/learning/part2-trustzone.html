@@ -200,7 +200,7 @@ boundary <code>CFS2</code>. FSP writes the SRAM Secure/Non-secure split at boot 
 NSC on RA8M2 comes from SAU regions. <code>BSP_FEATURE_TZ_HAS_DLM</code> is also 1 there
 (<code>…/mcu/ra8m2/bsp_feature.h:597</code>), so the RA6-style block stays compiled out.</p>
 <p>The coarse granularities constrain the layout: Secure + NSC code must be a multiple of 32 KB, Secure + NSC SRAM a
-multiple of 8 KB. RA6M5's values satisfy both: 1150 + 2 = 1152 KB = 36 × 32, and 255 + 1 = 256 KB = 32 × 8
+multiple of 8 KB. Each part's values are derived against that rule in its part guide
 (<a href="ref/RA6M5_SOLUTION.html">RA6M5_SOLUTION.md</a>).</p>
 
 <!-- ============================================================ -->
@@ -420,7 +420,7 @@ way, diff the azone too (<a href="ref/PORTING.html#s6">PORTING.md</a> §6).</p>
     <details><summary>Answer</summary>NSC. The combined attribution is the more secure of the two, and NSC is more secure
     than Non-secure.</details></li>
   <li>Why does BL2 on RA8M2 need to enable the SAU, while BL2 on RA6M5 does not?
-<details><summary>Answer</summary>Both BL2s leave the SAU at reset, so every access is Secure. RA6M5 has one alias, and a Secure access to IDAU-Non-secure flash still reaches the bytes; RA8M2 must read the Non-secure MRAM alias, which refuses a Secure transaction.</details></li>
+<details><summary>Answer</summary>Neither BL2 runs FSP's <code>R_BSP_SAUInit()</code>, so the SAU starts at its reset state and every access is treated as Secure. RA6M5 has one alias, and a Secure access to IDAU-Non-secure flash still reaches the bytes; RA8M2 must read the Non-secure MRAM alias, which refuses a Secure transaction.</details></li>
   <li>Non-secure code calls a function pointer that holds the address of a Secure function's first instruction (not its
     veneer). What happens, and which register records it?
     <details><summary>Answer</summary>SecureFault with <code>SFSR.INVEP</code>: the target is not an SG instruction in NSC

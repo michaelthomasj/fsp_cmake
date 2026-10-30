@@ -24,7 +24,7 @@ git diff --stat TF-Mv2.2.0 HEAD -- . ":(exclude)platform/ext/target/renesas" ":(
 | `toolchain_GNUARM.cmake` | §8 `.srec` output for every toolchain |
 | `toolchain_ARMCLANG.cmake` | §8 |
 | `toolchain_CLANG.cmake` | §8 |
-| `toolchain_IARARM.cmake` | §8, and §14 the `__write` redirect that makes a platform `__write()` unreachable |
+| `toolchain_IARARM.cmake` | §8 |
 | `platform/ns/toolchain_ns_GNUARM.cmake` | §8 |
 | `platform/ns/toolchain_ns_CLANG.cmake` | §8 |
 | `platform/ns/toolchain_ns_IARARM.cmake` | §8 |
@@ -272,7 +272,8 @@ A spin at the start of `bl2_main()`, a bring-up aid. Enabled by `<PART>_BL2_HALT
 
 ## How these changes were verified
 
-All of these changes are exercised by every RA6M5 and RA8M2 build and by the regression and PSA
+Every change except §8's ARMCLANG and CLANG files, which no configuration here builds, is
+exercised by every RA6M5 and RA8M2 build and by the regression and PSA
 Arch runs in [TEST_RESULTS.md](TEST_RESULTS.md), under GNU and IAR. Sections 1 to 3 and 14 are
 IAR defects that fail silently (a reset loop, a fault, or no console) rather than at build time.
 

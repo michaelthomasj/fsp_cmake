@@ -37,7 +37,8 @@ for each item.
    or CMAC operation is open it holds the SCE9 or RSIP engine, and until that operation
    completes or is aborted `psa_generate_random` fails for every caller.
 6. **The scripts build development images.** SPM trace and exception-info dump are on, logging
-   is verbose, IAR application builds are `Debug`, and the console is SEGGER RTT.
+   is verbose, application builds are `Debug` except RA8M2 under GNU, and the console is
+   SEGGER RTT.
    [CONFIGURATION.md](CONFIGURATION.md) §9 describes a release build.
 7. **The shipped default (isolation 1, SFN) has not been re-run on hardware since the
    isolation-HAL change.** Re-run `tf-m-tests` on your build. Firmware Update is off and

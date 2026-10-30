@@ -105,8 +105,9 @@ does. Figures and method: [CONFIGURATION.md](CONFIGURATION.md) §6.
 after a result line is the capture, not a hang.
 
 **Only four launches load what the application scripts build**: `ra6m5_TFM_sce9_{gcc,iar}` and
-`ra8m2_TFM_app_{gcc,iar}`. The rest load their own trees under `C:\b`
-([GETTING_STARTED.md](GETTING_STARTED.md) §6). RA6M5 launches take debug symbols from the e2
+`ra8m2_TFM_app_{gcc,iar}`. Every other launch flashes its own tree under `C:\b`, not your
+build, so running an application build and then one of those flashes different images or
+fails on missing files ([GETTING_STARTED.md](GETTING_STARTED.md) §6). RA6M5 launches take debug symbols from the e2
 project's `Debug/ra6m5_gcc_nonsecure.elf`, not the flashed image. Each launch also records a
 local SVD path and source-lookup entry from the author's machine; neither affects what is
 flashed.

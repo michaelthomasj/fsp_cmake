@@ -38,8 +38,8 @@ git diff HEAD:e2_baseline/ra6m5_gcc_secure/.secure_azone \
          HEAD:ra6m5_gcc_secure/.secure_azone
 ```
 
-Compare committed content with `git diff` as above; a disk-level `diff` can report every line
-changed because of line endings (or use `--strip-trailing-cr`).
+Compare committed content with `git diff` as above. A disk-level `diff` reports every line as
+changed because of line endings, so pass `--strip-trailing-cr`.
 
 ## Where to look first
 

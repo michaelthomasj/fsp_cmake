@@ -164,7 +164,8 @@ RA6M5 has no MRAM and cannot hit this; clock-register security on both parts:
 
 Supported under both toolchains. [TEST_RESULTS.md](TEST_RESULTS.md) is the single record of
 what has run on this part and what has not, including the one PSA Arch crypto failure and the
-skips. Sizes at MinSizeRel (`text` for bl2 and tfm_ns; flash LOAD bytes in the region for tfm_s):
+skips. Sizes at MinSizeRel: `text` for bl2 and tfm_ns, flash LOAD bytes in the region for
+tfm_s.
 
 | Image | Used | Region | Headroom |
 |---|---|---|---|
@@ -175,7 +176,7 @@ skips. Sizes at MinSizeRel (`text` for bl2 and tfm_ns; flash LOAD bytes in the r
 The signed image always fills the slot; the code budget is the region spare above. Why, and the
 cost of each diagnostic: [CONFIGURATION.md](CONFIGURATION.md) §6.
 
-### Four facts about this part that bite
+### Facts about this part that bite
 
 **Slot order is reversed for image 0.** The secure secondary at `0x02020000` sits below the
 secure primary at `0x02068000`. Image 1 is the usual way round, `0x120B0000` primary and
@@ -183,8 +184,9 @@ secure primary at `0x02068000`. Image 1 is the usual way round, `0x120B0000` pri
 computes a flash row or reads a `boot_rsp` has to account for it.
 
 **The MCUboot upgrade path runs here and only here.** Both images install from their secondary
-slots, and a second reset reports `Swap type: none` because the secondary has been erased. It
-has never run on RA6M5.
+slots under both toolchains; the second reset reporting `Swap type: none`, which is the
+secondary having been erased, was observed under GNU only
+([KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md) §3). It has never run on RA6M5.
 
 **Measured boot is on, and a passing attestation suite does not prove it works.** With
 `component_cnt == 0` under the default token profile, `attest_add_all_sw_components()` emits
