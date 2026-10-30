@@ -63,8 +63,12 @@ These decide which FSP sources are compiled into which image. They live in
 | `FSP_MODULE_DIRS_flash` | `r_flash_hp` | `r_mram` — MRAM, not HP flash |
 | `FSP_MODULES_NEVER_BUILT` | `r_sce rm_psa_crypto rm_mcuboot_port` | `r_sce rm_psa_crypto rm_mcuboot_port` |
 
-`FSP_MODULES_NEVER_BUILT` lists modules whose sources the port supplies or compiles by another
-route; naming one here keeps the generic module glob from also building it.
+**`FSP_MODULES_NEVER_BUILT` excludes nothing.** It names the directories that the
+unclaimed-module audit should stay quiet about, for modules whose sources the port supplies or
+compiles by another route. What actually removes a directory from the non-secure glob is
+`FSP_EXCLUDED_MODULES`, and what keeps one out of the secure and bootloader images is simply
+not listing it in `FSP_MODULES_S` or `FSP_MODULES_BL2`.
+[ADDING_FSP_MODULES.md](ADDING_FSP_MODULES.md) §2 sets the three mechanisms side by side.
 
 **Adding an FSP module you enabled in e2.** e2 does not emit CMake modules, so a new module
 needs three things, not two: a line in `FSP_MODULES_S` (or `_BL2`), an `FSP_MODULE_DIRS_<name>`

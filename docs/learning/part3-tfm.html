@@ -563,9 +563,12 @@ target:</p>
 <p>The RA ports compiled that source into <code>platform_s</code>, and <code>platform_s</code> does
 not link <code>psa_interface</code>. Inside the HAL the macro was therefore undefined — and
 <strong>the C preprocessor evaluates an undefined identifier in <code>#if</code> as <code>0</code>,
-with no diagnostic unless you build with <code>-Wundef</code></strong>. The level-2 and level-3 arms
-compiled away. Nothing failed to build, nothing warned, and the MPU table was simply the level-1
-one.</p>
+with no diagnostic unless you build with <code>-Wundef</code></strong>. Every arm that tests the
+level compiled away — <em>including</em> <code>== 1</code>, because <code>0 == 1</code> is false
+too, so the result was not the level-1 configuration either. The <code>#else</code> arm ran
+instead: it sets <code>privileged = IS_PSA_ROT()</code>, which de-privileges every
+Application-RoT partition whatever level was asked for, and at isolation 1 the SPM expects all
+of them to be privileged. Nothing failed to build and nothing warned.</p>
 
 <p><span class="tag port">This port</span> owned the defect: it was where the shared source had been
 put. Establishing that meant comparing targets rather than reading code.</p>

@@ -78,12 +78,11 @@ only the selected one ([DESIGN.md](DESIGN.md) §7.2).
 > have been deleted. They were e2 output rather than the `*_TFM_*` launches used here, and no
 > procedure needed them.
 >
-> Five RA8M2 GCC launches (`flih`, `test_attestation`, `test_crypto`, `test_storage`, `update`)
-> still carry the `e2lite` key as `true`. Their `jlink` key is `false`, so the setting is inert
-> while J-Link is the selected probe. **Switching probe arms it** ([D102]).
+> Every shipped launch now carries `false` for every probe it names, not only the selected one,
+> so switching probe cannot arm the setting ([D147]).
 >
-> The two copies under `e2_baseline/` keep the `jlink` key as `true` deliberately: that
-> directory exists to show e2's unmodified output. Do not launch from it.
+> The two copies under `e2_baseline/` keep `true` deliberately: that directory exists to show
+> e2's unmodified output. **Do not launch from it.**
 >
 > Check before flashing anything unfamiliar:
 > `grep -rn "setTZBoundaries" <launch>`
@@ -194,14 +193,6 @@ no suite here can reach.
 ---
 
 ## Open items
-
-- TODO — `psa_arch_spe.bat` fix is stranded on the RA8 branch. `39e0597` quotes the
-  compiler path so the default `GCC_BIN` (`C:/Program Files (x86)/...`) stops breaking the
-  script: unquoted, the `)` in `(x86)` closed the enclosing `if not exist (` block early, so
-  cmake never ran, the script printed `/Arm was unexpected at this time` and exited 0. It
-  affects the RA6M5 PSA Arch build too, but it was committed after PR #4 and so is not on
-  `main`. If RA6 work is picked up before `ra8m2_gen_6_7_TFM` merges back,
-  cherry-pick it: `git cherry-pick 39e0597`.
 
 - **Toolchain: closed** ([[D046]]). The `ra6m5_iar` solution selects IAR and the IAR leg is
   finished; PSA Arch passes on both toolchains. For a new part, set the solution toolchain to

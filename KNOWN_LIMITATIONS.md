@@ -165,7 +165,7 @@ table.
 
 All nineteen RA6M5 launches additionally take their debug program from the e2 project —
 `Debug/ra6m5_gcc_nonsecure.elf` — rather than from a TF-M image, so the symbols e2 loads are
-not those of the image being flashed. The fifteen RA8M2 launches name a `bl2.elf` instead.
+not those of the image being flashed. The seventeen RA8M2 launches name a `bl2.elf` instead.
 
 ---
 

@@ -14,14 +14,20 @@ Scope: the CMake side only. Enabling the module in RASC is a prerequisite, not c
 
 ## 1. The model, in one paragraph
 
-FSP drivers are opt-in, per role. Nothing from `ra/fsp/src/` reaches an image unless a
-`cmake/modules/fsp_<name>.cmake` declares it and the platform lists it in `FSP_MODULES_S` or
-`FSP_MODULES_BL2`. The secure image and the bootloader come from different e2 projects, so
-each module builds twice under distinct target names — `fsp_bsp_s` and `fsp_bsp_bl2` — which also
-stops the two images' FSP configurations leaking into each other.
+FSP drivers are opt-in, per role — **for the secure image and the bootloader.** Nothing from
+`ra/fsp/src/` reaches either unless a `cmake/modules/fsp_<name>.cmake` declares it and the
+platform lists it in `FSP_MODULES_S` or `FSP_MODULES_BL2`. Those two come from different e2
+projects, so each module builds twice under distinct target names — `fsp_bsp_s` and
+`fsp_bsp_bl2` — which also stops the two images' FSP configurations leaking into each other.
 
-The consequence is intended: adding a driver in RASC does not add it to TF-M. The build warns
-when that happens (§5).
+The consequence is intended: adding a driver in RASC does not add it to the secure image or to
+BL2. The build warns when that happens (§5).
+
+**The non-secure image works the other way round, and nothing on this page applies to it.** It
+is a whole FSP application: `fsp_collect_sources()` globs the project's entire `ra/fsp/src/`
+tree, so every module you enable in e2 is compiled into `tfm_ns` automatically, with no module
+file and no list entry. The only thing that reaches it from this page is the exclusion list,
+which removes three directories from that glob (§2).
 
 ---
 

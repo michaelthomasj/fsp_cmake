@@ -153,8 +153,8 @@ two is what made this take three attempts.
   difference is load-bearing: RASC's `boot_hooks.h` is 287 lines against TF-M's 181, adding
   `BOOT_HOOK_FLASH_AREA_CALL`, `BOOT_HOOK_FIND_SLOT_CALL` and `BOOT_HOOK_GO_CALL_FIH`. Any FSP
   source that calls those hooks would need a shim when built against TF-M's copy. No FSP
-  MCUboot source is built any more - `rm_mcuboot_port` is in `FSP_MODULES_NEVER_BUILT` on
-  both parts and `mcuboot_hook_shim.h` was deleted with it (DECISIONS D079 for the original
+  MCUboot source is built any more: no `FSP_MODULES_S` or `FSP_MODULES_BL2` entry declares
+  `rm_mcuboot_port` on either part, and `mcuboot_hook_shim.h` was deleted with it (DECISIONS D079 for the original
   coupling, D091 for its removal). TF-M's copy also provides build glue
   (`bootutil/CMakeLists.txt`, `scripts/imgtool.py`) that RASC strips; pointing `MCUBOOT_PATH` at
   the RASC tree means supplying that glue yourself.
@@ -436,7 +436,7 @@ The back-port of the per-part guards to RA6M5 and RA6E1 is still open ([D077]).
 
 | | Windows | Limit | Where |
 |---|---|---|---|
-| RA6M5, RA6E1, RA6M4 | one: `0x0100A100`–`0x0100A2CF` | `--max-word 0xC` | `ra6m5_add_ofs_check()`, passing `--ra6-default` |
+| RA6M5, RA6E1, RA6M4 | one: `0x0100A100`–`0x0100A2CF` | `--max-word 0x10` | `ra6m5_add_ofs_check()`, passing `--ra6-default` |
 | RA8M2 | five: `0x02C9F040`–`0x02C9F280`, `0x12C9F4C0`–`0x12C9F680`, `0x02E07600`–`0x02E07698`, `0x02E17700`–`0x02E17924`, `0x12E17780`–`0x12E17800` | `--max-word 4` | `ra8m2_add_ofs_check()`, passing five `--region` windows |
 
 Both are functions in the part's `CMakeLists.txt`, cited by name because a comment edit above
@@ -447,12 +447,10 @@ deliberately tighter than the `0x80` a BPS word would need, to be raised only if
 are ever placed.
 BL2 also passes `--require-segments`, so an empty result fails rather than passing.
 
-> Known tension, not yet resolved. RA6M5's widest defined groups are `0x10`
-> (`BPS`/`PBPS` and mirrors, the `OPTION_SETTING_*` block in `region_defs.h`) while its guard limit is `--max-word 0xC`,
-> inherited from RA6E1/RA6M4 where those words are `0xC`. It does not fire today because
-> RA6M5's `bl2_option_setting.c` places none of them. **Enabling a BPS or PBPS group on RA6M5
-> will fail the guard on a correctly linked image** — raise the limit to `0x10` at that point,
-> and not before.
+> RA6M5's widest defined groups are `0x10` — `BPS`, `PBPS` and their mirrors, the
+> `OPTION_SETTING_*` block in `region_defs.h` — and the guard limit is `0x10` to match. The
+> limit was `0xC` for a while, inherited from RA6E1 and RA6M4 where those groups are that wide;
+> it never fired, because RA6M5's `bl2_option_setting.c` places none of them.
 
 The guard is verified against the real artifact rather than assumed to work:
 `bringup/bricking_evidence/bl2_BRICKED.elf` is the image that destroyed the boards, and the guard

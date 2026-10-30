@@ -91,7 +91,7 @@ image.
 | Project | Modules the build needs |
 |---|---|
 | secure | `bsp`, `flash`, `sce`, `agt` |
-| bootloader | `bsp`, `flash` |
+| bootloader | `bsp`, `flash`, and `sce` whenever `CRYPTO_HW_ACCELERATOR` is `ON`, which is the default |
 | non-secure | whatever the application needs; the whole tree is globbed |
 
 - **The flash driver is a different FSP module per part.** RA6M5 takes `r_flash_hp`. RA8M2
@@ -99,17 +99,21 @@ image.
   Flash (r_flash_hp), and its instance is `g_mram0` where RA6M5 has `g_flash0`.
 - **The crypto engine directory under `r_sce` is discovered, not named**: `sce9` on RA6M5,
   `rsip_e50d` on RA8M2.
-- **The SCE module in the secure project** supplies the TRNG that PSA uses as its external RNG.
-  Without it the secure image has no entropy source. Only the TRNG is taken; the rest is
-  trimmed by `--gc-sections`.
+- **The SCE module in the secure project** supplies the TRNG that PSA uses as its external RNG,
+  and without it the secure image has no entropy source. **It is not only the TRNG.** With
+  `CRYPTO_HW_ACCELERATOR` on, which is the default on both parts, the cipher, hash and ECC
+  `*_ALT` paths are live as well, and BL2 takes the module for the same reason: its SHA-256
+  image hash runs on the engine. `--gc-sections` trims whatever none of that reaches.
 - **AGT in the secure project, with a real interrupt priority.** Disabled emits no vector entry
   at all, and the FLIH and SLIH suites then cannot raise an interrupt. Configuring it in the
   secure project is also what makes the interrupt secure.
-- **Three modules are deliberately never built from the projects** — the FSP crypto stack,
-  `rm_psa_crypto` and `rm_mcuboot_port` — because the crypto and flash-map configuration they
-  carry collides with TF-M's. `FSP_MODULES_NEVER_BUILT` enforces that. Their headers must still
-  resolve, because the generated `common_data.h` and `hal_data.h` include them unconditionally
-  even when nothing is instantiated.
+- **`rm_psa_crypto` and `rm_mcuboot_port` are deliberately never built from the projects**,
+  because the crypto and flash-map configuration they carry collides with TF-M's. Two different
+  mechanisms do that, and neither is `FSP_MODULES_NEVER_BUILT`, **which excludes nothing and
+  only keeps the unclaimed-module audit quiet**: the secure and bootloader images simply do not
+  list them, and `FSP_EXCLUDED_MODULES` removes their directories from the non-secure glob.
+  Their headers must still resolve, because the generated `common_data.h` and `hal_data.h`
+  include them unconditionally even when nothing is instantiated.
 - **Generated file names stay standard.** The build excludes `ra_gen/main.c`,
   `Source/startup.c` and `bsp_linker.c` by name for the secure and bootloader images, because
   TF-M supplies all three. Renaming them makes the FSP versions collide at link.

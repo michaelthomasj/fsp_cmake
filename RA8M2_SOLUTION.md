@@ -147,12 +147,11 @@ only the selected one ([DESIGN.md](DESIGN.md) §7.2).
 > have been deleted. They were e2 output rather than the `*_TFM_*` launches used here, and no
 > procedure needed them.
 >
-> Five RA8M2 GCC launches (`flih`, `test_attestation`, `test_crypto`, `test_storage`, `update`)
-> still carry the `e2lite` key as `true`. Their `jlink` key is `false`, so the setting is inert
-> while J-Link is the selected probe. **Switching probe arms it** ([D102]).
+> Every shipped launch now carries `false` for every probe it names, not only the selected one,
+> so switching probe cannot arm the setting ([D147]).
 >
-> The two copies under `e2_baseline/` keep the `jlink` key as `true` deliberately: that
-> directory exists to show e2's unmodified output. Do not launch from it.
+> The two copies under `e2_baseline/` keep `true` deliberately: that directory exists to show
+> e2's unmodified output. **Do not launch from it.**
 >
 > Check before flashing anything unfamiliar:
 > `grep -rn "setTZBoundaries" <launch>`
@@ -289,7 +288,7 @@ record at the start of secure RAM instead.
 
 **BL2 uses TF-M's MCUboot flash map and backend**, with the FSP flash HAL behind `fa_driver` as
 an `ARM_DRIVER_FLASH` in `cmsis_drivers/Driver_Flash.c` — the arrangement four ST platforms
-already use upstream. `rm_mcuboot_port` is in `FSP_MODULES_NEVER_BUILT`, and
+already use upstream. No module declares `rm_mcuboot_port`, so nothing from it is built, and
 `bl2/CMakeLists.txt` is byte-identical to TF-M v2.2.0. The image layout is still the solution's
 either way: `FLASH_AREA_*_OFFSET` and `_SIZE` derive from the `BSP_PARTITION_*` macros whichever
 backend reads them. **Layout ownership and backend ownership are separable**, and conflating

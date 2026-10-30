@@ -191,7 +191,8 @@ them here would give you two versions to reconcile. What each one is, and where 
 <div class="table-wrap"><table>
 <tr><th>Subject</th><th>Why it matters to a port</th><th>Read</th></tr>
 <tr><td id="gates"><strong>The two hazards that cost hardware</strong></td>
-  <td>Option-setting memory must be linked one word per <code>MEMORY</code> region, and the debugger must never
+  <td>Option-setting memory must be linked with one <code>MEMORY</code> region per option group — a
+    group can be wider than a word, so the rule is per group, not per word — and the debugger must never
     program the TrustZone boundaries. Both failures are silent, and the first one is not recoverable.</td>
   <td><a href="ref/DESIGN.html#s8-4">DESIGN.md §8.4</a> for the mechanism,
     <a href="ref/GETTING_STARTED.html">GETTING_STARTED.md §6</a> for the checks to run before flashing</td></tr>
