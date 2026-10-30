@@ -116,7 +116,16 @@ The TF-M build reads two files that only an e2 studio build produces:
   derives from
 - `<project>/Debug/memory_regions.*`
 
-Regenerating the project in RASC is not enough. The project must be built.
+Regenerating the project is not enough. It must be built, and the build has to be the e2
+studio one: the standalone Smart Configurator writes those two files to the project root
+rather than to `Debug/`, and the TF-M build looks in `Debug/`.
+
+**The e2 dependency is meant to be temporary.** The Smart Configurator already emits an
+equivalent CMake project set, and on RA6M5 the layout and module configuration match what
+e2 produces. What is not solved is the debug front end — RASC projects cannot be imported
+into e2 studio, and their own launch mechanism has not been shown to flash three images
+with the erase and boundary settings this port needs. Until that is settled, the e2 build
+stays a prerequisite. [KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md) §7 tracks it.
 
 1. Open e2 studio, `File → Import → Existing Projects into Workspace`, and select the
    `ra_fsp_cmake_tfm` folder. Import the solution for your part and all its sub-projects:
