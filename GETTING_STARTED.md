@@ -284,6 +284,9 @@ Console output goes over SEGGER RTT, not a UART. Each image has its own control 
 
 ```bat
 arm-none-eabi-nm C:\b\m2gns\bin\tfm_ns.axf | findstr " _SEGGER_RTT$"
+
+rem  under IAR, ielfdumparm reads the same symbol out of the ELF
+ielfdumparm --symbols C:\b\m2ins\bin\tfm_ns.out | findstr " _SEGGER_RTT$"
 ```
 
 Point J-Link RTT Viewer at that address.
@@ -350,3 +353,6 @@ on a first build:
 
 Read [DESIGN.md](DESIGN.md) §1, then [KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md).
 [README.md](README.md) §"The documents" maps every other document to the task it serves.
+
+For the background rather than the procedure, [docs/learning/](docs/learning/README.md) is an
+optional course on privilege, TrustZone and TF-M on RA.

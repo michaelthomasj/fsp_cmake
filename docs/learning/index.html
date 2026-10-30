@@ -54,7 +54,26 @@ file, a line, or a measurement in this repository.</p>
   <td>The port marks interrupts Secure only through the secure e2 project, never with <code>NVIC_ClearTargetState()</code>.</td><td>Here.</td></tr>
 </table></div>
 
-<h2>The parts</h2><table><tr><th>Part</th><th>Covers</th></tr><tr><td>0 · The Cortex-M machine</td><td>Registers, AAPCS, memory map, vector table and reset, exceptions and priorities, NVIC and RA ICU, SysTick, PPB.</td></tr><tr><td>1 · Privilege, MPU, faults</td><td>CONTROL.nPRIV, MSP/PSP, PMSAv8 regions, stacking, EXC_RETURN, SVC/PendSV, fault decoding.</td></tr><tr><td>2 · TrustZone</td><td>Security states, SAU/IDAU, NSC and SG, banking, NVIC target state, RA attribution registers.</td></tr><tr><td>3 · TF-M</td><td>PSA-FF-M, psa_call, isolation levels, SPM backends, FLIH/SLIH, the isolation HAL, FSP drivers in partitions.</td></tr><tr><td>4 · Porting</td><td>The platform contract, RASC/FSP inputs, FSP in the build, layout and MCUboot, links to the owning documents.</td></tr><tr><td>Glossary</td><td>Terms and files cited.</td></tr></table>
+<h2>The parts</h2>
+<div class="table-wrap"><table>
+<tr><th>Part</th><th>Covers</th></tr>
+<tr><td><a href="part0-primer.html">0 &middot; The Cortex-M machine</a></td>
+  <td>Registers, AAPCS, memory map, vector table and reset, exceptions and priorities, NVIC and the RA ICU,
+  SysTick, the PPB.</td></tr>
+<tr><td><a href="part1-privilege-mpu-faults.html">1 &middot; Privilege, the MPU, faults</a></td>
+  <td><code>CONTROL.nPRIV</code>, MSP and PSP, PMSAv8 regions, stacking, <code>EXC_RETURN</code>,
+  <code>SVC</code> and PendSV, <a href="part1-privilege-mpu-faults.html#dumps">fault decoding</a>.</td></tr>
+<tr><td><a href="part2-trustzone.html">2 &middot; TrustZone</a></td>
+  <td>Security states, SAU and IDAU, non-secure-callable and <code>SG</code>, banking, NVIC target state,
+  the RA attribution registers.</td></tr>
+<tr><td><a href="part3-tfm.html">3 &middot; TF-M</a></td>
+  <td>PSA-FF-M, <code>psa_call</code>, <a href="part3-tfm.html#levels">isolation levels</a>, SPM backends,
+  FLIH and SLIH, the isolation HAL, <a href="part3-tfm.html#fsp-drivers">FSP drivers in partitions</a>.</td></tr>
+<tr><td><a href="part4-porting.html">4 &middot; Porting</a></td>
+  <td>The platform contract, the RASC and FSP inputs, FSP in the build, layout and MCUboot, and links to
+  the owning documents.</td></tr>
+<tr><td><a href="glossary.html">Glossary</a></td><td>Terms, and the files cited.</td></tr>
+</table></div>
 
 <h2>The hardware in this course</h2>
 <div class="table-wrap"><table>

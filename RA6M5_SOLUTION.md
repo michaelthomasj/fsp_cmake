@@ -14,6 +14,10 @@ carries this part's rows.
 2 MB, all of it allocated. Every boundary falls on a 32 KB erase block, which is the
 region-1 block size (`BSP_FEATURE_FLASH_HP_CF_REGION1_BLOCK_SIZE`).
 
+The names below are `solution.xml`'s, which is the file you edit to repartition. The build
+reads the `BSP_PARTITION_*` macros `bsp_linker_info.h` generates from them, so `FLASH_CM33_S`
+here is `BSP_PARTITION_FLASH_CM33_S_START` and `_SIZE` there.
+
 | name | parent | security | offset | size | role |
 |---|---|---|---|---|---|
 | `RAM_CM33_S` | RAM | s | 0x0 | 0x3FC00 | secure RAM (255 KB) |

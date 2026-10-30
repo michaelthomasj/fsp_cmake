@@ -9,10 +9,9 @@ Each entry gives the symptom, cause and fix. Hazards first.
 ### The part reads back `0xDA` and will not respond
 
 **No recovery is known.** A BL2 image whose option-setting words were coalesced into one load
-segment wrote `0x00` across the option registers between them ([DESIGN.md](DESIGN.md) §8.4). The
-build's `check_ofs.py` guard prevents this; the pre-flash check is
-[GETTING_STARTED.md](GETTING_STARTED.md) §6. **Flash `bl2.elf`, `bl2.hex` or `bl2.srec`, never
-`bl2.bin`.**
+segment wrote `0x00` across the option registers between them ([DESIGN.md](DESIGN.md) §8.4).
+**Flash `bl2.elf`, `bl2.hex` or `bl2.srec`, never `bl2.bin`**; the build's guard and the
+pre-flash check are in [GETTING_STARTED.md](GETTING_STARTED.md) §6.
 
 ### The part is provisioned with the wrong TrustZone boundaries
 

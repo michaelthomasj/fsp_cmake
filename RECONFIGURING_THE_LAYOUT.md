@@ -102,8 +102,8 @@ assertions do not cover, add one.
 5. Revisit the four (§2): RDPM, `PS_NUM_ASSETS`, the NSC/trailer budget, `MCUBOOT_ALIGN_VAL`.
 6. Check the OFS guard output. `check_ofs.py` runs during the build; a layout change can move
    the option-setting words. ⚠ [DESIGN.md](DESIGN.md) §8.4.
-7. Reprogram RDPM if the boundaries moved, then reflash all three images. **RDPM erases
-   the part.**
+7. Reprogram RDPM if the boundaries moved, then reflash all three images; programming them
+   erases the part ([GETTING_STARTED.md](GETTING_STARTED.md) §6).
 8. Erase code and data flash on the first connect after a storage change
    ([GETTING_STARTED.md](GETTING_STARTED.md) §6).
 9. Re-run the full regression and the storage suite (test 403 exercises the boundary).
