@@ -18,7 +18,7 @@ The build takes three directories per part and toolchain, one per image:
 | `FSP_NS_APP_DIR` | the whole FSP application, built as `tfm_ns` | `ra6m5_<tc>_nonsecure` | `ra8m2_<tc>_CPU0_nonsecure` |
 
 `<tc>` is `gcc` or `iar`. **Use the project set generated for the toolchain you build with.** All
-three projects belong to one solution, which owns the partitioning; the GCC and IAR solutions
+three projects belong to one solution, which owns the partitioning. The GCC and IAR solutions
 must agree on the layout, because both feed one set of TrustZone boundary values.
 
 ---

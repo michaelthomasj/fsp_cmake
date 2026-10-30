@@ -1,7 +1,7 @@
 # FSP uprev checklist — the files that carry FSP code or FSP values
 
 Some files in the port exist only to bridge FSP to TF-M. They carry FSP code, restate an
-FSP-generated value, or depend on an FSP internal, but they are not FSP files: regenerating the
+FSP-generated value, or depend on an FSP internal, but they are not FSP files. Regenerating the
 e2 projects does not update them, and nothing in the build compares them against their origin.
 They drift on an FSP pack uprev, and the failure is a stale constant that links cleanly and is
 wrong at run time.
@@ -121,11 +121,11 @@ only one excludes anything — omitting a module from `FSP_MODULES_S` / `_BL2`
 
 ## The option-memory family — the highest-consequence case
 
-Mechanism: [DESIGN.md](DESIGN.md) §8.4. After an uprev, check: option values are edited in the
-bootloader project; RA8M2 derives option addresses from `Debug/memory_regions.*`, RA6M5
-transcribes them in `region_defs.h` (re-check them); RA8M2's `bl2_option_setting.c` stops the
-build if an unplaced option group is set, RA6M5 has no such guard; `check_ofs.py` must still pass
-with `--require-segments`.
+Mechanism: [DESIGN.md](DESIGN.md) §8.4. After an uprev, check four things. Option values are
+edited in the bootloader project, not the secure one. RA8M2 derives the option addresses from
+`Debug/memory_regions.*`, while RA6M5 transcribes them in `region_defs.h`, so re-read those.
+RA8M2's `bl2_option_setting.c` stops the build if an unplaced option group is set, and RA6M5 has
+no such guard. And `check_ofs.py` must still pass with `--require-segments`.
 
 ### What the port does with each FSP linker input
 

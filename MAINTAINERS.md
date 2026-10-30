@@ -70,11 +70,14 @@ python scripts/decision_threads.py --status   # entries needing a Status back-an
 table in [DECISIONS.md](DECISIONS.md) is grouped by hand from its output. Regenerate at each
 milestone.
 
-Checks nine things, in two groups. **References:** every `D###` cited anywhere exists in
-`DECISIONS.md`; every relative `.md` link resolves; every `.md` filename named in a `.cmake` or
-`CMakeLists.txt` comment resolves; a cited *section* exists in the document the citation names
-(`FILE.md §6`, `FILE.md §"Some heading"`); and the course's links resolve, both within
-`docs/learning/` and into the generated pages under `ref/`. **Customer readiness:** no local
+Checks nine things, in two groups. **References:**
+
+- every `D###` cited anywhere exists in `DECISIONS.md`;
+- every relative `.md` link resolves;
+- every `.md` filename named in a comment in the port tree resolves and is tracked;
+- a cited *section* exists in the document the citation names (`FILE.md §6`,
+  `FILE.md §"Some heading"`);
+- the course's links resolve, within `docs/learning/` and into the generated pages in `ref/`. **Customer readiness:** no local
 user path; every link target tracked in git rather than merely present on disk; decision-ID
 density under 15 per 1000 words; no launch setting `setTZBoundaries` true for any probe. Pass
 `--no-customer` to skip the second group.

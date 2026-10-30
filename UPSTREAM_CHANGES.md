@@ -69,10 +69,10 @@ break without a diagnostic:
 
 `platform/ext/common/iar/tfm_isolation_s.icf.template`
 
-`define block STACKSEAL with size = STACKSEAL_SIZE { };` is empty — it reserves 8 bytes but
-names no section, so the `__STACK_SEAL` object (which platforms place in
-`.msp_stack_seal_res`, as the GNU template anchors `__StackSeal` to that section) is
-never placed. ILINK sweeps it into the general data area. `Reset_Handler` then seals an
+`define block STACKSEAL with size = STACKSEAL_SIZE { };` is empty: it reserves 8 bytes but names
+no section. The `__STACK_SEAL` object is therefore never placed, though platforms put it in
+`.msp_stack_seal_res`, which is where the GNU template anchors `__StackSeal`. ILINK sweeps it
+into the general data area. `Reset_Handler` then seals an
 address sitting on live partition data, `__iar_data_init3` overwrites the seal moments later,
 the SPM seal check fails, and `tfm_core_panic()` resets — a boot loop with nothing on the
 console, before `main()`.
@@ -126,11 +126,11 @@ Without it, ld orphans such a section and gives it a load address, silently.
 
 `platform/ext/common/gcc/tfm_isolation_s.ld.template` — commit `103520f23`
 
-`.ER_CODE_SRAM` is a `> CODE_RAM AT > FLASH` section, so its LMA comes from the FLASH
-allocation pointer. When a platform pins veneers at an absolute address at the end of the
-secure region, `.gnu.sgstubs` drags that pointer to the end of flash and every `AT > FLASH`
-section after it is allocated past the region end, overflowing FLASH while space sits unused
-below the veneers.
+`.ER_CODE_SRAM` is a `> CODE_RAM AT > FLASH` section, so its LMA comes from the FLASH allocation
+pointer. When a platform pins veneers at an absolute address at the end of the secure region,
+`.gnu.sgstubs` drags the allocation pointer to the end of flash. Every `AT > FLASH` section after
+it is then placed past the region end, so FLASH overflows while the space below the veneers sits
+unused.
 
 Moving the emission before the veneers is what `tfm_common_s.ld.template` already does. With
 the default veneer location the move changes nothing.

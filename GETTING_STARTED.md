@@ -100,9 +100,9 @@ Regenerating is not enough: build the projects in e2 studio, which writes these 
    | RA6M5 | `ra6m5_gcc` | `ra6m5_gcc_mcuboot`, `ra6m5_gcc_secure`, `ra6m5_gcc_nonsecure` | `ra6m5_iar` |
 
    **Import and build the GNU solution even if you build with IAR.** Every debug launch lives
-   in a GNU project — 19 in `ra6m5_gcc_nonsecure/`, 17 in `ra8m2_gcc_mcuboot/`, none in an IAR
-   project — and the RA6M5 launches load their debug symbols from
-   `ra6m5_gcc_nonsecure/Debug/ra6m5_gcc_nonsecure.elf`.
+   in a GNU project: 19 in `ra6m5_gcc_nonsecure/`, 17 in `ra8m2_gcc_mcuboot/`, none in an IAR
+   project. The RA6M5 launches also load their debug symbols from that project, out of
+   `Debug/ra6m5_gcc_nonsecure.elf`.
 
 2. Build each sub-project (`Project → Build All`). Ignore the resulting `.elf` files; only the
    generated headers matter here.

@@ -17,9 +17,9 @@ skip.
 ## 1. TF-M regression suite (`tf-m-tests`), by isolation level
 
 **The L1 + SFN column is the configuration the build scripts produce, and every cell in it
-predates the isolation-HAL move.** Those runs are marked `pass (pre-change)`: they passed, and
-they passed against a secure image whose isolation HAL was compiled in `platform_s` rather than
-`tfm_spm`. The L2 and L3 cells were re-run after the move. Nothing in the shipped default
+predates the isolation-HAL move.** Those runs are marked `pass (pre-change)`. They did pass, but
+against a secure image whose isolation HAL was compiled into `platform_s` rather than `tfm_spm`.
+The L2 and L3 cells were re-run after the move. Nothing in the shipped default
 configuration has been through a hardware regression since.
 
 | | L1 + SFN | L1 + IPC | L2 | L3 |

@@ -15,9 +15,9 @@ file to an analysis tool, never to a programmer.
 
 GNU ld coalesced the option-setting words into one `PT_LOAD` segment spanning
 `0x0100A100`–`0x0100A284` and zero-filled the gaps between them. A debugger programs by
-program header, so flashing it wrote `0x00` across that whole span: eight defined option
-registers — DUALSEL, OFS1, BANKSEL, BPS, PBPS and the `_SEC` copies of the last three — and
-the reserved bytes between them. Measured gap fill is `0x00` × 376, not `0xFF`
+program header, so flashing it wrote `0x00` across that whole span. That span held eight
+defined option registers — DUALSEL, OFS1, BANKSEL, BPS, PBPS and the `_SEC` copies of the last
+three — and the reserved bytes between them. Measured gap fill is `0x00` × 376, not `0xFF`
 ([D133](../../DECISIONS.md)).
 
 **Which of those eight registers made the boards un-erasable is not established.** Neither is

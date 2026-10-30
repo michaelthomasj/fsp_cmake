@@ -125,9 +125,9 @@ exists only for boot bisection.
 
 ## 4. The FSP module registry
 
-e2 studio does not emit CMake. The port turns each FSP driver into its own static library
-through a registry, so modules are opted into by name rather than globbed off disk, and
-anything in the project that no module claims is reported rather than silently dropped.
+e2 studio does not emit CMake. The port turns each FSP driver into its own static library through
+a registry, so modules are opted into by name rather than globbed off disk. Anything in the
+project that no module claims is reported rather than silently dropped.
 
 ```
 FSP_MODULES_S   = bsp flash sce agt              :234

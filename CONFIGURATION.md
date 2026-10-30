@@ -120,9 +120,9 @@ AES-CCM runs in software by design ([KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md)
 ## 6. Diagnostics — and what they cost
 
 **"Region" below means the secure *code* region**, the one the linker fills and reports —
-`0x47A00` (293,376 B) on RA8M2. Two larger figures circulate for the same part and both are
-correct about something else: add the 1,024 B non-secure-callable window and you get the
-`0x47E00` (294,400 B) that `config.cmake` works in, which is also the 294,912 B slot minus its
+`0x47A00` (293,376 B) on RA8M2. Two larger figures circulate for the same part, and each is
+correct about something else. Add the 1,024 B non-secure-callable window and you get the
+`0x47E00` (294,400 B) that `config.cmake` works in. That is also the 294,912 B slot less its
 512 B MCUboot header. Every figure in this document means the code region unless it says
 otherwise.
 

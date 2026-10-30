@@ -111,8 +111,8 @@ Attribution itself is entirely what is burned at provisioning — see §7.1.
 
 ### 7.1 Boundary provisioning — the boundaries are NEVER set by our software
 FSP compiles out its boundary-programming code on both parts (`BSP_FEATURE_TZ_HAS_DLM = 1`), and
-the SAU only refines the IDAU, so the boundaries burned with the Renesas Device Partition Manager
-are the only thing that makes the non-secure regions non-secure. An unprogrammed part faults at
+the SAU only refines the IDAU. So the boundaries burned with the Renesas Device Partition
+Manager are the only thing that makes the non-secure regions non-secure. An unprogrammed part faults at
 the first S→NS `BLXNS` with SecureFault `INVEP` (`SCB->SFSR` bit 0).
 
 Register granularities differ, and two are coarse. A layout is only programmable if the sums land
@@ -209,9 +209,9 @@ only valid check is:
 ```
 arm-none-eabi-readelf -l bin/bl2.axf
 ```
-Expect small separate LOAD segments — on RA6M5, `FileSiz` `0x4` for the word groups and
-`0x10` for BPS/PBPS, in `0x0100Axxx`; on RA8M2, `0x4` only, in the five windows below — and
-never one segment spanning the whole map. Confirm the values match a known-good image
+Expect small separate LOAD segments, never one spanning the whole map. On RA6M5 that is
+`FileSiz` `0x4` for the word groups and `0x10` for BPS/PBPS, in `0x0100Axxx`; on RA8M2, `0x4`
+only, in the five windows below. Confirm the values match a known-good image
 before flashing.
 
 The build enforces this rather than a reminder to run it. `check_ofs.py` in the TF-M
@@ -248,8 +248,8 @@ windows passed on the command line.
 A plain `objcopy -O binary` pads `bl2.bin` to about 16.8 MB and zero-fills the option memory: the
 same brick, from an ELF that passes every check. Each port re-emits `bl2.bin` without the option
 words (`check_ofs.py --emit-safe-bin`, by address, because IAR renames the sections) and verifies
-it with `--check-flat-bin`, but only in a full build; building the `bl2_bin` target alone still
-writes the coalesced image. The flashing rule is in [GETTING_STARTED.md](GETTING_STARTED.md) §6.
+it with `--check-flat-bin`. That runs only in a full build: building the `bl2_bin` target alone
+still writes the coalesced image. The flashing rule is in [GETTING_STARTED.md](GETTING_STARTED.md) §6.
 
 ## 9. Console / logging — SEGGER RTT (switchable)
 `<PART>_STDOUT_RTT` (default ON) routes TF-M and MCUboot stdout to SEGGER RTT; each image has its

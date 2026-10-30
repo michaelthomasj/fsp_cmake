@@ -184,7 +184,7 @@ secure primary at `0x02068000`. Image 1 is the usual way round, `0x120B0000` pri
 computes a flash row or reads a `boot_rsp` has to account for it.
 
 **The MCUboot upgrade path runs here and only here.** Both images install from their secondary
-slots under both toolchains; the second reset reporting `Swap type: none`, which is the
+slots under both toolchains. The second reset reporting `Swap type: none`, which is the
 secondary having been erased, was observed under GNU only
 ([KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md) §3). It has never run on RA6M5.
 
