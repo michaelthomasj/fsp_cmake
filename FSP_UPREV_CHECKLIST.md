@@ -10,7 +10,8 @@ Work through this before the uprev, not after. Every item below names something 
 an assertion that fires. `<part>` is `ra6m5` or `ra8m2` throughout.
 
 The port ships on FSP 6.7.0-beta0, so a move to the release pack is the first uprev a customer
-will make.
+will make. For a TF-M uprev instead, work from
+[UPSTREAM_CHANGES.md](UPSTREAM_CHANGES.md), which lists every common file this port modifies.
 
 **Four drifts of this kind have already happened.** `FLASH_AREA_IMAGE_SECTOR_SIZE` was `0x1000`
 in the RA8M2 `flash_layout.h` while the generated `mcuboot_config.h` had `0x8000`, which made

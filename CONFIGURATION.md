@@ -76,8 +76,8 @@ non-secure image**: that side globs every module the project enables, minus `ra_
 needs three things, not two: a line in `FSP_MODULES_S` (or `_BL2`), an `FSP_MODULE_DIRS_<name>`
 giving its source directories, and a `cmake/modules/fsp_<name>.cmake` file. `fsp_add_modules()`
 `include()`s that file for every module listed, so naming a module without creating it aborts the
-configure. [ADDING_FSP_MODULES.md](ADDING_FSP_MODULES.md) is the step-by-step. This is the known
-gap in goal 3 ([DESIGN.md](DESIGN.md) §0) and is bridged by documentation rather than by code.
+configure. [ADDING_FSP_MODULES.md](ADDING_FSP_MODULES.md) is the step-by-step. The gap is
+bridged by documentation rather than by code.
 
 **Do not use a recursive glob for a module directory.** `rm_mcuboot_port` is the cautionary
 case: `fsp_module_glob` is `GLOB_RECURSE` and would pull in `custom_crypto_stacks/`, `os/` and
