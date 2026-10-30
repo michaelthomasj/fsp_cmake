@@ -615,9 +615,10 @@ lifecycle.
 ### 13.5 The multi-part crypto engine lock
 
 While a multi-part AES, GCM or CMAC operation is open it holds the SCE9 or RSIP engine, and
-`psa_generate_random` fails for every caller until that operation completes or is aborted. This
-comes from reading the driver, not from an observed failure, and no suite this port runs
-exercises the pattern.
+**`psa_generate_random` returns `PSA_ERROR_HARDWARE_FAILURE`** for every caller until that
+operation completes or is aborted. That error code is the symptom to look for; nothing else in
+the port returns it on a healthy part. This comes from reading the driver, not from an observed
+failure, and no suite this port runs exercises the pattern.
 
 If your application interleaves random generation with long multi-part operations, test for it
 directly. Finishing or aborting each multi-part operation promptly avoids it.

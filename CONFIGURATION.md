@@ -44,7 +44,7 @@ no script reproduced ([D084]), and a stale tool path that survived regeneration 
 | `FSP_BL2_APP_DIR` | the generated bootloader project. Supplies the OFS values and the FSP driver modules BL2 needs ([D091] removed the FSP MCUboot backend from both parts) |
 | `FSP_NS_APP_DIR` | the generated non-secure project |
 | `TFM_TOOLCHAIN_FILE` | `toolchain_GNUARM.cmake` or `toolchain_IARARM.cmake` |
-| `CMAKE_BUILD_TYPE` | `MinSizeRel` is not optional on GNUARM. `Debug` does not fit — `tfm_s` comes out around 414 KB against RA8M2's 294,400-byte (`0x47E00`) secure region. IAR `Debug` does fit ([D055]; [D057] for why GNUARM `Debug` does not) |
+| `CMAKE_BUILD_TYPE` | `MinSizeRel` is not optional on GNUARM. `Debug` does not fit — `tfm_s` comes out around 414 KB against RA8M2's 293,376-byte (`0x47A00`) secure code region, as §6 defines it. IAR `Debug` does fit ([D055]; [D057] for why GNUARM `Debug` does not) |
 
 The e2 project must have been built, not just generated. The TF-M build reads
 `Debug/bsp_linker_info.h` and `Debug/memory_regions.*`, which only an e2 build produces.
@@ -159,6 +159,13 @@ ALTs ([D043]).
 
 Two different limits get confused here, and only one of them constrains adding code.
 
+**"Region" below means the secure *code* region**, the one the linker fills and reports —
+`0x47A00` (293,376 B) on RA8M2. Two larger figures circulate for the same part and both are
+correct about something else: add the 1,024 B non-secure-callable window and you get the
+`0x47E00` (294,400 B) that `config.cmake` works in, which is also the 294,912 B slot minus its
+512 B MCUboot header. Every figure in this document means the code region unless it says
+otherwise.
+
 ```
                          secure region   code used   spare for code
 RA6M5, Debug, GNUARM          521,728     323,536         198,192
@@ -268,7 +275,7 @@ the one combination in this list that stops the build instead of producing a lar
 
 | Decision | Value | Why |
 |---|---|---|
-| Build type | `MinSizeRel` | mandatory for GNUARM on RA8M2, where Debug comes out around 414 KB against a 294,400 B region. RA6M5 Debug does fit, and a release image should not spend the room anyway |
+| Build type | `MinSizeRel` | mandatory for GNUARM on RA8M2, where Debug comes out around 414 KB against a 293,376 B code region. RA6M5 Debug does fit, and a release image should not spend the room anyway |
 | Build type, IAR | `MinSizeRel` as well | IAR Debug fits on both parts, so this is a size choice rather than a constraint |
 | Console | **leave `<PART>_STDOUT_RTT` ON for now** | see the warning below. A release image with RTT on does carry a debug transport, but turning it off does not currently build |
 | Logging | silent | the three log options together cost 3,785 B of secure text, which both parts have room for; turn them off for a release image because they are diagnostics, not because of space |

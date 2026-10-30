@@ -268,6 +268,20 @@ BL2 logs at any `MCUBOOT_LOG_LEVEL` above `OFF` (`ERROR`/`WARNING`/`INFO`/`DEBUG
 TF-M's default is `INFO`; only `MinSizeRel` and `Release` set `OFF`, and at `OFF` the
 symbol is absent, which is expected rather than broken.
 
+### A test run stops partway and looks like a hang
+
+**Where the output stops tells you which to suspect**, and it is usually the capture rather
+than the target:
+
+- Stops **after a result line**, with the next test never announced — suspect the capture.
+- Stops **after a `Description:` line** — suspect the target, and the named test is where to
+  look.
+
+A target that hangs inside a test prints that test's header first, because the framework emits
+it before the body runs. The non-secure RTT up-buffer is 4 KB against roughly 15 KB of log, so
+losing the tail is the likelier failure. One SLIH run looked like a hang and was not:
+re-running the same binaries completed normally.
+
 ### The attestation suite passes, so measured boot works
 
 It does not follow. With `component_cnt == 0` under the default

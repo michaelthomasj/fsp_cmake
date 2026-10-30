@@ -219,19 +219,9 @@ Four places. Each is recorded in the log itself; none is a new finding here.
 
 ### An RTT capture can truncate silently, and it looks like a hang
 
-[D072] worked out the tell, and it is worth reusing before anyone reports a failure:
-
-- Output stops **after** a result line and the next test is never announced — suspect the
-  capture.
-- Output stops **after** a `Description:` line — suspect the target, and the named test is where
-  to look.
-
-A target that hangs inside a test prints that test's header first, because the framework emits it
-before the body runs. The non-secure RTT up-buffer is 4 KB against roughly 15 KB of log, which is
-why the capture is the likelier suspect. The first IAR SLIH run looked like a hang and was not:
-re-running the same binaries completed normally ([D072]).
-
----
+Where the output stops says which to suspect, and the tell is in
+[TROUBLESHOOTING.md](TROUBLESHOOTING.md) under "A test run stops partway and looks like a
+hang". One run in this record looked like a hang and was not.
 
 ## 8. One coverage note that no suite can reach
 

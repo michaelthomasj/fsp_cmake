@@ -121,6 +121,7 @@ one shows.
 | [PORTING.md](PORTING.md) | adding a new RA part |
 | [UPSTREAM_CHANGES.md](UPSTREAM_CHANGES.md) | the modifications this port makes to common TF-M code |
 | [BUILD_ARCHITECTURE.md](BUILD_ARCHITECTURE.md) | the CMake target graph, and the `api_ns/` handoff between the two builds |
+| [MAINTAINERS.md](MAINTAINERS.md) | the launch generator, the documentation checkers, the hooks and the reference renderer. Needed to maintain the scripts, not to use them |
 | [DECISIONS.md](DECISIONS.md) | why, append-only, with [SETTLED.md](SETTLED.md) as its generated index |
 | [e2_baseline/README.md](e2_baseline/README.md) | reading the port's RASC choices as a diff |
 | [bringup/bricking_evidence/README.md](bringup/bricking_evidence/README.md) | the preserved image behind the option-memory brick |
