@@ -107,8 +107,9 @@ href="ref/ADDING_FSP_MODULES.html#s1">ADDING_FSP_MODULES.md §1–3</a>).</p>
 <p>Three problems specific to running FSP under TF-M, each with a decision behind it:</p>
 <ol>
   <li><strong>Start-up order.</strong> TF-M's <code>Reset_Handler</code> calls <code>SystemInit()</code> <em>before</em> the
-C runtime zeroes <code>.bss</code> (Part 0 §0.5), so FSP state computed there, such as <code>SystemCoreClock</code>, is wiped. The required <code>BSP_CFG_EARLY_INIT</code> setting is in <a href="ref/E2_PROJECT_REQUIREMENTS.html#s5">E2_PROJECT_REQUIREMENTS.md §5</a> ("Early BSP Initialization"). The non-secure image uses FSP's own start-up
-  <li><strong>Static libraries and weak symbols.</strong> FSP compiled into an archive can silently lose a strong definition</li>
+C runtime zeroes <code>.bss</code> (Part 0 §0.5), so FSP state computed there, such as <code>SystemCoreClock</code>, is wiped. The required <code>BSP_CFG_EARLY_INIT</code> setting is in <a href="ref/E2_PROJECT_REQUIREMENTS.html#s5">E2_PROJECT_REQUIREMENTS.md §5</a> ("Early BSP Initialization"). The non-secure image is unaffected, because it uses FSP's own
+    start-up and so zeroes <code>.bss</code> before <code>SystemInit()</code> runs.</li>
+  <li><strong>Static libraries and weak symbols.</strong> FSP compiled into an archive can silently lose a strong definition
     to a weak one (<a href="ref/DECISIONS.html#d069">D069</a>, Part 2 §2.6). The port anchors <code>g_vector_table</code> to force the right member in.</li>
   <li><strong>Privilege.</strong> FSP drivers assume they own the NVIC. From isolation 2, Application-RoT partitions cannot
     call <code>_Open()</code> (Part 3 §3.9). The module mechanism puts driver code in <code>platform_s</code>, i.e. PSA RoT
@@ -122,7 +123,7 @@ C runtime zeroes <code>.bss</code> (Part 0 §0.5), so FSP state computed there, 
 <p>Three images, three linker scripts, one part. BL2 (MCUboot) lives at the base of flash, verifies the two signed images,
 and jumps to the secure one, which later jumps to the non-secure one.</p>
 <p>The order is the part of this a porter has to absorb, and two things in it are not what you would
-assume. Reading up from the base of flash: BL2, the reserved scratch block, the secure
+assume. RA6M5, reading up from the base of flash: BL2, the reserved scratch block, the secure
 <em>secondary</em> slot, the secure <em>primary</em> slot with the non-secure-callable veneers pinned at its
 top, then the two non-secure slots, with ITS, PS and the NV counters in data flash. Every address and
 size is in <a href="ref/RA6M5_SOLUTION.html">RA6M5_SOLUTION.md</a>, which owns the layout.</p>

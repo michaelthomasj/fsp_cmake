@@ -169,7 +169,7 @@ Not cache variables, but the ones people need to change, with the constraint tha
 | `TFM_NV_COUNTERS_AREA_SIZE` | `flash_layout.h` | 2048 B; PS and ITS split what remains |
 | `TFM_HAL_PS_SECTORS_PER_BLOCK` | `flash_layout.h` | `(area/sector)/2`. `num_blocks < 2` fails ITS and PS init outright, reported as pid 257 |
 | `FLASH_AREA_IMAGE_SECTOR_SIZE` | `flash_layout.h` | `0x8000` on both. Restates an FSP value and is not machine-checkable against it — see the note in `<part>_layout_checks.c` and diff FSP's generated `mcuboot_config.h` after a pack uprev ([D054]) |
-| OFS `OPTION_SETTING_*` | `region_defs.h` (RA6M5), generated `option_settings.h` (RA8M2) | **Brick hazard**: one `MEMORY` region per word, enforced by `check_ofs.py` ([DESIGN.md](DESIGN.md) §8.4). RA6M5 programs only the groups placed in `region_defs.h`; any other group enabled in e2 is dropped without a diagnostic |
+| OFS `OPTION_SETTING_*` | `region_defs.h` (RA6M5), generated `option_settings.h` (RA8M2) | **Brick hazard**: one `MEMORY` region per option group, enforced by `check_ofs.py` ([DESIGN.md](DESIGN.md) §8.4). RA6M5 programs only the groups placed in `region_defs.h`; any other group enabled in e2 is dropped without a diagnostic |
 
 **OFS values are edited in the bootloader project**, not the secure one. Both projects define
 the same `BSP_CFG_OPTION_SETTING_*` groups, so editing the wrong one has no effect and no

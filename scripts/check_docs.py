@@ -78,7 +78,7 @@ something a recipient actually receives. These four close that gap.
       carried a bracketed instruction instead of final text, it was applied literally, eight
       diagnoses vanished, and all four checkers passed. This catches:
         * a table with a header and no data rows, in Markdown or HTML
-        * an HTML list with no items
+        * an HTML list with no items, or an <li> left open when the next one starts
         * a paragraph that ends mid-sentence
         * a count in prose ("the four", "Three problems") over a list of a different length
         * an editing instruction left in the text ("(none here; add ...)", "[restore ...]")
@@ -412,6 +412,31 @@ def _md_tables_and_lists(text):
         i += 1
 
 
+def _nested_li(text):
+    """An <li> opened while another is still open at the same level.
+
+    A tag-balance count cannot see this: a missing </li> on one item and a stray one on the
+    next cancel out, and the document still parses. It is the signature of an item that ends
+    mid-sentence.
+    """
+    depth, prev = 0, None
+    for m in re.finditer(r"<(/?)(li|ol|ul)\b[^>]*>", text, re.I):
+        closing, name = m.group(1), m.group(2).lower()
+        if name in ("ol", "ul"):
+            depth, prev = 0, None          # a new list level
+            continue
+        line = text.count("\n", 0, m.start()) + 1
+        if closing:
+            depth -= 1
+        else:
+            if depth > 0:
+                yield ("nested list item", prev,
+                       f"<li> here is still open when the one at line {line} starts; "
+                       f"it is probably missing its </li>")
+            depth += 1
+            prev = line
+
+
 def _html_empties(text):
     for m in re.finditer(r"<table\b[^>]*>(.*?)</table>", text, re.S | re.I):
         if not re.search(r"<tr\b", m.group(1), re.I):
@@ -505,7 +530,7 @@ def content_checks(docs, tracked):
         if tracked is not None and rel not in tracked:
             continue
         text = read(path)
-        found = list(_html_empties(text))
+        found = list(_html_empties(text)) + list(_nested_li(text))
         if path.endswith(".md"):
             found += list(_md_tables_and_lists(text))
             found += list(_md_fragments(text))
@@ -527,13 +552,34 @@ def clean_clone_run(argv):
     """
     import shutil
     import tempfile
-    tmp = tempfile.mkdtemp(prefix="check_docs_clean_")
+    # Windows caps a path at 260 characters. The longest tracked path is ~111, so the room
+    # left is whatever the temp root takes: prefer the shortest writable one and a two-letter
+    # prefix, or a long TEMP makes extraction fail (7a).
+    # Use a short root only if it already exists. Creating one at the drive root to buy path
+    # characters is not this script's business.
+    root = None
+    for cand in (os.path.join(os.path.splitdrive(ROOT)[0] or "C:", os.sep + "tmp"),
+                 tempfile.gettempdir()):
+        if not os.path.isdir(cand):
+            continue
+        try:
+            probe = tempfile.mkdtemp(prefix="cc", dir=cand)
+            os.rmdir(probe)
+            root = cand
+            break
+        except OSError:
+            continue
+    tmp = tempfile.mkdtemp(prefix="cc", dir=root)
     try:
         for src, name in ((ROOT, os.path.basename(ROOT)),
                           (os.path.normpath(os.path.join(ROOT, "..", "trusted-firmware-m")),
                            "trusted-firmware-m")):
             if not os.path.isdir(os.path.join(src, ".git")):
-                continue
+                # Skipping it would leave the build-file list empty and report ok having
+                # checked nothing, which is the failure this mode exists to catch (7b).
+                print(f"check_docs: {src} is not a git repository - cannot verify tracked "
+                      f"content there", file=sys.stderr)
+                return 2
             dest = os.path.join(tmp, name)
             os.makedirs(dest, exist_ok=True)
             tar = os.path.join(tmp, name + ".tar")
@@ -543,7 +589,13 @@ def clean_clone_run(argv):
             except (OSError, subprocess.CalledProcessError):
                 print(f"check_docs: cannot archive {src}", file=sys.stderr)
                 return 2
-            shutil.unpack_archive(tar, dest, "tar")
+            try:
+                shutil.unpack_archive(tar, dest, "tar")
+            except OSError as e:
+                print(f"check_docs: cannot extract {name} under {tmp}: {e}\n"
+                      f"  the path is probably over the 260-character limit; set TMPDIR to "
+                      f"something short, e.g. C:\\t", file=sys.stderr)
+                return 2
             os.remove(tar)
         here = os.path.join(tmp, os.path.basename(ROOT))
         script = os.path.join(here, "scripts", "check_docs.py")

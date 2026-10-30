@@ -53,8 +53,11 @@ Per-part, and the one place where getting a constant wrong fails only on hardwar
 | Block size under the slots | 32 KB (region 1, `0x10000+`; region 0 is 8 KB) | no physical erase block - MRAM's write unit is 32 B and its erase is simulated. 32 KB is FSP's `RM_MCUBOOT_MRAM_BLOCK_SIZE` layout choice, which the port mirrors |
 | `FLASH_AREA_IMAGE_SECTOR_SIZE` | `0x8000` | `0x8000` |
 
-Take `FLASH_AREA_IMAGE_SECTOR_SIZE` from FSP's generated `mcuboot_config.h`; never restate it. A
-mismatch passes every build step and fails on hardware as `BOOT_EFLASH`.
+Both parts restate `FLASH_AREA_IMAGE_SECTOR_SIZE` in `flash_layout.h`, and have to: FSP's
+generated `mcuboot_config.h` defines the same macro, so it cannot be included alongside. **No
+build step compares the two** - a mismatch passes everything and fails on hardware as
+`BOOT_EFLASH`, so compare them by hand after a regenerate
+([FSP_UPREV_CHECKLIST.md](FSP_UPREV_CHECKLIST.md) §2).
 
 BL2 uses TF-M's MCUboot flash map and backend (`DEFAULT_MCUBOOT_FLASH_MAP` ON), with FSP's
 `R_FLASH_HP` / `R_MRAM` behind `Driver_FLASH0` / `Driver_FLASH1`, as ST does for STM32Cube. The

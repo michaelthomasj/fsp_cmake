@@ -38,7 +38,7 @@ The three toolchain variables must be set on every machine
 | `TFM_SPM_LOG_LEVEL` | `_DEBUG`, passed | `_DEBUG`, passed | `_DEBUG` passed (GCC); from `Debug` (IAR) |
 | `TFM_PARTITION_LOG_LEVEL` | `_INFO`, passed | build-type default | build-type default |
 | `CONFIG_TFM_HALT_ON_CORE_PANIC` | `ON`, passed | default | default |
-| Build type | MinSizeRel | MinSizeRel, both toolchains | MinSizeRel (GCC) / Debug (IAR) |
+| Build type | MinSizeRel | MinSizeRel, both toolchains | `Debug`, except RA8M2 under GNU, which must be `MinSizeRel` |
 
 Why the scripts pass `TFM_SPM_LOG_LEVEL`, why RA8M2 GNU must build `MinSizeRel`, and what the
 logging options cost: [CONFIGURATION.md](../CONFIGURATION.md) §1 (build type), §6 (cost)
