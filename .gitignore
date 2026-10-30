@@ -76,3 +76,9 @@ FLASH_MAP_OWNERSHIP.md
 # full mirror leaks the documents above. Run scripts/build_doc_html.py to produce it - the
 # course under docs/learning/ links into it - and generate it at packaging time.
 docs/learning/ref/
+
+# Python bytecode inside the generated FSP trees, and editor state. Both were tracked by
+# accident; neither belongs in a deliverable.
+__pycache__/
+*.pyc
+.vscode/

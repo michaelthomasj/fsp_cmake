@@ -4,11 +4,15 @@ The exact BL2 image that was flashed to two EK-RA6M4 boards, after which neither
 Kept as forensic reference and as the regression fixture for the option-setting brick guard.
 **Do not flash these files to any board.**
 
+Each carries the `.UNSAFE` suffix, which is also what `check_ofs.py --quarantine` renames a
+rejected image to. **Strip the suffix only to feed one to a tool that reads it; never to a
+programmer.**
+
 | File | What it is |
 |---|---|
-| `bl2_BRICKED.elf` | the exact `build_ra6m4_boot/bin/bl2.elf`, built 14:31:26, copied with its original timestamp |
-| `bl2_BRICKED.srec` | the same image as an S-record |
-| `bl2_BRICKED.hex` | the same image as Intel hex |
+| `bl2_BRICKED.elf.UNSAFE` | the exact `build_ra6m4_boot/bin/bl2.elf`, built 14:31:26, copied with its original timestamp |
+| `bl2_BRICKED.srec.UNSAFE` | the same image as an S-record |
+| `bl2_BRICKED.hex.UNSAFE` | the same image as Intel hex |
 
 ## What the image did
 
@@ -73,6 +77,6 @@ in: it does not show in the srec, and a plausible-looking linker script can stil
 spanning segment. [DESIGN.md](../../DESIGN.md) §8.4 has the design and
 [KNOWN_LIMITATIONS.md](../../KNOWN_LIMITATIONS.md) §4 the hazard as it stands.
 
-**`bl2_BRICKED.elf` is that guard's regression fixture — do not delete it.** The guard rejects
+**`bl2_BRICKED.elf.UNSAFE` is that guard's regression fixture — do not delete it.** The guard rejects
 it with `0x0100A100+388B` (388 = `0x184`, the span itself), which is how the check is verified
 to fire rather than only to pass.

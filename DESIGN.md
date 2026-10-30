@@ -391,7 +391,7 @@ registers, and two of them are one-time.
   the ELF writes that whole span across config memory that should have been left alone → **the
   part is bricked**. This destroyed two EK-RA6M4 boards, and no recovery is known.
 
-  The measured numbers, from the bricked image itself (`bringup/bricking_evidence/bl2_BRICKED.elf`,
+  The measured numbers, from the bricked image itself (`bringup/bricking_evidence/bl2_BRICKED.elf.UNSAFE`,
   [D094]): that BL2 emitted three OFS words - `0x0100A100`, `0x0100A200`, `0x0100A280` - and ld
   produced one `PT_LOAD` of 388 bytes (`0x184`) spanning `0x0100A100`-`0x0100A283`, of which
   376 bytes were zero fill. The 460-byte figure above is the width of the whole sparse map, not
@@ -453,7 +453,7 @@ BL2 also passes `--require-segments`, so an empty result fails rather than passi
 > it never fired, because RA6M5's `bl2_option_setting.c` places none of them.
 
 The guard is verified against the real artifact rather than assumed to work:
-`bringup/bricking_evidence/bl2_BRICKED.elf` is the image that destroyed the boards, and the guard
+`bringup/bricking_evidence/bl2_BRICKED.elf.UNSAFE` is the image that destroyed the boards, and the guard
 rejects it with `0x0100A100+388B` — 388 = `0x184`, the span itself. That file is the regression
 fixture for this check; do not delete it.
 
