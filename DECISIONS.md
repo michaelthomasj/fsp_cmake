@@ -8045,3 +8045,68 @@ tracked, and nothing reads either macro, so no image changes either way.
 compare committed content on both sides, and the direction of generation does not change what the
 diffs say. What changes is how a reader acts on a difference found in a `.secure_azone` — the fix
 belongs in `solution.xml` followed by a regenerate, never in the file the diff names.
+
+## D146 — the documents become a three-tier set; six maintainer documents and the rendered mirror leave the repository
+
+**Date:** 2026-10-29 · **Status:** Accepted · **Builds on:** [D137] · **Evidence:** the customer documentation review of 2026-10, verified against the tree document by document
+
+**Context.** [D137] decided what a customer receives at the level of trees and working material.
+It did not order the documents a customer reads. An outside review of all 56 documents found the
+set technically strong and structurally unusable: no tier, several facts with four or five
+owners that did not agree, and five documents that describe a superseded or descoped state in
+the present tense. Its proposal is a main path of seven documents, a task reference, and a
+labelled appendix.
+
+**The two task-reference documents were replaced rather than edited.**
+
+| Was | Is | Why not an edit |
+|---|---|---|
+| `RA6E1_TEMPLATE_CHECKLIST.md` | `E2_PROJECT_REQUIREMENTS.md` | It was the only statement of the generated-project contract and was cited by four documents, but it was written for RA6E1 and wrong for the two supported parts on the flash driver, the crypto modules and the data-flash split. Renaming the file was the smaller half of the work |
+| `BRIDGING_FILES.md` | `FSP_UPREV_CHECKLIST.md` | A customer moving off the beta pack is the reader. The old text gave bash-only command loops, named an internal repository as the place to run one of them, and wrote three checks against RA8M2 and GNU only |
+
+The new contract document is **part-neutral with per-part rows**, and every per-part claim in it
+was read off the tree rather than carried over: the flash module is `r_flash_hp` on RA6M5 and
+`r_mram` on RA8M2 with instance `g_mram0` against `g_flash0`; the engine directory under `r_sce`
+is discovered rather than named; both parts take `bsp flash sce agt` for the secure image and
+`bsp flash` for the bootloader; RA8M2 carries 22 option-word guards and RA6M5 none.
+
+**Six documents are withheld, by the mechanism [D137] established** — added to `.gitignore`, left
+on disk, out of the repository. Three are process (`PROJECT_PLAN.md`,
+`DOCUMENTATION_PLAN.md`, `docs/STYLE_EDIT_PROMPT.md`) and three describe a dormant or descoped
+state in the present tense (`RA6E1_SOLUTION.md`, `RA8x2_DUAL_CORE_DESIGN.md`,
+`FLASH_MAP_OWNERSHIP.md`).
+
+**Nothing was withheld before its residual customer facts had a new owner.** Each was checked
+rather than assumed:
+
+| From | Fact | Now in |
+|---|---|---|
+| `PROJECT_PLAN.md` | the suites that have never run on any part | `TEST_RESULTS.md` §9, as a table with the rows that have since been closed removed |
+| `PROJECT_PLAN.md` | the roadmap | `KNOWN_LIMITATIONS.md` §7, already, and without dates |
+| `DOCUMENTATION_PLAN.md` | the `PS_NUM_ASSETS` per-part cap, and that option words are configured only in the bootloader project | `CONFIGURATION.md`, already, at §7 and §6 |
+| `FLASH_MAP_OWNERSHIP.md` | the guard collision if an FSP flash backend is reintroduced | `FSP_UPREV_CHECKLIST.md` §3, already |
+| `RA6E1_SOLUTION.md` | nothing the supported parts need | — |
+
+Four documents still pointed at the withheld files in prose; those pointers are gone, and the
+two RA6E1 rows in `TEST_RESULTS.md` now name their source as the bring-up record rather than a
+document a customer will not have.
+
+**`docs/learning/ref/` leaves the repository too, and this one has a cost.** The mirror is 25
+generated files that duplicate every document, so each change had two copies to keep in step,
+and a mirror of *every* document republishes the six above. It is now gitignored and the
+pre-commit hook no longer renders or stages it. **The course links into `ref/`, so those links
+do not resolve in a fresh clone until `build_doc_html.py` is run**; both `docs/learning/README.md`
+and `scripts/README.md` now say so at the point where a reader meets the problem. Running it is
+one command and belongs in the packaging step.
+
+**The README stops being a second manual.** It was 1,901 words carrying a build procedure that
+dead-ended, the secure-slot space budget, the brick history and a flat list of every document.
+The procedure and the budget each had another owner — `GETTING_STARTED.md` and
+`CONFIGURATION.md` §6 — and the duplicate budget figures had already been reconciled, so the
+fix was deletion and a pointer, not a merge. What stays is what the repository is, the security
+status, the two hazards, and the tiered map.
+
+**Rejected.** Deleting the six documents outright. History holds them either way, but the three
+process documents are live maintainer material and the owner still edits them; leaving them on
+disk costs the deliverable nothing and keeps the style instruction that the prose is edited
+against at the path the rest of the tooling expects.

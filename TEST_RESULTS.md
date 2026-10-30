@@ -4,8 +4,7 @@ What has run on silicon, on which part and toolchain, and what it returned. Each
 `DECISIONS.md` entry that recorded the run. That log is the primary record; this document is an
 index into it and adds no result of its own.
 
-For what has **not** run, read `PROJECT_PLAN.md` §"Test coverage gaps". The two documents are
-complements: this one lists runs, that one lists the suites no run has covered.
+For what has **not** run, read §9 below. It lists every suite that no run has covered.
 
 ---
 
@@ -153,7 +152,7 @@ observed under IAR; [D100] proved the erase half on GCC through the same `bootut
 
 Neither other part has run it. RA6M5 has no `*_TFM_update` launch. RA6E1 set
 `MCUBOOT_ALIGN_VAL` to 128 to match its 128-byte code-flash write unit on 2026-08-29, and
-`RA6E1_SOLUTION.md` records that fix as not yet exercised on hardware: it only takes effect
+and that fix has not been exercised on hardware: it only takes effect
 once BL2 writes code flash, which is an upgrade. **Images signed at one alignment are rejected
 by a BL2 built at another, because the trailer magic differs — reflash every slot and do not
 mix.**
@@ -188,8 +187,8 @@ re-run against the current build.
 
 | Run | Date | Result | Source |
 |---|---|---|---|
-| All 13 secure services, smoke-tested from non-secure | 2026-08-30 | pass | `RA6E1_SOLUTION.md` |
-| `tf-m-tests` non-secure regression | 2026-09-02 | 5/5 suites | `RA6E1_SOLUTION.md` |
+| All 13 secure services, smoke-tested from non-secure | 2026-08-30 | pass | the RA6E1 bring-up record, not part of this delivery |
+| `tf-m-tests` non-secure regression | 2026-09-02 | 5/5 suites | the RA6E1 bring-up record, not part of this delivery |
 | PSA Arch crypto, `TFM_ISOLATION_LEVEL=3`, IPC, EK-RA6E1 | 2026-09-08 | every visible `TEST RESULT` read PASSED | [D015] |
 
 [D015] states its own limit: the transcript has RTT dropouts and no end-of-suite summary was
@@ -236,3 +235,28 @@ included, because the PSA cipher layer never reaches that function with a partia
 in this matrix can see the defect, and a direct Mbed TLS CTR caller still hits it. Closing it
 needs a unit test against `mbedtls_aes_crypt_ctr()` itself, not another PSA-level suite
 ([D099]).
+
+---
+
+## 9. Suites that have never run
+
+Enumerated from `tf-m-tests` and `psa-arch-tests` and checked against every build tree. These
+are gaps in coverage, not known failures.
+
+| Suite | Option | Why it has not run | Worth running? |
+|---|---|---|---|
+| Firmware Update | `TEST_S_FWU`, `TEST_NS_FWU` | `TFM_PARTITION_FIRMWARE_UPDATE` is OFF on both parts | The highest value of these. It exercises the PSA Firmware Update API over the MCUboot slots the port already has, and the bootloader half is proven on RA8M2. The RA8M2 secure slot has little spare room, so the partition may not fit without turning something off |
+| SLIH above isolation 1 | `CONFIG_TFM_SLIH_API` | No SLIH tree or launch exists above isolation 1, and none at all on RA8M2. The SLIH service declares the same MMIO region as FLIH, and that path has never been exercised above isolation 1 | Yes, once the trees and launches are made |
+| PSA Arch Firmware Framework | `TEST_PSA_API=IPC` | Only the crypto, attestation and storage suites have been built | Yes. It is a different test body from the developer-API suites already run |
+| FPU | `TEST_S_FPU`, `TEST_NS_FPU` | `CONFIG_TFM_ENABLE_CP10CP11` is OFF and the port is soft-float throughout | Only if floating point is enabled. RA8M2 is a Cortex-M85 with FP hardware, so this is a real gap for that part |
+| Non-secure client ID management | `TEST_NS_MANAGE_NSID` | `TFM_NS_MANAGE_NSID` is not set | Yes, and cheap |
+| QCBOR and t_cose self-tests | `TEST_NS_QCBOR`, `TEST_NS_T_COSE` | never enabled | Yes, and cheap. Both libraries already ship, linked for attestation |
+| Multi-core | `TEST_NS_MULTI_CORE` | `TFM_MULTI_CORE_TOPOLOGY` is OFF and the second core is unused | Not applicable while the port is single-core |
+
+Covered, for contrast: Protected Storage, Internal Trusted Storage, Crypto, Attestation,
+Platform, the SFN backend, FLIH interrupt handling on both parts and both toolchains, and the
+PSA Arch crypto, attestation and storage suites. **SLIH is covered on RA6M5 at isolation 1
+only**, which is why it appears in the table above as well.
+
+One further gap is not a suite that could be run at all: §8 describes a defect that no
+PSA-level suite can reach.

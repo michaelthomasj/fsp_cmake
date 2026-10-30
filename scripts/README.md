@@ -234,7 +234,7 @@ the host instead of dropping writes when its buffer fills. Without it a suite ou
 host's polling and whole tests vanish from the transcript while the run itself is fine. Off by
 default in the port, because with no viewer attached the first write past 4 KB blocks forever.
 
-## Documentation checks
+## Documentation checks — maintainer tooling
 
 ```sh
 python scripts/check_docs.py     # verify every D-citation and .md reference resolves
@@ -280,7 +280,7 @@ adding a row to the table in the script.
 is copied to `<name>.bak` first. It is safe to re-run, and it has to be re-run after either
 hook script changes, because the hooks are copies rather than symlinks.
 
-### Rendered documents for the course
+### Rendered documents for the course — maintainer tooling
 
 ```sh
 python scripts/build_doc_html.py           # regenerate docs/learning/ref/ from the working tree
@@ -288,10 +288,10 @@ python scripts/build_doc_html.py --check   # exit 1 if ref/ is stale, orphaned, 
 ```
 
 The course in `docs/learning/` links to HTML renderings of every root `*.md` and this file, in
-`docs/learning/ref/`. **The Markdown is the source; never edit `ref/*.html`.** The same
-pre-commit hook re-renders them from the *staged* Markdown and stages the result, so a commit
-that changes a document carries its HTML with it. It also refuses a commit whose course pages
-link a raw `.md`.
+`docs/learning/ref/`. **The Markdown is the source; never edit `ref/*.html`.** That directory is
+generated and is not committed: run the command above once per clone to make the course links
+resolve, and again at packaging time. It also fails when a course page links a raw `.md` instead
+of `ref/<NAME>.html`, which is worth running after editing the course.
 
 - Stdlib only - a small renderer for the subset these documents use. Raw HTML in Markdown is
   escaped, not passed through.

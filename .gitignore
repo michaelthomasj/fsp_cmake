@@ -56,3 +56,22 @@ docs/General_tech_review/
 
 # Scratch e2 project for TrustZone experiments. Not referenced by the port.
 tz_test/
+
+# Plans and process notes. Maintainer material: a schedule, a documentation plan and the
+# prose-style instruction the documents are edited against. They stay on disk and out of the
+# deliverable, like the review snapshots above.
+PROJECT_PLAN.md
+DOCUMENTATION_PLAN.md
+docs/STYLE_EDIT_PROMPT.md
+
+# Dormant-part and descoped design notes. RA6E1 is reference only and runs an older FSP pack;
+# the dual-core work was descoped; the flash-map review's outcome is in DESIGN.md section 4 and
+# its one residual check is in FSP_UPREV_CHECKLIST.md.
+RA6E1_SOLUTION.md
+RA8x2_DUAL_CORE_DESIGN.md
+FLASH_MAP_OWNERSHIP.md
+
+# The rendered mirror of every document. It is generated, it doubles the change surface, and a
+# full mirror leaks the documents above. Run scripts/build_doc_html.py to produce it - the
+# course under docs/learning/ links into it - and generate it at packaging time.
+docs/learning/ref/

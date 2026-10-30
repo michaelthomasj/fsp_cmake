@@ -6,8 +6,8 @@ newer TF-M without re-deriving the reasoning.
 
 Live parts: RA6M5 and RA8M2. RA6M4 and RA6E1 are in-tree but dormant — both EK-RA6M4 boards
 were bricked by the OFS coalescing defect (DECISIONS D002). Sections below are part-neutral
-unless they name a part; per-part specifics live in `RA6M5_SOLUTION.md` and `RA8M2_SOLUTION.md`
-(and `RA6E1_SOLUTION.md` for the dormant part),
+unless they name a part; per-part specifics live in [RA6M5_SOLUTION.md](RA6M5_SOLUTION.md) and
+[RA8M2_SOLUTION.md](RA8M2_SOLUTION.md),
 and the RA6M4-era documents left the tree in [D137].
 
 > This file is the stable companion to `DECISIONS.md`, which is the append-only log of why.
@@ -126,8 +126,7 @@ as `RM_MCUBOOT_MRAM_BLOCK_SIZE` (`0x8000`); slots came out 9.875 sectors long, e
 accepted it, and it failed on hardware as `BOOT_EFLASH` (D054).
 
 Settled, 2026-10-05 (D091). This section recorded a long argument about whether BL2 should
-take its MCUboot flash backend from FSP. The answer is no, and the reasoning is in
-`FLASH_MAP_OWNERSHIP.md`:
+take its MCUboot flash backend from FSP. The answer is no, for the reasons below:
 
 - MCUboot's porting contract is that the port supplies `flash_map_backend.h` - the struct
   and the `flash_area_*` functions. Zephyr and Mynewt delegate it to the surrounding system,
@@ -214,7 +213,7 @@ Attribution itself is entirely what is burned via RFP/RDPM — see §7.1.
 - Boundaries to program: deliberately not listed here. They are per-part, they are RDPM
   input, and a stale copy in a third document is how a board gets provisioned wrong. The owning
   documents are `RA6M5_SOLUTION.md` §"TrustZone boundary values" and `RA8M2_SOLUTION.md`
-  (`RA6E1_SOLUTION.md` for the dormant part); all
+  both
   derive the values from the generated layout and show the 32 KB / 8 KB block checks. RDPM
   **erases the part** — reflash all three images afterwards.
 

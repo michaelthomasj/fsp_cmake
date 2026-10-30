@@ -71,17 +71,10 @@ if [ -f "$root/scripts/check_arch_lines.py" ] && [ -d "$root/../trusted-firmware
     fi
 fi
 
-# 3. Rendered reference pages, docs/learning/ref/. The Markdown is the source: render from the
-#    INDEX (--staged), not the working tree, so a partially staged document produces HTML that
-#    matches what is being committed. Then stage the result, including removals.
-[ -f "$root/scripts/build_doc_html.py" ] || exit 0
-python "$root/scripts/build_doc_html.py" --staged
-status=$?
-if [ $status -ne 0 ]; then
-    echo
-    echo "pre-commit: rendering docs/learning/ref/ failed, or a course page links raw .md (above)."
-    echo "            Link the course to ref/<NAME>.html instead."
-    exit $status
-fi
-git -C "$root" add -A docs/learning/ref
+# docs/learning/ref/ is NO LONGER RENDERED OR STAGED HERE. The mirror is generated and is not
+# part of the deliverable, so it is gitignored and produced at packaging time with
+#     python scripts/build_doc_html.py
+# Run that by hand if you want the course's links into ref/ to resolve in your clone. It also
+# fails when a course page links a raw .md instead of ref/<NAME>.html, which is worth running
+# after editing the course.
 exit 0

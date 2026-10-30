@@ -6,8 +6,8 @@
 
 | | |
 |---|---|
-| Entries | **145** |
-| Standing | **132** |
+| Entries | **146** |
+| Standing | **133** |
 | Superseded | **13** |
 | Standing but corrected on some point | **37** |
 | Standing, but the question they left open is closed | **3** |
@@ -34,7 +34,7 @@ A later entry **supersedes** an earlier one: same question, newer answer. Citing
 
 ---
 
-## Standing (132)
+## Standing (133)
 
 Nothing supersedes these. The title is the position. Where a later entry corrects one, the correction is named - the entry stands apart from that. **Where the Closed by column is filled, read the status as historical:** the entry describes a problem that a later entry shut, so its own "Open" or "Provisional" is no longer true.
 
@@ -172,6 +172,7 @@ Nothing supersedes these. The title is the position. Where a later entry correct
 | `D143` | 2026-10-29 | the deliverable repository moves into the Renesas organisation; the scripts stop depending on its directory name; the rename waits on admin | Accepted | — | — |
 | `D144` | 2026-10-29 | the application chain gets its fourth script and its first RA8M2 launches; the pre-flash check becomes per part and works under IAR | Accepted | — | — |
 | `D145` | 2026-10-29 | `.secure_azone` is generated from the solution, not read as input; [D140]'s mechanism claim was wrong | Accepted | — | — |
+| `D146` | 2026-10-29 | the documents become a three-tier set; six maintainer documents and the rendered mirror leave the repository | Accepted | — | — |
 
 ---
 
