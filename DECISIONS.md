@@ -7942,3 +7942,71 @@ times.
 whose `origin` was repointed at the intended new name has to be set back to
 `https://github.com/renesas/fsp_cmake.git`, because the renamed repository does not exist yet.
 Whoever completes the rename changes the documents and this log, not any script.
+
+## D144 — the application chain gets its fourth script and its first RA8M2 launches; the pre-flash check becomes per part and works under IAR
+
+**Date:** 2026-10-29 · **Status:** Accepted · **Builds on:** [D084], [D056] · **Evidence:** a clean-tree build of the new script, `readelf -l` and `objdump -s` over four BL2 images under both toolchains, and an audit of all 34 committed launches
+
+**Context.** `GETTING_STARTED.md` was a one-part document in the three places a reader executes
+it. §5 built RA8M2 only, because no RA6M5 GCC application script existed. §6 said in a block
+quote that no launch flashes what §5 builds. The pre-flash verification gave three RA6M5 section
+names, then said they were the wrong values for RA8M2 and did not work under IAR at all. Each is
+a first-day blocker rather than a documentation nicety.
+
+**`scripts/app_build_ra6m5_gcc.bat` now exists**, modelled on `app_build_ra8m2_gcc.bat`. Its
+defaults are `build_ra6m5_sce9` and `build_ra6m5_sce9_ns` in the TF-M tree, which is the pair the
+committed `ra6m5_TFM_sce9_gcc` launch already flashed and the recipe the RA6M5 `QUICKSTART.md`
+already printed by hand. [D084]'s lesson applies: that configuration lived only in a build cache.
+Verified on a clean tree — configure, build, install, OFS guard PASS on `bl2` and `tfm_s`, NS
+build, both images signed.
+
+**`CMAKE_BUILD_TYPE` differs by part, and the figure behind it is measured.** RA8M2 GNUARM must
+build MinSizeRel; RA6M5 GNUARM builds Debug and uses **322,960 B of a 521,728 B** secure region,
+61.9%. A first draft of the script's comment called that tight, on the strength of `tfm_s.bin`
+being 521,792 B — which is imgtool's padding to the region, not the image. Read the linker's own
+"Memory region" table; a padded artifact cannot report headroom.
+
+**Four application launches now ship, one per part and toolchain.** RA6M5 already had two,
+`ra6m5_TFM_sce9_{gcc,iar}`, pointing at exactly what its two scripts default to. RA8M2 had none,
+which is what the §6 block quote was reporting. `ra8m2_TFM_app_gcc` and `ra8m2_TFM_app_iar` were
+cloned from the FLIH launches with `mk_level_launch.py`, substituting `m2gflih\build-spe` → `m2g`
+and `m2iflih\build-spe` → `m2app`: the suite trees carry an extra `build-spe` path segment that
+the application trees do not, so the substitution has to absorb it. All ten image paths were
+confirmed present on disk, and both `setTZBoundaries` keys are `false` in each.
+
+**The pre-flash check is now stated per part.** The guard's windows are per part and it reads only
+what it is given, which [D056] recorded as a false negative that reads as verification.
+`GETTING_STARTED.md` §6 gives the `check_ofs.py` invocation for each part, with
+`--require-segments` so an empty result on BL2 fails, and the expected bytes for all nine option
+words — three on RA6M5, six on RA8M2.
+
+**The IAR gap was a section-name problem, not a toolchain limitation.** ILINK renames the
+option-setting sections to `P1`, `P7`, `P11` on RA6M5 and `P1`–`P6` on RA8M2, so
+`objdump -j .option_setting_*` dumps nothing and prints no error. Dumping by address instead works
+under both toolchains, and both emit byte-identical option words for the same part:
+
+```
+RA6M5  0x0100A100 ffffffff   0x0100A200 fffdffff   0x0100A280 f8f8ffff
+RA8M2  0x02C9F040 ffffffff   0x02C9F044 efffffff   0x02C9F0C0 fffffffd
+       0x02C9F0C4 ffffffff   0x02C9F120 00000000   0x02C9F124 00000000
+```
+
+`check_ofs.py` itself never had the problem, because it reads program headers; run by hand against
+an IAR `bl2.axf` it passes on both parts.
+
+**Rejected.** Renaming the four application build trees to a systematic set
+(`m5g`/`m5i`/`m2g`/`m2i`). It reads better, and it would have re-pointed two working launches and
+contradicted the trees this log cites. The inherited names are tabulated instead.
+
+**Two standing statements were no longer true.** `KNOWN_LIMITATIONS.md` §5 said no launch loads
+what the scripts build; four now do and the sentence names them. `README.md`'s shortest-path step
+said there is no RA6M5 GCC application script. The other half of the `KNOWN_LIMITATIONS.md`
+sentence survives: all nineteen RA6M5 launches take their debug program from the e2 project's own
+`Debug/ra6m5_gcc_nonsecure.elf` rather than a TF-M image, against a `bl2.elf` in all fifteen RA8M2
+launches, so the symbols e2 loads are not the flashed image's.
+
+**`bringup/bricking_evidence/README.md` no longer describes a withdrawn mitigation.** It said
+option-setting sections had been removed from all TF-M images, "per the project requirement that
+BL2 never link OFS". That is [D001], superseded by [D002]: emission was restored with one `MEMORY`
+region per word. The rewrite states the mechanism, keeps that which of the eight registers did it
+is not established, and keeps the `FAWMON`/`FSPR` warning from [D094].

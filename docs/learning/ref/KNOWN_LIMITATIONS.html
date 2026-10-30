@@ -178,9 +178,14 @@ than the raw image. Enabling a diagnostic option that costs a few kilobytes will
 non-secure image each initialise their own RTT control block, and the address differs per build.
 A capture can also truncate silently: if output stops after a result line and the next test is
 never announced, suspect the capture rather than the target.</p>
-<p><strong>The shipped launches do not load what the build scripts produce.</strong> They load BL2 from an
-absolute path into a build tree, plus the e2 project&#x27;s own non-secure ELF. Read
-<code>GETTING_STARTED.md</code> §6 before flashing.</p>
+<p><strong>Most launches do not load what the build scripts produce.</strong> Four do, one per part and
+toolchain: <code>ra6m5_TFM_sce9_{gcc,iar}</code> and <code>ra8m2_TFM_app_{gcc,iar}</code>, whose load entries are
+the default build directories of the four application scripts. Every other launch names a
+build tree of its own by absolute path, so running an application build and then one of those
+flashes different images or fails on missing files. <code>GETTING_STARTED.md</code> §6 has the table.</p>
+<p>All nineteen RA6M5 launches additionally take their debug program from the e2 project —
+<code>Debug/ra6m5_gcc_nonsecure.elf</code> — rather than from a TF-M image, so the symbols e2 loads are
+not those of the image being flashed. The fifteen RA8M2 launches name a <code>bl2.elf</code> instead.</p>
 <hr>
 <h2 id="s6">6. Platform scope</h2>
 <div class="table-wrap"><table>

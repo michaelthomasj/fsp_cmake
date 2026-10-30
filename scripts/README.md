@@ -97,9 +97,20 @@ configuration differs in every row of the table above.
 | RA8M2 GCC | `m2cry` | `m2cryns` | `m2att` | `m2sto` | `m2gflih` | `m2gflihns` |
 | RA8M2 IAR | `m2icry` | `m2icryns` | `m2iatt` | `m2isto` | `m2iflih` | `m2iflihns` |
 
-All under `C:\b\`. Short paths on purpose: a deep one overruns Windows' path limit partway
-through the Mbed TLS overlay clone, and reports `Filename too long` on
-`3rdparty/everest/...` rather than anything about length.
+The application chain has defaults of its own, each chosen to match the launch that flashes
+that pair:
+
+| | Secure | Non-secure |
+|---|---|---|
+| RA6M5 GCC | `trusted-firmware-m\build_ra6m5_sce9` | `trusted-firmware-m\build_ra6m5_sce9_ns` |
+| RA6M5 IAR | `trusted-firmware-m\build_ra6m5_iar` | `trusted-firmware-m\build_ra6m5_iar_ns` |
+| RA8M2 GCC | `m2g` | `m2gns` |
+| RA8M2 IAR | `m2app` | `m2appns` |
+
+The suite trees above and the RA8M2 application trees are all under `C:\b\`. Short paths on
+purpose: a deep one overruns Windows' path limit partway through the Mbed TLS overlay clone,
+and reports `Filename too long` on `3rdparty/everest/...` rather than anything about length.
+The RA6M5 application pairs sit inside the TF-M clone, whose path is short enough to build in.
 
 ## Building
 
@@ -113,9 +124,12 @@ rem  Regression. Fourth argument picks the IRQ suite: flih (default), slih, or n
 rem  they are mutually exclusive in tf-m-tests.
 scripts\reg_build_iar.bat     C:\b\m2iflih C:\b\m2iflihns ra8m2 flih
 
-rem  Application chain.
-scripts\app_build_ra8m2_gcc.bat C:\b\m2app  C:\b\m2appns
-scripts\app_build_ra8m2_iar.bat C:\b\m2iapp C:\b\m2iappns
+rem  Application chain. Run these bare to use the defaults, which are the trees the matching
+rem  launch in GETTING_STARTED.md §6 flashes.
+scripts\app_build_ra6m5_gcc.bat
+scripts\app_build_iar.bat
+scripts\app_build_ra8m2_gcc.bat
+scripts\app_build_ra8m2_iar.bat
 ```
 
 Suites: `CRYPTO`, `INITIAL_ATTESTATION`, `STORAGE` (runs ITS and PS), `PROTECTED_STORAGE`,

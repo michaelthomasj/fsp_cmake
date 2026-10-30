@@ -142,12 +142,13 @@ test suite, with commands, versions and the first-build failure table.</p>
 The build is a prerequisite: the TF-M build reads <code>Debug/bsp_linker_info.h</code>
 and <code>Debug/memory_regions.*</code>, which only an e2 build produces. Regenerating alone is not
 enough.</li>
-<li>Run the matching script from <code>scripts/</code> — <code>app_build_ra8m2_gcc.bat</code> (RA8M2 GCC),
-<code>app_build_iar.bat</code> (RA6M5 IAR; there is no RA6M5 GCC application script), and
-so on. Each builds BL2 + secure, installs the SPE, then builds the non-secure image.</li>
+<li>Run the matching script from <code>scripts/</code> — <code>app_build_ra6m5_gcc.bat</code>, <code>app_build_iar.bat</code>
+(RA6M5 IAR), <code>app_build_ra8m2_gcc.bat</code>, <code>app_build_ra8m2_iar.bat</code>. Each builds BL2 +
+secure, installs the SPE, then builds the non-secure image.</li>
 <li>Flash with the e2 debug launch configurations. RA6M5&#x27;s are in <code>ra6m5_gcc_nonsecure/</code>,
-RA8M2&#x27;s are in <code>ra8m2_gcc_mcuboot/</code>. <strong>None of them loads what step 2 builds</strong>, so read
-<code>GETTING_STARTED.md</code> §6 before flashing.</li>
+RA8M2&#x27;s are in <code>ra8m2_gcc_mcuboot/</code>. One launch per part and toolchain loads what step 2
+builds: <code>ra6m5_TFM_sce9_{gcc,iar}</code> and <code>ra8m2_TFM_app_{gcc,iar}</code>. **Every other launch
+names a build tree of its own**, so read <code>GETTING_STARTED.md</code> §6 before flashing.</li>
 </ol>
 <p>PSA Arch builds additionally need <code>scripts\vs_build.bat</code>. They compile a host tool with
 <code>cl.exe</code>, which needs a Visual Studio developer environment. See DECISIONS D083.</p>

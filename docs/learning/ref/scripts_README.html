@@ -139,9 +139,19 @@ configuration differs in every row of the table above.</p>
 <tr><td>RA8M2 GCC</td><td><code>m2cry</code></td><td><code>m2cryns</code></td><td><code>m2att</code></td><td><code>m2sto</code></td><td><code>m2gflih</code></td><td><code>m2gflihns</code></td></tr>
 <tr><td>RA8M2 IAR</td><td><code>m2icry</code></td><td><code>m2icryns</code></td><td><code>m2iatt</code></td><td><code>m2isto</code></td><td><code>m2iflih</code></td><td><code>m2iflihns</code></td></tr>
 </table></div>
-<p>All under <code>C:\b\</code>. Short paths on purpose: a deep one overruns Windows&#x27; path limit partway
-through the Mbed TLS overlay clone, and reports <code>Filename too long</code> on
-<code>3rdparty/everest/...</code> rather than anything about length.</p>
+<p>The application chain has defaults of its own, each chosen to match the launch that flashes
+that pair:</p>
+<div class="table-wrap"><table>
+<tr><th></th><th>Secure</th><th>Non-secure</th></tr>
+<tr><td>RA6M5 GCC</td><td><code>trusted-firmware-m\build_ra6m5_sce9</code></td><td><code>trusted-firmware-m\build_ra6m5_sce9_ns</code></td></tr>
+<tr><td>RA6M5 IAR</td><td><code>trusted-firmware-m\build_ra6m5_iar</code></td><td><code>trusted-firmware-m\build_ra6m5_iar_ns</code></td></tr>
+<tr><td>RA8M2 GCC</td><td><code>m2g</code></td><td><code>m2gns</code></td></tr>
+<tr><td>RA8M2 IAR</td><td><code>m2app</code></td><td><code>m2appns</code></td></tr>
+</table></div>
+<p>The suite trees above and the RA8M2 application trees are all under <code>C:\b\</code>. Short paths on
+purpose: a deep one overruns Windows&#x27; path limit partway through the Mbed TLS overlay clone,
+and reports <code>Filename too long</code> on <code>3rdparty/everest/...</code> rather than anything about length.
+The RA6M5 application pairs sit inside the TF-M clone, whose path is short enough to build in.</p>
 <h2 id="building">Building</h2>
 <pre><code class="language-bat">rem  PSA Arch. Third argument selects the part; omitted means ra6m5.
 scripts\psa_arch_spe.bat      C:\b\m2cry   CRYPTO ra8m2
@@ -152,9 +162,12 @@ rem  Regression. Fourth argument picks the IRQ suite: flih (default), slih, or n
 rem  they are mutually exclusive in tf-m-tests.
 scripts\reg_build_iar.bat     C:\b\m2iflih C:\b\m2iflihns ra8m2 flih
 
-rem  Application chain.
-scripts\app_build_ra8m2_gcc.bat C:\b\m2app  C:\b\m2appns
-scripts\app_build_ra8m2_iar.bat C:\b\m2iapp C:\b\m2iappns</code></pre>
+rem  Application chain. Run these bare to use the defaults, which are the trees the matching
+rem  launch in GETTING_STARTED.md §6 flashes.
+scripts\app_build_ra6m5_gcc.bat
+scripts\app_build_iar.bat
+scripts\app_build_ra8m2_gcc.bat
+scripts\app_build_ra8m2_iar.bat</code></pre>
 <p>Suites: <code>CRYPTO</code>, <code>INITIAL_ATTESTATION</code>, <code>STORAGE</code> (runs ITS and PS), <code>PROTECTED_STORAGE</code>,
 <code>INTERNAL_TRUSTED_STORAGE</code>.</p>
 <p>Rebuild the SPE before the NS apps whenever the secure side changes — the NS build links

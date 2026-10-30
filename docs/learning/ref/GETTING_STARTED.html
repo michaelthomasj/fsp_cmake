@@ -166,22 +166,36 @@ does not point here.</p></li>
 <hr>
 <h2 id="s5">5. Build the firmware</h2>
 <p>Each script builds BL2 + the secure image, installs the SPE interface into <code>api_ns\</code>, then
-builds the non-secure image against it.</p>
+builds the non-secure image against it. There is one script per part and toolchain:</p>
 <pre><code class="language-bat">cd C:\Users\&lt;you&gt;\Documents\GitHub\fsp_cmake
 
-rem  RA8M2, GNU
-scripts\app_build_ra8m2_gcc.bat C:\b\m2app C:\b\m2appns
-
-rem  RA8M2, IAR
-scripts\app_build_ra8m2_iar.bat C:\b\m2iapp C:\b\m2iappns</code></pre>
-<p>Build directories live under <code>C:\b\</code> for the path-length reason in §3. They are disposable;
+scripts\app_build_ra6m5_gcc.bat
+scripts\app_build_iar.bat
+scripts\app_build_ra8m2_gcc.bat
+scripts\app_build_ra8m2_iar.bat</code></pre>
+<p><code>app_build_iar.bat</code> carries no part in its name and is RA6M5&#x27;s; the other three name theirs.
+Each takes an optional pair of build directories, and each default is the pair the matching
+launch in §6 flashes, so passing your own paths means cloning the launch as well:</p>
+<div class="table-wrap"><table>
+<tr><th>Part</th><th>Toolchain</th><th>Secure build</th><th>Non-secure build</th></tr>
+<tr><td>RA6M5</td><td>GNU</td><td><code>trusted-firmware-m\build_ra6m5_sce9</code></td><td><code>trusted-firmware-m\build_ra6m5_sce9_ns</code></td></tr>
+<tr><td>RA6M5</td><td>IAR</td><td><code>trusted-firmware-m\build_ra6m5_iar</code></td><td><code>trusted-firmware-m\build_ra6m5_iar_ns</code></td></tr>
+<tr><td>RA8M2</td><td>GNU</td><td><code>C:\b\m2g</code></td><td><code>C:\b\m2gns</code></td></tr>
+<tr><td>RA8M2</td><td>IAR</td><td><code>C:\b\m2app</code></td><td><code>C:\b\m2appns</code></td></tr>
+</table></div>
+<p>The RA8M2 trees are under <code>C:\b\</code> for the path-length reason in §3; the RA6M5 trees sit inside
+the TF-M clone, whose path is short enough to build in. Build directories are disposable;
 delete one to force a clean build.</p>
+<p>The build type is per part and not interchangeable. RA6M5 builds <code>Debug</code>. RA8M2 GNU must build
+<code>MinSizeRel</code>, because GNU <code>Debug</code> comes out around 414 KB against a 294,400 B secure region,
+where RA6M5&#x27;s region is 521,728 B and <code>Debug</code> uses 322,960 B of it. RA8M2 IAR builds <code>Debug</code>,
+which does fit there.</p>
 <p><strong>Read the output; do not only check the exit code.</strong> The install step runs the
 option-setting brick guard over <code>bl2</code> and <code>tfm_s</code>, and it reports by printing.</p>
-<p>Where the images land:</p>
-<pre><code>C:\b\m2app\bin\bl2.elf                 the bootloader  (flash THIS, see §6)
-C:\b\m2app\bin\tfm_s_signed.bin        the secure image
-C:\b\m2appns\bin\tfm_ns_signed.bin     the non-secure image</code></pre>
+<p>Where the images land, with RA8M2 GNU as the example:</p>
+<pre><code>C:\b\m2g\bin\bl2.elf                   the bootloader  (flash THIS, see §6)
+C:\b\m2g\bin\tfm_s_signed.bin          the secure image
+C:\b\m2gns\bin\tfm_ns_signed.bin       the non-secure image</code></pre>
 <hr>
 <h2 id="s6">6. Flash and run</h2>
 <h3 id="program-the-trustzone-boundaries-first--once-per-board">Program the TrustZone boundaries first — once per board</h3>
@@ -200,28 +214,31 @@ repeats only if you change the layout, which is
 <a href="RECONFIGURING_THE_LAYOUT.html">RECONFIGURING_THE_LAYOUT.md</a>.</p>
 <h3 id="the-launches">The launches</h3>
 <p>Use the e2 debug launch configurations. They already carry the correct addresses and the two
-safety settings below. For RA8M2 they are in <code>ra8m2_gcc_mcuboot/</code>.</p>
-<blockquote><p><strong>These launches do not flash what §5 just built.</strong> Each names its own build tree -
-<code>m2gflih</code>, <code>m2cry</code>, <code>m2att</code>, <code>m2sto</code> - and none references <code>m2app</code>/<code>m2appns</code>. Running
-§5 then §6 either flashes different images or fails on missing files; there is no
-application launch for RA8M2. Pick one:</p>
-<ul>
-<li>build the tree a launch expects - for the first row,
-<code>scripts\reg_build_gcc.bat C:\b\m2gflih C:\b\m2gflihns ra8m2 flih 1 SFN</code>; or</li>
-<li>clone a launch onto your application tree with <code>scripts\mk_level_launch.py</code>, which
-rewrites the paths and forces <code>setTZBoundaries</code> false.</li>
-</ul>
-<p>§5 is still worth running on its own - it proves the toolchain and the FSP projects - but it
-is not the input to the table below.</p></blockquote>
+safety settings below. In e2: <code>Run → Debug Configurations…</code>, pick one, <code>Debug</code>. Every launch
+for a part lives in one project, whichever image it flashes — RA6M5&#x27;s in
+<code>ra6m5_gcc_nonsecure/</code>, RA8M2&#x27;s in <code>ra8m2_gcc_mcuboot/</code>.</p>
 <div class="table-wrap"><table>
-<tr><th>Launch</th><th>Runs</th></tr>
-<tr><td><code>ra8m2_TFM_flih_gcc</code></td><td>the full regression suite, including interrupt tests</td></tr>
-<tr><td><code>ra8m2_TFM_test_crypto_gcc</code></td><td>PSA Arch crypto conformance</td></tr>
-<tr><td><code>ra8m2_TFM_test_attestation_gcc</code></td><td>PSA Arch attestation</td></tr>
-<tr><td><code>ra8m2_TFM_test_storage_gcc</code></td><td>PSA Arch ITS + PS</td></tr>
-<tr><td><code>ra8m2_TFM_update_gcc</code></td><td>the MCUboot secondary-slot upgrade test</td></tr>
+<tr><th>Runs</th><th>RA6M5</th><th>RA8M2</th></tr>
+<tr><td>the application §5 builds</td><td><code>ra6m5_TFM_sce9_{gcc,iar}</code></td><td><code>ra8m2_TFM_app_{gcc,iar}</code></td></tr>
+<tr><td>the application with software ciphers</td><td><code>ra6m5_TFM_swCrypto_gcc</code></td><td>—</td></tr>
+<tr><td>the regression suite, no interrupt tests</td><td><code>ra6m5_TFM_regression_{gcc,iar}</code></td><td>—</td></tr>
+<tr><td>the regression suite with FLIH interrupt tests</td><td><code>ra6m5_TFM_flih_gcc</code></td><td><code>ra8m2_TFM_flih_{gcc,iar}</code></td></tr>
+<tr><td>the same with SLIH</td><td><code>ra6m5_TFM_slih_{gcc,iar}</code></td><td>—</td></tr>
+<tr><td>FLIH at isolation 2 and 3</td><td><code>ra6m5_TFM_flih_L{2,3}_{gcc,iar}</code></td><td><code>ra8m2_TFM_flih_L{2,3}_{gcc,iar}</code></td></tr>
+<tr><td>FLIH at isolation 1 on the IPC backend</td><td><code>ra6m5_TFM_flih_L1ipc_gcc</code></td><td><code>ra8m2_TFM_flih_L1ipc_gcc</code></td></tr>
+<tr><td>PSA Arch crypto, attestation, storage</td><td><code>ra6m5_TFM_test_{crypto,attestation,storage}_{gcc,iar}</code></td><td><code>ra8m2_TFM_test_{crypto,attestation,storage}_{gcc,iar}</code></td></tr>
+<tr><td>the MCUboot secondary-slot upgrade</td><td>—</td><td><code>ra8m2_TFM_update_{gcc,iar}</code></td></tr>
 </table></div>
-<p>Each has an <code>_iar</code> twin. In e2: <code>Run → Debug Configurations…</code>, pick one, <code>Debug</code>.</p>
+<p>Nineteen launches for RA6M5 and seventeen for RA8M2. The gaps in the table are real: SLIH has
+never run above isolation 1 or on RA8M2 at all, and RA6M5 has no upgrade launch
+(<a href="KNOWN_LIMITATIONS.html">KNOWN_LIMITATIONS.md</a> §3, §7).</p>
+<blockquote><p><strong>Only the first row flashes what §5 builds.</strong> Every other launch names a build tree of its
+own — <code>m5gflih</code>, <code>m2cry</code>, <code>m2att</code>, <code>m2sto</code> and the rest — so running §5 and then one of them
+either flashes different images or fails on missing files. Build the tree the launch expects,
+which for the FLIH row is
+<code>scripts\reg_build_gcc.bat C:\b\m2gflih C:\b\m2gflihns ra8m2 flih 1 SFN</code>, or clone the launch
+onto a tree of your own with <code>scripts\mk_level_launch.py</code>, which rewrites the paths and forces
+<code>setTZBoundaries</code> false.</p></blockquote>
 <h3 id="two-safety-rules">Two safety rules</h3>
 <blockquote><p><strong>Flash <code>bl2.elf</code> or <code>bl2.hex</code> — never <code>bl2.bin</code>.</strong> The option-setting words live in discrete
 segments that a flat binary cannot express; a <code>.bin</code> writes them at the wrong addresses and
@@ -230,30 +247,62 @@ can brick the part. <a href="DECISIONS.html#d002">D002</a>(DECISIONS.md), <a hre
 derives TrustZone boundaries from the launched project&#x27;s symbols, and launched against BL2 it
 gets them wrong. On RA8M2 the key appears twice — <code>...arm.jlink.</code> and <code>...arm.e2lite.</code> —
 and e2 defaults the second to <code>true</code>. Set both.</p>
-<p><strong>The five RA8M2 GCC launches in the §6 table still carry <code>e2lite</code> = <code>true</code></strong> - inert while
-J-Link is selected, live the moment the probe is switched. <a href="DESIGN.html">DESIGN.md</a> §7.2,
-<a href="DECISIONS.html#d102">D102</a>(DECISIONS.md).</p></blockquote>
+<p><strong><code>e2lite</code> is still <code>true</code> in five RA8M2 GCC launches</strong> — <code>flih_gcc</code>, <code>update_gcc</code> and the
+three <code>test_*_gcc</code> — inert while J-Link is selected, live the moment the probe is switched.
+<a href="DESIGN.html">DESIGN.md</a> §7.2, <a href="DECISIONS.html#d102">D102</a>(DECISIONS.md).</p></blockquote>
 <p>Also leave erase code flash and erase data flash enabled on connect. **A stale ITS/PS area
 survives a reflash** and makes the storage suites fail in ways that look like code faults.</p>
 <h3 id="pre-flash-verification--run-on-every-new-build">Pre-flash verification — run on every new build</h3>
-<p>Two commands. Both guard the brick path, and **a clean <code>.srec</code> does not prove either of
-them**.</p>
-<pre><code class="language-bat">rem  1. The option-setting words must be SMALL DISCRETE LOAD segments, never one span.
-arm-none-eabi-readelf -l C:\b\m2app\bin\bl2.axf
+<p>Two checks, and <strong>a clean <code>.srec</code> proves neither of them</strong>. One coalesced segment spanning the
+option memory is the failure that bricked both EK-RA6M4 boards: the linker gap-fills between
+the words and writes values nobody chose (<a href="DECISIONS.html#d002">D002</a>(DECISIONS.md), <a href="DECISIONS.html#d094">D094</a>(DECISIONS.md)).</p>
+<p>Check one is that the option words sit in discrete segments. <code>check_ofs.py</code> runs during the
+build; run it again by hand on the image you are about to flash, with the arguments for the
+part, because the windows are per part and the guard reads only what it is given:</p>
+<pre><code class="language-bat">set READELF=arm-none-eabi-readelf
+set GUARD=..\trusted-firmware-m\platform\ext\target\renesas\common\check_ofs.py
 
-rem  2. Their contents must be the known-good values.
-arm-none-eabi-objdump -s -j .option_setting_ofs0 -j .option_setting_ofs1_sec ^
-                         -j .option_setting_ofs1_sel C:\b\m2app\bin\bl2.axf</code></pre>
-<p><strong>Those three values are RA6M5&#x27;s, not RA8M2&#x27;s.</strong> A correct RA8M2 bootloader generates
-OFS0 <code>ffffffff</code>, OFS1_SEC <code>fffffffd</code> (HOCO 48 MHz) and OFS1_SEL <code>00000000</code> (BL2 is the flat
-build, so the <code>#else</code> branch applies) - checking an RA8M2 image against the RA6M5 values fails
-a good image.</p>
-<p>Under IAR this check does not work at all: ILINK renames the sections (<code>P1</code>, <code>P7</code>, ...), so
-<code>-j .option_setting_*</code> dumps nothing and prints no error.</p>
-<p>One coalesced segment spanning the option memory is the failure that bricked both EK-RA6M4
-boards: the linker gap-fills between the words and writes values nobody chose (<a href="DECISIONS.html#d002">D002</a>,
-<a href="DECISIONS.html#d094">D094</a>). <code>check_ofs.py</code> runs this during the build; these commands are how you confirm it by
-hand on an image you are about to flash.</p>
+rem  RA6M5
+python %GUARD% --ra6-default --max-word 0x10 --require-segments ^
+  ..\trusted-firmware-m\build_ra6m5_sce9\bin\bl2.axf
+
+rem  RA8M2
+python %GUARD% --max-word 4 --require-segments ^
+  --region 0x02c9f040:0x02c9f280 --region 0x12c9f4c0:0x12c9f680 ^
+  --region 0x02e07600:0x02e07698 --region 0x02e17700:0x02e17924 ^
+  --region 0x12e17780:0x12e17800 C:\b\m2g\bin\bl2.axf</code></pre>
+<p>A pass names every segment it found:</p>
+<pre><code>bl2.axf        OK - 3 discrete OFS segment(s): 0x0100A100(4B), 0x0100A200(4B), 0x0100A280(4B)
+PASS: OFS is in discrete per-word segments within the given region(s).</code></pre>
+<p><strong>Run RA6M5&#x27;s arguments against an RA8M2 image and the guard prints <code>CLEAN (no OFS
+segments)</code></strong> — a false negative that reads as verification. <code>--require-segments</code> turns it into
+a failure instead, which is why it is above: <code>bl2</code> is the image that carries the words, so an
+empty result is wrong by itself (<a href="DECISIONS.html#d056">D056</a>(DECISIONS.md)). The check works under both toolchains,
+because it reads program headers and ILINK emits those like any other linker.</p>
+<p>Check two is that the words hold the expected values. Dump them by address rather than by
+section name: ILINK renames the sections to <code>P1</code>, <code>P7</code>, <code>P11</code>, so <code>-j .option_setting_*</code> dumps
+nothing and prints no error against an IAR image.</p>
+<pre><code class="language-bat">rem  RA6M5
+arm-none-eabi-objdump -s --start-address=0x0100a100 --stop-address=0x0100a2d0 bl2.axf
+
+rem  RA8M2
+arm-none-eabi-objdump -s --start-address=0x02c9f040 --stop-address=0x02c9f280 bl2.axf</code></pre>
+<p><code>objdump -s</code> prints bytes in memory order, so each word reads reversed from its register
+value. Both toolchains produce these bytes:</p>
+<div class="table-wrap"><table>
+<tr><th>Part</th><th>Address</th><th>Word</th><th>Bytes as dumped</th></tr>
+<tr><td>RA6M5</td><td><code>0x0100A100</code></td><td>OFS0</td><td><code>ffffffff</code></td></tr>
+<tr><td>RA6M5</td><td><code>0x0100A200</code></td><td>OFS1_SEC</td><td><code>fffdffff</code></td></tr>
+<tr><td>RA6M5</td><td><code>0x0100A280</code></td><td>OFS1_SEL</td><td><code>f8f8ffff</code></td></tr>
+<tr><td>RA8M2</td><td><code>0x02C9F040</code></td><td>OFS0</td><td><code>ffffffff</code></td></tr>
+<tr><td>RA8M2</td><td><code>0x02C9F044</code></td><td>OFS2</td><td><code>efffffff</code></td></tr>
+<tr><td>RA8M2</td><td><code>0x02C9F0C0</code></td><td>OFS1_SEC</td><td><code>fffffffd</code></td></tr>
+<tr><td>RA8M2</td><td><code>0x02C9F0C4</code></td><td>OFS3_SEC</td><td><code>ffffffff</code></td></tr>
+<tr><td>RA8M2</td><td><code>0x02C9F120</code></td><td>OFS1_SEL</td><td><code>00000000</code></td></tr>
+<tr><td>RA8M2</td><td><code>0x02C9F124</code></td><td>OFS3_SEL</td><td><code>00000000</code></td></tr>
+</table></div>
+<p>The count is part of the check. RA6M5 carries three words and RA8M2 six, so checking an RA8M2
+image against RA6M5&#x27;s three addresses finds nothing and fails a good image.</p>
 <p>Then:</p>
 <ul>
 <li><strong>Flash <code>bl2.elf</code> or <code>bl2.hex</code>, never <code>bl2.bin</code></strong> (above).</li>

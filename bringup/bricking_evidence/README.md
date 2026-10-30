@@ -1,17 +1,29 @@
-# Bricking evidence — RA6M4 un-erasable boards
+# Bricking evidence — two un-erasable EK-RA6M4 boards
 
-These files are the exact BL2 image flashed to two EK-RA6M4 boards that then became un-erasable on
-2026-07-20, preserved for forensic reference. **Do not flash them to any board.** (An earlier title
-called this an "FSPR=0 permanent lock" — that diagnosis was wrong; see below.)
+The exact BL2 image that was flashed to two EK-RA6M4 boards, after which neither would erase.
+Kept as forensic reference and as the regression fixture for the option-setting brick guard.
+**Do not flash these files to any board.**
 
-- `bl2_BRICKED.elf` — the exact `build_ra6m4_boot/bin/bl2.elf` (built 14:31:26), copied with its
-  original timestamp.
-- `bl2_BRICKED.srec` / `bl2_BRICKED.hex` — same image, S-record / Intel-hex.
+| File | What it is |
+|---|---|
+| `bl2_BRICKED.elf` | the exact `build_ra6m4_boot/bin/bl2.elf`, built 14:31:26, copied with its original timestamp |
+| `bl2_BRICKED.srec` | the same image as an S-record |
+| `bl2_BRICKED.hex` | the same image as Intel hex |
 
-## Status: eight defined option registers were zero-filled
+## What the image did
 
-The image contains three data records in the RA6M4 option/config memory region
-(`0x0100A100–0x0100A2CF`):
+GNU ld coalesced the option-setting words into one `PT_LOAD` segment spanning
+`0x0100A100`–`0x0100A284` and zero-filled the gaps between them. A debugger programs by
+program header, so flashing it wrote `0x00` across that whole span: eight defined option
+registers — DUALSEL, OFS1, BANKSEL, BPS, PBPS and the `_SEC` copies of the last three — and
+the reserved bytes between them. Measured gap fill is `0x00` × 376, not `0xFF`
+([D133](../../DECISIONS.md)).
+
+**Which of those eight registers made the boards un-erasable is not established.** Neither is
+whether the state is reversible. Both boards are gone and there is no RA6M4 hardware left to
+test on.
+
+The three records the image carries in the option region are not themselves the cause:
 
 ```
 S3 09 0100A100 FFFFFFFF 58    OFS0     = 0xFFFFFFFF
@@ -19,46 +31,48 @@ S3 09 0100A200 FFFDFFFF 59    OFS1_SEC = 0xFFFFFDFF
 S3 09 0100A280 F8F8FFFF E5    OFS1_SEL = 0xFFFFF8F8
 ```
 
-These were initially blamed for the brick. That was disproven: the field-proven
-`ra6m4_der_conversion` image carries byte-identical records in this region (SREC diff) yet is a
-working, reprogrammable board. So the option-memory content is not the differentiator.
+The field-proven `ra6m4_der_conversion` image carries byte-identical records in this region, by
+S-record diff, on a board that still works and still reprograms. The values are not the
+differentiator; the span between them is.
 
-What is known: both boards won't erase and RDPM `Initialize` returns `0xDA` (RES_PROTECTION_ERROR),
-while `DLMMON @0x400E002C = 0x2` = SSD (open dev state, NOT locked). **The fill wrote `0x00`
-into eight defined option registers** - DUALSEL, OFS1, BANKSEL, BPS, PBPS, BANKSEL_SEC,
-BPS_SEC, PBPS_SEC - and into the reserved bytes between them (`fsp_cmake/DECISIONS.md` D133).
-Which of them did the damage, and whether it is reversible, is unknown. An earlier "permanent
-FSPR/FAW brick" diagnosis was wrong — RA6M4 does not implement the
-Flash Access Window (`BSP_FEATURE_FLASH_SUPPORTS_ACCESS_WINDOW = 0`), so `FAWMON/FSPR` are meaningless
-here; do not read them. The variable that differs from the working der board is the flashing path
-(Ozone/raw-JLink vs e2 studio RA-aware) and/or the relink to `0x0` at `be511be17` — untested (no
-hardware left). Correct check on a suspect board: read `DLMMON @0x400E002C`, attempt RDPM Initialize,
-and compare Ozone vs e2 studio/RFP flashing.
+## What was read off the dead boards
 
-### Observed post-brick state (read over J-Link)  — with corrected interpretation
 ```
-DLMMON @0x400E002C = 0x2  -> DLM state SSD (open dev state, NOT locked)  [correct lock register]
-Boot firmware Initialize -> "Boot error code: 0xDA" (RES_PROTECTION_ERROR)
-0x0100A130 / 0x0100A160  = 0x00000000  (config-area words; addresses NOT verified vs HW manual)
-
-# INVALID readings from the withdrawn theory (RA6M4 has no Flash Access Window):
-FAWMON @0x407FE0DC = 0x00000000   -> FSPR is not a feature on RA6M4; meaningless here
-FBPROT0/1 @0x407FE078/7C = 0x0000 -> write-only cancel bits, always read 0; meaningless
+DLMMON @0x400E002C  = 0x2    DLM state SSD - an open development state, not locked
+Boot firmware Initialize     "Boot error code: 0xDA" (RES_PROTECTION_ERROR)
+0x0100A130, 0x0100A160 = 0   config-area words; these two addresses were never checked
+                             against the hardware manual
 ```
 
-No register read proves a permanent lock. `DLMMON` says SSD; the `0xDA` on Initialize is real
-but not explained by any register this list reads. Reversibility is unknown, not "irreversible
-/ RMA only" as previously stated.
+No register read here proves a permanent lock. `DLMMON` reports an open state, and the `0xDA`
+from Initialize is real but is not explained by anything in this list.
 
-## The mitigation (not a proven fix)
+**Do not read `FAWMON` or `FSPR` on an RA6M4.** The part does not implement the Flash Access
+Window (`BSP_FEATURE_FLASH_SUPPORTS_ACCESS_WINDOW = 0`), so those addresses hold no such
+register and whatever they return is meaningless. An earlier diagnosis of a permanent FSPR/FAW
+lock rested on exactly that mistake and has been withdrawn ([D094](../../DECISIONS.md)).
+`FBPROT0` and `FBPROT1` are write-only cancel bits that always read `0`, so they say nothing
+either.
 
-Option-setting sections were removed from all TF-M images (linker + source + CMake) — per the
-project requirement that BL2 never link OFS, and as a precaution that takes a security-sensitive region
-out of every debugger-flashed image. Prefer the
-e2 studio / RFP flashing flow over Ozone/raw-JLink for RA6M4, and verify state on hardware after any
-option/protection programming. See `../../DESIGN.md` §8.4 and, in the TF-M tree,
-`platform/ext/target/renesas/common/check_ofs.py`.
+Two variables between the dead boards and the working `der_conversion` board were never
+isolated: the flashing path, Ozone and raw J-Link against e2 studio's RA-aware flow, and the
+relink of BL2 to `0x0` in TF-M commit `be511be17`. On RA6M4, prefer the e2 studio or RFP path,
+and read the state back on hardware after any option or protection programming.
 
-**`bl2_BRICKED.elf` is the regression fixture for that guard - do not delete it.** The guard
-rejects it with `0x0100A100+388B` (388 = 0x184, the span itself), which is how the check is
-verified to fire rather than only to pass.
+## What the port does now
+
+OFS emission was first removed from every TF-M image ([D001](../../DECISIONS.md)) and then
+restored, with one linker `MEMORY` region per option word and a `> REGION` assignment on each,
+so the linker cannot produce a spanning segment ([D002](../../DECISIONS.md)). Removing the
+words had meant every board needed them programmed externally for ever; the discrete regions
+are what FSP's own generated linker does.
+
+`check_ofs.py`, in the TF-M tree at `platform/ext/target/renesas/common/check_ofs.py`,
+enforces that outcome on the linked ELF. The ELF is the only artifact the mistake is visible
+in: it does not show in the srec, and a plausible-looking linker script can still emit a
+spanning segment. [DESIGN.md](../../DESIGN.md) §8.4 has the design and
+[KNOWN_LIMITATIONS.md](../../KNOWN_LIMITATIONS.md) §4 the hazard as it stands.
+
+**`bl2_BRICKED.elf` is that guard's regression fixture — do not delete it.** The guard rejects
+it with `0x0100A100+388B` (388 = `0x184`, the span itself), which is how the check is verified
+to fire rather than only to pass.
