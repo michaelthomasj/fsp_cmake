@@ -47,7 +47,7 @@ Do not deploy devices built from this port unchanged. Each item below must be ad
    completes or is aborted `psa_generate_random` fails for every caller.
 6. **The scripts build development images.** SPM trace and exception-info dump are on, logging
    is verbose, IAR application builds are `Debug`, and the console is SEGGER RTT.
-   [CONFIGURATION.md](CONFIGURATION.md) describes a release build.
+   [CONFIGURATION.md](CONFIGURATION.md) §9 describes a release build.
 7. **The shipped default configuration has not been re-tested since the isolation-HAL change.**
    Isolation 1 with the SFN backend is what the scripts build, and its last hardware regression
    predates that change. Isolation 2 and 3 were re-run after it. Re-run `tf-m-tests` against

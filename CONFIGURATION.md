@@ -216,3 +216,47 @@ warning. Only `FSP_BL2_APP_DIR` is on the path for `bl2_option_setting.c`.
 - The memory layout. Change it in the e2 solution and regenerate; `region_defs.h` and all
   three linker scripts follow. What does not follow: the RDPM boundaries, PS capacity, and
   the NSC-window budget.
+
+---
+
+## 9. A release build
+
+The scripts build development images. This is the build-option half of turning one into a
+release image; the half that is not a build option — keys, provisioning, anti-rollback, the
+device lifecycle — is [DESIGN.md](DESIGN.md) §13, and **a release build with the sample keys
+still trusts the sample keys**.
+
+Pass these on a clean build directory, because most are cached and several others derive from
+them:
+
+```
+-DCMAKE_BUILD_TYPE=MinSizeRel
+-DTFM_EXCEPTION_INFO_DUMP=OFF
+-DTFM_SPM_DEBUG_TRACE=OFF
+-DTFM_SPM_LOG_LEVEL=TFM_SPM_LOG_LEVEL_SILENCE
+-DTFM_PARTITION_LOG_LEVEL=TFM_PARTITION_LOG_LEVEL_SILENCE
+-DCONFIG_TFM_HALT_ON_CORE_PANIC=OFF
+-DMCUBOOT_LOG_LEVEL=OFF
+-D<PART>_STDOUT_RTT=OFF
+```
+
+**`TFM_SPM_DEBUG_TRACE` must go `OFF` in the same step as the log level.** It requires a level
+above `_SILENCE`, and `check_config.cmake` rejects the pair rather than resolving it — which is
+the one combination in this list that stops the build instead of producing a larger image.
+
+| Decision | Value | Why |
+|---|---|---|
+| Build type | `MinSizeRel` | mandatory for GNUARM on RA8M2, where Debug comes out around 414 KB against a 294,400 B region. RA6M5 Debug does fit, and a release image should not spend the room anyway |
+| Build type, IAR | `MinSizeRel` as well | IAR Debug fits on both parts, so this is a size choice rather than a constraint |
+| Console | `<PART>_STDOUT_RTT=OFF` | selects `PLATFORM_DEFAULT_UART_STDOUT`. A release image with RTT on carries a debug transport |
+| Logging | silent | the three log options together cost 3,785 B of secure text, against 1,693 B spare on RA6M5 and 670 B on RA8M2 |
+| Bootloader logging | `MCUBOOT_LOG_LEVEL=OFF` | `INFO` costs BL2 text +5,960 B and bss +4,284 B |
+| Halt on panic | `OFF` | a release image should reset rather than spin where a debugger can find it |
+
+**Re-measure, do not assume the image shrank into the slot.** Read the linker's own
+`Memory region` table rather than the size of `tfm_s.bin`, which imgtool pads to the region and
+so reports the same number whatever the image costs. §6 has the measured headroom.
+
+Then re-run the tests against the image you are actually shipping:
+[TEST_RESULTS.md](TEST_RESULTS.md) records what has run here, and the configuration these
+options produce is not one of them.

@@ -2,9 +2,15 @@
 
 Audience: someone who has not seen this port before and wants a board running TF-M.
 Followed top to bottom, this document builds and runs the full chain — bootloader, secure
-image, non-secure image — on an EK-RA8M2 or EK-RA6M5. Everything deeper is linked at the end.
+image, non-secure image — on an EK-RA8M2 or a CK-RA6M5 V2. Everything deeper is linked at the
+end.
 
 Expect about an hour the first time, most of it tool installation.
+
+> **What you build here is a development configuration and must not be deployed unchanged.**
+> Sample signing keys, dummy provisioning, inactive anti-rollback, non-secure clock registers
+> and an unenforced debug lifecycle. [README.md](README.md) §"Security status" is the list, and
+> [DESIGN.md](DESIGN.md) §13 says how to address each item.
 
 ---
 
@@ -47,7 +53,7 @@ what the results in [DECISIONS.md](DECISIONS.md) were produced on.
 | J-Link | current | The on-board debugger on both EK boards |
 | Visual Studio Build Tools | 2019 | Only for PSA Arch builds — they compile a host tool with `cl.exe` ([D083](DECISIONS.md)) |
 
-Hardware: EK-RA8M2 or EK-RA6M5, and a USB cable to the on-board J-Link.
+Hardware: an EK-RA8M2 or a CK-RA6M5 V2, and a USB cable to the on-board J-Link.
 
 ---
 

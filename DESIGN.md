@@ -539,10 +539,39 @@ trusting sample keys.
 
 | Step | What to do |
 |---|---|
-| Key material | Generate your own EC-P256 key pair. `MCUBOOT_SIGNATURE_TYPE` is `EC-P256` in every part's `config.cmake`; keep the curve or the solution's slot sizes stop matching. |
-| Signing | Point `MCUBOOT_KEY_S` and `MCUBOOT_KEY_NS` at your private keys. This changes what signs the image. |
-| Verification | This is the step that is easy to miss. BL2 verifies against the public key compiled into `bl2/ext/mcuboot/keys.c`, so either regenerate that file from your key pair, or set `MCUBOOT_HW_KEY=ON` and provision the ROTPK hashes. |
-| Provisioning | Set `TFM_DUMMY_PROVISIONING=OFF` and supply real HUK and IAK values through a provisioning flow of your own. With it `ON`, every device shares one dummy identity. |
+| Key material | Generate your own EC-P256 key pair. `MCUBOOT_SIGNATURE_TYPE` is `EC-P256` in every part's `config.cmake`; keep the curve or the solution's slot sizes stop matching |
+| Signing | Point `MCUBOOT_KEY_S` and `MCUBOOT_KEY_NS` at your private keys. This changes what signs the image, and nothing else |
+| Verification | The step that is easy to miss, because nothing fails when you skip it. BL2 verifies against the public key compiled into `bl2/ext/mcuboot/keys.c` — see below |
+| Provisioning | Set `TFM_DUMMY_PROVISIONING=OFF` and supply real HUK and IAK values through a flow of your own. With it `ON`, every device shares one dummy identity |
+
+**`MCUBOOT_GENERATE_SIGNING_KEYPAIR=ON` does not do the verification step.** It runs
+`imgtool keygen` for both images and `imgtool getpub` to write
+`image_*_signing_public_key.pem` beside `bl2`, and it leaves the array in `keys.c` alone. A
+build with that flag set and `keys.c` untouched signs with a new key and verifies against the
+sample one. `check_config.cmake` also rejects it together with `TFM_DUMMY_PROVISIONING`, so the
+two cannot be left on at once.
+
+Two routes to the verification step, and the second is the one to prefer:
+
+**Regenerate the array.** `imgtool` comes from the MCUboot checkout the build fetches, so run it
+from a configured build tree:
+
+```bat
+python <build>\lib\ext\mcuboot-src\scripts\imgtool.py getpub ^
+       -k my_root_s.pem --encoding lang-c -o ecdsa_pub_key_s.c
+```
+
+`--encoding lang-c` is the current option; `-l c` still works and is deprecated. Paste the array
+over `ecdsa_pub_key[]` in `bl2/ext/mcuboot/keys.c` and keep `bootutil_key_cnt` in step.
+**`keys.c` is common TF-M code**, which this port already modifies for a different reason, so
+record the edit in [UPSTREAM_CHANGES.md](UPSTREAM_CHANGES.md) rather than leaving it as a silent
+local change.
+
+**Or keep the arrays out of common code.** `keys.c` is compiled only when
+`PLATFORM_DEFAULT_ROTPK` is `ON`. Set it `OFF` and supply the key arrays from a platform file
+instead, which leaves `bl2/ext/mcuboot/` untouched and survives a TF-M uprev without a rebase.
+`MCUBOOT_HW_KEY=ON` with provisioned ROTPK hashes is the same idea taken further: the hash comes
+from the device rather than from the image.
 
 Verify the result rather than assuming it: sign an image with a *different* key and confirm BL2
 rejects it. A build that still trusts `keys.c` accepts both.
@@ -596,9 +625,8 @@ directly. Finishing or aborting each multi-part operation promptly avoids it.
 
 The build scripts produce development images. For a release build, turn off what is purely
 diagnostic and re-measure the result against the slot, because the secure slot has little spare
-room on either part. [CONFIGURATION.md](CONFIGURATION.md) lists each option with its default and
-its constraint, and [CONFIGURATION.md](CONFIGURATION.md) §6 gives the measured
-cost of the diagnostics.
+room on either part. [CONFIGURATION.md](CONFIGURATION.md) §9 is the option list for a release
+build, and [CONFIGURATION.md](CONFIGURATION.md) §6 gives the measured cost of each diagnostic.
 
 ### 13.7 Re-test what you ship
 
@@ -612,3 +640,15 @@ _Maintainer note: when bumping TF-M, re-check §5 (bootutil glue), §7 (veneer m
 by the generated linker), and §8 (`<part>_bl2.ld` vs the new `tfm_common_bl2.ld`). When bumping
 FSP, the RASC config (§1) flows through; re-verify OFS (§8) and clock/flash-geometry assumptions
 (§4)._
+
+### 13.8 TF-M base version
+
+The port is built and tested on TF-M v2.2.0, which is the base every result in
+[TEST_RESULTS.md](TEST_RESULTS.md) was measured on. **Advisory TFMV-9 (CVE-2025-53022), an
+unchecked TLV payload length in the Firmware Update partition, is fixed in v2.2.2 and therefore
+not fixed here.**
+
+The shipped configuration is unaffected, because `TFM_PARTITION_FIRMWARE_UPDATE` is `OFF` on
+both parts. Turn Firmware Update on and the advisory applies: move to v2.2.2 first. The move is
+`git rebase --onto TF-Mv2.2.2 TF-Mv2.2.0`, and of the 24 common files this port modifies v2.2.2
+touches six of them, named in [UPSTREAM_CHANGES.md](UPSTREAM_CHANGES.md).

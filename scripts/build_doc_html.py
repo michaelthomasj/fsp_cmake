@@ -69,9 +69,33 @@ def is_trigger(name):
 # --------------------------------------------------------------------------- sources
 
 def source_list():
-    names = sorted(f for f in os.listdir(ROOT)
-                   if f.endswith(".md") and not is_trigger(f))
-    return names + [p for p in EXTRA_SOURCES if os.path.exists(os.path.join(ROOT, p))]
+    """The documents to render, taken from GIT rather than from the directory.
+
+    os.listdir() was the wrong source and it would have shipped the five documents D146
+    withheld: those stay on disk by design, so a lister that reads the filesystem renders
+    every one of them into ref/ and a release archive carries the maintainer material the
+    repository deliberately does not track.
+
+    Falls back to the directory only when git is unavailable, and says so, because rendering
+    nothing is worse than rendering too much for someone who just wants to read the docs.
+    """
+    try:
+        out = subprocess.check_output(["git", "-C", ROOT, "ls-files", "*.md"],
+                                      stderr=subprocess.DEVNULL).decode("utf-8", "replace")
+        tracked = {line.strip() for line in out.splitlines() if line.strip()}
+    except (OSError, subprocess.CalledProcessError):
+        print("  warning: git unavailable; listing the directory, which may include "
+              "untracked documents")
+        tracked = None
+
+    if tracked is None:
+        names = sorted(f for f in os.listdir(ROOT)
+                       if f.endswith(".md") and not is_trigger(f))
+    else:
+        names = sorted(f for f in tracked if "/" not in f and not is_trigger(f))
+    return names + [p for p in EXTRA_SOURCES
+                    if os.path.exists(os.path.join(ROOT, p))
+                    and (tracked is None or p in tracked)]
 
 
 def out_name(src):

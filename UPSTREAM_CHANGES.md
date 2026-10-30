@@ -409,7 +409,7 @@ when two EK-RA6M4 boards were lost. Keep local or drop before submitting.
   common code rather than working around each per platform. Section 14 differs from 1 to 3 in
   being a defect in the toolchain file rather than a linker template, and in affecting every
   IAR platform that has a console.
-- **Sections 1 to 12 were verified on EK-RA6E1; 14 and 16 on EK-RA6M5 and EK-RA8M2**, which is
+- **Sections 1 to 12 were verified on EK-RA6E1; 14 and 16 on CK-RA6M5 V2 and EK-RA8M2**, which is
   where the IAR console and the isolation work were done. Both toolchains build all three
   images, and the non-secure PSA service smoke test passes all 13 steps under IAR:
   `psa_framework_version`, `psa_version`, `psa_crypto_init`, `psa_generate_random` on the

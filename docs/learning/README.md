@@ -1,6 +1,15 @@
 # Cortex-M, TrustZone and TF-M on Renesas RA — a course
 
-Open `index.html` in a browser. Plain HTML: no build step, no server, no network.
+Open `index.html` in a browser: plain HTML, no server and no network. **One build step
+first**, because the course links the repository documents through HTML renderings in `ref/`
+that are generated rather than committed:
+
+```
+python scripts/build_doc_html.py
+```
+
+Without it the pages read fine and every link into `ref/` is dead. A release archive should
+carry `ref/` already built, from a clean checkout so that only the tracked documents are in it.
 
 Optional background, outside the main documentation path. It explains why the port is built the
 way it is; [GETTING_STARTED.md](../../GETTING_STARTED.md) is how to build it.

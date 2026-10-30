@@ -48,12 +48,18 @@ This is the regression-plus-FLIH configuration. Every pre-[D113] run is isolatio
 backend — [D113] established that "every `tests_reg` build in `C:\b` is L1/SFN and every L3 build
 is PSA Arch".
 
+**The L1 + SFN column is the configuration the build scripts produce, and every cell in it
+predates the isolation-HAL move.** Those runs are marked `pass (pre-change)`: they passed, and
+they passed against a secure image whose isolation HAL was compiled in `platform_s` rather than
+`tfm_spm`. The L2 and L3 cells were re-run after the move. Nothing in the shipped default
+configuration has been through a hardware regression since.
+
 | | L1 + SFN | L1 + IPC | L2 | L3 |
 |---|---|---|---|---|
-| RA6M5 GNUARM | pass ([D067], [D091]) | secure only ([D122]) | pass ([D113]), re-confirmed post-move ([D122]) | pass ([D114]), re-confirmed post-move ([D123] §1) |
-| RA6M5 IAR | pass ([D070], [D072]) | no tree exists | secure reported, not captured ([D123] §2) | pass ([D124]) |
-| RA8M2 GNUARM | pass ([D095]) | pass ([D116] §1) | pass ([D115] §1) | secure partial ([D115] §1), non-secure pass ([D116] §3) |
-| RA8M2 IAR | pass ([D105]) | no tree exists | pass ([D118]) | pass ([D119]) |
+| RA6M5 GNUARM | pass (pre-change) ([D067], [D091]) | secure only ([D122]) | pass ([D113]), re-confirmed post-move ([D122]) | pass ([D114]), re-confirmed post-move ([D123] §1) |
+| RA6M5 IAR | pass (pre-change) ([D070], [D072]) | no tree exists | secure reported, not captured ([D123] §2) | pass ([D124]) |
+| RA8M2 GNUARM | pass (pre-change) ([D095]) | pass ([D116] §1) | pass ([D115] §1) | secure partial ([D115] §1), non-secure pass ([D116] §3) |
+| RA8M2 IAR | pass (pre-change) ([D105]) | no tree exists | pass ([D118]) | pass ([D119]) |
 
 [D124] declared this matrix complete, and it is, in the sense that every cell with a tree has
 run. Three cells rest on a partial capture; §7 states each one.
@@ -260,3 +266,9 @@ only**, which is why it appears in the table above as well.
 
 One further gap is not a suite that could be run at all: §8 describes a defect that no
 PSA-level suite can reach.
+
+**One gap is not a suite at all: the shipped default configuration.** Isolation 1 with the SFN
+backend is what the build scripts produce, and every hardware run of it predates the move of the
+isolation HAL from `platform_s` to `tfm_spm`. Isolation 2 and 3 were re-run after that move;
+isolation 1 was not. **Re-run `tf-m-tests` against your own build before shipping**, which
+[DESIGN.md](DESIGN.md) §13.7 also says for the same reason.
