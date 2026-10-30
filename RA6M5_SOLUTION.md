@@ -40,11 +40,9 @@ region-1 block size (`BSP_FEATURE_FLASH_HP_CF_REGION1_BLOCK_SIZE`).
 In 32 KB units: BL2 3, scratch 1, secure slots 16 each, NS slots 14 each — 64 units, no
 remainder.
 
-The scratch block is secure and empty by design. MCUboot is overwrite-only here, so
-nothing uses it; `FLASH_AREA_SCRATCH_SIZE` is 0 in `flash_layout.h`. It exists so a later
-move to swap-using-scratch does not have to re-partition and re-provision the part. It is
-secure because during a swap the scratch holds fragments of the secure image — an
-NS-writable scratch would expose and could corrupt it.
+The scratch block is secure and unused (overwrite-only, `FLASH_AREA_SCRATCH_SIZE` 0). It is
+reserved so a later move to swap-using-scratch needs no repartition or re-provisioning, and it is
+secure because a swap would place secure-image fragments in it.
 
 Data flash is entirely secure. ITS, PS and the MCUboot NV counters all live there:
 NV counters 2048 B, PS 3072 B, ITS 3072 B. `flash_layout.h` splits the partition
@@ -56,8 +54,8 @@ NS side a half like the stock template does.
 
 ## TrustZone boundary values for this layout
 
-Programmed once per board with the Renesas Device Partition Manager, in KB. Nothing in
-the firmware sets them. See [DESIGN.md](DESIGN.md) §7.1 for the granularity rules.
+Program these once per board with the Renesas Device Partition Manager, in KB
+([GETTING_STARTED.md](GETTING_STARTED.md) §6). Granularity rules: [DESIGN.md](DESIGN.md) §7.1.
 
 | Boundary | Value (KB) | Check |
 |---|---|---|
@@ -69,24 +67,6 @@ the firmware sets them. See [DESIGN.md](DESIGN.md) §7.1 for the granularity rul
 
 Resulting NS regions: 896 KB of code flash from 0x120000, 256 KB of SRAM from 0x20040000.
 
-**RDPM erases the part** — reflash all three images afterwards.
-
-Every launch configuration must keep `setTZBoundaries` `false` for every probe it names, not
-only the selected one ([DESIGN.md](DESIGN.md) §7.2).
-
-> The four stock e2 `*_nonsecure Debug_SSD.launch` files carried the `jlink` key as `true` and
-> have been deleted. They were e2 output rather than the `*_TFM_*` launches used here, and no
-> procedure needed them.
->
-> Every shipped launch now carries `false` for every probe it names, not only the selected one,
-> so switching probe cannot arm the setting ([D147]).
->
-> The two copies under `e2_baseline/` keep `true` deliberately: that directory exists to show
-> e2's unmodified output. **Do not launch from it.**
->
-> Check before flashing anything unfamiliar:
-> `grep -rn "setTZBoundaries" <launch>`
-
 **Dual-bank mode must be off.** The OFS `DUALSEL` word must select linear mode. In dual-bank
 mode each bank is 1 MB and the upper half is not at 0x100000, which breaks this layout.
 `BSP_FEATURE_FLASH_HP_CF_DUAL_BANK_START` is 0x00200000 on this part.
@@ -95,12 +75,9 @@ mode each bank is 1 MB and the upper half is not at 0x100000, which breaks this 
 
 ## What the e2 projects must provide
 
-Three projects per toolchain — `ra6m5_gcc_mcuboot`, `ra6m5_gcc_secure`,
-`ra6m5_gcc_nonsecure`, and the `ra6m5_iar_*` equivalents. The
-[E2_PROJECT_REQUIREMENTS.md](E2_PROJECT_REQUIREMENTS.md) contract applies. RA6M5-specific
-points follow.
-All of these were missing in the first `ra6m5_gcc_*` generation. All but the last are now in
-place:
+Three projects per toolchain: `ra6m5_gcc_mcuboot`, `ra6m5_gcc_secure`, `ra6m5_gcc_nonsecure`, and
+the `ra6m5_iar_*` equivalents. [E2_PROJECT_REQUIREMENTS.md](E2_PROJECT_REQUIREMENTS.md) applies;
+RA6M5 specifics:
 
 | Project | Requirement |
 |---|---|
@@ -109,43 +86,22 @@ place:
 | `ra6m5_gcc_secure` | `BSP_CFG_STACK_MAIN_BYTES` = 0x1000 |
 | `ra6m5_gcc_mcuboot` | flash instance named `g_flash0`, not `g_flashRA_NOT_DEFINED` |
 | all | the partitioning above, with `__BL_*_T` sizes 0 |
-| `ra6m5_gcc_secure`, `ra6m5_gcc_mcuboot` | `BSP_CFG_EARLY_INIT` = 1 — done; both projects emit `((1))`, and a `#error` has enforced it since [D034]. BSP tab → Early BSP Initialization |
+| `ra6m5_gcc_secure`, `ra6m5_gcc_mcuboot` | Early BSP Initialization enabled (`BSP_CFG_EARLY_INIT` = 1; enforced by `#error`) |
 
 The flash instance name is not cosmetic: `cmsis_drivers/Driver_Flash.c` refers to
 `g_flash0_ctrl` / `g_flash0_cfg` by name, and those come from the generated
 `ra_gen/hal_data.c`.
 
-`BSP_CFG_EARLY_INIT` is load-bearing. TF-M's `Reset_Handler` runs `SystemInit()` before
-the C runtime zeroes `.bss`. With early init off, FSP leaves `SystemCoreClock` in `.bss`, so it
-is wiped right after `SystemInit()` computed it, `R_FLASH_HP_Open()` derives FCLK = 0 and fails
-with `FSP_ERR_FCLK` — BL2 first, since MCUboot opens the flash before anything else. The port
-keeps `.ram_noinit` out of `.bss`, but early init is what puts the clock state there. This was
-missed on the first RA6M5 hardware run; `ra6m5_layout_checks.c` and
-`bl2_option_setting.c` now `#error` on it, so it fails the build instead of the board.
-
 `S_MSP_STACK_SIZE` in `region_defs.h` is `BSP_CFG_STACK_MAIN_BYTES + STACKSEAL_SIZE` and is
-asserted at build time, so the project and the port have to agree. 0x1000 matches RA6E1.
+asserted at build time, so the project and the port must agree.
 
 ---
 
 ## Status
 
-Supported under both toolchains. [TEST_RESULTS.md](TEST_RESULTS.md) is the single record of
-what has run on this part and what has not, including the runs whose non-secure half was
-reported rather than captured. What the SCE9 accelerates, what is built from software and why,
-and what is unavailable are in [KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md) §2. The
-secure-slot space budget is in [CONFIGURATION.md](CONFIGURATION.md) §6.
-
-### Two settings that failed on hardware before they were guarded
-
-Both are now build-time errors rather than board failures, and
-[E2_PROJECT_REQUIREMENTS.md](E2_PROJECT_REQUIREMENTS.md) §5 lists every such setting.
-
-- **Early BSP Initialization must be enabled** in the secure and bootloader projects. With it
-  off, `SystemCoreClock` is zero after `SystemInit()` and `R_FLASH_HP_Open()` returns
-  `FSP_ERR_FCLK`. That was the first hardware failure on this part.
-- **AGT0 needs a real interrupt priority in the secure project.** Disabled emits no vector
-  entry at all, so the FLIH and SLIH suites cannot raise an interrupt.
+Supported under both toolchains. Test status: [TEST_RESULTS.md](TEST_RESULTS.md). Accelerated,
+software and unavailable crypto: [KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md) §2.
+Space budget: [CONFIGURATION.md](CONFIGURATION.md) §6.
 
 ### Measured on the built images
 
@@ -160,52 +116,19 @@ whatever the image costs ([CONFIGURATION.md](CONFIGURATION.md) §6).
 | tfm_s | 323,536 B | 521,728 B | 198,192 B |
 | tfm_ns | 6,208 B | 458,240 B | — |
 
-- The veneers sit at `0x11F800`, inside the signed payload and clear of the MCUboot trailer.
-  That is also why the flat binary spans the whole region.
-- Signed images pad to exactly 512 KB and 448 KB, the full slots.
-- BL2 emits discrete option-memory load segments at `0x0100A100`, `0x0100A200` and
-  `0x0100A280`, so the brick guard in [DESIGN.md](DESIGN.md) §8.4 holds on this device.
-- The SCE9 TRNG links into `tfm_s`: 28 `HW_SCE_*` symbols, 8.9 KB after `--gc-sections`.
-- `ra6m5_layout_checks.c` and the orphan-section check both pass.
-
-### Two FSP pack defects this part exposed
-
-Both are of the shape "an abandoned operation leaves the engine mid-session and wedges every
-later user", and both are fixed in the pack the port ships on: `mbedtls_aes_free()` and
-`mbedtls_cipher_free()` for CMAC. A third proposed fix, to `mbedtls_aes_crypt_ctr()`, was
-reverted because that function is not an FSP API and is unreachable through PSA — the defect
-in it is real and is recorded in [KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md) §2 as something
-no suite here can reach.
+- The veneers are at `0x11F800`, inside the signed payload and clear of the MCUboot trailer;
+  signed images pad to the full slots (512 KB, 448 KB).
 
 ---
 
-## Device differences from RA6E1 that the port had to absorb
+## Device notes
 
-- Block-protect OFS words are wider. `BPS`, `PBPS` and their `_SEC` / `_SEL` mirrors are
-  0x10, not 0xC, because 2 MB of flash has more protectable blocks. The starts are the same.
-  **A wrong length here is a brick risk** — the values come from the generated
-  `Debug/memory_regions.ld`.
-- OSPI. The RA6M5 has `OSPI0_CS0` / `OSPI0_CS1` regions the RA6E1 has not. Nothing in the
-  port uses them; they appear in the generated partition list.
-- Everything else transfers: same 8 KB / 32 KB flash block geometry, same 128-byte write
-  size, same 64-byte data-flash block, same 112-entry vector table, same 13 OFS groups,
-  same SCE9 source tree (byte-identical layout).
+- Block-protect option words (`BPS`, `PBPS` and mirrors) are `0x10` wide on this part. Their
+  lengths come from the generated `Debug/memory_regions.ld`; a wrong length is a brick risk.
 
 ---
 
 ## Open items
 
-- **Toolchain: closed** ([[D046]]). The `ra6m5_iar` solution selects IAR and the IAR leg is
-  finished; PSA Arch passes on both toolchains. For a new part, set the solution toolchain to
-  IAR before doing the IAR leg, so the flags come from RASC rather than being carried over by
-  hand.
-- **FSP version drift: closed.** RA6M5 and RA8M2 are both on 6.7.0-beta0. RA6E1 stays on
-  6.6.0-rc1 and is reference only.
-- CCM associated-data limit. FSP's SCE9 CCM caps associated data at 110 B, and reports the
-  overflow as a plain `PSA_ERROR_INVALID_ARGUMENT`. A software fallback above the threshold, or a
-  documented limit, would make SCE9 CCM usable from PSA ([[D043]]). The two session-leak fixes are
-  already in the pack.
-- Open question — acceleration delta. The acceleration this approach gives (FSP's Mbed TLS
-  plus FSP's `*_ALT` set) has not been compared with the previous one (ARM's Mbed TLS
-  accelerated with the same ALT sources): which operations changed hands, and where the PSA
-  core routes differently. To be answered with measurements, not inspection.
+- SCE9 CCM caps associated data at 110 B, so CCM is built in software
+  ([KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md) §2).

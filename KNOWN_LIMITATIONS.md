@@ -1,31 +1,18 @@
 # Known limitations
 
-What this port does not do, what has not been tested, and what is known to be broken. Read it
-with [README.md](README.md) §"Security status", which lists what must change before production, and
-[TEST_RESULTS.md](TEST_RESULTS.md), which records what has run on hardware.
-
-Everything here is a current statement about the delivered code. [DECISIONS.md](DECISIONS.md)
-holds the reasoning and the history.
+What the port does not do, what is untested, and what is known to be broken. Test runs are in
+[TEST_RESULTS.md](TEST_RESULTS.md).
 
 ---
 
 ## 1. Before production
 
-The shipped configuration is a development configuration. [README.md](README.md) §"Security
-status" is the list; [DESIGN.md](DESIGN.md) §13 says how to address each item. In short: the
-signing keys are the public TF-M sample keys, provisioning supplies dummy HUK and IAK values,
-anti-rollback counters are left at `1`, the clock and low-power registers are writable from the
-non-secure world, and the device lifecycle and secure debug are not enforced.
-
-**None of these is a defect in the port.** They are the settings a development board needs and a
-product must not keep.
+The shipped configuration is for development only. [README.md](README.md) §"Security status"
+lists what must change before production; [DESIGN.md](DESIGN.md) §13 says how.
 
 ---
 
 ## 2. Crypto
-
-Both parts route PSA crypto through FSP's Mbed TLS `*_ALT` sources, so what the hardware
-accelerates depends on the engine fitted to the part.
 
 ### Accelerated
 
@@ -38,9 +25,8 @@ BL2 also hashes images on the engine rather than in software.
 
 ### In software, by choice
 
-**AES-CCM.** FSP's SCE9 CCM caps associated data at 110 bytes and Protected Storage exceeds
-that, so CCM is built from software. It still reaches the engine block by block through the
-cipher and AES paths, so the cost is the mode logic rather than the block operation.
+**AES-CCM runs in software**, because FSP's SCE9 CCM caps associated data at 110 bytes and
+Protected Storage exceeds that. The AES block operation underneath is still accelerated.
 
 ### Unavailable
 
@@ -49,163 +35,99 @@ These are turned off in the accelerator configuration for both engines
 
 | Algorithm | Why |
 |---|---|
-| `PSA_WANT_ALG_DETERMINISTIC_ECDSA` | neither engine implements RFC 6979. The attestation key signs with plain `PSA_ALG_ECDSA`. PSA Arch crypto test 252 skips for this reason |
-| `PSA_WANT_ECC_SECP_R1_521` | **the reason differs by part.** SCE9 has no procedure for it, so RA6M5 cannot do it at all. RSIP-E50D can, and RA8M2 has it off to match the SCE9 configuration. The accelerator config also gives layout room as a reason and marks it to be restored; the measured region headroom does not obviously support that second reason |
-| `PSA_WANT_ECC_MONTGOMERY_255` | the same split: no SCE9 procedure, and its hardware table references RSIP-only functions, so RA6M5 cannot. RA8M2 has it off by configuration |
+| `PSA_WANT_ALG_DETERMINISTIC_ECDSA` | neither engine implements RFC 6979; attestation signs with plain `PSA_ALG_ECDSA` |
+| `PSA_WANT_ECC_SECP_R1_521` | RA6M5: SCE9 has no procedure. RA8M2: RSIP-E50D supports it; it is disabled by configuration and costs about 23 KB of secure code. To enable, delete the `#undef` in `rsip_e50d/crypto_accelerator_config.h` and re-run the PSA Arch crypto suite |
+| `PSA_WANT_ECC_MONTGOMERY_255` | as P-521: impossible on RA6M5, disabled by configuration on RA8M2 |
 
-**RSA-2048 key generation in plaintext format is unavailable on RA8M2, and there is no switch
-for it.** The guard is in FSP's `rsa_alt_process.c`: `mbedtls_rsa_gen_key()` returns
-`MBEDTLS_ERR_PLATFORM_FEATURE_UNSUPPORTED` unless the part is SCE7, SCE9 or RSIP-E51A, and E50D
-is not in that list. RA6M5 passes because SCE9 is. Every other RSA-2048 operation works on both
-parts. Hardware RSA key generation on E50D requires the caller to request a wrapped key.
-Raising `PSA_CRYPTO_CFG_RSA_FORMAT` does not help, because it is already `3` and is not what
-selects the failing path. This is the single PSA Arch crypto failure on RA8M2, test 216 check 4.
+**RSA-2048 key generation in plaintext format fails on RA8M2** (PSA Arch crypto test 216). FSP's
+`rsa_alt_process.c` permits it only on SCE7, SCE9 and RSIP-E51A, and no configuration changes
+that; `PSA_CRYPTO_CFG_RSA_FORMAT` is already `3`. Request a wrapped key for hardware key
+generation on RSIP-E50D. All other RSA-2048 operations work on both parts.
 
 ### Untested
 
-**ECDSA P-384 is untested here and probably works.** `PSA_WANT_ECC_SECP_R1_384` is not
-disabled, so the algorithm is built, but the regression test that would exercise it
-(`TFM_S_CRYPTO_TEST_1056` / `TFM_NS_CRYPTO_TEST_1056`) self-skips on every platform that is not
-Arm CryptoCell — its gate tests `CC3XX_RUNTIME_ENABLED`. The test reports PASSED without
-testing anything. **Do not read a passing regression run as P-384 coverage.** It needs a
-standalone check before anyone claims P-384 support.
+**ECDSA P-384 is built but untested.** Its regression test (`TFM_S/NS_CRYPTO_TEST_1056`)
+self-skips on platforms without Arm CryptoCell and still reports PASSED. Test P-384 yourself
+before relying on it.
 
-**The multi-part engine lock.** While a multi-part AES, GCM or CMAC operation is open it holds
-the engine, and `psa_generate_random` fails for every caller until that operation completes or
-is aborted. This comes from reading the driver, not from an observed failure, and no suite run
-here exercises the pattern.
-
-**A software CTR defect no suite here can reach.** FSP 6.7's `mbedtls_aes_crypt_ctr()` ignores
-`nc_off` and `stream_block` and mishandles partial blocks. PSA Arch tests 236 and 237 pass on
-both parts, short-input CTR checks included, because the PSA cipher layer never reaches that
-function with a partial block. A direct Mbed TLS CTR caller still hits it. Closing this needs a
-unit test against the function itself, not another PSA-level suite.
+**FSP 6.7's `mbedtls_aes_crypt_ctr()` mishandles partial blocks** (it ignores `nc_off` and
+`stream_block`). PSA cipher calls never reach it with a partial block, so the PSA suites pass;
+direct Mbed TLS callers are affected and no suite here covers them.
 
 ---
 
 ## 3. Boot and upgrade
 
-**The MCUboot upgrade path has been exercised on RA8M2 only, and not equally.** Both images
-install from their secondary slots under both toolchains; **the second reset erasing the
-secondary was observed under GNUARM only** ([TEST_RESULTS.md](TEST_RESULTS.md) §4). RA6M5 has no
-upgrade launch and the path has never run there. RA6E1 sets `MCUBOOT_ALIGN_VAL` to 128 to match
-its code-flash write unit, and that fix has never been exercised, because it only takes effect
-once BL2 writes code flash.
+**The MCUboot upgrade path has run on RA8M2 only**: install confirmed on both toolchains,
+secondary erase on GCC ([TEST_RESULTS.md](TEST_RESULTS.md) §4). It has never run on RA6M5 or
+RA6E1.
 
-**Image alignment is not interchangeable.** Images signed at one alignment are rejected by a BL2
-built at another, because the trailer magic differs. Reflash every slot after changing it and do
-not mix.
+Images signed at one `MCUBOOT_ALIGN_VAL` are rejected by a BL2 built at another; see
+[CONFIGURATION.md](CONFIGURATION.md).
 
-**Slot order is reversed for image 0 on RA8M2.** The secure secondary sits below the secure
-primary, so `rsp.br_image_off` of `0x68000` is the primary. Image 1 is the usual way round.
-Anything that reads a `boot_rsp` or computes a flash row must account for this.
+On RA8M2, image 0's secondary slot sits below its primary; see
+[RA8M2_SOLUTION.md](RA8M2_SOLUTION.md).
 
-**Firmware Update is off and untested.** `TFM_PARTITION_FIRMWARE_UPDATE` is `OFF` on all parts.
-Turning it on brings advisory TFMV-9 (CVE-2025-53022) into scope and you should move to
-TF-Mv2.2.2 first.
+**Firmware Update is off and untested** (`TFM_PARTITION_FIRMWARE_UPDATE=OFF`). Enabling it brings
+TFMV-9 into scope; see [README.md](README.md) §"Security status" item 8.
 
-**Measured boot is on, and a passing attestation suite does not prove it works.** With no
-software components recorded, `attest_add_all_sw_components()` emits `IAT_NO_SW_COMPONENTS` and
-returns success, so the attestation suite passes either way. Read the boot record directly to
-confirm it.
+**A passing attestation suite does not prove measured boot**: with no software components
+recorded the token still verifies. Confirm by reading the boot record
+([TEST_RESULTS.md](TEST_RESULTS.md) §5).
 
 ---
 
 ## 4. Open hazards
 
-### Flashing a flat binary can destroy the board
+### Never build `bl2_bin` on its own
 
-The option-setting words live in discrete flash regions. A plain `objcopy -O binary` coalesces
-them into one segment and zero-fills the reserved bytes between, which writes `0x00` into
-defined option registers. Two EK-RA6M4 boards were lost this way; no recovery is known.
+The full build re-emits and checks a safe flat binary. Building the `bl2_bin` target alone writes
+the coalesced image (about 16.8 MB) that destroyed two boards. Flashing rule:
+[GETTING_STARTED.md](GETTING_STARTED.md) §6; mechanism: [DESIGN.md](DESIGN.md) §8.4.
 
-**Flash `bl2.elf`, `bl2.hex` or `bl2.srec` — never `bl2.bin`.**
+### Do not launch from `e2_baseline/`
 
-The full build re-emits a safe flat binary and verifies it, but **building the `bl2_bin` target
-on its own still writes the coalesced image.** The rule that follows is: build everything, never
-`bl2_bin` alone. If you must look at a flat binary, a safe one is tens of kilobytes and a
-coalesced one is about 16.8 MB. Do not use any single byte count as the test — the safe size
-differs between build configurations.
+Every shipped launch keeps `setTZBoundaries` false for every probe
+([GETTING_STARTED.md](GETTING_STARTED.md) §6). The two `Debug_SSD` launches in `e2_baseline/`
+keep `true` because they show unmodified e2 output.
 
-### The debugger will program the TrustZone boundaries wrongly
+### Secure-slot space
 
-Every launch configuration must keep `setTZBoundaries` `false` for every probe it names.
-Launched against BL2, the debugger derives the boundaries from the wrong symbols.
-
-Every shipped launch now carries `false` for every probe it names, not only for the selected
-one, so switching probe cannot arm the setting. The two `Debug_SSD` launches under
-`e2_baseline/` keep `true` deliberately, because that directory shows the unmodified e2 output.
-**Do not launch from `e2_baseline/`.**
-
-### Re-partitioning erases the part
-
-Programming the TrustZone boundaries with RDPM erases both code and data flash. Reflash all three
-images afterwards. [RECONFIGURING_THE_LAYOUT.md](RECONFIGURING_THE_LAYOUT.md) is the procedure.
-
-### The signed image fills the slot, and that is not the code budget
-
-The non-secure-callable veneers are pinned at the top of the secure region, so the flat binary
-spans the whole region and the signed image nearly fills the slot on both parts: about 1.8 KB
-spare on RA6M5 and 0.8 KB on RA8M2. **That figure does not limit how much code you can add**,
-because adding code does not grow a binary that is already region-sized. The code budget is the
-region: about 198 KB spare on RA6M5 and 76 KB on RA8M2.
-[CONFIGURATION.md](CONFIGURATION.md) §6 has both measurements and how to take them.
+The signed image nearly fills the slot, but that does not limit added code; the secure region
+does. Figures and method: [CONFIGURATION.md](CONFIGURATION.md) §6.
 
 ---
 
 ## 5. Debug and logging
 
-**RTT is unreliable across the boot chain by construction.** BL2, the secure image and the
-non-secure image each initialise their own RTT control block, and the address differs per build.
-A capture can also truncate silently: if output stops after a result line and the next test is
-never announced, suspect the capture rather than the target.
+**RTT**: each image has its own control block at a per-build address
+([GETTING_STARTED.md](GETTING_STARTED.md) §6). A capture can truncate silently: output that stops
+after a result line is the capture, not a hang.
 
-**Most launches do not load what the build scripts produce.** Four do, one per part and
-toolchain: `ra6m5_TFM_sce9_{gcc,iar}` and `ra8m2_TFM_app_{gcc,iar}`, whose load entries are the
-default build directories of the four application scripts. Every other launch names a build tree
-of its own by absolute path, so running an application build and then one of those flashes
-different images or fails on missing files. [GETTING_STARTED.md](GETTING_STARTED.md) §6 has the
-table.
-
-All nineteen RA6M5 launches additionally take their debug program from the e2 project —
-`Debug/ra6m5_gcc_nonsecure.elf` — rather than from a TF-M image, so the symbols e2 loads are
-not those of the image being flashed. The seventeen RA8M2 launches name a `bl2.elf` instead.
+**Only four launches load what the application scripts build**: `ra6m5_TFM_sce9_{gcc,iar}` and
+`ra8m2_TFM_app_{gcc,iar}`. The rest load their own trees under `C:\b`
+([GETTING_STARTED.md](GETTING_STARTED.md) §6). RA6M5 launches take debug symbols from the e2
+project's `Debug/ra6m5_gcc_nonsecure.elf`, not the flashed image. Each launch also records a
+local SVD path and source-lookup entry from the author's machine; neither affects what is
+flashed.
 
 ---
 
 ## 6. Platform scope
 
-| Part | Status |
-|---|---|
-| RA6M5 | supported, both toolchains |
-| RA8M2 | supported, both toolchains. CPU1 is unused; the port is single-core |
-| RA6E1 | reference only. It is the port the two supported parts derive from, and it is not maintained against the current build |
+Part status: [README.md](README.md). RA6M4 is not part of this delivery.
 
-RA6M4 is not part of this delivery.
-
-**The RA8M2 project sets target different board revisions between toolchains.** The GCC projects
-select `ra8m2_ek` and the IAR projects `ra8m2_ek_v2`. Both have passed on hardware, so the
-difference is tolerable, but regenerating either set against the other's board changes the
-generated BSP. The RA6M5 projects differ similarly in pin configuration: the GCC solution
-selects `RA6M5_2 CK` and the IAR solution `RA6M5 CK`, which changes the security attribution of
-16 pins.
+**GCC and IAR projects target different boards.** RA8M2: `ra8m2_ek` (GCC), `ra8m2_ek_v2` (IAR).
+RA6M5: `RA6M5_2 CK` (GCC), `RA6M5 CK` (IAR), which changes the security attribution of 16 pins.
+Both pass on hardware; regenerating one set against the other's board changes the BSP.
 
 ---
 
 ## 7. Planned work
 
-Listed without dates, because none is committed.
-
-- **Mbed TLS v4 and TF-M 2.3.** Gated on FSP's own migration to Mbed TLS v4.1. The port stays on
-  TF-Mv2.2.0 and the FSP Mbed TLS tree, which is 3.6.6, until then.
-- **Move the project set to RASC.** The delivered projects are generated by e2 studio. The
-  standalone FSP Smart Configurator emits an equivalent CMake project set, and the layout and
-  module configuration already match on RA6M5. What is not yet solved is the debug front end:
-  RASC projects cannot be imported into e2 studio, and their own launch mechanism has not been
-  shown to flash three images with the required erase and boundary settings.
-- **Firmware Update.** The bootloader half is proven on RA8M2; what FWU adds is the API that
-  places an image in the secondary slot.
-- **SLIH above isolation 1, and on RA8M2 at all.** Never run. The trees and launches have to be
-  made first.
-- **PSA Arch Firmware Framework suite.** Only the crypto, attestation and storage suites have
-  been built.
+- **TF-M 2.3 and Mbed TLS v4**, after FSP migrates to Mbed TLS v4.1. Until then the port is TF-M
+  v2.2.0 with FSP's Mbed TLS 3.6.6.
+- **RASC-generated projects.** RASC already emits an equivalent CMake project set on RA6M5;
+  debugging is unsolved, because RASC projects cannot be imported into e2 studio.
+- **Suites never run** (Firmware Update, SLIH above isolation 1, PSA Arch Firmware Framework):
+  [TEST_RESULTS.md](TEST_RESULTS.md) §9.

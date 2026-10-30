@@ -83,7 +83,8 @@ RA6M5 allocation. 64 KB is the smallest size that splits without a remainder.
 ## TrustZone boundary values for this layout
 
 Program these once per board with the Renesas Device Partition Manager, in KB
-([GETTING_STARTED.md](GETTING_STARTED.md) §6). The RDPM screen takes six fields
+([GETTING_STARTED.md](GETTING_STARTED.md) §6), in the order the screen asks.
+Granularity rules: [DESIGN.md](DESIGN.md) §7.1.
 
 | Field | Value (KB) | Derivation |
 |---|---|---|
