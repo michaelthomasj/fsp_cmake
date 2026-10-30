@@ -110,7 +110,7 @@ Work through these in order. The first three are the common causes:
    DWARF that every `bootutil` and `flash_map` object reports
    `sizeof(struct flash_area) == 16`, which is TF-M's size; an `fsp_bsp_bl2` object reports 12
    and that is correct, because FSP's header is PRIVATE to that library
-   (`BRIDGING_FILES.md` §3). This produced this error on RA6M5 ([D090], which supersedes
+   (`FSP_UPREV_CHECKLIST.md` §3). This produced this error on RA6M5 ([D090], which supersedes
    [D085]).
 
 ### `BOOT_EFLASH` from `boot_read_sectors()`

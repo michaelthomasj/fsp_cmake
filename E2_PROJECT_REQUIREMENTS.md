@@ -1,0 +1,154 @@
+# e2 project requirements — what a generated project must supply
+
+The TF-M build reads its memory layout, its FSP driver sources and several load-bearing
+settings out of generated e2 studio projects. This is the contract those projects satisfy. Read
+it when you regenerate a project, change a solution, or add a part — [PORTING.md](PORTING.md)
+is the wider procedure for a new part, and [DESIGN.md](DESIGN.md) §1 says why the projects are
+generated rather than edited.
+
+Most of the contract is enforced at build time. Where a requirement is checked, the build stops
+with an `#error` naming the setting and the project, so a regeneration that drops something
+fails at compile time rather than on the board.
+
+---
+
+## 1. The three projects
+
+The build takes three directories per part and toolchain, one per image:
+
+| Variable | Role | RA6M5 | RA8M2 |
+|---|---|---|---|
+| `FSP_BL2_APP_DIR` | FSP driver modules for BL2, which is a flat build | `ra6m5_<tc>_mcuboot` | `ra8m2_<tc>_mcuboot` |
+| `FSP_S_APP_DIR` | driver modules for the secure image, and the source of the layout | `ra6m5_<tc>_secure` | `ra8m2_<tc>_CPU0_secure` |
+| `FSP_NS_APP_DIR` | the whole FSP application, built as `tfm_ns` | `ra6m5_<tc>_nonsecure` | `ra8m2_<tc>_CPU0_nonsecure` |
+
+`<tc>` is `gcc` or `iar`. **Keep the pairing.** A project set is generated for one toolchain and
+the TF-M build must use the matching one. Crossing them mostly works, because `ra_gen/` and
+`ra_cfg/` are toolchain-neutral and TF-M supplies its own linker script, but it is not the
+intended arrangement.
+
+All three projects belong to one solution, which owns the partitioning for the set. Both
+toolchains describe the same part and feed one set of TrustZone boundary values, so their
+solutions have to agree on the layout.
+
+---
+
+## 2. Files only an e2 build produces
+
+Regenerating is not enough. These are build outputs, so a project that has never been built in
+e2 cannot configure TF-M:
+
+| File | Read by |
+|---|---|
+| `Debug/bsp_linker_info.h` | every image. Filtered to its `BSP_PARTITION_*` defines at configure time, because the rest of the file declares C types a linker script cannot take |
+| `Debug/memory_regions.ld`, `Debug/memory_regions.icf` | the non-secure link, and on RA8M2 the option-memory addresses, filtered into a generated `option_settings.h` |
+| `script/fsp.ld` | the non-secure link, used as the scatter file |
+
+The build looks in `Debug/`. The standalone Smart Configurator writes these to the project root
+instead, which is one of the open items in moving the set to RASC.
+
+---
+
+## 3. The partition contract
+
+`bsp_linker_info.h` must define these as `_START` and `_SIZE` pairs. The secure project's copy
+is the one parsed, because it is a strict superset: it carries the bootloader regions that the
+bootloader project's own copy omits.
+
+| Group | Symbols |
+|---|---|
+| Bootloader | `FLASH_BL_CPU0_S`, `RAM_BL_CPU0_S` |
+| Code and RAM | `FLASH_CPU0_S`, `FLASH_CPU0_C`, `FLASH_CPU0_N`, `RAM_CPU0_S`, `RAM_CPU0_C`, `RAM_CPU0_N` |
+| Slot markers | `__BL_0_P_H`, `__BL_0_P_T`, `__BL_0_S_H`, `__BL_0_S_T`, and the same four for `__BL_1` |
+| Storage, RA6M5 | `DATA_FLASH_CPU0_S`, `DATA_FLASH_CPU0_N` |
+| Storage, RA8M2 | `DATA_FLASH_CPU0_S`, which must stay `0`, and `DF_EMULATION` |
+
+Three geometry rules the layout has to keep, each asserted in `<part>_layout_checks.c`:
+
+- **Partitions are contiguous and both slot pairs are the same size.** `fa_size` is a sum of
+  sizes while the trailer magic is placed from the address span, so a hole makes imgtool and
+  bootutil disagree about where the magic goes. Such an image boots, then fails its first
+  upgrade.
+- **The non-secure-callable region ends exactly on the secure boundary**, and its start sits
+  inside the signed payload so the veneers are covered by the signature.
+- **The header is `0x200` and both trailer partitions are zero-size end markers.** MCUboot
+  takes its trailer from the slot tail. TF-M's own defaults are `0x400`, and those cache values
+  are what imgtool signs with, so a mismatch places the payload `0x400` into a slot linked for
+  `0x200`. `region_defs.h` stops the build on it.
+
+Secure data flash must be large enough for the NV counters, Protected Storage and Internal
+Trusted Storage together. `flash_layout.h` divides what it is given and stops below the
+minimum.
+
+---
+
+## 4. Modules, per project
+
+A module reaches a TF-M image only if the port declares it. Enabling more in e2 is harmless for
+the standalone build, but produces a configure-time warning naming the module as not in any
+image.
+
+| Project | Modules the build needs |
+|---|---|
+| secure | `bsp`, `flash`, `sce`, `agt` |
+| bootloader | `bsp`, `flash` |
+| non-secure | whatever the application needs; the whole tree is globbed |
+
+- **The flash driver is a different FSP module per part.** RA6M5 takes `r_flash_hp`. RA8M2
+  takes `r_mram`, which appears in e2 as Flash with the MRAM implementation rather than
+  Flash (r_flash_hp), and its instance is `g_mram0` where RA6M5 has `g_flash0`.
+- **The crypto engine directory under `r_sce` is discovered, not named**: `sce9` on RA6M5,
+  `rsip_e50d` on RA8M2.
+- **The SCE module in the secure project** supplies the TRNG that PSA uses as its external RNG.
+  Without it the secure image has no entropy source. Only the TRNG is taken; the rest is
+  trimmed by `--gc-sections`.
+- **AGT in the secure project, with a real interrupt priority.** Disabled emits no vector entry
+  at all, and the FLIH and SLIH suites then cannot raise an interrupt. Configuring it in the
+  secure project is also what makes the interrupt secure.
+- **Three modules are deliberately never built from the projects** — the FSP crypto stack,
+  `rm_psa_crypto` and `rm_mcuboot_port` — because the crypto and flash-map configuration they
+  carry collides with TF-M's. `FSP_MODULES_NEVER_BUILT` enforces that. Their headers must still
+  resolve, because the generated `common_data.h` and `hal_data.h` include them unconditionally
+  even when nothing is instantiated.
+- **Generated file names stay standard.** The build excludes `ra_gen/main.c`,
+  `Source/startup.c` and `bsp_linker.c` by name for the secure and bootloader images, because
+  TF-M supplies all three. Renaming them makes the FSP versions collide at link.
+
+---
+
+## 5. Settings that are load-bearing
+
+| Setting | Where | Consequence if wrong |
+|---|---|---|
+| Early BSP Initialization enabled | secure and bootloader | `SystemCoreClock` is zero after `SystemInit()` and the flash driver fails to open with `FSP_ERR_FCLK` |
+| Main stack size | all three | it replaces the `g_init_info` and `g_main_stack` that the excluded `bsp_linker.c` would have defined, and it must match the secure image stack size the build expects |
+| Option-setting words | bootloader only | the bootloader project is the only one whose option settings reach an image. Editing them in the secure project has no effect and gives no warning |
+
+RA8M2 carries one guard per option word the port does not place, so a word enabled in e2 cannot
+be silently dropped. RA6M5 has none, because it places the three words it emits.
+
+---
+
+## 6. Launch configurations
+
+**`setTZBoundaries` must be `false` for every debug probe a launch names.** It defaults to
+enabled, derives the boundaries from the launched project's symbols, and cannot handle a
+bootloader and a secure image that share the secure region: launched against the bootloader it
+marks everything secure and silently undoes a correct partition. [DESIGN.md](DESIGN.md) §7.2.
+
+Leave erase code flash and erase data flash enabled on connect, so a stale storage area does
+not survive a reflash.
+
+---
+
+## 7. What a project cannot supply
+
+- **The TrustZone boundaries.** Nothing in the firmware programs them. They are set once per
+  board with the Renesas Device Partition Manager and must be recomputed on any repartition
+  against the granularity rule for the part. The values are in the part guides,
+  [RA6M5_SOLUTION.md](RA6M5_SOLUTION.md) and [RA8M2_SOLUTION.md](RA8M2_SOLUTION.md).
+- **The option-memory placement rule.** Each option word needs its own linker `MEMORY` region.
+  One coalesced load segment zero-fills the memory between the words and writes values nobody
+  chose. That is the failure that made two EK-RA6M4 boards un-erasable, it is invisible in the
+  srec, and it lives in the TF-M linker scripts rather than in any project — but re-verify it
+  after a layout change. [GETTING_STARTED.md](GETTING_STARTED.md) §6 has the check.

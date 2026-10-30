@@ -19,19 +19,19 @@
       <li><a href="index.html">Reference documents</a>
         <ol>
       <li><a href="ADDING_FSP_MODULES.html">ADDING_FSP_MODULES.md</a></li>
-      <li><a href="BRIDGING_FILES.html">BRIDGING_FILES.md</a></li>
       <li><a href="BUILD_ARCHITECTURE.html">BUILD_ARCHITECTURE.md</a></li>
       <li><a href="CONFIGURATION.html">CONFIGURATION.md</a></li>
       <li><a href="DECISIONS.html">DECISIONS.md</a></li>
       <li><a href="DESIGN.html">DESIGN.md</a></li>
       <li><a href="DOCUMENTATION_PLAN.html">DOCUMENTATION_PLAN.md</a></li>
+      <li><a href="E2_PROJECT_REQUIREMENTS.html">E2_PROJECT_REQUIREMENTS.md</a></li>
       <li><a href="FLASH_MAP_OWNERSHIP.html">FLASH_MAP_OWNERSHIP.md</a></li>
+      <li><a href="FSP_UPREV_CHECKLIST.html">FSP_UPREV_CHECKLIST.md</a></li>
       <li><a href="GETTING_STARTED.html">GETTING_STARTED.md</a></li>
       <li><a href="KNOWN_LIMITATIONS.html">KNOWN_LIMITATIONS.md</a></li>
       <li><a href="PORTING.html">PORTING.md</a></li>
       <li><a href="PROJECT_PLAN.html">PROJECT_PLAN.md</a></li>
       <li><a href="RA6E1_SOLUTION.html">RA6E1_SOLUTION.md</a></li>
-      <li><a href="RA6E1_TEMPLATE_CHECKLIST.html">RA6E1_TEMPLATE_CHECKLIST.md</a></li>
       <li><a href="RA6M5_SOLUTION.html" aria-current="page">RA6M5_SOLUTION.md</a></li>
       <li><a href="RA8M2_SOLUTION.html">RA8M2_SOLUTION.md</a></li>
       <li><a href="RA8x2_DUAL_CORE_DESIGN.html">RA8x2_DUAL_CORE_DESIGN.md</a></li>
@@ -65,11 +65,9 @@
 <h1 id="ra6m5-solution-project--layout-trustzone-boundaries-project-requirements">RA6M5 Solution Project — layout, TrustZone boundaries, project requirements</h1>
 <p>Device: R7FA6M5BH3CFC on the CK-RA6M5 V2 (<code>board.ra6m5ckv2</code>) — 2 MB code flash, 512 KB SRAM,
 8 KB data flash, SCE9, Cortex-M33.</p>
-<p>Companion docs: <code>RA6E1_SOLUTION.md</code> (the port this is derived from), <code>DESIGN.md</code> (why),
-<code>RA6E1_TEMPLATE_CHECKLIST.md</code> (what a solution must emit — it applies here with exceptions:
-it is written for RA6E1, and says <code>r_sce</code> supplies only the TRNG with <code>CRYPTO_HW_ACCELERATOR</code>
-off, where RA6M5 runs SCE9 acceleration and links FSP&#x27;s Mbed TLS. Its data-flash split and
-trailer discussion are RA6E1&#x27;s too).</p>
+<p>Companion docs: <a href="DESIGN.html">DESIGN.md</a> for why the port is built this way, and
+<a href="E2_PROJECT_REQUIREMENTS.html">E2_PROJECT_REQUIREMENTS.md</a> for what a solution must emit, which
+carries this part&#x27;s rows.</p>
 <hr>
 <h2 id="layout">Layout</h2>
 <p>2 MB, all of it allocated. Every boundary falls on a 32 KB erase block, which is the
@@ -140,8 +138,10 @@ mode each bank is 1 MB and the upper half is not at 0x100000, which breaks this 
 <code>BSP_FEATURE_FLASH_HP_CF_DUAL_BANK_START</code> is 0x00200000 on this part.</p>
 <hr>
 <h2 id="what-the-e2-projects-must-provide">What the e2 projects must provide</h2>
-<p>Three projects, as on RA6E1 — <code>ra6m5_mcuboot</code>, <code>ra6m5_secure</code>, <code>ra6m5_nonsecure</code>. The
-<code>RA6E1_TEMPLATE_CHECKLIST.md</code> contract applies unchanged. RA6M5-specific points follow.
+<p>Three projects per toolchain — <code>ra6m5_gcc_mcuboot</code>, <code>ra6m5_gcc_secure</code>,
+<code>ra6m5_gcc_nonsecure</code>, and the <code>ra6m5_iar_*</code> equivalents. The
+<a href="E2_PROJECT_REQUIREMENTS.html">E2_PROJECT_REQUIREMENTS.md</a> contract applies. RA6M5-specific
+points follow.
 All of these were missing in the first <code>ra6m5_gcc_*</code> generation. All but the last are now in
 place:</p>
 <div class="table-wrap"><table>

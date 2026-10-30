@@ -3,8 +3,9 @@
 Device: R7KA8M2JF on the EK-RA8M2 (`board.ra8m2ek`) — 1 MB MRAM, 1,872 KB SRAM (plus 64 KB ITCM / 64 KB DTCM per core-0 partition), no data
 flash, RSIP-E50D, Cortex-M85. FSP 6.7.0-beta0.
 
-Companion docs: `RA6M5_SOLUTION.md` (the port this is derived from), `DESIGN.md` (why — §4 for
-the flash backend, §7 for the SAU), `RA6E1_TEMPLATE_CHECKLIST.md` (what a solution must emit).
+Companion docs: [RA6M5_SOLUTION.md](RA6M5_SOLUTION.md) for the part this one is derived from,
+[DESIGN.md](DESIGN.md) §4 for the flash backend and §7 for the SAU, and
+[E2_PROJECT_REQUIREMENTS.md](E2_PROJECT_REQUIREMENTS.md) for what a solution must emit.
 
 > Hardware status: the regression+FLIH configuration passes (2026-10-06,
 > `ra8m2_TFM_flih_gcc`, banner `TF-M v2.2.0+94dbaa08f`). Every secure and non-secure suite in
@@ -162,8 +163,8 @@ Every launch configuration must keep
 ## What the e2 projects must provide
 
 Three projects — `ra8m2_gcc_mcuboot`, `ra8m2_gcc_CPU0_secure`, `ra8m2_gcc_CPU0_nonsecure`, and
-the `ra8m2_iar_*` equivalents. The `RA6E1_TEMPLATE_CHECKLIST.md` contract applies. RA8M2
-specifics:
+the `ra8m2_iar_*` equivalents. The
+[E2_PROJECT_REQUIREMENTS.md](E2_PROJECT_REQUIREMENTS.md) contract applies. RA8M2 specifics:
 
 | Project | Requirement |
 |---|---|

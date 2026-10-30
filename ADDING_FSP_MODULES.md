@@ -309,5 +309,5 @@ work above isolation 1 — the FLIH/SLIH suites appear never to have been run th
 
 - [GETTING_STARTED.md](GETTING_STARTED.md) — the build itself
 - [DESIGN.md](DESIGN.md) §1 — why the e2 projects are consumed rather than forked
-- [BRIDGING_FILES.md](BRIDGING_FILES.md) — files that carry FSP code but do not move with it
+- [FSP_UPREV_CHECKLIST.md](FSP_UPREV_CHECKLIST.md) — files that carry FSP code but do not move with it
 - [DECISIONS.md](DECISIONS.md) — [D061] secure timer, [D089] per-part drift, [D091] why the MCUboot port is excluded

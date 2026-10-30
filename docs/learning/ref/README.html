@@ -19,19 +19,19 @@
       <li><a href="index.html">Reference documents</a>
         <ol>
       <li><a href="ADDING_FSP_MODULES.html">ADDING_FSP_MODULES.md</a></li>
-      <li><a href="BRIDGING_FILES.html">BRIDGING_FILES.md</a></li>
       <li><a href="BUILD_ARCHITECTURE.html">BUILD_ARCHITECTURE.md</a></li>
       <li><a href="CONFIGURATION.html">CONFIGURATION.md</a></li>
       <li><a href="DECISIONS.html">DECISIONS.md</a></li>
       <li><a href="DESIGN.html">DESIGN.md</a></li>
       <li><a href="DOCUMENTATION_PLAN.html">DOCUMENTATION_PLAN.md</a></li>
+      <li><a href="E2_PROJECT_REQUIREMENTS.html">E2_PROJECT_REQUIREMENTS.md</a></li>
       <li><a href="FLASH_MAP_OWNERSHIP.html">FLASH_MAP_OWNERSHIP.md</a></li>
+      <li><a href="FSP_UPREV_CHECKLIST.html">FSP_UPREV_CHECKLIST.md</a></li>
       <li><a href="GETTING_STARTED.html">GETTING_STARTED.md</a></li>
       <li><a href="KNOWN_LIMITATIONS.html">KNOWN_LIMITATIONS.md</a></li>
       <li><a href="PORTING.html">PORTING.md</a></li>
       <li><a href="PROJECT_PLAN.html">PROJECT_PLAN.md</a></li>
       <li><a href="RA6E1_SOLUTION.html">RA6E1_SOLUTION.md</a></li>
-      <li><a href="RA6E1_TEMPLATE_CHECKLIST.html">RA6E1_TEMPLATE_CHECKLIST.md</a></li>
       <li><a href="RA6M5_SOLUTION.html">RA6M5_SOLUTION.md</a></li>
       <li><a href="RA8M2_SOLUTION.html">RA8M2_SOLUTION.md</a></li>
       <li><a href="RA8x2_DUAL_CORE_DESIGN.html">RA8x2_DUAL_CORE_DESIGN.md</a></li>
@@ -49,11 +49,8 @@
       <li><a href="#top">README.md</a>
         <ol>
           <li><a href="#security-status-development-configuration-not-for-production">Security status: development configuration, not for production</a></li>
-          <li><a href="#the-two-repositories">The two repositories</a></li>
           <li><a href="#start-here">Start here</a></li>
-          <li><a href="#shortest-path-to-a-build">Shortest path to a build</a></li>
-          <li><a href="#freeing-space-in-the-secure-image">Freeing space in the secure image</a></li>
-          <li><a href="#reading-the-port-as-a-diff">Reading the port as a diff</a></li>
+          <li><a href="#the-two-repositories">The two repositories</a></li>
           <li><a href="#the-documents">The documents</a></li>
         </ol>
       </li>
@@ -64,25 +61,19 @@
 <main id="top" class="ref-doc">
 <p class="src">Rendered from <a href="../../../README.md"><code>README.md</code></a>. Edit the Markdown, not this page.</p>
 <h1 id="fsp_cmake">fsp_cmake</h1>
-<p>RASC/e2 studio project set and build glue for the TF-M port to Renesas RA. The port itself
+<p>The RASC/e2 studio project set and build glue for the TF-M port to Renesas RA. The port itself
 lives in the companion repository, <code>trusted-firmware-m</code>, under
-<code>platform/ext/target/renesas/&lt;part&gt;/</code>; this repository holds the generated FSP projects it
-consumes, the build scripts, and the design record.</p>
-<p>Supported parts: RA6M5 and RA8M2, on FSP 6.7.0-beta0, GNUARM 13.2 or IAR 10.10, and
-TF-Mv2.2.0. RA6E1 is included for reference only.</p>
-<p>Both supported parts have passed the full <code>tf-m-tests</code> regression suite on hardware, at
-isolation 1 with the SFN backend (2026-10-05 on RA6M5, 2026-10-06 on RA8M2) and again at
-isolation 2 and 3. **The isolation 1 runs predate a later change to the isolation HAL, and the
-configuration the build scripts produce has not been re-tested on hardware since.** Isolation 2
-and 3 were re-run after that change. <code>TEST_RESULTS.md</code> records every run, what it covered and
-what it did not.</p>
-<p><strong>TF-M base.</strong> The port is built and tested on TF-Mv2.2.0, the base every test result in
-<code>DECISIONS.md</code> was measured on. Upstream TF-Mv2.2.2 adds the TFMV-9 fix (CVE-2025-53022,
-an unchecked TLV payload length in the Firmware Update partition). The shipped
-configuration is not affected, because <code>TFM_PARTITION_FIRMWARE_UPDATE</code> is OFF on all three
-parts and FWU is untested here. **Turn FWU on and the advisory applies: move to TF-Mv2.2.2
-first.** That move is mechanical and touches 6 of the 24 common files this port modifies
-(DECISIONS D139).</p>
+<code>platform/ext/target/renesas/&lt;part&gt;/</code>. This repository holds the generated FSP projects that
+build consumes, the build scripts, and the design record.</p>
+<div class="table-wrap"><table>
+<tr><th></th><th></th></tr>
+<tr><td>Parts</td><td>RA6M5 and RA8M2. RA6E1 is present for reference only and is not maintained against the current build</td></tr>
+<tr><td>FSP</td><td>6.7.0-beta0</td></tr>
+<tr><td>Toolchains</td><td>Arm GNU 13.2, IAR EWARM 10.10.2</td></tr>
+<tr><td>TF-M base</td><td>v2.2.0</td></tr>
+</table></div>
+<p><a href="TEST_RESULTS.html">TEST_RESULTS.md</a> is the only record of what has run on hardware and what has
+not. Read it with the security status below before committing to this port.</p>
 <hr>
 <h2 id="security-status-development-configuration-not-for-production">Security status: development configuration, not for production</h2>
 <p>Do not deploy devices built from this port unchanged. Each item below must be addressed first.
@@ -123,116 +114,62 @@ of what has and has not run.</li>
 applies and you should move to v2.2.2 first.</li>
 </ol>
 <hr>
+<h2 id="start-here">Start here</h2>
+<p><a href="GETTING_STARTED.html">GETTING_STARTED.md</a> takes you from <code>git clone</code> to a board running the test
+suite: versions, environment variables, the e2 build, TrustZone partitioning, the build and
+flash steps for both parts and both toolchains, the pre-flash brick checks, and a table of
+first-build failures.</p>
+<p>Two rules it will repeat, because neither failure is recoverable:</p>
+<blockquote><p><strong>Flash <code>bl2.elf</code> or <code>bl2.hex</code>, never <code>bl2.bin</code>.</strong> The option-setting words live in discrete
+segments that a flat binary cannot express. <a href="DECISIONS.html#d002">D002</a>(DECISIONS.md), <a href="DECISIONS.html#d065">D065</a>(DECISIONS.md).</p></blockquote>
+<blockquote><p><strong>Keep <code>setTZBoundaries</code> = <code>false</code></strong> in every launch configuration. The debugger otherwise
+derives the TrustZone boundaries from the launched project&#x27;s symbols, and launched against
+BL2 it gets them wrong. <a href="DESIGN.html">DESIGN.md</a> §7.2.</p></blockquote>
 <h2 id="the-two-repositories">The two repositories</h2>
 <div class="table-wrap"><table>
 <tr><th></th><th></th></tr>
-<tr><td><code>fsp_cmake</code> (here)</td><td>e2 studio solutions and generated FSP projects, <code>scripts/</code>, the docs below</td></tr>
-<tr><td><code>trusted-firmware-m</code></td><td>the TF-M fork carrying the RA platform ports and a small patch queue against upstream</td></tr>
+<tr><td><code>fsp_cmake</code> (here)</td><td>the e2 studio solutions and generated FSP projects, <code>scripts/</code>, and the documents below</td></tr>
+<tr><td><code>trusted-firmware-m</code></td><td>the TF-M fork carrying the RA platform ports, and a small patch queue against upstream</td></tr>
 </table></div>
-<p>The core principle: RASC is the source of config truth. The TF-M build consumes the
-generated projects; it does not fork them. <code>DESIGN.md</code> §1. Documented exceptions are listed
-in §1.1. Anything else that diverges is a defect, not a choice.</p>
-<h2 id="start-here">Start here</h2>
-<p><a href="GETTING_STARTED.html">GETTING_STARTED.md</a> takes you from <code>git clone</code> to a board running the
-test suite, with commands, versions and the first-build failure table.</p>
-<p>The condensed version follows.</p>
-<h2 id="shortest-path-to-a-build">Shortest path to a build</h2>
-<ol>
-<li>Open the solution for your part in e2 studio (<code>ra6m5_gcc</code>, <code>ra8m2_gcc</code>) and build it.
-The build is a prerequisite: the TF-M build reads <code>Debug/bsp_linker_info.h</code>
-and <code>Debug/memory_regions.*</code>, which only an e2 build produces. Regenerating alone is not
-enough.</li>
-<li>Run the matching script from <code>scripts/</code> — <code>app_build_ra6m5_gcc.bat</code>, <code>app_build_iar.bat</code>
-(RA6M5 IAR), <code>app_build_ra8m2_gcc.bat</code>, <code>app_build_ra8m2_iar.bat</code>. Each builds BL2 +
-secure, installs the SPE, then builds the non-secure image.</li>
-<li>Flash with the e2 debug launch configurations. RA6M5&#x27;s are in <code>ra6m5_gcc_nonsecure/</code>,
-RA8M2&#x27;s are in <code>ra8m2_gcc_mcuboot/</code>. One launch per part and toolchain loads what step 2
-builds: <code>ra6m5_TFM_sce9_{gcc,iar}</code> and <code>ra8m2_TFM_app_{gcc,iar}</code>. **Every other launch
-names a build tree of its own**, so read <code>GETTING_STARTED.md</code> §6 before flashing.</li>
-</ol>
-<p>PSA Arch builds additionally need <code>scripts\vs_build.bat</code>. They compile a host tool with
-<code>cl.exe</code>, which needs a Visual Studio developer environment. See DECISIONS D083.</p>
-<p>Two hazards:</p>
-<ul>
-<li><strong>Flash <code>bl2.elf</code> or <code>bl2.hex</code>, never <code>bl2.bin</code>.</strong> The option-setting words live in discrete
-segments a flat binary cannot express. D002, D065.</li>
-<li><strong>Keep <code>setTZBoundaries</code> = <code>false</code></strong> in every launch configuration. The debugger derives
-boundaries from the launched project&#x27;s symbols, and launched against BL2 it gets them wrong.
-<code>DESIGN.md</code> §7.2.</li>
-</ul>
-<h2 id="freeing-space-in-the-secure-image">Freeing space in the secure image</h2>
-<p>The secure slot is nearly full on both active parts. Look here first when an image no longer
-fits:</p>
-<pre><code>            raw tfm_s.bin   signed payload ends   slot        true spare
-RA6M5           521,792             522,579    524,288         1,693 B
-RA8M2           293,440             294,226    294,912           670 B</code></pre>
-<p>Measured 2026-10-04 by locating the 0xFF gap between the signed payload and the 16-byte
-trailer at the top of the slot. Earlier figures here said 1,984 B and 960 B. Those were
-<code>raw image + header</code> against the slot and omitted the ~275 B of imgtool TLVs (signature and
-hashes) and the trailer, which overstated RA8M2&#x27;s headroom by 30%.</p>
-<p>The PSA Arch builds turn several diagnostics on. A user running those suites wants them
-available, and <code>profile_large</code> at isolation 3 has the room. The ordinary regression and
-FLIH/SLIH builds do not have the room and leave them off. Measured on RA6M5, GCC 13.2:</p>
-<div class="table-wrap"><table>
-<tr><th>Option</th><th>Cost</th><th>Set by</th></tr>
-<tr><td><code>MCUBOOT_LOG_LEVEL=INFO</code></td><td><strong>BL2</strong> text +5,960 B, bss +4,284 B</td><td><code>psa_arch_spe*.bat</code></td></tr>
-<tr><td><code>TFM_SPM_LOG_LEVEL=..._DEBUG</code>&lt;br&gt;<code>TFM_PARTITION_LOG_LEVEL=..._INFO</code>&lt;br&gt;<code>CONFIG_TFM_HALT_ON_CORE_PANIC=ON</code></td><td><strong>secure</strong> text +3,785 B (the three together)</td><td><code>psa_arch_spe*.bat</code></td></tr>
-<tr><td><code>TFM_EXCEPTION_INFO_DUMP=ON</code></td><td>secure text ~3.4 KB</td><td><code>&lt;part&gt;/config.cmake</code> — on everywhere</td></tr>
-<tr><td><code>TFM_SPM_DEBUG_TRACE</code></td><td>a handful of bytes</td><td>ON in both platform <code>config.cmake</code>s. The constraint is not isolation or IPC: <code>check_config.cmake:119</code> rejects TRACE with a <code>_SILENCE</code> log level, which is what <code>MinSizeRel</code>/<code>Release</code> set (<a href="DECISIONS.html#d007">D007</a>)</td></tr>
-</table></div>
-<p>Turning the first two groups off recovers roughly 3.7 KB of secure flash and 6 KB of BL2
-flash. The PSA Arch scripts pass them on the command line rather than setting them in
-<code>&lt;part&gt;/config.cmake</code>, so they do not reach the builds that cannot afford them: 3,785 B
-against the real headroom of 1,693 B on RA6M5 and 670 B on RA8M2 (<a href="DECISIONS.html#d087">D087</a>) would not link.</p>
-<p><code>TFM_EXCEPTION_INFO_DUMP</code> is the one worth considering for a production image. It is on for
-every build today and is pure diagnostics.</p>
-<h2 id="reading-the-port-as-a-diff">Reading the port as a diff</h2>
-<p><code>e2_baseline/</code> holds the RA6M5 and RA8M2 GCC solutions as e2 studio first creates them, on
-exactly the FSP pack the port uses. Every RASC decision the port makes is therefore readable
-as a diff rather than taken on trust:</p>
-<pre><code>git diff HEAD:e2_baseline/ra6m5_gcc_secure/.secure_azone \
-         HEAD:ra6m5_gcc_secure/.secure_azone</code></pre>
-<p>That one comparison carries the whole RA6M5 layout decision: both image slots doubled, the
-NSC window moved, data flash made wholly secure, AGT0 and IRQ0 made secure.
-<code>e2_baseline/README.md</code> lists the five other comparisons worth making and what each shows.</p>
-<p>The same files are also on the orphan branch <code>e2-baseline</code>, which shares no history with the
-port. The copy in this tree is byte-identical and is the one to use (<a href="DECISIONS.html#d140">D140</a>).</p>
+<p>RASC is the source of configuration truth: the TF-M build consumes the generated projects and
+does not fork them. <a href="DESIGN.html">DESIGN.md</a> §1 states the principle and §1.1 lists every
+documented exception. Anything else that diverges is a defect rather than a choice.</p>
+<p><code>e2_baseline/</code> holds both GCC solutions as e2 studio first creates them, on the same FSP pack,
+so every RASC choice the port makes is readable as a diff rather than taken on trust.
+<a href="../../../e2_baseline/README.md">e2_baseline/README.md</a> lists the comparisons worth making and what each
+one shows.</p>
 <h2 id="the-documents">The documents</h2>
-<p><strong>Start here, in this order.</strong></p>
+<p><strong>Main path, in order.</strong></p>
 <div class="table-wrap"><table>
 <tr><th></th><th></th></tr>
-<tr><td><code>README.md</code> (this file)</td><td>what the repo is, the shortest path to a build, the space budget</td></tr>
-<tr><td><code>DESIGN.md</code></td><td>how the port works. §1 the core principle, §1.1 documented deviations, §4 flash geometry, §7 TrustZone and the SAU</td></tr>
-<tr><td><code>TROUBLESHOOTING.md</code></td><td>indexed by the symptom you see. The two brick hazards are first</td></tr>
-<tr><td><code>CONFIGURATION.md</code></td><td>every knob you may change: default, where it is defined, and the constraint that bites. Start with its &quot;how the three layers interact&quot; section</td></tr>
-<tr><td><code>RA6M5_SOLUTION.md</code>, <code>RA8M2_SOLUTION.md</code></td><td>per-part: the layout, the RDPM boundary values, what the e2 projects must provide, and current status. The RDPM values live here and nowhere else</td></tr>
-<tr><td><code>KNOWN_LIMITATIONS.md</code></td><td><strong>read before committing to this port.</strong> What it does not do, what is untested, and what is known broken: crypto per part, boot and upgrade, the open hazards</td></tr>
-<tr><td><code>DECISIONS.md</code></td><td>why, append-only. Superseded entries stay; later ones say so</td></tr>
+<tr><td><a href="GETTING_STARTED.html">GETTING_STARTED.md</a></td><td>clone to running board. Every procedure, for both parts and both toolchains</td></tr>
+<tr><td><a href="DESIGN.html">DESIGN.md</a></td><td>how the port works, and §13 how to harden it for production</td></tr>
+<tr><td><a href="RA6M5_SOLUTION.html">RA6M5_SOLUTION.md</a>, <a href="RA8M2_SOLUTION.html">RA8M2_SOLUTION.md</a></td><td>per part: the layout, the TrustZone boundary values the partition manager asks for, and what the e2 projects must provide</td></tr>
+<tr><td><a href="CONFIGURATION.html">CONFIGURATION.md</a></td><td>every option you may change, its default, and the constraint that bites. §6 owns the secure-slot space budget</td></tr>
+<tr><td><a href="KNOWN_LIMITATIONS.html">KNOWN_LIMITATIONS.md</a></td><td>what the port does not do, what is untested, and what is known to be broken</td></tr>
+<tr><td><a href="TEST_RESULTS.html">TEST_RESULTS.md</a></td><td>every hardware run, and every suite that has never run</td></tr>
+<tr><td><a href="TROUBLESHOOTING.html">TROUBLESHOOTING.md</a></td><td>indexed by the symptom you are looking at. The brick hazards come first</td></tr>
 </table></div>
-<p><strong>Reference.</strong></p>
+<p><strong>Task reference.</strong></p>
 <div class="table-wrap"><table>
 <tr><th></th><th></th></tr>
-<tr><td><code>TEST_RESULTS.md</code></td><td>every hardware run, with its result and the DECISIONS entry that recorded it. Read it with <code>PROJECT_PLAN.md</code> §&quot;Test coverage gaps&quot;, which lists what has never run</td></tr>
-<tr><td><code>BUILD_ARCHITECTURE.md</code></td><td>the CMake target graph: the two projects and the <code>api_ns/</code> handoff, every link edge with its file and line, what the port adds to each upstream target, the FSP module registry, and the post-link checks</td></tr>
-<tr><td><code>FLASH_MAP_OWNERSHIP.md</code></td><td>design review: what MCUboot&#x27;s porting contract is, how TF-M narrows it, what other vendors do, and where this port diverges from the two standing objectives</td></tr>
-<tr><td><code>BRIDGING_FILES.md</code></td><td><strong>read before any FSP pack uprev.</strong> Every file that carries FSP code or restates an FSP-generated value, and the check that detects drift in each</td></tr>
-<tr><td><code>UPSTREAM_CHANGES.md</code></td><td>the patch queue against upstream TF-M, with the rationale for each</td></tr>
-<tr><td><code>scripts/README.md</code></td><td>what each build script does</td></tr>
-<tr><td><code>RECONFIGURING_THE_LAYOUT.md</code></td><td><strong>read before changing the partitioning.</strong> Resizing a slot, moving the storage area or growing the bootloader: what follows automatically, the four things that do not, and the 35 assertions</td></tr>
-<tr><td><code>RA6E1_TEMPLATE_CHECKLIST.md</code></td><td>the contract a new part&#x27;s RASC projects must satisfy</td></tr>
-<tr><td><code>RA8x2_DUAL_CORE_DESIGN.md</code></td><td>forward design for the dual-core parts</td></tr>
-<tr><td><a href="GETTING_STARTED.html">GETTING_STARTED.md</a></td><td>clone to running board; §6 carries the <strong>pre-flash verification</strong> — the brick-safety steps to run on every new build</td></tr>
-<tr><td><code>RA6E1_SOLUTION.md</code></td><td>the RA6E1 layout and resolved-issue log. Dormant part, but it is the port RA6M5 and RA8M2 are derived from</td></tr>
+<tr><td><a href="RECONFIGURING_THE_LAYOUT.html">RECONFIGURING_THE_LAYOUT.md</a></td><td>resizing a slot, moving the storage area, growing the non-secure-callable window</td></tr>
+<tr><td><a href="ADDING_FSP_MODULES.html">ADDING_FSP_MODULES.md</a></td><td>you enabled a driver in RASC and TF-M does not link it</td></tr>
+<tr><td><a href="E2_PROJECT_REQUIREMENTS.html">E2_PROJECT_REQUIREMENTS.md</a></td><td>the contract a part&#x27;s generated projects must satisfy</td></tr>
+<tr><td><a href="FSP_UPREV_CHECKLIST.html">FSP_UPREV_CHECKLIST.md</a></td><td>before an FSP pack uprev: every file that carries FSP code or restates a generated value</td></tr>
+<tr><td><a href="scripts_README.html">scripts/README.md</a></td><td>what each build script does, its arguments, and its output trees</td></tr>
 </table></div>
-<p><strong>Planning and history.</strong></p>
+<p><strong>Appendix.</strong> Shipped, outside the main path.</p>
 <div class="table-wrap"><table>
 <tr><th></th><th></th></tr>
-<tr><td><code>PROJECT_PLAN.md</code></td><td>schedule and open tasks</td></tr>
-<tr><td><code>DOCUMENTATION_PLAN.md</code></td><td>the target document set and the gap list; retire it once the set exists</td></tr>
-<tr><td><code>bringup/bricking_evidence/</code></td><td>the preserved image behind <a href="DECISIONS.html#d133">D133</a>, the OFS coalescing brick</td></tr>
-<tr><td><code>e2_baseline/</code></td><td>the two GCC solutions as e2 first creates them, for reading the port&#x27;s RASC choices as a diff (<a href="DECISIONS.html#d140">D140</a>)</td></tr>
+<tr><td><a href="PORTING.html">PORTING.md</a></td><td>adding a new RA part</td></tr>
+<tr><td><a href="UPSTREAM_CHANGES.html">UPSTREAM_CHANGES.md</a></td><td>the modifications this port makes to common TF-M code</td></tr>
+<tr><td><a href="BUILD_ARCHITECTURE.html">BUILD_ARCHITECTURE.md</a></td><td>the CMake target graph, and the <code>api_ns/</code> handoff between the two builds</td></tr>
+<tr><td><a href="DECISIONS.html">DECISIONS.md</a></td><td>why, append-only, with <a href="SETTLED.html">SETTLED.md</a> as its generated index</td></tr>
+<tr><td><a href="../../../e2_baseline/README.md">e2_baseline/README.md</a></td><td>reading the port&#x27;s RASC choices as a diff</td></tr>
+<tr><td><a href="../../../bringup/bricking_evidence/README.md">bringup/bricking_evidence/README.md</a></td><td>the preserved image behind the option-memory brick</td></tr>
+<tr><td><a href="../README.md">docs/learning/README.md</a></td><td>a course on privilege, TrustZone and TF-M on RA. Optional background</td></tr>
 </table></div>
-<p><code>DOCUMENTATION_PLAN.md</code> tracks the target document set and what is still outstanding.</p>
 </main>
 </div>
 </body>

@@ -19,19 +19,19 @@
       <li><a href="index.html">Reference documents</a>
         <ol>
       <li><a href="ADDING_FSP_MODULES.html">ADDING_FSP_MODULES.md</a></li>
-      <li><a href="BRIDGING_FILES.html">BRIDGING_FILES.md</a></li>
       <li><a href="BUILD_ARCHITECTURE.html">BUILD_ARCHITECTURE.md</a></li>
       <li><a href="CONFIGURATION.html" aria-current="page">CONFIGURATION.md</a></li>
       <li><a href="DECISIONS.html">DECISIONS.md</a></li>
       <li><a href="DESIGN.html">DESIGN.md</a></li>
       <li><a href="DOCUMENTATION_PLAN.html">DOCUMENTATION_PLAN.md</a></li>
+      <li><a href="E2_PROJECT_REQUIREMENTS.html">E2_PROJECT_REQUIREMENTS.md</a></li>
       <li><a href="FLASH_MAP_OWNERSHIP.html">FLASH_MAP_OWNERSHIP.md</a></li>
+      <li><a href="FSP_UPREV_CHECKLIST.html">FSP_UPREV_CHECKLIST.md</a></li>
       <li><a href="GETTING_STARTED.html">GETTING_STARTED.md</a></li>
       <li><a href="KNOWN_LIMITATIONS.html">KNOWN_LIMITATIONS.md</a></li>
       <li><a href="PORTING.html">PORTING.md</a></li>
       <li><a href="PROJECT_PLAN.html">PROJECT_PLAN.md</a></li>
       <li><a href="RA6E1_SOLUTION.html">RA6E1_SOLUTION.md</a></li>
-      <li><a href="RA6E1_TEMPLATE_CHECKLIST.html">RA6E1_TEMPLATE_CHECKLIST.md</a></li>
       <li><a href="RA6M5_SOLUTION.html">RA6M5_SOLUTION.md</a></li>
       <li><a href="RA8M2_SOLUTION.html">RA8M2_SOLUTION.md</a></li>
       <li><a href="RA8x2_DUAL_CORE_DESIGN.html">RA8x2_DUAL_CORE_DESIGN.md</a></li>
@@ -144,7 +144,7 @@ case: <code>fsp_module_glob</code> is <code>GLOB_RECURSE</code> and would pull i
 <code>flash_area_open()</code>, which is why the backend override was load-bearing on that part. Under
 <a href="DECISIONS.html#d091">D091</a> it lives in <code>bl2_boot_hal.c</code>, with the bounds imported from FSP&#x27;s <code>flash_map.c</code>.
 <code>DESIGN.md</code> §4 is the current account; the <code>struct flash_area</code> guard-collision note in
-<code>BRIDGING_FILES.md</code> still applies if you ever reintroduce a platform backend.</p>
+<code>FSP_UPREV_CHECKLIST.md</code> still applies if you ever reintroduce a platform backend.</p>
 <p><strong>Measured boot cannot be verified by the attestation suite.</strong> With <code>component_cnt == 0</code> under
 the default <code>ATTEST_TOKEN_PROFILE_PSA_IOT_1</code>, <code>attest_add_all_sw_components()</code> emits
 <code>IAT_NO_SW_COMPONENTS</code> and returns success, so the suite passes whether or not measured boot

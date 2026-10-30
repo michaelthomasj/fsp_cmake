@@ -19,19 +19,19 @@
       <li><a href="index.html">Reference documents</a>
         <ol>
       <li><a href="ADDING_FSP_MODULES.html">ADDING_FSP_MODULES.md</a></li>
-      <li><a href="BRIDGING_FILES.html">BRIDGING_FILES.md</a></li>
       <li><a href="BUILD_ARCHITECTURE.html">BUILD_ARCHITECTURE.md</a></li>
       <li><a href="CONFIGURATION.html">CONFIGURATION.md</a></li>
       <li><a href="DECISIONS.html">DECISIONS.md</a></li>
       <li><a href="DESIGN.html">DESIGN.md</a></li>
       <li><a href="DOCUMENTATION_PLAN.html">DOCUMENTATION_PLAN.md</a></li>
+      <li><a href="E2_PROJECT_REQUIREMENTS.html">E2_PROJECT_REQUIREMENTS.md</a></li>
       <li><a href="FLASH_MAP_OWNERSHIP.html">FLASH_MAP_OWNERSHIP.md</a></li>
+      <li><a href="FSP_UPREV_CHECKLIST.html">FSP_UPREV_CHECKLIST.md</a></li>
       <li><a href="GETTING_STARTED.html">GETTING_STARTED.md</a></li>
       <li><a href="KNOWN_LIMITATIONS.html">KNOWN_LIMITATIONS.md</a></li>
       <li><a href="PORTING.html" aria-current="page">PORTING.md</a></li>
       <li><a href="PROJECT_PLAN.html">PROJECT_PLAN.md</a></li>
       <li><a href="RA6E1_SOLUTION.html">RA6E1_SOLUTION.md</a></li>
-      <li><a href="RA6E1_TEMPLATE_CHECKLIST.html">RA6E1_TEMPLATE_CHECKLIST.md</a></li>
       <li><a href="RA6M5_SOLUTION.html">RA6M5_SOLUTION.md</a></li>
       <li><a href="RA8M2_SOLUTION.html">RA8M2_SOLUTION.md</a></li>
       <li><a href="RA8x2_DUAL_CORE_DESIGN.html">RA8x2_DUAL_CORE_DESIGN.md</a></li>
@@ -66,11 +66,11 @@
 <h1 id="porting-this-tf-m-port-to-another-ra-device">Porting this TF-M port to another RA device</h1>
 <p>Audience: someone adding a new RA part to the port.
 Scope: the TF-M platform directory — <code>platform/ext/target/renesas/&lt;part&gt;/</code>. The RASC side is
-<a href="RA6E1_TEMPLATE_CHECKLIST.html">RA6E1_TEMPLATE_CHECKLIST.md</a>, cited here rather than repeated.</p>
+<a href="E2_PROJECT_REQUIREMENTS.html">E2_PROJECT_REQUIREMENTS.md</a>, cited here rather than repeated.</p>
 <p>The two halves:</p>
 <div class="table-wrap"><table>
 <tr><th>Half</th><th>Where</th><th>Covered by</th></tr>
-<tr><td>What the generated e2 project must emit</td><td><code>fsp_cmake/&lt;part&gt;_*/</code></td><td><a href="RA6E1_TEMPLATE_CHECKLIST.html">RA6E1_TEMPLATE_CHECKLIST.md</a></td></tr>
+<tr><td>What the generated e2 project must emit</td><td><code>fsp_cmake/&lt;part&gt;_*/</code></td><td><a href="E2_PROJECT_REQUIREMENTS.html">E2_PROJECT_REQUIREMENTS.md</a></td></tr>
 <tr><td>What the TF-M platform must supply</td><td><code>platform/ext/target/renesas/&lt;part&gt;/</code></td><td>this document</td></tr>
 </table></div>
 <p>Neither works alone. Do the checklist first — the platform reads the project.</p>
@@ -122,7 +122,7 @@ primary (<code>0x20000</code> vs <code>0x68000</code>). Read the generated symbo
 <code>DF_EMULATION</code> region inside MRAM (<a href="DECISIONS.html#d054">D054</a>).</p>
 <p>Also where erase granularity and <code>InfoGet</code> field layout matter — both are FSP internals the port
 depends on without a promise, which is why it is listed in
-<a href="BRIDGING_FILES.html">BRIDGING_FILES.md</a>.</p>
+<a href="FSP_UPREV_CHECKLIST.html">FSP_UPREV_CHECKLIST.md</a>.</p>
 <h3 id="bl2_option_settingc--38-similar-193-lines-"><code>bl2_option_setting.c</code> — 38% similar, 193 lines ⚠</h3>
 <p><strong>The brick hazard. Read <a href="DESIGN.html">DESIGN.md</a> §8.4 before touching it.</strong></p>
 <p>The option-setting (OFS) words configure the part at reset and some bits are one-time. Two
@@ -182,7 +182,7 @@ part needs.</p>
 </table></div>
 <hr>
 <h2 id="s5">5. Order</h2>
-<pre><code>1. RASC project set                  RA6E1_TEMPLATE_CHECKLIST.md — all three projects,
+<pre><code>1. RASC project set                  E2_PROJECT_REQUIREMENTS.md — all three projects,
                                      generated AND BUILT (GETTING_STARTED.md §4)
 2. Copy the nearest platform dir     ra6m5 (M33/flash) or ra8m2 (M85/MRAM)
 3. cpuarch.cmake + config.cmake      smallest change that makes configure succeed
@@ -221,12 +221,12 @@ a boot failure with no console output.</p>
 <hr>
 <h2 id="s7">7. See also</h2>
 <ul>
-<li><a href="RA6E1_TEMPLATE_CHECKLIST.html">RA6E1_TEMPLATE_CHECKLIST.md</a> — the other half: what the RASC project must emit</li>
+<li><a href="E2_PROJECT_REQUIREMENTS.html">E2_PROJECT_REQUIREMENTS.md</a> — the other half: what the RASC project must emit</li>
 <li><a href="GETTING_STARTED.html">GETTING_STARTED.md</a> — build and flash</li>
 <li><a href="DESIGN.html">DESIGN.md</a> — §1 config truth, §4 flash geometry, §7 TrustZone, §8.4 OFS</li>
 <li><a href="ADDING_FSP_MODULES.html">ADDING_FSP_MODULES.md</a> — the CMake module mechanism</li>
 <li><a href="CONFIGURATION.html">CONFIGURATION.md</a> — every knob and its constraints</li>
-<li><a href="BRIDGING_FILES.html">BRIDGING_FILES.md</a> — files carrying FSP code that do not move with it</li>
+<li><a href="FSP_UPREV_CHECKLIST.html">FSP_UPREV_CHECKLIST.md</a> — files carrying FSP code that do not move with it</li>
 <li><a href="RA8M2_SOLUTION.html">RA8M2_SOLUTION.md</a> / <a href="RA6M5_SOLUTION.html">RA6M5_SOLUTION.md</a> — worked examples</li>
 </ul>
 </main>

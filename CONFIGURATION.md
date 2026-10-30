@@ -98,7 +98,7 @@ RA8M2's SAU programming moved with it. It used to arrive as a side effect of FSP
 `flash_area_open()`, which is why the backend override was load-bearing on that part. Under
 [D091] it lives in `bl2_boot_hal.c`, with the bounds imported from FSP's `flash_map.c`.
 `DESIGN.md` §4 is the current account; the `struct flash_area` guard-collision note in
-`BRIDGING_FILES.md` still applies if you ever reintroduce a platform backend.
+`FSP_UPREV_CHECKLIST.md` still applies if you ever reintroduce a platform backend.
 
 **Measured boot cannot be verified by the attestation suite.** With `component_cnt == 0` under
 the default `ATTEST_TOKEN_PROFILE_PSA_IOT_1`, `attest_add_all_sw_components()` emits

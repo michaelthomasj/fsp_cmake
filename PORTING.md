@@ -2,13 +2,13 @@
 
 Audience: someone adding a new RA part to the port.
 Scope: the TF-M platform directory — `platform/ext/target/renesas/<part>/`. The RASC side is
-[RA6E1_TEMPLATE_CHECKLIST.md](RA6E1_TEMPLATE_CHECKLIST.md), cited here rather than repeated.
+[E2_PROJECT_REQUIREMENTS.md](E2_PROJECT_REQUIREMENTS.md), cited here rather than repeated.
 
 The two halves:
 
 | Half | Where | Covered by |
 |---|---|---|
-| What the generated e2 project must emit | `fsp_cmake/<part>_*/` | [RA6E1_TEMPLATE_CHECKLIST.md](RA6E1_TEMPLATE_CHECKLIST.md) |
+| What the generated e2 project must emit | `fsp_cmake/<part>_*/` | [E2_PROJECT_REQUIREMENTS.md](E2_PROJECT_REQUIREMENTS.md) |
 | What the TF-M platform must supply | `platform/ext/target/renesas/<part>/` | this document |
 
 Neither works alone. Do the checklist first — the platform reads the project.
@@ -74,7 +74,7 @@ The CMSIS flash driver over FSP's HAL. This is where the memory technology shows
 
 Also where erase granularity and `InfoGet` field layout matter — both are FSP internals the port
 depends on without a promise, which is why it is listed in
-[BRIDGING_FILES.md](BRIDGING_FILES.md).
+[FSP_UPREV_CHECKLIST.md](FSP_UPREV_CHECKLIST.md).
 
 ### `bl2_option_setting.c` — 38% similar, 193 lines ⚠
 
@@ -163,7 +163,7 @@ These are decided per part and recorded nowhere the build can check.
 ## 5. Order
 
 ```
-1. RASC project set                  RA6E1_TEMPLATE_CHECKLIST.md — all three projects,
+1. RASC project set                  E2_PROJECT_REQUIREMENTS.md — all three projects,
                                      generated AND BUILT (GETTING_STARTED.md §4)
 2. Copy the nearest platform dir     ra6m5 (M33/flash) or ra8m2 (M85/MRAM)
 3. cpuarch.cmake + config.cmake      smallest change that makes configure succeed
@@ -209,10 +209,10 @@ Do not skip ahead; each catches a different class of mistake.
 
 ## 7. See also
 
-- [RA6E1_TEMPLATE_CHECKLIST.md](RA6E1_TEMPLATE_CHECKLIST.md) — the other half: what the RASC project must emit
+- [E2_PROJECT_REQUIREMENTS.md](E2_PROJECT_REQUIREMENTS.md) — the other half: what the RASC project must emit
 - [GETTING_STARTED.md](GETTING_STARTED.md) — build and flash
 - [DESIGN.md](DESIGN.md) — §1 config truth, §4 flash geometry, §7 TrustZone, §8.4 OFS
 - [ADDING_FSP_MODULES.md](ADDING_FSP_MODULES.md) — the CMake module mechanism
 - [CONFIGURATION.md](CONFIGURATION.md) — every knob and its constraints
-- [BRIDGING_FILES.md](BRIDGING_FILES.md) — files carrying FSP code that do not move with it
+- [FSP_UPREV_CHECKLIST.md](FSP_UPREV_CHECKLIST.md) — files carrying FSP code that do not move with it
 - [RA8M2_SOLUTION.md](RA8M2_SOLUTION.md) / [RA6M5_SOLUTION.md](RA6M5_SOLUTION.md) — worked examples

@@ -421,16 +421,16 @@ on a first build:
 | [RA8M2_SOLUTION.md](RA8M2_SOLUTION.md) / [RA6M5_SOLUTION.md](RA6M5_SOLUTION.md) | the per-part memory map, board settings and open items |
 | [scripts/README.md](scripts/README.md) | build trees, test configurations, RTT, the upgrade test |
 | [TROUBLESHOOTING.md](TROUBLESHOOTING.md) | a symptom you are looking at now |
+| [KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md) | what the port does not do, what is untested, what is known broken |
+| [TEST_RESULTS.md](TEST_RESULTS.md) | what has run on hardware, and what has never run |
 | [DECISIONS.md](DECISIONS.md) | why something is the way it is. Append-only, numbered `D001`… — the rest of the docs cite it by number |
 | [ADDING_FSP_MODULES.md](ADDING_FSP_MODULES.md) | you enabled a driver in RASC and TF-M does not link it |
 | [RECONFIGURING_THE_LAYOUT.md](RECONFIGURING_THE_LAYOUT.md) | you are resizing a slot or moving the storage area |
 | [PORTING.md](PORTING.md) | you are adding a new RA part |
-| [BRIDGING_FILES.md](BRIDGING_FILES.md) | before an FSP package uprev — the files that carry FSP code but do not move with it |
+| [FSP_UPREV_CHECKLIST.md](FSP_UPREV_CHECKLIST.md) | before an FSP package uprev — the files that carry FSP code but do not move with it |
 | [UPSTREAM_CHANGES.md](UPSTREAM_CHANGES.md) | what this port changes outside `platform/ext/target/renesas/`, and why |
-| [PROJECT_PLAN.md](PROJECT_PLAN.md) | milestones, phases and test-coverage gaps |
-| [RA6E1_TEMPLATE_CHECKLIST.md](RA6E1_TEMPLATE_CHECKLIST.md) | what a RASC project must emit — the other half of `PORTING.md` |
+| [E2_PROJECT_REQUIREMENTS.md](E2_PROJECT_REQUIREMENTS.md) | what a RASC project must emit — the other half of `PORTING.md` |
 | — | the planned move to TF-PSA-Crypto (Mbed TLS 4.x) is not in this repo: see the sibling `fsp_tf_psa_crypto`, which carries its plan and its own decision log |
-| [DOCUMENTATION_PLAN.md](DOCUMENTATION_PLAN.md) | you are adding to these documents |
 
 Read `DESIGN.md` §1 next. It explains why the e2 projects are generated rather than edited,
 which is the constraint most newcomers trip over.

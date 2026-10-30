@@ -19,19 +19,19 @@
       <li><a href="index.html">Reference documents</a>
         <ol>
       <li><a href="ADDING_FSP_MODULES.html">ADDING_FSP_MODULES.md</a></li>
-      <li><a href="BRIDGING_FILES.html">BRIDGING_FILES.md</a></li>
       <li><a href="BUILD_ARCHITECTURE.html">BUILD_ARCHITECTURE.md</a></li>
       <li><a href="CONFIGURATION.html">CONFIGURATION.md</a></li>
       <li><a href="DECISIONS.html">DECISIONS.md</a></li>
       <li><a href="DESIGN.html">DESIGN.md</a></li>
       <li><a href="DOCUMENTATION_PLAN.html">DOCUMENTATION_PLAN.md</a></li>
+      <li><a href="E2_PROJECT_REQUIREMENTS.html">E2_PROJECT_REQUIREMENTS.md</a></li>
       <li><a href="FLASH_MAP_OWNERSHIP.html">FLASH_MAP_OWNERSHIP.md</a></li>
+      <li><a href="FSP_UPREV_CHECKLIST.html">FSP_UPREV_CHECKLIST.md</a></li>
       <li><a href="GETTING_STARTED.html">GETTING_STARTED.md</a></li>
       <li><a href="KNOWN_LIMITATIONS.html">KNOWN_LIMITATIONS.md</a></li>
       <li><a href="PORTING.html">PORTING.md</a></li>
       <li><a href="PROJECT_PLAN.html">PROJECT_PLAN.md</a></li>
       <li><a href="RA6E1_SOLUTION.html">RA6E1_SOLUTION.md</a></li>
-      <li><a href="RA6E1_TEMPLATE_CHECKLIST.html">RA6E1_TEMPLATE_CHECKLIST.md</a></li>
       <li><a href="RA6M5_SOLUTION.html">RA6M5_SOLUTION.md</a></li>
       <li><a href="RA8M2_SOLUTION.html" aria-current="page">RA8M2_SOLUTION.md</a></li>
       <li><a href="RA8x2_DUAL_CORE_DESIGN.html">RA8x2_DUAL_CORE_DESIGN.md</a></li>
@@ -65,8 +65,9 @@
 <h1 id="ra8m2-solution-project--layout-trustzone-boundaries-project-requirements">RA8M2 Solution Project — layout, TrustZone boundaries, project requirements</h1>
 <p>Device: R7KA8M2JF on the EK-RA8M2 (<code>board.ra8m2ek</code>) — 1 MB MRAM, 1,872 KB SRAM (plus 64 KB ITCM / 64 KB DTCM per core-0 partition), no data
 flash, RSIP-E50D, Cortex-M85. FSP 6.7.0-beta0.</p>
-<p>Companion docs: <code>RA6M5_SOLUTION.md</code> (the port this is derived from), <code>DESIGN.md</code> (why — §4 for
-the flash backend, §7 for the SAU), <code>RA6E1_TEMPLATE_CHECKLIST.md</code> (what a solution must emit).</p>
+<p>Companion docs: <a href="RA6M5_SOLUTION.html">RA6M5_SOLUTION.md</a> for the part this one is derived from,
+<a href="DESIGN.html">DESIGN.md</a> §4 for the flash backend and §7 for the SAU, and
+<a href="E2_PROJECT_REQUIREMENTS.html">E2_PROJECT_REQUIREMENTS.md</a> for what a solution must emit.</p>
 <blockquote><p>Hardware status: the regression+FLIH configuration passes (2026-10-06,
 <code>ra8m2_TFM_flih_gcc</code>, banner <code>TF-M v2.2.0+94dbaa08f</code>). Every secure and non-secure suite in
 that configuration, zero failures, FLIH IRQ tests included - the first complete run on this
@@ -192,8 +193,8 @@ directory exists to show e2&#x27;s unmodified output. Do not launch from it.</p>
 <hr>
 <h2 id="what-the-e2-projects-must-provide">What the e2 projects must provide</h2>
 <p>Three projects — <code>ra8m2_gcc_mcuboot</code>, <code>ra8m2_gcc_CPU0_secure</code>, <code>ra8m2_gcc_CPU0_nonsecure</code>, and
-the <code>ra8m2_iar_*</code> equivalents. The <code>RA6E1_TEMPLATE_CHECKLIST.md</code> contract applies. RA8M2
-specifics:</p>
+the <code>ra8m2_iar_*</code> equivalents. The
+<a href="E2_PROJECT_REQUIREMENTS.html">E2_PROJECT_REQUIREMENTS.md</a> contract applies. RA8M2 specifics:</p>
 <div class="table-wrap"><table>
 <tr><th>Project</th><th>Requirement</th></tr>
 <tr><td><code>*_CPU0_secure</code></td><td><code>r_mram</code>, instance named <code>g_mram0</code> (not <code>g_flash0</code> — this is MRAM)</td></tr>

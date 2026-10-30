@@ -3,11 +3,9 @@
 Device: R7FA6M5BH3CFC on the CK-RA6M5 V2 (`board.ra6m5ckv2`) — 2 MB code flash, 512 KB SRAM,
 8 KB data flash, SCE9, Cortex-M33.
 
-Companion docs: `RA6E1_SOLUTION.md` (the port this is derived from), `DESIGN.md` (why),
-`RA6E1_TEMPLATE_CHECKLIST.md` (what a solution must emit — it applies here with exceptions:
-it is written for RA6E1, and says `r_sce` supplies only the TRNG with `CRYPTO_HW_ACCELERATOR`
-off, where RA6M5 runs SCE9 acceleration and links FSP's Mbed TLS. Its data-flash split and
-trailer discussion are RA6E1's too).
+Companion docs: [DESIGN.md](DESIGN.md) for why the port is built this way, and
+[E2_PROJECT_REQUIREMENTS.md](E2_PROJECT_REQUIREMENTS.md) for what a solution must emit, which
+carries this part's rows.
 
 ---
 
@@ -98,8 +96,10 @@ mode each bank is 1 MB and the upper half is not at 0x100000, which breaks this 
 
 ## What the e2 projects must provide
 
-Three projects, as on RA6E1 — `ra6m5_mcuboot`, `ra6m5_secure`, `ra6m5_nonsecure`. The
-`RA6E1_TEMPLATE_CHECKLIST.md` contract applies unchanged. RA6M5-specific points follow.
+Three projects per toolchain — `ra6m5_gcc_mcuboot`, `ra6m5_gcc_secure`,
+`ra6m5_gcc_nonsecure`, and the `ra6m5_iar_*` equivalents. The
+[E2_PROJECT_REQUIREMENTS.md](E2_PROJECT_REQUIREMENTS.md) contract applies. RA6M5-specific
+points follow.
 All of these were missing in the first `ra6m5_gcc_*` generation. All but the last are now in
 place:
 

@@ -19,19 +19,19 @@
       <li><a href="index.html">Reference documents</a>
         <ol>
       <li><a href="ADDING_FSP_MODULES.html">ADDING_FSP_MODULES.md</a></li>
-      <li><a href="BRIDGING_FILES.html">BRIDGING_FILES.md</a></li>
       <li><a href="BUILD_ARCHITECTURE.html">BUILD_ARCHITECTURE.md</a></li>
       <li><a href="CONFIGURATION.html">CONFIGURATION.md</a></li>
       <li><a href="DECISIONS.html">DECISIONS.md</a></li>
       <li><a href="DESIGN.html">DESIGN.md</a></li>
       <li><a href="DOCUMENTATION_PLAN.html">DOCUMENTATION_PLAN.md</a></li>
+      <li><a href="E2_PROJECT_REQUIREMENTS.html">E2_PROJECT_REQUIREMENTS.md</a></li>
       <li><a href="FLASH_MAP_OWNERSHIP.html">FLASH_MAP_OWNERSHIP.md</a></li>
+      <li><a href="FSP_UPREV_CHECKLIST.html">FSP_UPREV_CHECKLIST.md</a></li>
       <li><a href="GETTING_STARTED.html" aria-current="page">GETTING_STARTED.md</a></li>
       <li><a href="KNOWN_LIMITATIONS.html">KNOWN_LIMITATIONS.md</a></li>
       <li><a href="PORTING.html">PORTING.md</a></li>
       <li><a href="PROJECT_PLAN.html">PROJECT_PLAN.md</a></li>
       <li><a href="RA6E1_SOLUTION.html">RA6E1_SOLUTION.md</a></li>
-      <li><a href="RA6E1_TEMPLATE_CHECKLIST.html">RA6E1_TEMPLATE_CHECKLIST.md</a></li>
       <li><a href="RA6M5_SOLUTION.html">RA6M5_SOLUTION.md</a></li>
       <li><a href="RA8M2_SOLUTION.html">RA8M2_SOLUTION.md</a></li>
       <li><a href="RA8x2_DUAL_CORE_DESIGN.html">RA8x2_DUAL_CORE_DESIGN.md</a></li>
@@ -381,16 +381,16 @@ on a first build:</p>
 <tr><td><a href="RA8M2_SOLUTION.html">RA8M2_SOLUTION.md</a> / <a href="RA6M5_SOLUTION.html">RA6M5_SOLUTION.md</a></td><td>the per-part memory map, board settings and open items</td></tr>
 <tr><td><a href="scripts_README.html">scripts/README.md</a></td><td>build trees, test configurations, RTT, the upgrade test</td></tr>
 <tr><td><a href="TROUBLESHOOTING.html">TROUBLESHOOTING.md</a></td><td>a symptom you are looking at now</td></tr>
+<tr><td><a href="KNOWN_LIMITATIONS.html">KNOWN_LIMITATIONS.md</a></td><td>what the port does not do, what is untested, what is known broken</td></tr>
+<tr><td><a href="TEST_RESULTS.html">TEST_RESULTS.md</a></td><td>what has run on hardware, and what has never run</td></tr>
 <tr><td><a href="DECISIONS.html">DECISIONS.md</a></td><td>why something is the way it is. Append-only, numbered <code>D001</code>… — the rest of the docs cite it by number</td></tr>
 <tr><td><a href="ADDING_FSP_MODULES.html">ADDING_FSP_MODULES.md</a></td><td>you enabled a driver in RASC and TF-M does not link it</td></tr>
 <tr><td><a href="RECONFIGURING_THE_LAYOUT.html">RECONFIGURING_THE_LAYOUT.md</a></td><td>you are resizing a slot or moving the storage area</td></tr>
 <tr><td><a href="PORTING.html">PORTING.md</a></td><td>you are adding a new RA part</td></tr>
-<tr><td><a href="BRIDGING_FILES.html">BRIDGING_FILES.md</a></td><td>before an FSP package uprev — the files that carry FSP code but do not move with it</td></tr>
+<tr><td><a href="FSP_UPREV_CHECKLIST.html">FSP_UPREV_CHECKLIST.md</a></td><td>before an FSP package uprev — the files that carry FSP code but do not move with it</td></tr>
 <tr><td><a href="UPSTREAM_CHANGES.html">UPSTREAM_CHANGES.md</a></td><td>what this port changes outside <code>platform/ext/target/renesas/</code>, and why</td></tr>
-<tr><td><a href="PROJECT_PLAN.html">PROJECT_PLAN.md</a></td><td>milestones, phases and test-coverage gaps</td></tr>
-<tr><td><a href="RA6E1_TEMPLATE_CHECKLIST.html">RA6E1_TEMPLATE_CHECKLIST.md</a></td><td>what a RASC project must emit — the other half of <code>PORTING.md</code></td></tr>
+<tr><td><a href="E2_PROJECT_REQUIREMENTS.html">E2_PROJECT_REQUIREMENTS.md</a></td><td>what a RASC project must emit — the other half of <code>PORTING.md</code></td></tr>
 <tr><td>—</td><td>the planned move to TF-PSA-Crypto (Mbed TLS 4.x) is not in this repo: see the sibling <code>fsp_tf_psa_crypto</code>, which carries its plan and its own decision log</td></tr>
-<tr><td><a href="DOCUMENTATION_PLAN.html">DOCUMENTATION_PLAN.md</a></td><td>you are adding to these documents</td></tr>
 </table></div>
 <p>Read <code>DESIGN.md</code> §1 next. It explains why the e2 projects are generated rather than edited,
 which is the constraint most newcomers trip over.</p>
