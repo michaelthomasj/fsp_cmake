@@ -463,6 +463,40 @@ an <code>SG</code> in a non-secure-callable region. Covered in <a href="part2-tr
 <h2 id="dumps">1.9 Reading real dumps</h2>
 <p>Every row happened on this port. Read each as: which sub-register, is the address valid, what lives there, and at which privilege the code ran.</p>
 <div class="table-wrap"><table>
+<tr><th>Status</th><th>Address</th><th>What is at that address</th><th>Diagnosis</th></tr>
+<tr><td><code>MMFSR 0x01</code> IACCVIOL</td><td>PC <code>0x000BA964</code> (MMFAR not valid)</td>
+  <td>platform test timer code in <code>platform_s</code> &mdash; <code>PT_PSA_ROT_CODE</code>, idx 1 in the
+  green-run dump below (this address is from an earlier layout)</td>
+  <td>An unprivileged ARoT partition branched into privileged-execute-only code. Fix: compile the callee into
+  <code>tfm_sprt</code>, which lands in idx 0 (<a href="ref/DECISIONS.html#d113">D113</a> #1)</td></tr>
+<tr><td><code>MMFSR 0x82</code> DACCVIOL + MMARVALID</td><td><code>0x20011493</code></td>
+  <td>a <code>static bool</code> in a <code>tfm_sprt</code> file &mdash; <code>PT_PSA_ROT_DATA</code>, idx 4
+  (earlier layout)</td>
+  <td><code>tfm_sprt</code>'s <em>code</em> is unprivileged but its <code>.bss</code> is not, so SPRT code must be
+  stateless (<a href="ref/DECISIONS.html#d113">D113</a> #2)</td></tr>
+<tr><td><code>MMFSR 0x82</code></td><td><code>0x400E8008</code></td>
+  <td>an AGT0 register, covered by no region</td>
+  <td>Unprivileged access to an address no region covers faults, because there is no background map for
+  unprivileged code. The MMIO region was never programmed (Part 3 &sect;3.7,
+  <a href="ref/DECISIONS.html#d113">D113</a> #3)</td></tr>
+<tr><td><code>MMFSR 0x82</code></td><td><code>0x40006300</code></td>
+  <td>ICU <code>IELSR[0]</code></td>
+  <td>A FLIH handler running unprivileged in Thread mode tried to clear the ICU latch; moved to the privileged
+  vector entry (<a href="ref/DECISIONS.html#d113">D113</a> #4)</td></tr>
+<tr><td><code>MMFSR 0x82</code></td><td><code>0x20000400</code></td>
+  <td><code>TFM_SP_META_PTR</code></td>
+  <td>At isolation 3, the region that should cover the metadata pointer was never compiled in, because
+  <code>CONFIG_TFM_PARTITION_META</code> was undefined (<a href="ref/DECISIONS.html#d114">D114</a>)</td></tr>
+<tr><td><code>BFSR 0x82</code> PRECISERR + BFARVALID</td><td><code>0xE000ED04</code></td>
+  <td><code>ICSR</code>, in the PPB</td>
+  <td>A store to the PPB from unprivileged code; worked through below
+  (<a href="ref/DECISIONS.html#d113">D113</a>)</td></tr>
+<tr><td><code>BFSR 0x82</code></td><td><code>0x4013C000</code></td>
+  <td>the RA8M2 MRAM controller, <code>R_MRMS</code></td>
+  <td>Not a privilege fault but a <em>security</em> attribution fault: <code>MRCPFB</code> was attributed
+  Non-secure through <code>MSAR</code> (Part 2 &sect;2.7, <a href="ref/DECISIONS.html#d092">D092</a>)</td></tr>
+<tr><td><code>HFSR.FORCED</code>, all else 0</td><td>&mdash;</td><td>&mdash;</td>
+  <td>A masked SVC (&sect;1.8, <a href="ref/DECISIONS.html#d064">D064</a>)</td></tr>
 </table></div>
 <p>The MemManage rows share a pattern: <strong>the same status byte, <code>0x82</code>, for four different
 causes.</strong> The status tells you <em>how</em> the access failed; only the address and the region table tell you

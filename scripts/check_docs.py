@@ -25,7 +25,8 @@ things that are:
 
   1. every D### cited anywhere resolves to an entry in DECISIONS.md
   2. every relative .md link in a document resolves to a file
-  3. every .md filename mentioned in a .cmake / CMakeLists.txt comment resolves
+  3. every .md filename mentioned in a comment in the port tree resolves, and is tracked.
+     .cmake, CMakeLists.txt, .c, .h, .ld and .icf are all scanned
 
 DECISIONS.md IS EXEMPT FROM (2) AND (3), BY DESIGN
 --------------------------------------------------
@@ -71,8 +72,24 @@ something a recipient actually receives. These four close that gap.
      anchors are computed from the Markdown the same way build_doc_html.py computes them -
      which also means this check works in a clone where ref/ has never been built.
 
+  10. CONTENT, not only references. Every check above verifies that a reference resolves or
+      that markup balances; none reads what the reader actually sees. A concision pass emptied
+      a fault-diagnosis table in docs/learning/part1-privilege-mpu-faults.html - a plan row
+      carried a bracketed instruction instead of final text, it was applied literally, eight
+      diagnoses vanished, and all four checkers passed. This catches:
+        * a table with a header and no data rows, in Markdown or HTML
+        * an HTML list with no items
+        * a paragraph that ends mid-sentence
+        * a count in prose ("the four", "Three problems") over a list of a different length
+        * an editing instruction left in the text ("(none here; add ...)", "[restore ...]")
+  11. --clean-clone re-runs every check against `git archive HEAD`, so a reference that
+      resolves only because a withheld or untracked file is still on disk fails. Four comments
+      in the TF-M tree cited RA6E1_SOLUTION.md and PROJECT_PLAN.md, both gitignored by D146,
+      and (3) passed on this machine because os.path.isfile still found them. (3) now resolves
+      against the tracked set as well, so the default run catches that class too.
+
 Pass --no-customer to skip (4) - (7), for a commit that breaks one of them on purpose. The
-reference checks (1) - (3) and (8) - (9) always run.
+reference checks (1) - (3) and (8) - (11) always run.
 """
 import argparse
 import os
@@ -356,13 +373,205 @@ def course_checks():
     return fails
 
 
+
+# ---------------------------------------------------------------------------- (10)
+# Words that mean "this many follow". A count in prose over a list of a different
+# length is the shape of the "nineteen source files" error: a number nobody re-read.
+COUNT_WORDS = {"two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "seven": 7,
+               "eight": 8, "nine": 9, "ten": 10, "eleven": 11, "twelve": 12}
+RE_COUNT_LEAD = re.compile(
+    r"\b(?:the\s+)?(two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)\b"
+    r"(?!\s*(?:of|or|to|and|%|–|-|KB|MB|B\b|bytes|words|lines|times|boards|parts))",
+    re.I)
+# Text a human meant as an instruction to themselves, not as prose.
+RE_INSTRUCTION = re.compile(
+    r"^\s*[(\[]\s*(?:none here|DELETE|TODO|restore|add the|generator change|move |see the plan)\b"
+    r"|\bLnnn\b|\bL\d+-\d+\b(?=[^\n]*\b(?:restore|apply|replace)\b)", re.I | re.M)
+# A paragraph ending mid-sentence. Terminal punctuation, a colon introducing what
+# follows, or markup are all fine; a bare word or a comma is not.
+RE_PARA_END_OK = re.compile(r"(?:[.!?:;)\]}>*`\"”’]|--|—)\s*$")
+
+
+def _md_tables_and_lists(text):
+    """Yield (kind, line_number, detail) for empty Markdown tables."""
+    lines = text.split("\n")
+    fenced = False
+    i = 0
+    while i < len(lines):
+        if lines[i].lstrip().startswith("```"):
+            fenced = not fenced
+        if not fenced and i + 1 < len(lines):
+            head, sep = lines[i].strip(), lines[i + 1].strip()
+            if (head.startswith("|") and sep.startswith("|")
+                    and re.fullmatch(r"\|[\s:|-]+\|?", sep)):
+                body = i + 2
+                if body >= len(lines) or not lines[body].strip().startswith("|"):
+                    yield ("empty table", i + 1, "header and separator with no rows")
+                i = body
+                continue
+        i += 1
+
+
+def _html_empties(text):
+    for m in re.finditer(r"<table\b[^>]*>(.*?)</table>", text, re.S | re.I):
+        if not re.search(r"<tr\b", m.group(1), re.I):
+            yield ("empty table", text.count("\n", 0, m.start()) + 1, "<table> with no <tr>")
+    for m in re.finditer(r"<(ul|ol)\b[^>]*>(.*?)</\1>", text, re.S | re.I):
+        if not re.search(r"<li\b", m.group(2), re.I):
+            yield ("empty list", text.count("\n", 0, m.start()) + 1,
+                   f"<{m.group(1)}> with no <li>")
+
+
+def _md_fragments(text):
+    """Paragraphs that end without terminal punctuation."""
+    lines = text.split("\n")
+    fenced = False
+    para = []
+    start = 0
+    for n, ln in enumerate(lines, 1):
+        if ln.lstrip().startswith("```"):
+            fenced = not fenced
+            continue
+        if fenced:
+            continue
+        stripped = ln.strip()
+        skip = (not stripped
+                or stripped.startswith(("#", "|", ">", "<", "---"))
+                or re.match(r"^(?:[-*+]\s|\d+[.)]\s)", stripped)
+                or stripped.startswith("    "))
+        if skip:
+            if para:
+                last = para[-1]
+                if not RE_PARA_END_OK.search(last) and len(last.split()) > 2:
+                    yield ("fragment", start, f"paragraph ends \"...{last[-46:].strip()}\"")
+                para = []
+            continue
+        if not para:
+            start = n
+        para.append(stripped)
+    if para:
+        last = para[-1]
+        if not RE_PARA_END_OK.search(last) and len(last.split()) > 2:
+            yield ("fragment", start, f"paragraph ends \"...{last[-46:].strip()}\"")
+
+
+def _count_mismatches(text):
+    """A count word immediately above a list of a different length."""
+    lines = text.split("\n")
+    for n, ln in enumerate(lines):
+        st = ln.strip()
+        # a list item is not a lead-in to the list it sits in
+        if (not st or st.startswith(("|", "#", "`"))
+                or re.match(r"^(?:[-*+]\s|\d+[.)]\s)", st)):
+            continue
+        m = RE_COUNT_LEAD.search(st)
+        if not m or not st.rstrip().endswith(":"):
+            continue
+        # "the first three of these", "the other two" count part of a longer list
+        if re.search(r"\b(?:first|last|next|other|remaining|final)\s+$",
+                     st[:m.start()], re.I):
+            continue
+        # the count word has to be close to the colon to be introducing the list
+        if len(st[m.end():].split()) > 6:
+            continue
+        want = COUNT_WORDS[m.group(1).lower()]
+        j, got = n + 1, 0
+        while j < len(lines) and not lines[j].strip():
+            j += 1
+        if j < len(lines) and lines[j].strip().startswith("|"):
+            continue        # a table: the lead-in may name its subject, not its rows
+        while j < len(lines):
+            s2 = lines[j].strip()
+            if re.match(r"^(?:[-*+]\s|\d+[.)]\s)", s2):
+                got += 1
+            elif not s2 or lines[j].startswith(("  ", "	")):
+                pass        # blank, or a wrapped continuation of the item above
+            else:
+                break
+            j += 1
+        if got and got != want:
+            yield ("count", n + 1, f'"{m.group(1)}" over {got} list item(s)')
+
+
+def content_checks(docs, tracked):
+    """(10) in the module docstring. Returns a list of (where, what)."""
+    fails = []
+    pages = sorted(walk(os.path.join(ROOT, "docs", "learning"), {".html"}))
+    for path in docs + pages:
+        rel = os.path.relpath(path, ROOT).replace("\\", "/")
+        if rel.startswith(PATH_EXEMPT) or os.path.basename(path) in LINK_EXEMPT:
+            continue
+        # a withheld document (D146) is not shipped, so it is not held to this
+        if tracked is not None and rel not in tracked:
+            continue
+        text = read(path)
+        found = list(_html_empties(text))
+        if path.endswith(".md"):
+            found += list(_md_tables_and_lists(text))
+            found += list(_md_fragments(text))
+            found += list(_count_mismatches(text))
+        for m in RE_INSTRUCTION.finditer(text):
+            found.append(("instruction", text.count("\n", 0, m.start()) + 1,
+                          f'editing instruction left in the text: "{m.group(0).strip()[:40]}"'))
+        for kind, line, detail in found:
+            fails.append((f"{rel}:{line}", f"{kind}: {detail}"))
+    return fails
+
+
+
+def clean_clone_run(argv):
+    """(11): re-run every check against `git archive HEAD` of both repositories.
+
+    A reference that resolves only because a withheld or untracked file is still on disk
+    passes here and fails in a customer's clone. This is the belt to (3)'s and (5)'s braces.
+    """
+    import shutil
+    import tempfile
+    tmp = tempfile.mkdtemp(prefix="check_docs_clean_")
+    try:
+        for src, name in ((ROOT, os.path.basename(ROOT)),
+                          (os.path.normpath(os.path.join(ROOT, "..", "trusted-firmware-m")),
+                           "trusted-firmware-m")):
+            if not os.path.isdir(os.path.join(src, ".git")):
+                continue
+            dest = os.path.join(tmp, name)
+            os.makedirs(dest, exist_ok=True)
+            tar = os.path.join(tmp, name + ".tar")
+            try:
+                subprocess.check_call(["git", "-C", src, "archive", "-o", tar, "HEAD"],
+                                      stderr=subprocess.DEVNULL)
+            except (OSError, subprocess.CalledProcessError):
+                print(f"check_docs: cannot archive {src}", file=sys.stderr)
+                return 2
+            shutil.unpack_archive(tar, dest, "tar")
+            os.remove(tar)
+        here = os.path.join(tmp, os.path.basename(ROOT))
+        script = os.path.join(here, "scripts", "check_docs.py")
+        if not os.path.isfile(script):
+            print("check_docs: scripts/check_docs.py is not tracked", file=sys.stderr)
+            return 2
+        # git archive carries no .git, so the tracked-set checks (5) cannot run there.
+        args = [a for a in argv if a != "--clean-clone"]
+        rc = subprocess.call([sys.executable, script, "--no-customer"] + args, cwd=here)
+        print(f"check_docs: clean-clone run {'ok' if rc == 0 else 'FAILED'} "
+              f"(tracked content only, customer checks skipped - they need .git)")
+        return rc
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--quiet", action="store_true")
     ap.add_argument("--list", action="store_true")
     ap.add_argument("--no-customer", action="store_true",
                     help="skip the customer-readiness checks (4)-(7)")
+    ap.add_argument("--clean-clone", action="store_true",
+                    help="re-run every check against `git archive HEAD` (11)")
     a = ap.parse_args()
+
+    if a.clean_clone:
+        return clean_clone_run(sys.argv[1:])
 
     dec_path = os.path.join(ROOT, DECISIONS)
     if not os.path.isfile(dec_path):
@@ -371,11 +580,15 @@ def main():
     entries = set(RE_ENTRY.findall(read(dec_path)))
 
     docs = sorted(walk(ROOT, {".md"}))
-    builds = sorted(walk(TFM, {".cmake", ".txt"})) if os.path.isdir(TFM) else []
+    # .c/.h/.ld/.icf too: the founding failure (nineteen files naming a path that
+    # never existed) included source files, and a fifth withheld-document citation
+    # sat in ra6e1/region_defs.h where a .cmake-only scan could not see it.
+    builds = (sorted(walk(TFM, {".cmake", ".txt", ".c", ".h", ".ld", ".icf"}))
+              if os.path.isdir(TFM) else [])
     if a.list:
         print(f"{len(entries)} decision entries")
         print(f"{len(docs)} markdown files under {ROOT}")
-        print(f"{len(builds)} build files under {TFM}\n")
+        print(f"{len(builds)} build and source files under {TFM}\n")
 
     fails = []
 
@@ -397,17 +610,25 @@ def main():
             if not os.path.isfile(os.path.join(os.path.dirname(path), link)):
                 fails.append((rel, f"link to {link} does not resolve"))
 
-    # Build files: a .md named in a comment must exist, in this repo or beside the file.
+    # Build files: a .md named in a comment must exist, in this repo or beside the file,
+    # AND be tracked - four comments cited files D146 withheld, which stay on disk (11).
+    build_tracked = tracked_files()
     for path in builds:
         rel = os.path.relpath(path, TFM).replace("\\", "/")
         for name in sorted(set(RE_MDNAME.findall(read(path)))):
             bare = os.path.basename(name)
-            if (os.path.isfile(os.path.join(ROOT, name))        # path relative to this repository
-                    or os.path.isfile(os.path.join(ROOT, bare))  # bare name at its root
-                    or os.path.isfile(os.path.join(os.path.dirname(path), bare))
-                    or os.path.isfile(os.path.join(TFM, name))):
-                continue
-            fails.append((f"[tfm] {rel}", f"names {name}, which does not exist"))
+            on_disk = (os.path.isfile(os.path.join(ROOT, name))   # relative to this repository
+                       or os.path.isfile(os.path.join(ROOT, bare))  # bare name at its root
+                       or os.path.isfile(os.path.join(os.path.dirname(path), bare))
+                       or os.path.isfile(os.path.join(TFM, name)))
+            if not on_disk:
+                fails.append((f"[tfm] {rel}", f"names {name}, which does not exist"))
+            elif build_tracked is not None and not (
+                    name in build_tracked or bare in build_tracked
+                    or any(t.endswith("/" + bare) for t in build_tracked)):
+                fails.append((f"[tfm] {rel}",
+                              f"names {name}, which exists here but is not tracked - "
+                              f"it would not be in a clone"))
 
     tracked = None
     if not a.no_customer:
@@ -417,6 +638,7 @@ def main():
         fails += customer_checks(docs, tracked)
     fails += section_checks(docs, tracked)
     fails += course_checks()
+    fails += content_checks(docs, tracked if tracked is not None else tracked_files())
 
     if fails:
         print(f"check_docs: {len(fails)} broken reference(s)\n")
