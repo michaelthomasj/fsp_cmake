@@ -86,7 +86,7 @@ rules:
 - **Each OFS group gets its own linker `MEMORY` region** ([D001], [D002]). Coalescing them into
   one region makes the linker gap-fill between words, writing values nobody chose. Two EK-RA6M4
   boards were lost this way.
-- **Flash `bl2.elf` or `bl2.hex`, never `bl2.bin`** ([D065]). A flat binary cannot express
+- **Flash `bl2.elf`, `bl2.hex` or `bl2.srec` — never `bl2.bin`.** ([D065]) A flat binary cannot express
   discrete segments.
 
 `check_ofs.py` enforces the region rule at build time. Keep it working for the new part.
@@ -133,9 +133,9 @@ Which FSP flash driver the part uses. See [ADDING_FSP_MODULES.md](ADDING_FSP_MOD
 
 ## 3. The dozen to copy and adjust
 
-`region_defs.h` (65%), `config.cmake` (74%), `<part>_layout_checks.c` (64%),
-`tfm_hal_platform.c` (77%), `<part>_fsp_sections.icf` (60%), `cmake/modules/fsp_bsp.cmake` (71%),
-`fsp_sce.cmake` (61%), `tests/tfm_tests_config.cmake` (78%), the two linker scripts, `startup_<part>.c`.
+`region_defs.h` (65%), `config.cmake` (74%), `<part>_layout_checks.c` (64%), `tfm_hal_platform.c`
+(77%), `<part>_fsp_sections.icf` (60%), `cmake/modules/fsp_bsp.cmake` (71%), `fsp_sce.cmake`
+(61%), `tests/tfm_tests_config.cmake` (78%), the two linker scripts, `startup_<part>.c`.
 
 `region_defs.h` deserves attention despite its similarity. It carries `BL2_DATA_START`,
 `S_DATA_START` and `S_RAM_CODE_SIZE`, and on both parts BL2 and the secure image share RAM,

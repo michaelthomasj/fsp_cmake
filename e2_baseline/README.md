@@ -9,8 +9,9 @@ own projects are one directory up, under the same names.
 Generated with FSP pack `Renesas.RA.6.7.0-beta0+20260925.818e720c`, which is exactly the pack
 the port uses. A diff therefore shows decisions, not a pack version difference.
 
-The same files are also on the orphan branch `e2-baseline`, which has no commit in common with
-the port's history. The copy here is byte-identical and is the one to use. See [D140](../DECISIONS.md).
+The same files are also on the orphan branch `e2-baseline`, which has no commit in common with the
+port's history. The copy here is byte-identical and is the one to use. See
+[D140](../DECISIONS.md).
 
 ## What is here
 

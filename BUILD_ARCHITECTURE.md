@@ -14,7 +14,7 @@ Upstream paths are relative to the `trusted-firmware-m` root.
 `tfm_spm` is `:648` there against `:517` here. The §3 table carries both columns; follow the
 construct into `ra8m2/CMakeLists.txt` rather than the ra6m5 line.
 
-> `DESIGN.md` says why the port is built this way — §1 (consume RASC, don't fork) and §1.1
+> [DESIGN.md](DESIGN.md) says why the port is built this way — §1 (consume RASC, don't fork) and §1.1
 > (the documented deviations). This file says what the graph is.
 
 ## 1. Two projects, not one
@@ -69,10 +69,10 @@ ra6m5_gcc_nonsecure --NS_APP_DIR-->   | cmake --build <spe> -- install
   non-secure project and can cross-check it. Those sources are compiled only under
   `RA6M5_NS_IN_SPE_BUILD`, which is off by default.
 - BL2 is not signed. It is the root of trust and is flashed raw, as `.hex` or `.srec`,
-  **never the flat `.bin`** ([[D002]], `GETTING_STARTED.md` §6). Only `tfm_s` and `tfm_ns` go
+  **never the flat `.bin`** ([[D002]], [GETTING_STARTED.md](GETTING_STARTED.md) §6). Only `tfm_s` and `tfm_ns` go
   through `imgtool`.
 
-The invocations are in `scripts/` — see `scripts/README.md`.
+The invocations are in `scripts/` — see [scripts/README.md](scripts/README.md).
 
 ## 2. The library graph
 
@@ -181,7 +181,7 @@ the module libraries are not a flat set:
 
 - Adding a module takes three things, not two: a name in `FSP_MODULES_S` or `_BL2`, an
   `FSP_MODULE_DIRS_<name>` entry, and a `cmake/modules/fsp_<name>.cmake` file. See
-  `ADDING_FSP_MODULES.md`.
+  [ADDING_FSP_MODULES.md](ADDING_FSP_MODULES.md).
 - The two mistakes fail differently. A name with no `.cmake` file aborts the configure —
   `include()` is not `OPTIONAL`. A missing `DIRS` line takes the warning path: the
   directory stays unclaimed and the build tells you the driver is not in the image.
@@ -189,7 +189,7 @@ the module libraries are not a flat set:
   role: `fsp_bsp_s` and `fsp_bsp_bl2` are different libraries.
 - Every non-`bsp` module PUBLIC-links `fsp_bsp_<role>` — `fsp_flash.cmake:21`,
   `fsp_sce.cmake:51`, `fsp_agt.cmake:40`. A new module almost certainly needs the same line;
-  `ADDING_FSP_MODULES.md` carries it in the template.
+  [ADDING_FSP_MODULES.md](ADDING_FSP_MODULES.md) carries it in the template.
 - `FSP_MODULES_NEVER_BUILT` (`:266`) is not an exclusion from the build. It is the
   allowlist for the audit, naming directories that are in the e2 project and are expected to
   be unclaimed.
@@ -205,10 +205,10 @@ the module libraries are not a flat set:
     `platform/ext/accelerator/renesas/sce9` instead, and the crypto library comes from the
     `fsp_mbedtls.cmake` overlay below. FSP's crypto code is in the image; what
     is excluded is FSP's PSA/ITS configuration, which wires PSA ITS to littlefs and conflicts
-    with `TFM_PARTITION_INTERNAL_TRUSTED_STORAGE` (`DESIGN.md` §6). The header of
+    with `TFM_PARTITION_INTERNAL_TRUSTED_STORAGE` ([DESIGN.md](DESIGN.md) §6). The header of
     `cmake/modules/fsp_sce.cmake` is the authority on this split.
   - `rm_mcuboot_port` — its own `FLASH_AREA_*_ID` values and single-image assumptions conflict
-    with TF-M's dual-image flash map (`DESIGN.md` §4, §5). Grafting it on is what failed on
+    with TF-M's dual-image flash map ([DESIGN.md](DESIGN.md) §4, §5). Grafting it on is what failed on
     RA6M4.
 - Beside the registry, `cmake/fsp_mbedtls.cmake` does something larger: it `FORCE`-sets
   `MBEDCRYPTO_PATH` to an overlay built from the secure project's `ra/arm/mbedtls`. Present for
@@ -263,4 +263,4 @@ psa_interface  --PUBLIC--  tfm_sprt  --PRIVATE-->  tfm_spm     always
   "neither arm fires" reading.
 - This is a target choice, not an upstream defect. Moving the source fixed the class rather
   than the two macros that had been noticed. [[D113]] through [[D126]]; the withdrawal
-  of the upstream claim is item 15 of `UPSTREAM_CHANGES.md`.
+  of the upstream claim is item 15 of [UPSTREAM_CHANGES.md](UPSTREAM_CHANGES.md).

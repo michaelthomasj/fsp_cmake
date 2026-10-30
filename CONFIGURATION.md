@@ -4,10 +4,10 @@ Scope: the options a user of this port sets, where each is defined, and the cons
 makes it non-obvious. Verified against the code on 2026-10-04 for the two live parts,
 RA6M5 and RA8M2.
 
-Read `DESIGN.md` §1 first. The core principle is that RASC is the source of config truth:
-the memory layout and the enabled FSP modules come from the e2 projects, and the options here
-sit on top of that rather than replacing it. Anything that contradicts the generated layout is
-a defect, not a setting.
+Read [DESIGN.md](DESIGN.md) §1 first. The core principle is that RASC is the source of config
+truth: the memory layout and the enabled FSP modules come from the e2 projects, and the options
+here sit on top of that rather than replacing it. Anything that contradicts the generated layout
+is a defect, not a setting.
 
 ---
 
@@ -67,11 +67,11 @@ These decide which FSP sources are compiled into which image. They live in
 route; naming one here keeps the generic module glob from also building it.
 
 **Adding an FSP module you enabled in e2.** e2 does not emit CMake modules, so a new module
-needs three things, not two: a line in `FSP_MODULES_S` (or `_BL2`), an
-`FSP_MODULE_DIRS_<name>` giving its source directories, and a `cmake/modules/fsp_<name>.cmake`
-file. `fsp_add_modules()` `include()`s that file for every module listed, so naming a module
-without creating it aborts the configure. `ADDING_FSP_MODULES.md` is the step-by-step. This is
-the known gap in goal 3 (`DESIGN.md` §0) and is bridged by documentation rather than by code.
+needs three things, not two: a line in `FSP_MODULES_S` (or `_BL2`), an `FSP_MODULE_DIRS_<name>`
+giving its source directories, and a `cmake/modules/fsp_<name>.cmake` file. `fsp_add_modules()`
+`include()`s that file for every module listed, so naming a module without creating it aborts the
+configure. [ADDING_FSP_MODULES.md](ADDING_FSP_MODULES.md) is the step-by-step. This is the known
+gap in goal 3 ([DESIGN.md](DESIGN.md) §0) and is bridged by documentation rather than by code.
 
 **Do not use a recursive glob for a module directory.** `rm_mcuboot_port` is the cautionary
 case: `fsp_module_glob` is `GLOB_RECURSE` and would pull in `custom_crypto_stacks/`, `os/` and
@@ -85,7 +85,7 @@ case: `fsp_module_glob` is `GLOB_RECURSE` and would pull in `custom_crypto_stack
 |---|---|---|---|
 | `MCUBOOT_IMAGE_NUMBER` | 2 | 2 | secure + non-secure. BL2 loads them in reverse order (`bl2_main.c`) |
 | `MCUBOOT_SIGNATURE_TYPE` | `EC-P256` | `EC-P256` | must match the solution |
-| `MCUBOOT_UPGRADE_STRATEGY` | `OVERWRITE_ONLY` | `OVERWRITE_ONLY` | scratch is unused; see `RA6M5_SOLUTION.md` on why its block is still reserved |
+| `MCUBOOT_UPGRADE_STRATEGY` | `OVERWRITE_ONLY` | `OVERWRITE_ONLY` | scratch is unused; see [RA6M5_SOLUTION.md](RA6M5_SOLUTION.md) on why its block is still reserved |
 | `MCUBOOT_ALIGN_VAL` | 128 | 32 | imgtool encodes it into the boot magic when it is not 8, so images signed at one value are rejected by a BL2 built at another. **The two parts' images are not interchangeable** |
 | `MCUBOOT_USE_PSA_CRYPTO` | ON | ON | required for `EC-P256` |
 | `MCUBOOT_HW_KEY` | OFF | OFF | |
@@ -95,10 +95,11 @@ case: `fsp_module_glob` is `GLOB_RECURSE` and would pull in `custom_crypto_stack
 | `DEFAULT_MCUBOOT_FLASH_BACKEND` | gone | gone | this variable no longer exists. It is not set in either `config.cmake`, and neither part supplies its own `flash_map_backend.h` or `sysflash.h` |
 
 RA8M2's SAU programming moved with it. It used to arrive as a side effect of FSP's
-`flash_area_open()`, which is why the backend override was load-bearing on that part. Under
-[D091] it lives in `bl2_boot_hal.c`, with the bounds imported from FSP's `flash_map.c`.
-`DESIGN.md` §4 is the current account; the `struct flash_area` guard-collision note in
-`FSP_UPREV_CHECKLIST.md` still applies if you ever reintroduce a platform backend.
+`flash_area_open()`, which is why the backend override was load-bearing on that part. Under [D091]
+it lives in `bl2_boot_hal.c`, with the bounds imported from FSP's `flash_map.c`.
+[DESIGN.md](DESIGN.md) §4 is the current account; the `struct flash_area` guard-collision note in
+[FSP_UPREV_CHECKLIST.md](FSP_UPREV_CHECKLIST.md) still applies if you ever reintroduce a platform
+backend.
 
 **Measured boot cannot be verified by the attestation suite.** With `component_cnt == 0` under
 the default `ATTEST_TOKEN_PROFILE_PSA_IOT_1`, `attest_add_all_sw_components()` emits
@@ -108,7 +109,7 @@ works. Read the boot record out of RAM instead ([D080], [D081]).
 `MCUBOOT_IMAGE_VERSION` is a documented deviation. FSP expects an environment variable of
 that name, read by `rm_mcuboot_port_sign.py`. This port uses TF-M's `MCUBOOT_IMAGE_VERSION_S`
 (= `${TFM_VERSION}`) and `_NS` (= `0.0.0`) instead. **Setting the FSP variable has no effect
-and fails silently.** `DESIGN.md` §1.1.
+and fails silently.** [DESIGN.md](DESIGN.md) §1.1.
 
 ---
 
@@ -206,11 +207,12 @@ warning. Only `FSP_BL2_APP_DIR` is on the path for `bl2_option_setting.c`.
 ## 8. What is NOT a setting
 
 - TrustZone boundaries. Programmed once per board with RDPM and never by firmware. Values
-  are in `RA6M5_SOLUTION.md` and `RA8M2_SOLUTION.md`, derived from the generated layout.
+  are in [RA6M5_SOLUTION.md](RA6M5_SOLUTION.md) and [RA8M2_SOLUTION.md](RA8M2_SOLUTION.md), derived from the generated layout.
   **RDPM erases the part** — reflash all three images afterwards.
-- `setTZBoundaries` in a launch configuration. Must be `false` everywhere. The debugger
+- `setTZBoundaries` in a launch configuration. Must be `false` for every probe the launch
+  names, not only the selected one. The debugger
   derives boundaries from the launched project's symbols and gets them wrong against BL2
-  (`DESIGN.md` §7.2).
+  ([DESIGN.md](DESIGN.md) §7.2).
 - The memory layout. Change it in the e2 solution and regenerate; `region_defs.h` and all
   three linker scripts follow. What does not follow: the RDPM boundaries, PS capacity, and
   the NSC-window budget.

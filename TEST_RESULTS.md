@@ -1,8 +1,8 @@
 # Test results — every hardware run, with its result and its source
 
 What has run on silicon, on which part and toolchain, and what it returned. Each row cites the
-`DECISIONS.md` entry that recorded the run. That log is the primary record; this document is an
-index into it and adds no result of its own.
+[DECISIONS.md](DECISIONS.md) entry that recorded the run. That log is the primary record; this
+document is an index into it and adds no result of its own.
 
 For what has **not** run, read §9 below. It lists every suite that no run has covered.
 
@@ -89,7 +89,7 @@ All of these ran at `profile_large`, isolation 3, with the IPC backend.
 The tree was the `psa-arch-tests` fork at tag `renesas-ra-tfm-2.2.0`, which carries the
 `renesas_ra` target and tf-m-tests' ten `fetch_repo` patches. An unpatched tree fails
 `psa_verify_hash` check 13 on any platform, so a run against one is not comparable to these
-([D014]). `GETTING_STARTED.md` §3 has the clone.
+([D014]). [GETTING_STARTED.md](GETTING_STARTED.md) §3 has the clone.
 
 | Suite | RA6M5 GCC | RA6M5 IAR | RA8M2 GCC | RA8M2 IAR |
 |---|---|---|---|---|
@@ -209,7 +209,7 @@ Four places. Each is recorded in the log itself; none is a new finding here.
 | [D122]'s RA6M5 L2 and L1+IPC cells read "green" | both captures are secure 9/9 with the non-secure half truncated. Every entry from [D113] onward means secure **and** non-secure by "green", so these two rows should read secure-only | [D125] §4 |
 | [D123] §2's RA6M5 IAR L2 cell | non-secure 7/7 was captured; the secure suite "also passed" but its RTT output was not captured, so the secure half is reported rather than recorded. [D123] says so itself | [D128] §4 |
 | [D115] §1's RA8M2 L3 secure half | "the secure suite passed as far as the captured log runs". The non-secure half was captured separately and cleanly | [D115] §1, [D116] §3 |
-| RA8M2 GCC PSA Arch attestation, 1 / 0 / 0 | the figure appears in [D106]'s M5 table and in `RA8M2_SOLUTION.md`, in both cases without a citation. **No entry records that run.** [D096] confirms the attestation launch did boot `m2cry` / `m2att` on RA8M2 GCC, so the run happened; its tally has no entry behind it | [D106], [D096] |
+| RA8M2 GCC PSA Arch attestation, 1 / 0 / 0 | the figure appears in [D106]'s M5 table and in [RA8M2_SOLUTION.md](RA8M2_SOLUTION.md), in both cases without a citation. **No entry records that run.** [D096] confirms the attestation launch did boot `m2cry` / `m2att` on RA8M2 GCC, so the run happened; its tally has no entry behind it | [D106], [D096] |
 
 ### An RTT capture can truncate silently, and it looks like a hang
 

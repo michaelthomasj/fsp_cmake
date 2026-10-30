@@ -184,10 +184,12 @@ The host project in `PROJECT_ATTR` differs between the two parts, on purpose:
 -uJLinkSetting= "${workspace_loc:/${ProjName}}/${LaunchConfigName}.jlink"
 ```
 
-so hosting both toolchains in one project makes them share a directory for those sidecars.
-Giving each toolchain its own host keeps them apart. Nothing is built either way —
-`ATTR_BUILD_BEFORE_LAUNCH_ATTR` is `2`, which in Eclipse CDT is `USE_WORKSPACE_SETTING`, not `DISABLED` (`0`) - so whether the host project is built depends on the workspace preference — so the host project supplies only that name
-and the debug context. Keep `MAPPED_RESOURCE_PATHS` in step with `PROJECT_ATTR`.
+so hosting both toolchains in one project makes them share a directory for those sidecars. Giving
+each toolchain its own host keeps them apart. Nothing is built either way —
+`ATTR_BUILD_BEFORE_LAUNCH_ATTR` is `2`, which in Eclipse CDT is `USE_WORKSPACE_SETTING`, not
+`DISABLED` (`0`) - so whether the host project is built depends on the workspace preference — so
+the host project supplies only that name and the debug context. Keep `MAPPED_RESOURCE_PATHS` in
+step with `PROJECT_ATTR`.
 
 `PROJECT_BUILD_CONFIG_AUTO_ATTR` is `false` in every IAR launch, which is what all six
 working RA6M5 IAR launches use. Only the RA8M2 GCC launches have `true`; every RA6M5 GCC
@@ -209,8 +211,8 @@ Two attributes are safety-critical in every launch:
 - `ueraseRomOnDownload` and `ueraseDataRomOnDownload` = 1. Otherwise a stale ITS/PS area
   survives a reflash and the storage suites fail in ways that look like code faults.
 
-Flash `bl2.elf` or `bl2.hex`, **never `bl2.bin`** — the OFS words land at their link addresses
-only in a format that carries them.
+**Flash `bl2.elf`, `bl2.hex` or `bl2.srec` — never `bl2.bin`.** The option words land at their link addresses only in a format
+that carries them one record at a time.
 
 ## RTT
 
@@ -221,13 +223,13 @@ than reusing a remembered value:
 arm-none-eabi-nm <build>/bin/tfm_ns.axf | grep ' _SEGGER_RTT$'
 ```
 
-BL2's block cannot be recovered after the chainload. `region_defs.h` gives BL2 and the SPE
-the same RAM, so the SPE's `.bss` zeroing wipes BL2's control block microseconds after the
-jump, and a viewer that auto-detects after reset always finds the SPE's. To capture BL2, halt in it first with a breakpoint, point the viewer at BL2's address
-while halted, then run. `RA8M2_BL2_HALT_AT_MAIN=ON` does not work for this: it is an
-unconditional `while(1)` at the top of `main()` (`bl2_main.c:112-125`), before any init or
-print, so "then run" just spins and the image is not bootable. D100's wording is the source of
-that error.
+BL2's block cannot be recovered after the chainload. `region_defs.h` gives BL2 and the SPE the
+same RAM, so the SPE's `.bss` zeroing wipes BL2's control block microseconds after the jump, and a
+viewer that auto-detects after reset always finds the SPE's. To capture BL2, halt in it first with
+a breakpoint, point the viewer at BL2's address while halted, then run.
+`RA8M2_BL2_HALT_AT_MAIN=ON` does not work for this: it is an unconditional `while(1)` at the top
+of `main()` (`bl2_main.c:112-125`), before any init or print, so "then run" just spins and the
+image is not bootable. D100's wording is the source of that error.
 
 The test builds set `RA6M5_RTT_BLOCKING` / `RA8M2_RTT_BLOCKING` = ON, which makes RTT wait for
 the host instead of dropping writes when its buffer fills. Without it a suite out-runs the

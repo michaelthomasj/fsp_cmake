@@ -75,9 +75,9 @@ cd trusted-firmware-m && git checkout ra8m2_gen_6_7_TFM && cd ..
 cd fsp_cmake        && git checkout ra8m2_gen_6_7_TFM && cd ..
 ```
 
-The two test repositories are pinned rather than tracked. Neither follows a branch of this
-port, both move upstream, and these are the revisions the results in `TEST_RESULTS.md` were
-produced against:
+The two test repositories are pinned rather than tracked. Neither follows a branch of this port,
+both move upstream, and these are the revisions the results in [TEST_RESULTS.md](TEST_RESULTS.md)
+were produced against:
 
 ```bat
 cd tf-m-tests     && git checkout e0a433c              && cd ..
@@ -234,7 +234,7 @@ never run above isolation 1 or on RA8M2 at all, and RA6M5 has no upgrade launch
 
 ### Two safety rules
 
-> **Flash `bl2.elf` or `bl2.hex` — never `bl2.bin`.** The option-setting words live in discrete
+> **Flash `bl2.elf`, `bl2.hex` or `bl2.srec` — never `bl2.bin`.** The option-setting words live in discrete
 > segments that a flat binary cannot express; a `.bin` writes them at the wrong addresses and
 > can brick the part. [D002](DECISIONS.md), [D065](DECISIONS.md).
 
@@ -320,7 +320,7 @@ image against RA6M5's three addresses finds nothing and fails a good image.
 
 Then:
 
-- **Flash `bl2.elf` or `bl2.hex`, never `bl2.bin`** (above).
+- **Flash `bl2.elf`, `bl2.hex` or `bl2.srec` — never `bl2.bin`.** As above.
 - Re-read the RTT addresses for the image you are flashing. They move on every relink
   and differ per toolchain for the same source on the same part. Nothing in the launch carries
   them, so a wrong address is a silent "prints nothing", not an error. There is no table of
@@ -429,8 +429,8 @@ on a first build:
 | [PORTING.md](PORTING.md) | you are adding a new RA part |
 | [FSP_UPREV_CHECKLIST.md](FSP_UPREV_CHECKLIST.md) | before an FSP package uprev — the files that carry FSP code but do not move with it |
 | [UPSTREAM_CHANGES.md](UPSTREAM_CHANGES.md) | what this port changes outside `platform/ext/target/renesas/`, and why |
-| [E2_PROJECT_REQUIREMENTS.md](E2_PROJECT_REQUIREMENTS.md) | what a RASC project must emit — the other half of `PORTING.md` |
+| [E2_PROJECT_REQUIREMENTS.md](E2_PROJECT_REQUIREMENTS.md) | what a RASC project must emit — the other half of [PORTING.md](PORTING.md) |
 | — | the planned move to TF-PSA-Crypto (Mbed TLS 4.x) is not in this repo: see the sibling `fsp_tf_psa_crypto`, which carries its plan and its own decision log |
 
-Read `DESIGN.md` §1 next. It explains why the e2 projects are generated rather than edited,
-which is the constraint most newcomers trip over.
+Read [DESIGN.md](DESIGN.md) §1 next. It explains why the e2 projects are generated rather than
+edited, which is the constraint most newcomers trip over.

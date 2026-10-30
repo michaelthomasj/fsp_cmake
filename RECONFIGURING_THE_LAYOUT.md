@@ -120,7 +120,7 @@ assertions do not cover, add one.
 1. Change the layout in the e2 solution. The Memory tab of the solution, not a project.
 2. Rebuild all three e2 projects (secure, bootloader, non-secure). Not regenerate - build.
    The bootloader one matters because the OFS addresses come from its `Debug/memory_regions.*`
-   on RA8M2, and `PORTING.md` §5 asks for all three. Confirm
+   on RA8M2, and [PORTING.md](PORTING.md) §5 asks for all three. Confirm
    `<project>/Debug/bsp_linker_info.h` has the new values before going on.
 3. Reconfigure TF-M from scratch. Delete the build directory. A stale `CMakeCache.txt`
    carries the old generated values with no diagnostic — this has bitten the port repeatedly

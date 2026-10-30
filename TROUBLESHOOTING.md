@@ -1,8 +1,8 @@
 # Troubleshooting — indexed by symptom
 
 Each entry: the symptom as it appears, the cause, the fix, and where the full account lives.
-Harvested from `DECISIONS.md` and from comments at the fix sites, so the detail is one hop
-away rather than reproduced here.
+Harvested from [DECISIONS.md](DECISIONS.md) and from comments at the fix sites, so the detail is
+one hop away rather than reproduced here.
 
 The two hazards are first. No recovery is known for the first; the second is recovered by
 reprogramming the boundaries.
@@ -37,23 +37,24 @@ so an empty inspection reports as a failure rather than a pass.
 
 - One `MEMORY` region per option word, never a shared span.
 - `readelf -l` on the linked ELF is the only place the coalescing is visible. The pre-flash
-  checklist in `GETTING_STARTED.md` §6 "Pre-flash verification" runs it. (`MACHINE_HANDOFF.md`
+  checklist in [GETTING_STARTED.md](GETTING_STARTED.md) §6 "Pre-flash verification" runs it. (`MACHINE_HANDOFF.md`
   was deleted 2026-10-09; `check_docs.py` does not catch a backticked filename.)
 - `check_ofs.py` requires its region and BL2 passes `--require-segments`, so an empty
   result fails rather than reading as a pass.
 
-**Flash `bl2.elf` or `bl2.hex`, never `bl2.bin`.** The option words live in discrete segments a
-flat binary cannot express. `DESIGN.md` §8.4, [D002], [D065].
+**Flash `bl2.elf`, `bl2.hex` or `bl2.srec` — never `bl2.bin`.** The option words live in discrete segments a
+flat binary cannot express. [DESIGN.md](DESIGN.md) §8.4, [D002], [D065].
 
 ### The part is provisioned with the wrong TrustZone boundaries
 
 **RDPM erases the part.** Reflash all three images afterwards. The values are per-part and
-derived from the generated layout; they live in `RA6M5_SOLUTION.md` and `RA8M2_SOLUTION.md` and
-nowhere else, because a third copy is how one goes stale.
+derived from the generated layout; they live in [RA6M5_SOLUTION.md](RA6M5_SOLUTION.md) and
+[RA8M2_SOLUTION.md](RA8M2_SOLUTION.md) and nowhere else, because a third copy is how one goes
+stale.
 
-**`setTZBoundaries` must be `false`** in every launch configuration. The debugger
+**`setTZBoundaries` must be `false`** for every probe a launch names. The debugger
 otherwise derives boundaries from the launched project's symbols, and launched against BL2 it
-gets them wrong. `DESIGN.md` §7.2.
+gets them wrong. [DESIGN.md](DESIGN.md) §7.2.
 
 ---
 
@@ -71,7 +72,7 @@ flash before anything else runs.
 bootloader projects. Regenerate.
 
 The build catches this now: `<part>_layout_checks.c` and `bl2_option_setting.c` `#error` on
-it, so it fails the build rather than the board. [D034], `DESIGN.md` §8.1.
+it, so it fails the build rather than the board. [D034], [DESIGN.md](DESIGN.md) §8.1.
 
 ### Bootloader panic immediately, before any MCUboot output
 
@@ -110,7 +111,7 @@ Work through these in order. The first three are the common causes:
    DWARF that every `bootutil` and `flash_map` object reports
    `sizeof(struct flash_area) == 16`, which is TF-M's size; an `fsp_bsp_bl2` object reports 12
    and that is correct, because FSP's header is PRIVATE to that library
-   (`FSP_UPREV_CHECKLIST.md` §3). This produced this error on RA6M5 ([D090], which supersedes
+   ([FSP_UPREV_CHECKLIST.md](FSP_UPREV_CHECKLIST.md) §3). This produced this error on RA6M5 ([D090], which supersedes
    [D085]).
 
 ### `BOOT_EFLASH` from `boot_read_sectors()`
@@ -174,11 +175,10 @@ after them is placed beyond the veneers.
 
 ### `Image size + trailer exceeds requested size` from imgtool
 
-This is the slot overflowing, after a clean link: the signed image carries a
-~275 B imgtool TLV block and a 16-byte trailer on top of the raw image, and the slot must hold
-all of it. True spare is 1,693 B on RA6M5 and 670 B on RA8M2 — see `README.md` §"Freeing space
-in the secure image" for what to turn off, and [D087] for why the older, larger figures were
-wrong.
+This is the slot overflowing, after a clean link: the signed image carries a ~275 B imgtool TLV
+block and a 16-byte trailer on top of the raw image, and the slot must hold all of it. True spare
+is 1,693 B on RA6M5 and 670 B on RA8M2 — see [README.md](README.md) §"Freeing space in the secure
+image" for what to turn off, and [D087] for why the older, larger figures were wrong.
 
 ### ``undefined symbol `Image$ARM_LIB_STACK$ZI$Base` `` — with single `$`
 
@@ -282,7 +282,7 @@ Verify by reading the boot record at the start of secure RAM instead: look for
 
 Correct, and it fails silently. That environment variable is FSP's, read by
 `rm_mcuboot_port_sign.py`. This port uses TF-M's `MCUBOOT_IMAGE_VERSION_S` / `_NS`. A
-documented deviation — `DESIGN.md` §1.1.
+documented deviation — [DESIGN.md](DESIGN.md) §1.1.
 
 ### ITS partition init fails and reports pid 257
 

@@ -8151,3 +8151,39 @@ was found to be broken: written as `[\/]` inside a character class, which Python
 to `/` alone, so it matched `C:/Users/someone` and missed `C:\Users\someone` — the form every
 Windows document actually uses. It now carries `[\/]` and matches both. The check had reported
 a clean tree twice before that test.
+
+## D148 — one wording per hazard, links instead of backticked filenames, and RA6E1 described the same way everywhere
+
+**Date:** 2026-10-29 · **Status:** Accepted · **Builds on:** [D146], [D147] · **Evidence:** a grep of every phrasing of both hazard rules across the shipped set, and a structural check that the rewrap changed no heading or table
+
+**Context.** The same fact was stated in up to nine documents in nine wordings. That is not a
+style complaint: a reader who meets two versions of a brick rule has to work out whether they
+differ, and two of these did.
+
+**The flash rule now reads the same everywhere.** It was "Flash `bl2.elf` or `bl2.hex`" in five
+documents and "Flash `bl2.hex` or `bl2.srec`" in two. **Both were incomplete rather than
+wrong** — all three formats are record-based and safe, and the launches flash `bl2.elf`, so a
+rule that omits it reads as excluding it. One sentence now, naming all three:
+
+    Flash `bl2.elf`, `bl2.hex` or `bl2.srec` — never `bl2.bin`.
+
+**The boundary rule now says "every probe".** Four documents named
+`com.renesas.hardwaredebug.arm.jlink.setTZBoundaries` specifically, which was true of the
+selected probe and not of the key [D147] found armed on the other one. The rule is per launch
+and per probe, and the text says so.
+
+**RA6E1 is "reference only, not maintained against the current build" everywhere.** It had been
+"dormant" in two documents and "reference only" in two others. The same preamble also still
+called RA6M4 in-tree, which [D137] and [D138] ended; it now says RA6M4 is not part of the
+delivery and that its tree and documents left.
+
+**67 backticked filenames became links**, in the 12 documents where the target is a tracked
+file in this repository. Conversion was skipped inside fenced code blocks, and skipped where
+the name does not resolve to something tracked — which is how `MACHINE_HANDOFF.md`, deleted in
+October, correctly stayed as plain text in `TROUBLESHOOTING.md`. `DECISIONS.md` and
+`SETTLED.md` were excluded: the log is append-only and its references are historical facts.
+
+**30 paragraphs were rewrapped to 98 columns**, because the links lengthened lines in four
+documents that previously had none over 100. The rewrapper touched only unindented prose
+paragraphs outside code fences; heading and table-row counts were compared before and after in
+all 12 documents and none changed.

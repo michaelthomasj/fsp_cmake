@@ -57,7 +57,7 @@ NS side a half like the stock template does.
 ## TrustZone boundary values for this layout
 
 Programmed once per board with the Renesas Device Partition Manager, in KB. Nothing in
-the firmware sets them. See `DESIGN.md` §7.1 for the granularity rules.
+the firmware sets them. See [DESIGN.md](DESIGN.md) §7.1 for the granularity rules.
 
 | Boundary | Value (KB) | Check |
 |---|---|---|
@@ -71,8 +71,8 @@ Resulting NS regions: 896 KB of code flash from 0x120000, 256 KB of SRAM from 0x
 
 **RDPM erases the part** — reflash all three images afterwards.
 
-Every launch configuration must keep
-`com.renesas.hardwaredebug.arm.jlink.setTZBoundaries` = `false` (`DESIGN.md` §7.2).
+Every launch configuration must keep `setTZBoundaries` `false` for every probe it names, not
+only the selected one ([DESIGN.md](DESIGN.md) §7.2).
 
 > The four stock e2 `*_nonsecure Debug_SSD.launch` files carried the `jlink` key as `true` and
 > have been deleted. They were e2 output rather than the `*_TFM_*` launches used here, and no
@@ -190,7 +190,7 @@ Verified on the built images:
   clear of the MCUboot trailer
 - signed images pad to exactly 512 KB and 448 KB — the full slots
 - BL2 emits discrete OFS LOAD segments (`0x0100A100` / `0x0100A200` / `0x0100A280`) — the
-  brick guard from `DESIGN.md` §8.4 holds on this device
+  brick guard from [DESIGN.md](DESIGN.md) §8.4 holds on this device
 - the SCE9 TRNG links into `tfm_s` (28 `HW_SCE_*` symbols, 8.9 KB after `--gc-sections`)
 - `ra6m5_layout_checks.c` and the orphan-section check pass
 
@@ -231,7 +231,7 @@ real build: see [[D031]].
   IAR before doing the IAR leg, so the flags come from RASC rather than being carried over
   from RA6E1 by hand.
 - ~~FSP version drift.~~ Closed. RA6M5 and RA8M2 are both on 6.7.0-beta0, which has been the
-  plan's baseline since [[D047]]. RA6E1 stays on 6.6.0-rc1 and is dormant - [[D047]]'s claim
+  plan's baseline since [[D047]]. RA6E1 stays on 6.6.0-rc1 and is reference only - [[D047]]'s claim
   that "the RA6E1 solutions were already on 6.7.0-beta0" does not match the tree.
 - CCM associated-data limit. FSP's SCE9 CCM caps associated data at 110 B, and reports the
   overflow as a plain `PSA_ERROR_INVALID_ARGUMENT`. A software fallback above the threshold, or a

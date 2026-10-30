@@ -1,9 +1,9 @@
 # Changes to upstream TF-M
 
 Changes this port makes to files outside `platform/ext/target/renesas/`. These are not
-Renesas-specific: each one is a gap or defect in common TF-M code that any platform with the
-same property would hit. They are tracked here separately from `DECISIONS.md` because they
-have a different destination — a patch series to TrustedFirmware-M rather than a design
+Renesas-specific: each one is a gap or defect in common TF-M code that any platform with the same
+property would hit. They are tracked here separately from [DECISIONS.md](DECISIONS.md) because
+they have a different destination — a patch series to TrustedFirmware-M rather than a design
 record — and because a fork carrying silent edits to common files is a maintenance trap.
 
 Fork point: `dd2b7de19` ("Docs: Release notes updates for v2.2.0"), i.e. TF-M v2.2.0.
@@ -84,7 +84,7 @@ Fix: the platform names one file in `S_ICF_PLATFORM_SECTIONS`, which the templat
 at four hook points, each with a different `TFM_ICF_HOOK_*` defined. Literal text in an
 included file is not a macro expansion and passes through intact.
 
-Recorded in `DECISIONS.md` D019, along with the `ro`/`rw` selector split that
+Recorded in [DECISIONS.md](DECISIONS.md) D019, along with the `ro`/`rw` selector split that
 `initialize by copy` requires (it splits the section; naming `ro` in the block captures the
 initialiser and leaves the block empty, naming `rw` in the directive matches nothing).
 

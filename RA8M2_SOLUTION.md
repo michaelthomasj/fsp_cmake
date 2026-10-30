@@ -1,7 +1,7 @@
 # RA8M2 Solution Project — layout, TrustZone boundaries, project requirements
 
-Device: R7KA8M2JF on the EK-RA8M2 (`board.ra8m2ek`) — 1 MB MRAM, 1,872 KB SRAM (plus 64 KB ITCM / 64 KB DTCM per core-0 partition), no data
-flash, RSIP-E50D, Cortex-M85. FSP 6.7.0-beta0.
+Device: R7KA8M2JF on the EK-RA8M2 (`board.ra8m2ek`) — 1 MB MRAM, 1,872 KB SRAM (plus 64 KB ITCM /
+64 KB DTCM per core-0 partition), no data flash, RSIP-E50D, Cortex-M85. FSP 6.7.0-beta0.
 
 Companion docs: [RA6M5_SOLUTION.md](RA6M5_SOLUTION.md) for the part this one is derived from,
 [DESIGN.md](DESIGN.md) §4 for the flash backend and §7 for the SAU, and
@@ -40,11 +40,11 @@ That used to be FSP's job: BL2 took its MCUboot flash backend from FSP, whose
 `flash_on_chip_cleanup()` tore it down, with `DEFAULT_MCUBOOT_FLASH_MAP` and
 `DEFAULT_MCUBOOT_FLASH_BACKEND` both OFF in `config.cmake` (D073, D076, D079).
 
-That is no longer the arrangement. Under D091 both parts use TF-M's map and backend with
-FSP's HAL behind `fa_driver`; `DEFAULT_MCUBOOT_FLASH_MAP` is ON by default and
+That is no longer the arrangement. Under D091 both parts use TF-M's map and backend with FSP's HAL
+behind `fa_driver`; `DEFAULT_MCUBOOT_FLASH_MAP` is ON by default and
 `DEFAULT_MCUBOOT_FLASH_BACKEND` no longer exists - neither is set in `config.cmake`. The SAU
-programming now lives in `bl2_boot_hal.c`, guarded on `__SAUREGION_PRESENT == 1`, with the
-bounds imported from FSP's `flash_map.c`. `DESIGN.md` §4 carries the reasoning. D091, D117.
+programming now lives in `bl2_boot_hal.c`, guarded on `__SAUREGION_PRESENT == 1`, with the bounds
+imported from FSP's `flash_map.c`. [DESIGN.md](DESIGN.md) §4 carries the reasoning. D091, D117.
 
 ---
 
@@ -141,8 +141,8 @@ Resulting NS regions: 320 KB of MRAM in the non-secure alias from `0x120B0000`, 
 
 **RDPM erases the part** — reflash all three images afterwards.
 
-Every launch configuration must keep
-`com.renesas.hardwaredebug.arm.jlink.setTZBoundaries` = `false` (`DESIGN.md` §7.2).
+Every launch configuration must keep `setTZBoundaries` `false` for every probe it names, not
+only the selected one ([DESIGN.md](DESIGN.md) §7.2).
 
 > The four stock e2 `*_nonsecure Debug_SSD.launch` files carried the `jlink` key as `true` and
 > have been deleted. They were e2 output rather than the `*_TFM_*` launches used here, and no
@@ -242,8 +242,8 @@ the port supplies `BSP_TZ_CFG_MSAR=0` through `FSP_COMPILE_DEFS` in `ra8m2/CMake
 all three MRAM registers Secure, which is what this port wants since BL2 and the secure image
 own MRAM and the non-secure app never changes MRAM timing.
 
-This is a temporary workaround and a documented deviation from "RASC is the source of
-config truth" (`DESIGN.md` §1.1). **Remove it** once e2 emits `BSP_CFG_CLOCKS_SECURE (1)` from
+This is a temporary workaround and a documented deviation from "RASC is the source of config
+truth" ([DESIGN.md](DESIGN.md) §1.1). **Remove it** once e2 emits `BSP_CFG_CLOCKS_SECURE (1)` from
 the Clocks/Security setting; check `ra_gen/bsp_clock_cfg.h` after a regenerate to tell.
 
 Seen on the first RA8M2 boot, 2026-10-05. RA6M5 cannot hit this - it has no MRAM, so no
@@ -293,8 +293,9 @@ secure primary (`0x02068000`); image 1 is the usual way round (`0x120B0000` prim
 `0x120D8000` secondary). So `rsp.br_image_off = 0x68000` is the primary. Flash rows and any
 reading of a `boot_rsp` must account for this. D100.
 
-The secure slot is nearly full. `README.md` §"Freeing space in the secure image" lists what can
-be turned off; at 670 B of headroom ([D087]) the PSA Arch logging options cannot be enabled globally here.
+The secure slot is nearly full. [README.md](README.md) §"Freeing space in the secure image" lists
+what can be turned off; at 670 B of headroom ([D087]) the PSA Arch logging options cannot be
+enabled globally here.
 
 Measured boot is on (`MCUBOOT_MEASURED_BOOT` + `MCUBOOT_DATA_SHARING` in `config.cmake`) and
 statically verified. It had never been enabled anywhere until 2026-10-02, and the attestation
@@ -364,5 +365,5 @@ port now, and FSP's `flash_area_open()` is not built. Today `Driver_FLASH0` owns
 - ~~`config.cmake:90-98` prose is stale~~ — closed. `config.cmake:80-105` now gives the
   `0x60` trailer, `FLASH_CPU0_S 0x47A00` at `0x68200`, NSC `0x400` at `0xAFC00` and NS from
   `0xB0000`, matching the generated layout. Original note: — its `MCUBOOT_ALIGN_VAL 32` justification rests on
-  four numbers that have all since changed, and it points at `RA8M2_SOLUTION.md`, which did not
+  four numbers that have all since changed, and it points at [RA8M2_SOLUTION.md](RA8M2_SOLUTION.md), which did not
   exist until now (D077).

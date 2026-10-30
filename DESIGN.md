@@ -4,13 +4,15 @@ Design and rationale record for the Renesas RA TF-M port. Written for a future m
 captures why things are the way they are, so the port can be updated against newer FSP and
 newer TF-M without re-deriving the reasoning.
 
-Live parts: RA6M5 and RA8M2. RA6M4 and RA6E1 are in-tree but dormant — both EK-RA6M4 boards
-were bricked by the OFS coalescing defect (DECISIONS D002). Sections below are part-neutral
+Supported parts: RA6M5 and RA8M2. RA6E1 is in-tree for reference only and is not maintained
+against the current build. RA6M4 is not part of this delivery; it is the part whose two boards
+were lost to the option-memory coalescing defect ([D002](DECISIONS.md)), and both its tree and
+its documents left the repository. Sections below are part-neutral
 unless they name a part; per-part specifics live in [RA6M5_SOLUTION.md](RA6M5_SOLUTION.md) and
 [RA8M2_SOLUTION.md](RA8M2_SOLUTION.md),
 and the RA6M4-era documents left the tree in [D137].
 
-> This file is the stable companion to `DECISIONS.md`, which is the append-only log of why.
+> This file is the stable companion to [DECISIONS.md](DECISIONS.md), which is the append-only log of why.
 > Where the two disagree, DECISIONS.md is authoritative and carries the date.
 
 ## 0. Goals (these drive every decision below)
@@ -97,7 +99,7 @@ The trap: nothing in the build warns if the generated value later becomes correc
 define keeps winning, silently, and the deviation outlives its reason.
 ## 2. Repositories
 - `fsp_cmake` — RASC-generated FSP projects (bl2 / s / ns / …) + modular CMake + this doc + status doc
-  + bring-up scripts. FSP 6.7.0-beta0 ([D045], [D047]); `GETTING_STARTED.md` §2 is the
+  + bring-up scripts. FSP 6.7.0-beta0 ([D045], [D047]); [GETTING_STARTED.md](GETTING_STARTED.md) §2 is the
   authority for tool versions.
 - `trusted-firmware-m` — the port under `platform/ext/target/renesas/<part>/`. Base `TF-Mv2.2.0`.
 
@@ -108,7 +110,7 @@ define keeps winning, silently, and the deviation outlives its reason.
 - Per-part layouts are deliberately not repeated here (see §7 for why). The 1 MB single-bank
   map this section used to print was RA6M4's and matches neither live part: RA6M5 uses the whole
   2 MB with BL2 at 96 KB, and RA8M2 is MRAM based at `0x02000000`. The authoritative figures live
-  in `RA6M5_SOLUTION.md` and `RA8M2_SOLUTION.md`, generated from each solution's
+  in [RA6M5_SOLUTION.md](RA6M5_SOLUTION.md) and [RA8M2_SOLUTION.md](RA8M2_SOLUTION.md), generated from each solution's
   `bsp_linker_info.h`.
 
 ## 4. Flash driver geometry
@@ -212,7 +214,7 @@ Attribution itself is entirely what is burned via RFP/RDPM — see §7.1.
   at provisioning.
 - Boundaries to program: deliberately not listed here. They are per-part, they are RDPM
   input, and a stale copy in a third document is how a board gets provisioned wrong. The owning
-  documents are `RA6M5_SOLUTION.md` §"TrustZone boundary values" and `RA8M2_SOLUTION.md`
+  documents are [RA6M5_SOLUTION.md](RA6M5_SOLUTION.md) §"TrustZone boundary values" and [RA8M2_SOLUTION.md](RA8M2_SOLUTION.md)
   both
   derive the values from the generated layout and show the 32 KB / 8 KB block checks. RDPM
   **erases the part** — reflash all three images afterwards.
@@ -233,9 +235,10 @@ compiled out:
 says so — and, on RA6M5, `BSP_FEATURE_TZ_NS_OFFSET = 0x00` means there is no separate non-secure
 alias for code flash. (RA8M2 differs: `TZ_NS_OFFSET` is `0x10000000`, giving the NS alias at
 `0x12000000`, and the SAU must be programmed as well - `R_BSP_SAUInit` in the secure image,
-`bl2_sau_init()` in BL2. See the §7 table.) So IDAU attribution, burned into the device, is the only thing that makes the NS slot
-non-secure. An unprogrammed part faults on the S→NS `BLXNS` with SecureFault / `INVEP`
-(`SCB->SFSR` @ `0xE000EDE4`, bit 0) — the S→NS jump is the first thing that can possibly notice.
+`bl2_sau_init()` in BL2. See the §7 table.) So IDAU attribution, burned into the device, is the
+only thing that makes the NS slot non-secure. An unprogrammed part faults on the S→NS `BLXNS` with
+SecureFault / `INVEP` (`SCB->SFSR` @ `0xE000EDE4`, bit 0) — the S→NS jump is the first thing that
+can possibly notice.
 
 Register granularities differ, and two are coarse. A layout is only programmable if the sums land
 on them:
@@ -266,8 +269,8 @@ e2 studio debug configurations carry:
 **Default is enabled, and it must be `false` for this port.** The tooling derives the boundaries from
 the symbols of the project being launched, and it does not understand a bootloader and a secure
 image both living in the secure region. Launched against the bootloader — which has no TrustZone
-knowledge at all — it marks everything secure, silently undoing a correct partition. The next
-S→NS jump then fails with the `INVEP` SecureFault above, on a board that was working minutes earlier.
+knowledge at all — it marks everything secure, silently undoing a correct partition. The next S→NS
+jump then fails with the `INVEP` SecureFault above, on a board that was working minutes earlier.
 
 This affects TF-M as much as the standalone solution: BL2 is such a
 TrustZone-unaware bootloader ahead of the secure image. Set the boundaries once with the Partition
@@ -482,22 +485,21 @@ Security Attribution register, handled by `BSP_TZ_CFG_MSAR=0` (§1.1).
 
 Because OFS sits at `0x0100Axxx`, a plain `objcopy -O binary` pads
 `bl2.bin` to ~16.8 MB, zero-filling the reserved bytes among them — the brick, from an ELF
-that passes every check. **Flash `bl2.hex` or `bl2.srec`, never `bl2.bin`.**
+that passes every check. **Flash `bl2.elf`, `bl2.hex` or `bl2.srec` — never `bl2.bin`.**
 
-Since 2026-09-29 all four ports re-emit the flat binary and verify the result with
-`check_ofs.py --check-flat-bin`. **That check runs only when the full build runs. Building the
-`bl2_bin` target on its own still writes the coalesced image, and the result is unsafe** - the
-`OUTPUT bin/bl2.bin` rule belongs to `bl2/`'s own directory scope, where an appended command
-cannot reach it (D135, D136). Build everything, never `bl2_bin` alone, and flash `bl2.hex` or
-`bl2.srec` rather than relying on a size. The failure is unmistakable when you do look: a safe
-flat binary is tens of kilobytes, a coalesced one is about 16.8 MB. Do not treat any single
-figure as the test - the safe size differs between build configurations, which is why DECISIONS
-records 33,388 B for one RA6M5 build and 55,876 B for another. The re-emission is
-address-driven, not name-driven:
-`check_ofs.py --emit-safe-bin` walks the program headers, because [D068] found that
-`--remove-section=.option_setting*` matches nothing under IAR ILINK, which renames those
-sections `P1`/`P7`/`P11` - the pattern silently succeeds and emits the full 16.8 MB brick.
-Never reproduce the strip by hand with `objcopy --remove-section`. The rule stands regardless:
+Since 2026-09-29 all four ports re-emit the flat binary and verify the result with `check_ofs.py
+--check-flat-bin`. **That check runs only when the full build runs. Building the `bl2_bin` target
+on its own still writes the coalesced image, and the result is unsafe** - the `OUTPUT bin/bl2.bin`
+rule belongs to `bl2/`'s own directory scope, where an appended command cannot reach it (D135,
+D136). Build everything, never `bl2_bin` alone, and flash a record-based format rather than
+relying on a size. The failure is unmistakable when you do look: a safe flat binary is tens of
+kilobytes, a coalesced one is about 16.8 MB. Do not treat any single figure as the test - the safe
+size differs between build configurations, which is why DECISIONS records 33,388 B for one RA6M5
+build and 55,876 B for another. The re-emission is address-driven, not name-driven: `check_ofs.py
+--emit-safe-bin` walks the program headers, because [D068] found that
+`--remove-section=.option_setting*` matches nothing under IAR ILINK, which renames those sections
+`P1`/`P7`/`P11` - the pattern silently succeeds and emits the full 16.8 MB brick. Never reproduce
+the strip by hand with `objcopy --remove-section`. The rule stands regardless:
 **a `.bin` from an older build dir, another toolchain path, or a hand-run `objcopy` can
 brick the part**, and it looks identical in a file listing. Size is the only
 indication — over ~1 MB means it spans the option memory.
@@ -528,15 +530,15 @@ indication — over ~1 MB means it spans the option memory.
 ## 12. Bring-up
 - `fsp_cmake/bringup/` — RA6M4/RA6E1-era J-Link flash and RTT scripts, plus the preserved
   bricking evidence. The live parts are flashed through the e2 launch configurations instead,
-  and GCC images must be `MinSizeRel` (`CONFIGURATION.md` §1), not Debug. TrustZone boundaries
+  and GCC images must be `MinSizeRel` ([CONFIGURATION.md](CONFIGURATION.md) §1), not Debug. TrustZone boundaries
   are programmed with RDPM (§7.1), not RFP. Historic note follows: images were Debug builds (full symbols for
   GDB/Ozone). Flash from an erased chip; program the TZ boundaries (§7) via RFP; OFS (§8) is in `bl2.hex`.
 
 
 ## 13. Production hardening
 
-`README.md` §"Security status" lists what the shipped configuration does not do. This section
-says how to address each item. The numbering matches that list.
+[README.md](README.md) §"Security status" lists what the shipped configuration does not do. This
+section says how to address each item. The numbering matches that list.
 
 ### 13.1 Signing keys and provisioning
 
@@ -602,18 +604,19 @@ directly. Finishing or aborting each multi-part operation promptly avoids it.
 
 The build scripts produce development images. For a release build, turn off what is purely
 diagnostic and re-measure the result against the slot, because the secure slot has little spare
-room on either part. `CONFIGURATION.md` lists each option with its default and its constraint,
-and `README.md` §"Freeing space in the secure image" gives the measured cost of the
-diagnostics.
+room on either part. [CONFIGURATION.md](CONFIGURATION.md) lists each option with its default and
+its constraint, and [README.md](README.md) §"Freeing space in the secure image" gives the measured
+cost of the diagnostics.
 
 ### 13.7 Re-test what you ship
 
 The configuration the scripts build is isolation 1 with the SFN backend, and its last hardware
 regression predates a later change to the isolation HAL. Re-run `tf-m-tests` against your own
-build and your own keys before shipping. `TEST_RESULTS.md` records what has run here, including
-the configurations that have never run at all.
+build and your own keys before shipping. [TEST_RESULTS.md](TEST_RESULTS.md) records what has run
+here, including the configurations that have never run at all.
 
 ---
-_Maintainer note: when bumping TF-M, re-check §5 (bootutil glue), §7 (veneer macros still honored by the
-generated linker), and §8 (`<part>_bl2.ld` vs the new `tfm_common_bl2.ld`). When bumping FSP, the RASC
-config (§1) flows through; re-verify OFS (§8) and clock/flash-geometry assumptions (§4)._
+_Maintainer note: when bumping TF-M, re-check §5 (bootutil glue), §7 (veneer macros still honored
+by the generated linker), and §8 (`<part>_bl2.ld` vs the new `tfm_common_bl2.ld`). When bumping
+FSP, the RASC config (§1) flows through; re-verify OFS (§8) and clock/flash-geometry assumptions
+(§4)._

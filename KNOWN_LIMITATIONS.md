@@ -1,21 +1,21 @@
 # Known limitations
 
 What this port does not do, what has not been tested, and what is known to be broken. Read it
-with `README.md` §"Security status", which lists what must change before production, and
-`TEST_RESULTS.md`, which records what has run on hardware.
+with [README.md](README.md) §"Security status", which lists what must change before production, and
+[TEST_RESULTS.md](TEST_RESULTS.md), which records what has run on hardware.
 
-Everything here is a current statement about the delivered code. `DECISIONS.md` holds the
-reasoning and the history.
+Everything here is a current statement about the delivered code. [DECISIONS.md](DECISIONS.md)
+holds the reasoning and the history.
 
 ---
 
 ## 1. Before production
 
-The shipped configuration is a development configuration. `README.md` §"Security status" is the
-list; `DESIGN.md` §13 says how to address each item. In short: the signing keys are the public
-TF-M sample keys, provisioning supplies dummy HUK and IAK values, anti-rollback counters are
-left at `1`, the clock and low-power registers are writable from the non-secure world, and the
-device lifecycle and secure debug are not enforced.
+The shipped configuration is a development configuration. [README.md](README.md) §"Security
+status" is the list; [DESIGN.md](DESIGN.md) §13 says how to address each item. In short: the
+signing keys are the public TF-M sample keys, provisioning supplies dummy HUK and IAK values,
+anti-rollback counters are left at `1`, the clock and low-power registers are writable from the
+non-secure world, and the device lifecycle and secure debug are not enforced.
 
 **None of these is a defect in the port.** They are the settings a development board needs and a
 product must not keep.
@@ -118,7 +118,7 @@ The option-setting words live in discrete flash regions. A plain `objcopy -O bin
 them into one segment and zero-fills the reserved bytes between, which writes `0x00` into
 defined option registers. Two EK-RA6M4 boards were lost this way; no recovery is known.
 
-**Flash `bl2.hex` or `bl2.srec`, never `bl2.bin`.**
+**Flash `bl2.elf`, `bl2.hex` or `bl2.srec` — never `bl2.bin`.**
 
 The full build re-emits a safe flat binary and verifies it, but **building the `bl2_bin` target
 on its own still writes the coalesced image.** The rule that follows is: build everything, never
@@ -128,9 +128,8 @@ differs between build configurations.
 
 ### The debugger will program the TrustZone boundaries wrongly
 
-Every launch configuration must keep
-`com.renesas.hardwaredebug.arm.jlink.setTZBoundaries` = `false`. Launched against BL2, the
-debugger derives the boundaries from the wrong symbols.
+Every launch configuration must keep `setTZBoundaries` `false` for every probe it names.
+Launched against BL2, the debugger derives the boundaries from the wrong symbols.
 
 Every shipped launch now carries `false` for every probe it names, not only for the selected
 one, so switching probe cannot arm the setting. The two `Debug_SSD` launches under
@@ -139,14 +138,14 @@ one, so switching probe cannot arm the setting. The two `Debug_SSD` launches und
 
 ### Re-partitioning erases the part
 
-Programming the TrustZone boundaries with RDPM erases both code and data flash. Reflash all
-three images afterwards. `RECONFIGURING_THE_LAYOUT.md` is the procedure.
+Programming the TrustZone boundaries with RDPM erases both code and data flash. Reflash all three
+images afterwards. [RECONFIGURING_THE_LAYOUT.md](RECONFIGURING_THE_LAYOUT.md) is the procedure.
 
 ### The secure slot is nearly full
 
 RA6M5 has about 1.7 KB spare and RA8M2 about 0.7 KB, measured against the signed payload rather
 than the raw image. Enabling a diagnostic option that costs a few kilobytes will fail to link.
-`README.md` §"Freeing space in the secure image" gives the measured cost of each.
+[README.md](README.md) §"Freeing space in the secure image" gives the measured cost of each.
 
 ---
 
@@ -158,10 +157,11 @@ A capture can also truncate silently: if output stops after a result line and th
 never announced, suspect the capture rather than the target.
 
 **Most launches do not load what the build scripts produce.** Four do, one per part and
-toolchain: `ra6m5_TFM_sce9_{gcc,iar}` and `ra8m2_TFM_app_{gcc,iar}`, whose load entries are
-the default build directories of the four application scripts. Every other launch names a
-build tree of its own by absolute path, so running an application build and then one of those
-flashes different images or fails on missing files. `GETTING_STARTED.md` §6 has the table.
+toolchain: `ra6m5_TFM_sce9_{gcc,iar}` and `ra8m2_TFM_app_{gcc,iar}`, whose load entries are the
+default build directories of the four application scripts. Every other launch names a build tree
+of its own by absolute path, so running an application build and then one of those flashes
+different images or fails on missing files. [GETTING_STARTED.md](GETTING_STARTED.md) §6 has the
+table.
 
 All nineteen RA6M5 launches additionally take their debug program from the e2 project —
 `Debug/ra6m5_gcc_nonsecure.elf` — rather than from a TF-M image, so the symbols e2 loads are

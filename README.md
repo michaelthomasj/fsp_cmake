@@ -20,8 +20,8 @@ not. Read it with the security status below before committing to this port.
 ## Security status: development configuration, not for production
 
 Do not deploy devices built from this port unchanged. Each item below must be addressed first.
-`DESIGN.md` §13 "Production hardening" says how to address each one; `KNOWN_LIMITATIONS.md`
-carries the full list of what is and is not covered.
+[DESIGN.md](DESIGN.md) §13 "Production hardening" says how to address each one;
+[KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md) carries the full list of what is and is not covered.
 
 1. **Signing keys and provisioning are development values.** BL2 trusts the public TF-M sample
    keys compiled into `bl2/ext/mcuboot/keys.c`, because `MCUBOOT_HW_KEY` is `OFF` in every
@@ -38,7 +38,7 @@ carries the full list of what is and is not covered.
    not change it. Override the individual security attribution registers through
    `FSP_COMPILE_DEFS` and validate on hardware. Do not instead force
    `BSP_CFG_CLOCKS_SECURE=1`: the generated BSP still reads `0`, and on RA8 parts the port
-   relies on that value through its `BSP_TZ_CFG_MSAR=0` workaround (`DESIGN.md` §1.1).
+   relies on that value through its `BSP_TZ_CFG_MSAR=0` workaround ([DESIGN.md](DESIGN.md) §1.1).
 4. **Secure debug and the device lifecycle are not enforced.** The firmware never reads the DLM
    state, and the attested lifecycle comes from emulated OTP. Debug authentication and the DLM
    transition belong to your provisioning flow.
@@ -47,11 +47,11 @@ carries the full list of what is and is not covered.
    completes or is aborted `psa_generate_random` fails for every caller.
 6. **The scripts build development images.** SPM trace and exception-info dump are on, logging
    is verbose, IAR application builds are `Debug`, and the console is SEGGER RTT.
-   `CONFIGURATION.md` describes a release build.
+   [CONFIGURATION.md](CONFIGURATION.md) describes a release build.
 7. **The shipped default configuration has not been re-tested since the isolation-HAL change.**
    Isolation 1 with the SFN backend is what the scripts build, and its last hardware regression
    predates that change. Isolation 2 and 3 were re-run after it. Re-run `tf-m-tests` against
-   your own build. Firmware Update is off and untested. `TEST_RESULTS.md` is the single record
+   your own build. Firmware Update is off and untested. [TEST_RESULTS.md](TEST_RESULTS.md) is the single record
    of what has and has not run.
 8. **TF-M base is v2.2.0.** If you enable Firmware Update, advisory TFMV-9 (CVE-2025-53022)
    applies and you should move to v2.2.2 first.
@@ -67,7 +67,7 @@ first-build failures.
 
 Two rules it will repeat, because neither failure is recoverable:
 
-> **Flash `bl2.elf` or `bl2.hex`, never `bl2.bin`.** The option-setting words live in discrete
+> **Flash `bl2.elf`, `bl2.hex` or `bl2.srec` — never `bl2.bin`.** The option-setting words live in discrete
 > segments that a flat binary cannot express. [D002](DECISIONS.md), [D065](DECISIONS.md).
 
 > **Keep `setTZBoundaries` = `false`** in every launch configuration. The debugger otherwise
