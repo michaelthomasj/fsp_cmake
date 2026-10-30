@@ -8600,3 +8600,63 @@ withholding it: the scripts it documents ship, so whoever maintains them needs i
 **A `claude.ai` link in [D060] is removed.** The append-only rule protects a recorded belief;
 a URL in a shipped appendix is neither a belief nor a finding, and the sentence it sat in says
 the same thing without it.
+
+---
+
+## D157 — the 433 concision edits, applied one document at a time
+
+**Date:** 2026-10-30 · **Status:** Accepted · **Builds on:** [D150], [D153], [D156] · **Evidence:** all four checkers green after each document; before/after word counts from `git show ea720b0:<file>`
+
+**Context.** [D156] fixed the fourth pass's 28 accuracy errors and left its 433 concision
+edits. This entry records applying them: 322 rewrites, 76 replacements with a link to the fact's
+owner, 48 deletions and 12 moves, across 18 root documents, the seven course pages, three
+directory READMEs and six files in the TF-M tree.
+
+**Result.** 25,782 words removed from the shipped documentation, a 37% cut, with
+`DECISIONS.md` excluded because it grows by design. The largest single reductions are
+`TROUBLESHOOTING.md` 2,362 → 958, `scripts/README.md` 2,458 → 799, `DESIGN.md` 6,151 → 3,141
+and `KNOWN_LIMITATIONS.md` 1,752 → 773. `SETTLED.md` falls 4,470 → 2,255 through a generator
+change rather than an edit.
+
+**Where the plan was not followed, and why.**
+
+- **`SETTLED.md` keeps every decision in the index.** The plan deleted the 94 Standing rows
+  reading `Accepted | — | —`, on the ground that each repeated its `DECISIONS.md` heading
+  verbatim. Deleting them would make an absent ID ambiguous between "nothing further to say"
+  and "not indexed". `build_settled.py` now prints those 94 as a list of IDs and keeps the
+  table for the entries carrying a status, a correction or a closure.
+- **`DESIGN.md` §12 survives as a pointer.** The plan deleted the Bring-up section outright,
+  which left the numbering running 11, 13. `DECISIONS.md` entries cite `DESIGN` §13.1, §13.5,
+  §13.6 and §13.8, and this file is append-only, so §13 cannot move. §12 is now three lines
+  pointing at `bringup/` and dropping the two contradictions the plan flagged.
+- **`UPSTREAM_CHANGES.md` §13 and §15 keep a stub each.** Both are withdrawn items the plan
+  deleted, and the file-to-section table cites §14 and §16, so the numbering is load-bearing.
+- **`GETTING_STARTED.md` §3 keeps the branch names.** The plan replaced them with
+  `<release-tag>`, which is an owner action that has not happened; a placeholder would leave the
+  first instruction in the document non-functional. The text now says a tag replaces them.
+
+**Four plan citations pointed at the wrong section.** Each was checked in source before
+applying: `RECONFIGURING_THE_LAYOUT.md` §2.3 for a slot-versus-region error (§2.3 is the NSC
+window budget; `CONFIGURATION.md` §6 owns the three sizes), `CONFIGURATION.md` §9 for
+`CMAKE_BUILD_TYPE` (§1 owns it), `DESIGN.md` §4 twice for the MCUboot flash backend (§5 owns it
+after the §5 rewrite), and `scripts/README.md` §Environment variables in a form
+`check_docs.py` does not validate. **A link that resolves is not a link that answers the
+sentence** — the same distinction [D154] recorded for numbers.
+
+**Three edits broke HTML that `check_docs.py` cannot see.** A span one line short of its element
+left `</code></pre>` without its opening tag in `part2-trustzone.html`, a replaced table row lost
+its `</tr>` in `part3-tfm.html`, and a replaced paragraph lost its `</p>` in
+`part1-privilege-mpu-faults.html`. All four checkers passed on all three. A tag-balance count
+against each file's pre-edit state found them; `part4-porting.html` turned out to carry two such
+defects from before this pass, a `<li>` closed only by its `</ol>` and a `</section>` with no
+opening tag, and both are now closed. **The doc checkers verify references, not markup.**
+
+**Mechanics worth keeping.** The plan's line numbers were recorded against `ea720b0` and six
+later commits had moved them, so each edit was placed by mapping its span forward through
+`git diff -U0` hunks and then confirming the first words of the span matched. 20 of 461 rows
+landed inside a changed hunk and were placed by hand. Two mechanical hazards recurred: a quoted
+heredoc collapses `\\` to `\`, so `\b`, `\a`, `\t` and `\v` reached Python as control
+characters and were written into `GETTING_STARTED.md`'s tool table — found by scanning every
+tracked file for control bytes, not by any checker — and a line-wrapper has to treat
+`[text](link)`, `` `code` `` and `§"Title"` as unbreakable, or it splits a citation across lines
+and breaks the section check.

@@ -6,8 +6,8 @@
 
 | | |
 |---|---|
-| Entries | **156** |
-| Standing | **142** |
+| Entries | **157** |
+| Standing | **143** |
 | Superseded | **14** |
 | Standing but corrected on some point | **41** |
 | Standing, but the question they left open is closed | **3** |
@@ -35,13 +35,13 @@ A later entry **supersedes** an earlier one: same question, newer answer. Citing
 
 ---
 
-## Standing (142)
+## Standing (143)
 
 Nothing supersedes these. The title is the position. Where a later entry corrects one, the correction is named - the entry stands apart from that. **Where the Closed by column is filled, read the status as historical:** the entry describes a problem that a later entry shut, so its own "Open" or "Provisional" is no longer true.
 
 Accepted as written, with nothing later correcting or closing them - read the entry in [DECISIONS.md](DECISIONS.md) for the position:
 
-`D004` `D005` `D006` `D007` `D010` `D011` `D012` `D013` `D015` `D016` `D017` `D018` `D019` `D020` `D021` `D022` `D023` `D024` `D025` `D026` `D027` `D028` `D030` `D032` `D033` `D034` `D038` `D043` `D044` `D045` `D046` `D048` `D049` `D050` `D051` `D053` `D054` `D055` `D056` `D057` `D058` `D059` `D060` `D061` `D062` `D063` `D064` `D066` `D067` `D068` `D069` `D070` `D071` `D072` `D073` `D074` `D076` `D077` `D078` `D080` `D081` `D086` `D088` `D089` `D092` `D096` `D100` `D101` `D103` `D105` `D106` `D109` `D111` `D118` `D127` `D131` `D133` `D134` `D135` `D137` `D138` `D139` `D141` `D142` `D145` `D146` `D147` `D148` `D149` `D150` `D151` `D152` `D155` `D156`
+`D004` `D005` `D006` `D007` `D010` `D011` `D012` `D013` `D015` `D016` `D017` `D018` `D019` `D020` `D021` `D022` `D023` `D024` `D025` `D026` `D027` `D028` `D030` `D032` `D033` `D034` `D038` `D043` `D044` `D045` `D046` `D048` `D049` `D050` `D051` `D053` `D054` `D055` `D056` `D057` `D058` `D059` `D060` `D061` `D062` `D063` `D064` `D066` `D067` `D068` `D069` `D070` `D071` `D072` `D073` `D074` `D076` `D077` `D078` `D080` `D081` `D086` `D088` `D089` `D092` `D096` `D100` `D101` `D103` `D105` `D106` `D109` `D111` `D118` `D127` `D131` `D133` `D134` `D135` `D137` `D138` `D139` `D141` `D142` `D145` `D146` `D147` `D148` `D149` `D150` `D151` `D152` `D155` `D156` `D157`
 
 The rest carry a status, a correction or a closure:
 
