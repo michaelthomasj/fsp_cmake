@@ -105,10 +105,9 @@ define keeps winning, silently, and the deviation outlives its reason.
 
 ## 3. Memory map — authoritative source
 - `flash_layout.h` + `region_defs.h` are authoritative for the build (MCUboot and TF-M read
-  them). No `FLASH_*_PARTITION_*` cache variable is set by either live part - only mps3 platforms
-  consume them, and the RA6M4-era note that they were "kept for documentation" no longer applies.
-- Per-part layouts are deliberately not repeated here (see §7 for why). The 1 MB single-bank
-  map this section used to print was RA6M4's and matches neither live part: RA6M5 uses the whole
+  them). No `FLASH_*_PARTITION_*` cache variable is set by either supported part; only mps3
+  platforms consume them.
+- Per-part layouts are deliberately not repeated here (see §7 for why). RA6M5 uses the whole
   2 MB with BL2 at 96 KB, and RA8M2 is MRAM based at `0x02000000`. The authoritative figures live
   in [RA6M5_SOLUTION.md](RA6M5_SOLUTION.md) and [RA8M2_SOLUTION.md](RA8M2_SOLUTION.md), generated from each solution's
   `bsp_linker_info.h`.
@@ -127,8 +126,8 @@ was once `0x1000` in the RA8M2 `flash_layout.h` while FSP's generated `mcuboot_c
 as `RM_MCUBOOT_MRAM_BLOCK_SIZE` (`0x8000`); slots came out 9.875 sectors long, every build step
 accepted it, and it failed on hardware as `BOOT_EFLASH` (D054).
 
-Settled, 2026-10-05 (D091). This section recorded a long argument about whether BL2 should
-take its MCUboot flash backend from FSP. The answer is no, for the reasons below:
+**BL2 does not take its MCUboot flash backend from FSP**, for the reasons below
+([D091](DECISIONS.md)):
 
 - MCUboot's porting contract is that the port supplies `flash_map_backend.h` - the struct
   and the `flash_area_*` functions. Zephyr and Mynewt delegate it to the surrounding system,
@@ -141,10 +140,8 @@ take its MCUboot flash backend from FSP. The answer is no, for the reasons below
   the flag ON. This port does the same with `Driver_FLASH0`/`Driver_FLASH1` over
   `R_FLASH_HP`/`R_MRAM`.
 
-So both live parts use TF-M's map and backend, `DEFAULT_MCUBOOT_FLASH_MAP` is ON, and
-`DEFAULT_MCUBOOT_FLASH_BACKEND` no longer exists. RA8M2's SAU programming, which FSP's
-`flash_area_open()` had provided, now lives in `bl2_boot_hal.c` with the bounds imported from
-FSP's `flash_map.c`.
+So both parts use TF-M's map and backend, with `DEFAULT_MCUBOOT_FLASH_MAP` ON. RA8M2's SAU
+programming lives in `bl2_boot_hal.c`, with the bounds imported from FSP's `flash_map.c`.
 
 The layout is unaffected either way - `FLASH_AREA_*_OFFSET/SIZE` derive from
 `BSP_PARTITION_*`, so the Solution owns the image layout regardless of backend. Conflating the
@@ -172,8 +169,7 @@ two is what made this take three attempts.
   `renesas/sce9` on RA6M5 and `renesas/rsip_e50d` on RA8M2. BL2 hashes on the engine too.
 - Crypto is built from FSP's Mbed TLS overlay, not TF-M's own - `fsp_mbedtls.cmake` FORCEs
   `MBEDCRYPTO_PATH` at the FSP tree ([D042]). The ciphers are reached through FSP's `*_ALT`
-  macros ([D036], [D039], [D050]). The "entangled with the FSP MCUboot config" obstacle this
-  section used to describe was resolved; FSP's Mbed TLS is grafted.
+  macros ([D036], [D039], [D050]).
 - CCM stays in software ([D043]). The TRNG stays the entropy source either way, through
   `MBEDTLS_PSA_CRYPTO_EXTERNAL_RNG` (`<part>/mbedtls_extra_config.h`), served by
   `sce_trng.c`. FSP's `MBEDTLS_ENTROPY_HARDWARE_ALT` is left off by design —
@@ -200,10 +196,8 @@ startup and that stops being true. On RA8M2, which has SAU regions, the SAU must
 non-secure alias NS so the transaction is issued non-secure, and nothing may touch that alias
 until it does. That is why BL2 on RA8M2 programmes the SAU
 itself, in `bl2_boot_hal.c` - `bl2_sau_init()` is the first thing `boot_platform_post_init()`
-does, with the bounds imported from FSP's `flash_map.c`. It used to arrive as a side effect of
-FSP's `flash_area_open()`, which is what [D073]/[D079] describe; [D091] moved both parts onto
-TF-M's backend and the SAU programming came with it (§4). Once RDPM has programmed
-`CFSAMONA.CFS2`, each alias reaches only its own half.
+does, with the bounds imported from FSP's `flash_map.c`. Once the partition manager has
+programmed `CFSAMONA.CFS2`, each alias reaches only its own half.
 
 Attribution itself is entirely what is burned via RFP/RDPM — see §7.1.
 - Veneers/NSC: pinned at a fixed address, taken from the generated layout, using TF-M's
@@ -301,8 +295,8 @@ because it is TF-M's `Reset_Handler` that inverts FSP's ordering:
 | BL2 | TF-M's (`startup_ra6xx.c`) | Yes — see below |
 | Non-secure | FSP's own `startup.c` | No. FSP's Reset_Handler does the C-runtime init in the order FSP expects, so nothing is zeroed after `SystemInit` computed it. |
 
-Set on RA6E1 (2026-08-26): secure only. **BL2 is still exposed.** It uses TF-M's startup and it is
-the image that failed in July: MCUboot → `ARM_Flash_Initialize` → `R_FLASH_HP_Open` reads
+Enabled in the secure project only. **BL2 is still exposed.** It uses TF-M's startup, and it is
+the image where this failed: MCUboot → `ARM_Flash_Initialize` → `R_FLASH_HP_Open` reads
 `SystemCoreClock` as 0 and returns `FSP_ERR_FCLK`. Nothing restores it on the BL2 path —
 `SystemCoreClockUpdate()` lives in `tfm_hal_platform_init()`, which is an SPM hook the secure
 image calls and BL2 never does. (A comment in the RA6E1 `tfm_hal_platform.c` claims `Driver_Flash.c`
@@ -391,7 +385,7 @@ registers, and two of them are one-time.
   discrete `MEMORY` region per group — thirteen in `ra6m5_bl2.ld`, six in `ra8m2_bl2.ld` —
   each sized to its group, and assign every section with `> OPTION_SETTING_xxx`. ld
   then emits one PT_LOAD per group and physically cannot fill between them.
-- Fatal (what the port did until 2026-07-21): bare addressed sections with no `> REGION`
+- Fatal, and what cost two boards: bare addressed sections with no `> REGION`
   — `.option_setting_ofs0 0x0100A100 : { ... }`. ld coalesces them all into one PT_LOAD
   spanning every group the image emits, and zero-fills the gaps. A debugger loading
   the ELF writes that whole span across config memory that should have been left alone → **the
@@ -472,7 +466,7 @@ because the maps agree; they do not, as the table above shows. RA6M4 and RA6E1 h
 byte-identical to each other, and the three per-port copies that existed had already drifted:
 the RA6E1 one claimed RA6E1 boards were bricked. One guard, one place, windows per part.
 
-Related, and narrower than it used to read: `bsp_mcu_ofs_cfg.h` computes
+Related: `bsp_mcu_ofs_cfg.h` computes
 `OFS1_SEL = 0xFFFFF8F8 | ((BSP_CFG_CLOCKS_SECURE == 0) ? 0xF00 : 0)` only in its TrustZone-secure
 branch. BL2 is built as the flat FSP role, so it takes the `#else` branch and `OFS1_SEL`
 carries no `CLOCKS_SECURE` term at all — `FSP_TZ_DEFS_BL2` is empty on both parts. The e2
@@ -487,7 +481,7 @@ Because OFS sits at `0x0100Axxx`, a plain `objcopy -O binary` pads
 `bl2.bin` to ~16.8 MB, zero-filling the reserved bytes among them — the brick, from an ELF
 that passes every check. **Flash `bl2.elf`, `bl2.hex` or `bl2.srec` — never `bl2.bin`.**
 
-Since 2026-09-29 all four ports re-emit the flat binary and verify the result with `check_ofs.py
+Every port re-emits the flat binary and verifies the result with `check_ofs.py
 --check-flat-bin`. **That check runs only when the full build runs. Building the `bl2_bin` target
 on its own still writes the coalesced image, and the result is unsafe** - the `OUTPUT bin/bl2.bin`
 rule belongs to `bl2/`'s own directory scope, where an appended command cannot reach it (D135,
@@ -514,9 +508,7 @@ indication — over ~1 MB means it spans the option memory.
 - The live parts build the port's split NSPE (`ns_app`, [D005]) or the `tf-m-tests` suites,
   against `<part>_gcc_nonsecure` / `<part>_gcc_CPU0_nonsecure` as `FSP_NS_APP_DIR`. There is no
   FreeRTOS in either `ns_app`.
-- The FreeRTOS `_ns_rtos` arrangement this section used to describe, with its hand-fixed
-  `memory_regions.ld`, was RA6M4-era. Per-part NS partition addresses live in the solution
-  documents, not here (§7).
+- Per-part non-secure partition addresses live in the solution documents, not here (§7).
 
 ## 11. Toolchains
 - GNU Arm (arm-none-eabi 13.2) and IAR (10.10.2) are both supported, on both live parts.
@@ -605,7 +597,7 @@ directly. Finishing or aborting each multi-part operation promptly avoids it.
 The build scripts produce development images. For a release build, turn off what is purely
 diagnostic and re-measure the result against the slot, because the secure slot has little spare
 room on either part. [CONFIGURATION.md](CONFIGURATION.md) lists each option with its default and
-its constraint, and [README.md](README.md) §"Freeing space in the secure image" gives the measured
+its constraint, and [CONFIGURATION.md](CONFIGURATION.md) §6 gives the measured
 cost of the diagnostics.
 
 ### 13.7 Re-test what you ship

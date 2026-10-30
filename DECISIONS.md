@@ -8187,3 +8187,48 @@ October, correctly stayed as plain text in `TROUBLESHOOTING.md`. `DECISIONS.md` 
 documents that previously had none over 100. The rewrapper touched only unindented prose
 paragraphs outside code fences; heading and table-row counts were compared before and after in
 all 12 documents and none changed.
+
+## D149 — history leaves the customer documents; three word-count targets are deliberately missed
+
+**Date:** 2026-10-29 · **Status:** Accepted · **Builds on:** [D146], [D148] · **Evidence:** zero dated narration and zero strike-throughs left in the shipped set, counted; heading and table-row counts compared before and after every rewrite
+
+**Context.** The review's rule for customer text is no dates, no history, no strike-throughs.
+The documents carried all three, as sentences rather than as sections: "this section used to
+print", "Settled, 2026-10-05", "~~Run the IAR trees.~~ DONE", and in one case a line correcting
+its own earlier date. Each is an instruction to the reader to reconstruct a state they never
+saw.
+
+**What was removed.** Eleven history clauses from `DESIGN.md`, including two that still
+described the FSP flash-backend arrangement that [D091] removed; every dated narration outside
+`TEST_RESULTS.md`, whose dates are run data rather than narration; and the three
+strike-throughs left in the part guides, rewritten as plain closed statements. Two dates remain
+in `UPSTREAM_CHANGES.md` and stay: they are the commit dates of two cited upstream commits,
+which is provenance.
+
+**Both part guides lost their run logs.** Each "Status" section was a dated narrative of
+hardware runs, which `TEST_RESULTS.md` owns. They now carry the part facts that belong to a part
+guide — the measured image sizes, the reversed slot order on RA8M2, the two settings that failed
+on hardware before they were guarded — and point at the owner for everything else.
+
+**One dangling reference was found by doing this.** Three documents pointed at
+`README.md` §"Freeing space in the secure image", a section [D146] deleted when the space budget
+was given one owner. They now point at `CONFIGURATION.md` §6. **`check_docs.py` resolves a link
+to a file, not to a section inside it**, so nothing caught this; the new checks do not close that
+gap either.
+
+**`UPSTREAM_CHANGES.md` was reframed rather than cut.** It is now "Modifications to common TF-M
+code", and it opens with the table a reader actually needs: all 24 modified common files, each
+against the section that explains it. Both numbers were regenerated from the trees rather than
+trusted — the wide diff returns 38 files, of which 14 are the two accelerator directories, new
+Renesas content that happens to sit outside the port directory. The six files TF-M v2.2.2
+touches are now named rather than counted, by intersecting the two diffs; [D139] had said "6 of
+the 24" without listing them.
+
+**Three word-count targets are deliberately missed, and this records why.** The review set
+`DESIGN.md` at 2,800 words, `UPSTREAM_CHANGES.md` at 900 and `FSP_UPREV_CHECKLIST.md` at 1,300.
+They stand at about 5,800, 3,300 and 1,800. In each case the excess is mechanism — how a
+failure happens and how to check for it — with no other home, and the review's own objection to
+all three was framing rather than content. Cutting to the number would have deleted engineering
+detail to hit a figure. The framing objections are fixed: the submission worklist is now a
+customer inventory, the RA6E1-specific checklist is part-neutral, and the design document no
+longer narrates its own history.

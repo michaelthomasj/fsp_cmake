@@ -143,7 +143,7 @@ platform_bl2
 
 The default build has no `tfm_ns` target in the SPE project. `RA6M5_NS_IN_SPE_BUILD`
 (ra8m2: `RA8M2_NS_IN_SPE_BUILD`) exists for single-configure boot bisection and has been off
-by default since 2026-08-30. In the normal split build the NS image is built by the NS
+by default. In the normal split build the NS image is built by the NS
 project — §1 and §2 — and gets its RTT from `syscalls_ns.c`'s own `_write()` plus the
 `ns_app`/`tests_reg` sources, not from this block. `rtt_stdout.c` is absent by design
 either way: it would collide with that `_write()`.

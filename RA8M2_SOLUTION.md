@@ -7,10 +7,9 @@ Companion docs: [RA6M5_SOLUTION.md](RA6M5_SOLUTION.md) for the part this one is 
 [DESIGN.md](DESIGN.md) §4 for the flash backend and §7 for the SAU, and
 [E2_PROJECT_REQUIREMENTS.md](E2_PROJECT_REQUIREMENTS.md) for what a solution must emit.
 
-> Hardware status: the regression+FLIH configuration passes (2026-10-06,
-> `ra8m2_TFM_flih_gcc`, banner `TF-M v2.2.0+94dbaa08f`). Every secure and non-secure suite in
-> that configuration, zero failures, FLIH IRQ tests included - the first complete run on this
-> part. **The SLIH suite has never run on RA8M2 on either toolchain** ([[D126]] §4): the
+> Hardware status: the regression and FLIH configuration passes under `ra8m2_TFM_flih_gcc`.
+> Every secure and non-secure suite in that configuration, zero failures, FLIH interrupt tests
+> included. **The SLIH suite has never run on RA8M2 on either toolchain** ([[D126]] §4): the
 > `m2gslih` trees were built and never got a launch. That exercised the SAU programming, the
 > MRAM dual-alias driver, DF_EMULATION as ITS/PS backing, the RSIP-E50D, measured boot, and the
 > RDPM values below. IAR now matches GCC on everything: the full regression, all three
@@ -179,7 +178,7 @@ because it emitted `__BL_0_S_T` before `__BL_0_P_H`; the fix was ordering, not g
 After any repartition, read `Debug/bsp_linker_info.h` back and check that `__BL_0_P_H_START`
 equals `__BL_0_S_T_START`.
 
-### Project-side gaps - all closed 2026-10-08
+### Project-side gaps, all closed
 
 All three were fixed in RASC and verified against the GCC trees. The IAR and GCC projects are
 now configuration-identical, with the caveat that the method does not read
@@ -246,86 +245,58 @@ This is a temporary workaround and a documented deviation from "RASC is the sour
 truth" ([DESIGN.md](DESIGN.md) §1.1). **Remove it** once e2 emits `BSP_CFG_CLOCKS_SECURE (1)` from
 the Clocks/Security setting; check `ra_gen/bsp_clock_cfg.h` after a regenerate to tell.
 
-Seen on the first RA8M2 boot, 2026-10-05. RA6M5 cannot hit this - it has no MRAM, so no
+Seen on the first RA8M2 boot. RA6M5 cannot hit this - it has no MRAM, so no
 `MSAR`. The same e2 setting there affects only `LPMSAR` and the clock registers.
 
 ---
 
 ## Status
 
-Builds, all four GCC trees and the IAR trees. Measured with `arm-none-eabi-size`
-(MinSizeRel, `text` only):
+Supported under both toolchains. [TEST_RESULTS.md](TEST_RESULTS.md) is the single record of
+what has run on this part and what has not, including the one PSA Arch crypto failure and the
+skips. Sizes are `text` only, from `arm-none-eabi-size`, at MinSizeRel:
 
 | Image | text | Region | Headroom |
 |---|---|---|---|
 | bl2 | 27,100 B | `0x10000` (64 KB) | 58% free |
-| tfm_s | 278,594 B | `0x47A00` (293,376 B) | signed payload ends at 294,226 of a 294,912 slot — 670 B spare |
+| tfm_s | 278,594 B | `0x47A00` (293,376 B) | the signed payload ends at 294,226 of a 294,912 slot, so 670 B |
 | tfm_ns | 105,944 B | `0x27E00` (163,328 B) | 35% free |
 
-PSA Arch suites on silicon. Both toolchains complete.
+**The secure slot is nearly full.** [CONFIGURATION.md](CONFIGURATION.md) §6 gives the cost of
+each diagnostic; at 670 B of headroom the PSA Arch logging options cannot be enabled globally
+on this part.
 
-| Suite | RA8M2 GCC | RA8M2 IAR | RA6M5 (both) |
-|---|---|---|---|
-| crypto | 62 / 1 / 1 of 64 | 62 / 1 / 1 of 64 | 63 / 0 / 1 |
-| attestation | 1 / 0 / 0 | 1 / 0 / 0 | 1 / 0 / 0 |
-| storage (ITS + PS) | 11 / 0 / 6 | 11 / 0 / 6 | 11 / 0 / 6 |
+The two toolchains agree test for test — the same tally, the same failing test, the same skip —
+which is the pattern RA6M5 shows as well. The one test the two parts differ on is the plaintext
+RSA-2048 key-generation gap under Open items, and it fails under both toolchains, which places
+it in silicon and configuration rather than in a toolchain.
 
-The full regression suite also passes under IAR - all seven NS suites including FLIH IRQ - and
-measured boot is verified from the boot record, both measurements matching the signed
-images' SHA-256 TLVs. D105.
+### Four facts about this part that bite
 
-The two toolchains agree test for test - same tally, same failing test (216), same skip
-(252), on `TF-M v2.2.0+94dbaa08f` in both. That is the same pattern RA6M5 showed, where GCC and
-IAR were also identical. D104.
+**Slot order is reversed for image 0.** The secure secondary at `0x02020000` sits below the
+secure primary at `0x02068000`. Image 1 is the usual way round, `0x120B0000` primary and
+`0x120D8000` secondary. So `rsp.br_image_off = 0x68000` is the primary, and anything that
+computes a flash row or reads a `boot_rsp` has to account for it.
 
-The two parts differ by one test out of 64: 216, the plaintext RSA-2048 keygen gap under
-"Open items" - and it now fails under both toolchains, which confirms it is silicon and config
-rather than anything toolchain-specific. Both parts skip 252 (deterministic ECDSA, which FSP
-does not support); the six storage skips are the optional `psa_ps_create` /
-`psa_ps_set_extended` APIs TF-M does not implement. D099.
+**The MCUboot upgrade path runs here and only here.** Both images install from their secondary
+slots, and a second reset reports `Swap type: none` because the secondary has been erased. It
+has never run on RA6M5.
 
-The MCUboot upgrade path runs (`ra8m2_TFM_update_gcc`, 2026-10-08). Both images install
-from their secondary slots, and a second reset reports `Swap type: none` - the secondary is
-erased, so no re-install. First execution of this path on any part here. D100.
+**Measured boot is on, and a passing attestation suite does not prove it works.** With
+`component_cnt == 0` under the default token profile, `attest_add_all_sw_components()` emits
+`IAT_NO_SW_COMPONENTS` and returns success, so the suite passes either way. Read the boot
+record at the start of secure RAM instead.
 
-Slot order is reversed for image 0. The secure secondary (`0x02020000`) sits below the
-secure primary (`0x02068000`); image 1 is the usual way round (`0x120B0000` primary,
-`0x120D8000` secondary). So `rsp.br_image_off = 0x68000` is the primary. Flash rows and any
-reading of a `boot_rsp` must account for this. D100.
+**BL2 uses TF-M's MCUboot flash map and backend**, with the FSP flash HAL behind `fa_driver` as
+an `ARM_DRIVER_FLASH` in `cmsis_drivers/Driver_Flash.c` — the arrangement four ST platforms
+already use upstream. `rm_mcuboot_port` is in `FSP_MODULES_NEVER_BUILT`, and
+`bl2/CMakeLists.txt` is byte-identical to TF-M v2.2.0. The image layout is still the solution's
+either way: `FLASH_AREA_*_OFFSET` and `_SIZE` derive from the `BSP_PARTITION_*` macros whichever
+backend reads them. **Layout ownership and backend ownership are separable**, and conflating
+them is what made this take three attempts ([D091](DECISIONS.md)).
 
-The secure slot is nearly full. [README.md](README.md) §"Freeing space in the secure image" lists
-what can be turned off; at 670 B of headroom ([D087]) the PSA Arch logging options cannot be
-enabled globally here.
-
-Measured boot is on (`MCUBOOT_MEASURED_BOOT` + `MCUBOOT_DATA_SHARING` in `config.cmake`) and
-statically verified. It had never been enabled anywhere until 2026-10-02, and the attestation
-suite cannot detect its absence: with `component_cnt == 0` under the default
-`ATTEST_TOKEN_PROFILE_PSA_IOT_1`, `attest_add_all_sw_components()` emits `IAT_NO_SW_COMPONENTS`
-and returns success. So a passing attestation run proves nothing either way — read the boot
-record at the start of secure RAM instead. D080, D081.
-
-BL2 uses TF-M's MCUboot flash map and backend, with FSP's flash HAL behind
-`fa_driver` as an `ARM_DRIVER_FLASH` in `cmsis_drivers/Driver_Flash.c` - the arrangement four ST
-platforms already use upstream. `rm_mcuboot_port` is listed in `FSP_MODULES_NEVER_BUILT`.
-
-This replaced an earlier design in which BL2 took FSP's backend (D079, D082) and needed five
-couplings to do it: a by-name `flash_map.c` registration, a predefined `__FLASH_MAP_BACKEND_H__`
-to suppress TF-M's duplicate header, `mcuboot_hook_shim.h` for the `BOOT_HOOK_FLASH_AREA_CALL`
-TF-M's MCUboot lacks, and force-includes via `"SHELL:-include ..."`. All five are gone, and with
-them D090's `struct flash_area` guard collision - which is now structurally impossible rather
-than merely fixed. `bl2/CMakeLists.txt` is byte-identical to TF-Mv2.2.0. D091.
-
-The image layout is still the Solution's: `FLASH_AREA_*_OFFSET/SIZE` derive from
-`BSP_PARTITION_*` regardless of which backend reads them. Layout ownership and backend ownership
-are separable, and conflating them is what made this take three attempts.
-
-The flash controller is no longer handed over. That paragraph described the FSP-backend
-arrangement [D091] removed: `boot_platform_init()` opened `g_mram0_ctrl`, FSP's
-`flash_area_open()` then opened the same controller and returned −1 on `FSP_ERR_ALREADY_OPEN`,
-so `ra8m2_flash_release_for_mcuboot()` had to close it first. No such function exists in the
-port now, and FSP's `flash_area_open()` is not built. Today `Driver_FLASH0` owns `g_mram0`,
-`Driver_Flash.c` handles `FSP_ERR_ALREADY_OPEN` by close-and-reopen, and the first thing
-`boot_platform_post_init()` does is `bl2_sau_init()`.
+`Driver_FLASH0` owns `g_mram0`, `Driver_Flash.c` handles `FSP_ERR_ALREADY_OPEN` by closing and
+reopening, and the first thing `boot_platform_post_init()` does is `bl2_sau_init()`.
 
 ---
 
@@ -348,10 +319,9 @@ port now, and FSP's `flash_area_open()` is not built. Today `Driver_FLASH0` owns
   parts select `vendor_plaintext_wrapped` in RASC, so the format config is not what selects the
   failing path and raising it cannot help. Hardware RSA keygen on E50D requires the caller to
   ask for a wrapped key, which a conformance test does not do. D097, D098, D111.
-- ~~Run the IAR trees.~~ DONE 2026-10-21 ([[D118]], [[D119]] — both are dated 2026-10-21;
-  this line said 2026-10-22) — IAR is green at isolation 2 and 3 on this part, secure and
-  non-secure, FLIH tests included. Regression+FLIH only, per [[D126]] §4. Original note follows.
-  The GCC side is done: full regression, PSA Arch attestation (1/1), and
+- **The IAR trees have been run** ([[D118]], [[D119]]): IAR is green at isolation 2 and 3 on
+  this part, secure and non-secure, FLIH tests included. Regression and FLIH only, per
+  [[D126]] §4. The GCC side covers full regression, PSA Arch attestation (1/1), and
   measured boot verified from the boot record at `0x22000000` - magic `0x2016`, NSPE 0.0.0 and
   SPE 2.2.0, both SHA-256 measurements equal to the signed images' TLVs (D095, D096).
   IAR side: all six trees build and the regression, crypto, attestation and storage suites
@@ -362,8 +332,6 @@ port now, and FSP's `flash_area_open()` is not built. Today `Driver_FLASH0` owns
 - D077 back-ports go the other way. This part has the generated OFS addresses and 22
   enabled-but-unplaced `#error` guards; RA6M5 and RA6E1 have neither. The open work is bringing
   them up to this part, not changing this one.
-- ~~`config.cmake:90-98` prose is stale~~ — closed. `config.cmake:80-105` now gives the
-  `0x60` trailer, `FLASH_CPU0_S 0x47A00` at `0x68200`, NSC `0x400` at `0xAFC00` and NS from
-  `0xB0000`, matching the generated layout. Original note: — its `MCUBOOT_ALIGN_VAL 32` justification rests on
-  four numbers that have all since changed, and it points at [RA8M2_SOLUTION.md](RA8M2_SOLUTION.md), which did not
-  exist until now (D077).
+- **The `config.cmake` layout prose is current.** It gives the `0x60` trailer,
+  `FLASH_CPU0_S 0x47A00` at `0x68200`, the non-secure-callable `0x400` at `0xAFC00` and the
+  non-secure region from `0xB0000`, all matching the generated layout.

@@ -1,7 +1,7 @@
 # Configuration reference — every knob you may legitimately change
 
 Scope: the options a user of this port sets, where each is defined, and the constraint that
-makes it non-obvious. Verified against the code on 2026-10-04 for the two live parts,
+makes it non-obvious. Every value below is verified against the code for both supported parts,
 RA6M5 and RA8M2.
 
 Read [DESIGN.md](DESIGN.md) §1 first. The core principle is that RASC is the source of config
@@ -159,7 +159,7 @@ RA6M5           521,792             522,579    524,288         1,693 B
 RA8M2           293,440             294,226    294,912           670 B
 ```
 
-Measured 2026-10-04 by locating the 0xFF gap between the signed payload and the 16-byte
+Measured by locating the 0xFF gap between the signed payload and the 16-byte
 trailer at the top of the slot. Earlier figures here said 1,984 B and 960 B. Those were
 `raw image + header` against the slot and omitted the ~275 B of imgtool TLVs (signature and
 hashes) and the trailer, which overstated RA8M2's headroom by 30%.

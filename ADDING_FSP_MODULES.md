@@ -280,7 +280,7 @@ when an Application RoT partition must drive the hardware itself.
 
 ### Provenance
 
-Measured on RA6M5 at isolation 2 on 2026-10-20, with the FLIH test service as the ARoT caller.
+Measured on RA6M5 at isolation 2, with the FLIH test service as the ARoT caller.
 The IACCVIOL came first at `PC 0x000BA964` (`tfm_plat_test_secure_timer_start`, inside
 `PT_PSA_ROT_CODE`); moving the file to `tfm_sprt` turned it into a DACCVIOL at
 `MMFAR 0x20011493` (a `static bool`, inside `PT_PSA_ROT_DATA`). Upstream platforms place

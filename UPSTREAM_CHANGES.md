@@ -1,32 +1,81 @@
-# Changes to upstream TF-M
+# Modifications to common TF-M code
 
-Changes this port makes to files outside `platform/ext/target/renesas/`. These are not
-Renesas-specific: each one is a gap or defect in common TF-M code that any platform with the same
-property would hit. They are tracked here separately from [DECISIONS.md](DECISIONS.md) because
-they have a different destination — a patch series to TrustedFirmware-M rather than a design
-record — and because a fork carrying silent edits to common files is a maintenance trap.
+What this fork changes outside `platform/ext/target/renesas/`. Read it to know what you inherit
+beyond the platform port, and to know what a TF-M uprev will have to be reconciled against.
 
-Fork point: `dd2b7de19` ("Docs: Release notes updates for v2.2.0"), i.e. TF-M v2.2.0.
-Regenerate the authoritative list at any time with:
+**24 files.** None of the changes is Renesas-specific: each is a gap or a defect in common code
+that any platform with the same property would hit. The numbered sections below give the
+mechanism of each, and the table says which section owns which file.
+
+The list is regenerated from the trees rather than maintained by hand. The base is TF-M v2.2.0,
+at `dd2b7de19`:
 
 ```
 git diff --stat $(git merge-base HEAD upstream/main) -- . ':(exclude)platform/ext/target/renesas'
 ```
 
-Exclude only the port directory. An earlier version of this command named specific
-subdirectories and therefore missed real edits to common files - `cmake/install.cmake`,
-`lib/ext/mcuboot/CMakeLists.txt`, `toolchain_ARMCLANG.cmake` and `toolchain_CLANG.cmake`
-among them - which also meant the "untracked divergence" re-check the Submission notes
-prescribe could never have found them.
+That wide form returns 38 files. Fourteen of them are the two crypto accelerator directories,
+`platform/ext/accelerator/renesas/sce9` and `.../rsip_e50d`, which are new Renesas content that
+happens to live outside the port directory rather than edits to common code. The other 24 are
+these:
 
-The wide form returns 38 files. The items below account for 20 of them - that was 21
-until [D091] withdrew item 13 and returned `bl2/CMakeLists.txt` to byte-identical with
-TF-Mv2.2.0. The remaining 18 are listed under Not yet accounted for. It was 39 until
-`tfm_config.log` was deleted ([D135]).
+| File | Changed because |
+|---|---|
+| `platform/ext/common/iar/tfm_isolation_s.icf.template` | §1 the `STACKSEAL` block places no section, §2 veneers ignore the end location, §3 no hook for vendor sections |
+| `platform/ext/common/gcc/tfm_isolation_s.ld.template` | §4 vendor no-init sections are orphaned, §5 `.ER_CODE_SRAM` ordering, §16 pinned veneers move the allocation pointer |
+| `platform/ext/common/gcc/tfm_common_s.ld.template` | §4 and §5, the same two |
+| `bl2/ext/mcuboot/mcuboot_default_config.cmake` | §6 `MCUBOOT_ALIGN_VAL` is capped at 32 |
+| `bl2/ext/mcuboot/scripts/wrapper/wrapper.py` | §6, the same cap on the signing side |
+| `config/config_base.cmake` | §7 `TFM_SPM_DEBUG_TRACE` becomes a documented option |
+| `config/check_config.cmake` | §7, the option's validity check |
+| `secure_fw/spm/CMakeLists.txt` | §7 |
+| `secure_fw/spm/core/backend_sfn.c` | §7 |
+| `secure_fw/spm/core/utilities.c` | §7 |
+| `toolchain_GNUARM.cmake` | §8 `.srec` output for every toolchain |
+| `toolchain_ARMCLANG.cmake` | §8 |
+| `toolchain_CLANG.cmake` | §8 |
+| `toolchain_IARARM.cmake` | §8, and §14 the `__write` redirect that makes a platform `__write()` unreachable |
+| `platform/ns/toolchain_ns_GNUARM.cmake` | §8 |
+| `platform/ns/toolchain_ns_CLANG.cmake` | §8 |
+| `platform/ns/toolchain_ns_IARARM.cmake` | §8 |
+| `bl2/ext/mcuboot/CMakeLists.txt` | §9 BL2 signing depends on the target rather than the image file, §10 the same for the non-secure image |
+| `bl2/ext/mcuboot/keys.c` | §11 `bootutil_key_cnt` is missing in the EC signature branch |
+| `bl2/ext/mcuboot/include/flash_map/flash_map.h` | §12 a `FLASH_DEVICE_ID` redefinition guard |
+| `cmake/install.cmake` | an `AND TARGET signing_layout_ns` guard. Upstreamable, not yet written up as a section |
+| `lib/ext/mcuboot/CMakeLists.txt` | replaces the hard-coded `GIT_REPOSITORY` with an overridable hook. Upstreamable, and it now has no in-tree consumer |
+| `platform/include/cmsis_override.h` | local, not for upstream: CMSIS-5 fallbacks, guarded on the CMSIS major version |
+| `bl2/ext/mcuboot/bl2_main.c` | local, not for upstream: the `BL2_HALT_AT_MAIN` spin, a bring-up aid |
+
+## Moving to TF-M v2.2.2
+
+The base stays v2.2.0, because that is what every result in [DECISIONS.md](DECISIONS.md) was
+measured on. **The consequence is that advisory TFMV-9 — CVE-2025-53022, an unchecked TLV
+payload length in the Firmware Update partition — is not fixed in this delivery.** The shipped
+configuration is not affected, because Firmware Update is off on both parts; turn it on and the
+advisory applies.
+
+The move is `git rebase --onto TF-Mv2.2.2 TF-Mv2.2.0`, and it is mechanical: of the 24 files
+above, v2.2.2 touches only these six.
+
+| File |
+|---|
+| `bl2/ext/mcuboot/include/flash_map/flash_map.h` |
+| `config/config_base.cmake` |
+| `platform/ext/common/gcc/tfm_common_s.ld.template` |
+| `platform/ext/common/gcc/tfm_isolation_s.ld.template` |
+| `platform/ns/toolchain_ns_GNUARM.cmake` |
+| `toolchain_GNUARM.cmake` |
+
+Re-run the regenerate command against the new base afterwards; a conflict that resolves quietly
+in a linker template is the failure mode to watch for.
 
 ---
 
-## Ready to upstream
+## The changes, one section each
+
+Each section names the file, the mechanism, and the fix. Where a change has been verified on
+hardware, the section says on which part and under which toolchain.
+
 
 ### 1. IAR: `STACKSEAL` block reserves space but places no section
 
@@ -155,7 +204,7 @@ that preserves address discontinuities — on RA parts the option-setting words 
 `0x0100Axxx` mean a flat `.bin` is padded to ~16.8 MB and, worse, merges the option words
 into one contiguous blob.
 
-Complete as of 2026-09-23 ([[D049]]). `platform/ns/toolchain_ns_IARARM.cmake` now adds the
+Complete ([[D049]]). `platform/ns/toolchain_ns_IARARM.cmake` now adds the
 same `${target}_srec` target, via `ielftool --srec` as its other conversions use `ielftool`.
 Verified from a clean IAR NS build.
 
@@ -200,7 +249,7 @@ does not collide.
 
 ### 13. WITHDRAWN - BL2's MCUboot flash backend cannot be replaced by a platform
 
-**Withdrawn 2026-10-05 ([D091]). Do not submit.**
+**Withdrawn ([D091]). Do not submit.**
 
 This asked upstream to let a platform replace the MCUboot flash backend, not just the map.
 The port no longer needs it: both parts take TF-M's backend and put FSP's HAL behind
@@ -268,7 +317,7 @@ logs a few hundred bytes and chainloads without ever flushing. DECISIONS D107, D
 
 ### 15. WITHDRAWN - `TFM_ISOLATION_LEVEL` does reach `tfm_hal_isolation_v8m.c` upstream
 
-**Withdrawn 2026-10-22 ([D120]). Do not submit.**
+**Withdrawn ([D120]). Do not submit.**
 
 This asked upstream to define `TFM_ISOLATION_LEVEL` and `CONFIG_TFM_PARTITION_META` for
 `platform_s`, on the claim that the shared Armv8-M isolation HAL compiles without them "on
@@ -331,25 +380,6 @@ RA part.** [D063].
 
 ---
 
-## Not yet accounted for
-
-Found by the 2026-10-22 review when the regenerate command was widened. Listed so the gap is
-visible rather than silent:
-
-- `cmake/install.cmake` - an `AND TARGET signing_layout_ns` guard (`2d0d32d8f`).
-- `lib/ext/mcuboot/CMakeLists.txt` - replaces the hard-coded upstream `GIT_REPOSITORY` with
-  an overridable `${MCUBOOT_GIT_REPOSITORY}` hook (`c76fd57bf`). It now has NO in-tree
-  consumer: `ra6m4/config.cmake` was its only one and left in [D138]. Still upstreamable.
-- `toolchain_ARMCLANG.cmake` (+11) and `toolchain_CLANG.cmake` (+2) - the `.srec` output of
-  item 8's own commit `d7df90820`, which item 8 does not list. Item 8 should name all four
-  toolchain files, not two.
-- `platform/ext/accelerator/renesas/{sce9,rsip_e50d}/` - 14 added files. New platform
-  content rather than edits to common code; it needs a destination decision, not a patch.
-- `tfm_config.log` - a 312-line log committed at the TF-M repo root (`95e7d4ba3`). An
-  accident, deleted 2026-10-23 ([D135]). Listed here so the count above reconciles.
-
----
-
 ## Local — not for upstream
 
 ### `cmsis_override.h` additions
@@ -371,33 +401,29 @@ when two EK-RA6M4 boards were lost. Keep local or drop before submitting.
 
 ---
 
-## Submission notes
+## How these changes were verified
 
-- Items 1-3 and 14 are IAR defects found while bringing up the IAR builds of this port. Each
-  produced a silent failure - a reset loop, a hard fault, no console output, or a halt on a
-  semihosting breakpoint - rather than a build error, which is the argument for fixing them
-  centrally rather than working around them per-platform. Item 14 differs from 1-3 in being a
-  defect in the toolchain file rather than a linker template, and in affecting every IAR
-  platform that has a console, not only those with unusual linker needs.
-- Items 4, 5 and 6 are already in the tree labelled "Upstream:" or "Upstream + RA6E1:".
-  Items 7, 8, 9 are not labelled but belong in the same series.
-- Verification, by item: items 1-12 on EK-RA6E1; items 14 and 15 on EK-RA6M5 and
-  EK-RA8M2, which is where the IAR console and the isolation work were done. GNU (arm-none-eabi 13.2) and IAR (10.10.2)
-  both build BL2 + secure + non-secure, and the non-secure PSA service smoke test passes all
-  13 steps under IAR — `psa_framework_version`, `psa_version`, `psa_crypto_init`,
-  `psa_generate_random` (SCE9 TRNG), `psa_hash_compute`, ITS set/get/remove, PS set/get/remove
-  (AES-GCM), `psa_initial_attest_get_token_size`. GNU is additionally verified against the PSA
-  Arch tests (crypto, storage, attestation).
-- Caveat on the attestation result above, added 2026-10-02. `MCUBOOT_MEASURED_BOOT`
-  and `MCUBOOT_DATA_SHARING` are OFF on ra6e1, so those tokens carried
-  `IAT_NO_SW_COMPONENTS` - valid and correctly signed, attesting no firmware
-  measurements. `ATTEST_TOKEN_PROFILE_PSA_IOT_1` permits that and the suite passes it.
-  The result still evidences the template changes (placement, signing, token structure),
-  which is what it was cited for; it is not evidence that measured boot works. See
-  DECISIONS D080.
-- Both toolchains now pass the PSA Arch suites on EK-RA6E1 at `profile_large` / isolation 3 /
-  IPC: attestation 1/1, storage 17 (11 passed, 6 optional-PS skips), crypto 64/64, zero
-  failures under either. That is the strongest evidence these template changes are correct -
-  the suites exercise placement far harder than a boot test does. See DECISIONS.md D026.
-- Before submitting, re-run the `git diff --stat` above: anything appearing there and not
-  listed in this file is an untracked divergence from upstream.
+- **Sections 1 to 3 and 14 are IAR defects**, found while bringing up the IAR builds. Each
+  produced a silent failure — a reset loop, a hard fault, no console output, or a halt on a
+  semihosting breakpoint — rather than a build error, which is the argument for fixing them in
+  common code rather than working around each per platform. Section 14 differs from 1 to 3 in
+  being a defect in the toolchain file rather than a linker template, and in affecting every
+  IAR platform that has a console.
+- **Sections 1 to 12 were verified on EK-RA6E1; 14 and 16 on EK-RA6M5 and EK-RA8M2**, which is
+  where the IAR console and the isolation work were done. Both toolchains build all three
+  images, and the non-secure PSA service smoke test passes all 13 steps under IAR:
+  `psa_framework_version`, `psa_version`, `psa_crypto_init`, `psa_generate_random` on the
+  engine TRNG, `psa_hash_compute`, ITS set, get and remove, PS set, get and remove with
+  AES-GCM, and `psa_initial_attest_get_token_size`.
+- **Both toolchains pass the PSA Arch suites** at `profile_large`, isolation 3, IPC:
+  attestation 1/1, storage 17 with 11 passed and 6 optional-PS skips, crypto 64/64, zero
+  failures under either. That is the strongest evidence the template changes are right, because
+  the suites exercise section placement far harder than a boot test does.
+- **One caveat on the attestation result.** `MCUBOOT_MEASURED_BOOT` and `MCUBOOT_DATA_SHARING`
+  were off, so those tokens carried `IAT_NO_SW_COMPONENTS`: valid, correctly signed, and
+  attesting no firmware measurements. The profile permits that and the suite passes it. The
+  result evidences the template changes — placement, signing, token structure — which is what
+  it is cited for. **It is not evidence that measured boot works.**
+
+After any TF-M uprev, re-run the regenerate command at the top of this file. Anything it lists
+that is not in the table is an untracked divergence from upstream.

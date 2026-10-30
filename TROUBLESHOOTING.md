@@ -14,7 +14,7 @@ reprogramming the boundaries.
 ### The part reads back `0xDA` and will not respond
 
 **No recovery is known.** Two EK-RA6M4 boards were lost this way on
-2026-07-21. The coalesced segment wrote `0x00` into eight defined option registers - DUALSEL,
+The coalesced segment wrote `0x00` into eight defined option registers - DUALSEL,
 OFS1, BANKSEL, BPS, PBPS, BANKSEL_SEC, BPS_SEC, PBPS_SEC - and into the reserved bytes between
 them ([D133]). Which of the eight killed the boards is not established. Post-brick readback
 gave `DLMMON = 0x2` = SSD, an open state, not a DLM lock.
@@ -38,7 +38,7 @@ so an empty inspection reports as a failure rather than a pass.
 - One `MEMORY` region per option word, never a shared span.
 - `readelf -l` on the linked ELF is the only place the coalescing is visible. The pre-flash
   checklist in [GETTING_STARTED.md](GETTING_STARTED.md) §6 "Pre-flash verification" runs it. (`MACHINE_HANDOFF.md`
-  was deleted 2026-10-09; `check_docs.py` does not catch a backticked filename.)
+  has been deleted; `check_docs.py` does not catch a backticked filename.)
 - `check_ofs.py` requires its region and BL2 passes `--require-segments`, so an empty
   result fails rather than reading as a pass.
 
@@ -177,7 +177,7 @@ after them is placed beyond the veneers.
 
 This is the slot overflowing, after a clean link: the signed image carries a ~275 B imgtool TLV
 block and a 16-byte trailer on top of the raw image, and the slot must hold all of it. True spare
-is 1,693 B on RA6M5 and 670 B on RA8M2 — see [README.md](README.md) §"Freeing space in the secure
+is 1,693 B on RA6M5 and 670 B on RA8M2 — see [CONFIGURATION.md](CONFIGURATION.md) §6 for the secure
 image" for what to turn off, and [D087] for why the older, larger figures were wrong.
 
 ### ``undefined symbol `Image$ARM_LIB_STACK$ZI$Base` `` — with single `$`
@@ -272,7 +272,7 @@ symbol is absent, which is expected rather than broken.
 It does not follow. With `component_cnt == 0` under the default
 `ATTEST_TOKEN_PROFILE_PSA_IOT_1`, `attest_add_all_sw_components()` emits
 `IAT_NO_SW_COMPONENTS` and returns success. The suite passes whether or not measured boot
-is enabled, and every attestation pass recorded before 2026-10-02 was on a token with no
+is enabled, and the earlier attestation passes were on tokens with no
 measurements.
 
 Verify by reading the boot record at the start of secure RAM instead: look for

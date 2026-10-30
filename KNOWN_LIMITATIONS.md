@@ -145,7 +145,7 @@ images afterwards. [RECONFIGURING_THE_LAYOUT.md](RECONFIGURING_THE_LAYOUT.md) is
 
 RA6M5 has about 1.7 KB spare and RA8M2 about 0.7 KB, measured against the signed payload rather
 than the raw image. Enabling a diagnostic option that costs a few kilobytes will fail to link.
-[README.md](README.md) §"Freeing space in the secure image" gives the measured cost of each.
+[CONFIGURATION.md](CONFIGURATION.md) §6 gives the measured cost of each.
 
 ---
 
