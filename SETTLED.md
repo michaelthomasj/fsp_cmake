@@ -6,10 +6,10 @@
 
 | | |
 |---|---|
-| Entries | **144** |
-| Standing | **131** |
+| Entries | **145** |
+| Standing | **132** |
 | Superseded | **13** |
-| Standing but corrected on some point | **36** |
+| Standing but corrected on some point | **37** |
 | Standing, but the question they left open is closed | **3** |
 | Supersede lineages | **10** |
 
@@ -34,7 +34,7 @@ A later entry **supersedes** an earlier one: same question, newer answer. Citing
 
 ---
 
-## Standing (131)
+## Standing (132)
 
 Nothing supersedes these. The title is the position. Where a later entry corrects one, the correction is named - the entry stands apart from that. **Where the Closed by column is filled, read the status as historical:** the entry describes a problem that a later entry shut, so its own "Open" or "Provisional" is no longer true.
 
@@ -166,11 +166,12 @@ Nothing supersedes these. The title is the position. Where a later entry correct
 | `D137` | 2026-10-26 | what ships to a customer: RA6M4 and the working material leave the branch, RA6E1 and the brick evidence stay | Accepted | — | — |
 | `D138` | 2026-10-26 | the RA6M4 platform leaves the TF-M tree too; the brick record keeps its subject and loses only its path | Accepted | — | — |
 | `D139` | 2026-10-26 | three delivery questions answered: RA6E1 ships, the `CMSE_NONSECURE` fallback is removed, the base stays TF-Mv2.2.0 | Accepted | — | — |
-| `D140` | 2026-10-26 | the e2 baseline ships inside the deliverable, not as a branch beside it | Accepted | — | — |
+| `D140` | 2026-10-26 | the e2 baseline ships inside the deliverable, not as a branch beside it | Accepted | `D145` | — |
 | `D141` | 2026-10-27 | the test record becomes a document; four claims are weaker than their wording, and one result has no entry behind it | Accepted | — | — |
 | `D142` | 2026-10-29 | the PSA Arch tree ships as a fork with the patches committed, which closes D014's reproduction gap | Accepted | — | — |
 | `D143` | 2026-10-29 | the deliverable repository moves into the Renesas organisation; the scripts stop depending on its directory name; the rename waits on admin | Accepted | — | — |
 | `D144` | 2026-10-29 | the application chain gets its fourth script and its first RA8M2 launches; the pre-flash check becomes per part and works under IAR | Accepted | — | — |
+| `D145` | 2026-10-29 | `.secure_azone` is generated from the solution, not read as input; [D140]'s mechanism claim was wrong | Accepted | — | — |
 
 ---
 

@@ -8010,3 +8010,38 @@ option-setting sections had been removed from all TF-M images, "per the project 
 BL2 never link OFS". That is [D001], superseded by [D002]: emission was restored with one `MEMORY`
 region per word. The rewrite states the mechanism, keeps that which of the eight registers did it
 is not established, and keeps the `FAWMON`/`FSPR` warning from [D094].
+
+## D145 — `.secure_azone` is generated from the solution, not read as input; [D140]'s mechanism claim was wrong
+
+**Date:** 2026-10-29 · **Status:** Accepted · **Corrects:** [D140] · **Evidence:** a RASC regenerate of the RA6M5 GCC solution, plus the committed and working-tree state of all three `.secure_azone` files
+
+**What [D140] said.** Recording the `UNUSED_SCRAtTCH` typo, it concluded that regeneration had
+not propagated the `solution.xml` correction because "`.secure_azone` is an input RASC reads
+rather than output it writes from `solution.xml`". **That is the wrong way round.** Regenerating
+the solution rewrites each project's `.secure_azone` from it. [D140] stands in every other
+respect; only this sentence is withdrawn.
+
+**What the tree shows.** `ra6m5_gcc/solution.xml` has carried the correct `UNUSED_SCRATCH` since
+`126d09d`, and at the commit [D140] describes all three `.secure_azone` files carried the typo.
+After regenerating, the two projects that were regenerated hold the corrected name and the one
+that was not still holds the typo:
+
+| Project | `.secure_azone` occurrences | State |
+|---|---|---|
+| `ra6m5_gcc_secure` | 1 | corrected |
+| `ra6m5_gcc_nonsecure` | 2 | corrected, both |
+| `ra6m5_gcc_mcuboot` | 1 | typo, not regenerated |
+
+Each file is internally consistent, which is what a generator produces; a hand edit is what would
+leave one of the two occurrences in the non-secure file behind.
+
+**Consequence for the typo.** It is fixed by regenerating the bootloader project, not by editing
+`.secure_azone`. An edit there is overwritten by the next regenerate, which is the general rule
+for generated files in this repository and the reason `DESIGN.md` §1 states it. The name still
+reaches `bsp_linker_info.h`, `memory_regions.ld` and `fsp_gen.ld` under `Debug/`, which is not
+tracked, and nothing reads either macro, so no image changes either way.
+
+**Consequence for the baseline comparison.** [D140]'s six comparisons are unaffected: they
+compare committed content on both sides, and the direction of generation does not change what the
+diffs say. What changes is how a reader acts on a difference found in a `.secure_azone` — the fix
+belongs in `solution.xml` followed by a regenerate, never in the file the diff names.

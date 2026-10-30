@@ -194,6 +194,7 @@
           <li><a href="#d142">D142 — the PSA Arch tree ships as a fork with the patches committed, which closes D014&#x27;s reproduction gap</a></li>
           <li><a href="#d143">D143 — the deliverable repository moves into the Renesas organisation; the scripts stop depending on its directory name; the rename waits on admin</a></li>
           <li><a href="#d144">D144 — the application chain gets its fourth script and its first RA8M2 launches; the pre-flash check becomes per part and works under IAR</a></li>
+          <li><a href="#d145">D145 — .secure_azone is generated from the solution, not read as input; [D140]&#x27;s mechanism claim was wrong</a></li>
         </ol>
       </li>
     </ol>
@@ -6397,6 +6398,34 @@ option-setting sections had been removed from all TF-M images, &quot;per the pro
 BL2 never link OFS&quot;. That is <a href="DECISIONS.html#d001">D001</a>, superseded by <a href="DECISIONS.html#d002">D002</a>: emission was restored with one <code>MEMORY</code>
 region per word. The rewrite states the mechanism, keeps that which of the eight registers did it
 is not established, and keeps the <code>FAWMON</code>/<code>FSPR</code> warning from <a href="DECISIONS.html#d094">D094</a>.</p>
+<h2 id="d145">D145 — <code>.secure_azone</code> is generated from the solution, not read as input; <a href="DECISIONS.html#d140">D140</a>&#x27;s mechanism claim was wrong</h2>
+<p><strong>Date:</strong> 2026-10-29 · <strong>Status:</strong> Accepted · <strong>Corrects:</strong> <a href="DECISIONS.html#d140">D140</a> · <strong>Evidence:</strong> a RASC regenerate of the RA6M5 GCC solution, plus the committed and working-tree state of all three <code>.secure_azone</code> files</p>
+<p><strong>What <a href="DECISIONS.html#d140">D140</a> said.</strong> Recording the <code>UNUSED_SCRAtTCH</code> typo, it concluded that regeneration had
+not propagated the <code>solution.xml</code> correction because &quot;<code>.secure_azone</code> is an input RASC reads
+rather than output it writes from <code>solution.xml</code>&quot;. <strong>That is the wrong way round.</strong> Regenerating
+the solution rewrites each project&#x27;s <code>.secure_azone</code> from it. <a href="DECISIONS.html#d140">D140</a> stands in every other
+respect; only this sentence is withdrawn.</p>
+<p><strong>What the tree shows.</strong> <code>ra6m5_gcc/solution.xml</code> has carried the correct <code>UNUSED_SCRATCH</code> since
+<code>126d09d</code>, and at the commit <a href="DECISIONS.html#d140">D140</a> describes all three <code>.secure_azone</code> files carried the typo.
+After regenerating, the two projects that were regenerated hold the corrected name and the one
+that was not still holds the typo:</p>
+<div class="table-wrap"><table>
+<tr><th>Project</th><th><code>.secure_azone</code> occurrences</th><th>State</th></tr>
+<tr><td><code>ra6m5_gcc_secure</code></td><td>1</td><td>corrected</td></tr>
+<tr><td><code>ra6m5_gcc_nonsecure</code></td><td>2</td><td>corrected, both</td></tr>
+<tr><td><code>ra6m5_gcc_mcuboot</code></td><td>1</td><td>typo, not regenerated</td></tr>
+</table></div>
+<p>Each file is internally consistent, which is what a generator produces; a hand edit is what would
+leave one of the two occurrences in the non-secure file behind.</p>
+<p><strong>Consequence for the typo.</strong> It is fixed by regenerating the bootloader project, not by editing
+<code>.secure_azone</code>. An edit there is overwritten by the next regenerate, which is the general rule
+for generated files in this repository and the reason <code>DESIGN.md</code> §1 states it. The name still
+reaches <code>bsp_linker_info.h</code>, <code>memory_regions.ld</code> and <code>fsp_gen.ld</code> under <code>Debug/</code>, which is not
+tracked, and nothing reads either macro, so no image changes either way.</p>
+<p><strong>Consequence for the baseline comparison.</strong> <a href="DECISIONS.html#d140">D140</a>&#x27;s six comparisons are unaffected: they
+compare committed content on both sides, and the direction of generation does not change what the
+diffs say. What changes is how a reader acts on a difference found in a <code>.secure_azone</code> — the fix
+belongs in <code>solution.xml</code> followed by a regenerate, never in the file the diff names.</p>
 </main>
 </div>
 </body>
