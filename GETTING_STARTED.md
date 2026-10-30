@@ -58,15 +58,20 @@ git clone https://git.trustedfirmware.org/TF-M/tf-m-tests.git
 git clone https://github.com/renesas/psa-arch-tests.git
 ```
 
-Check out the revisions the results were produced on. A release tag, once cut, replaces the
-two branch names:
+Check out the revisions the results were produced on. **Do not work from the default
+branches**: `trusted-firmware-m` defaults to `add-ra6m4-support`, which carries no RA6M5 or
+RA8M2 port.
 
 ```bat
-cd trusted-firmware-m && git checkout ra8m2_gen_6_7_TFM     && cd ..
-cd ra_fsp_cmake_tfm   && git checkout ra8m2_gen_6_7_TFM     && cd ..
+cd trusted-firmware-m && git checkout v0.1.0-beta.1         && cd ..
+cd ra_fsp_cmake_tfm   && git checkout v0.1.0-beta.1         && cd ..
 cd tf-m-tests         && git checkout e0a433c               && cd ..
 cd psa-arch-tests     && git checkout renesas-ra-tfm-2.2.0  && cd ..
 ```
+
+The port's two repositories carry the same tag, so they move together. The two test
+repositories are pinned rather than tagged: neither is released by this port, and those are the
+revisions [TEST_RESULTS.md](TEST_RESULTS.md) was measured against.
 
 Use the Renesas `psa-arch-tests` fork at that tag: upstream lacks the `renesas_ra` target and the
 patches the results depend on.
