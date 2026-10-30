@@ -49,8 +49,8 @@ from Initialize is real but is not explained by anything in this list.
 
 **Do not read `FAWMON` or `FSPR` on an RA6M4.** The part does not implement the Flash Access
 Window (`BSP_FEATURE_FLASH_SUPPORTS_ACCESS_WINDOW = 0`), so those addresses hold no such
-`FBPROT0` and `FBPROT1` are write-only cancel bits that always read `0`, so they say nothing
-either.
+register, and whatever they return is meaningless. `FBPROT0` and `FBPROT1` are write-only
+cancel bits that always read `0`, so they say nothing either.
 
 On RA6M4, prefer the e2 studio or RFP flashing path, and read the state back after any option or
 protection programming.

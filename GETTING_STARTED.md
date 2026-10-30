@@ -87,14 +87,21 @@ Regenerating is not enough: build the projects in e2 studio, which writes these 
 (the standalone Smart Configurator does not). This prerequisite is planned to go;
 [KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md) §7.
 
-1. In e2 studio, `File → Import → Existing Projects into Workspace`; select your part's solution
-   folder (not the repository root, which also holds `e2_baseline/` projects with the same names)
-   and import all sub-projects:
+1. In e2 studio, `File → Import → Existing Projects into Workspace`, and select the
+   **repository root**. The solution folders hold only `solution.xml`; the projects themselves
+   are siblings of them. Tick your part's solution and its three sub-projects, and **untick
+   everything under `e2_baseline/`** — those carry the same project names and e2 will not
+   import both.
 
-   | Part | GNU solution | IAR solution |
-   |---|---|---|
-   | RA8M2 | `ra8m2_gcc` | `ra8m2_iar` |
-   | RA6M5 | `ra6m5_gcc` | `ra6m5_iar` |
+   | Part | GNU solution | Sub-projects | IAR solution |
+   |---|---|---|---|
+   | RA8M2 | `ra8m2_gcc` | `ra8m2_gcc_mcuboot`, `ra8m2_gcc_CPU0_secure`, `ra8m2_gcc_CPU0_nonsecure` | `ra8m2_iar` |
+   | RA6M5 | `ra6m5_gcc` | `ra6m5_gcc_mcuboot`, `ra6m5_gcc_secure`, `ra6m5_gcc_nonsecure` | `ra6m5_iar` |
+
+   **Import and build the GNU solution even if you build with IAR.** Every debug launch lives
+   in a GNU project — 19 in `ra6m5_gcc_nonsecure/`, 17 in `ra8m2_gcc_mcuboot/`, none in an IAR
+   project — and the RA6M5 launches load their debug symbols from
+   `ra6m5_gcc_nonsecure/Debug/ra6m5_gcc_nonsecure.elf`.
 
 2. Build each sub-project (`Project → Build All`). Ignore the resulting `.elf` files; only the
    generated headers matter here.
@@ -161,6 +168,9 @@ Manager (e2 studio, `Run → Renesas Debug Tools`). Enter the six per-part value
 |---|---|
 | RA6M5 | [RA6M5_SOLUTION.md](RA6M5_SOLUTION.md) |
 | RA8M2 | [RA8M2_SOLUTION.md](RA8M2_SOLUTION.md) |
+
+The part must be in the SSD lifecycle state for RDPM to write the boundaries; a part in a
+locked state refuses, and the recovery is a lifecycle transition rather than a retry.
 
 **RDPM erases both code flash and data flash.** Reflash all three images afterwards. The step
 repeats only if you change the layout, which is

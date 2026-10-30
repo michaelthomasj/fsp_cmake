@@ -112,10 +112,10 @@ module build and its Mbed TLS config, not the FSP crypto code. The `*_ALT` sourc
 `platform/ext/accelerator/renesas/<engine>` and the library from the Mbed TLS overlay, so §4
 and §5 treat those sources as part of the image, which is correct.
 
-The SCE module is not shadowed at all: it is built for the secure and bootloader roles, and is
-removed only from the non-secure glob, which is a different image.
-[ADDING_FSP_MODULES.md](ADDING_FSP_MODULES.md) §2 sets the three exclusion mechanisms side by
-side; they are easy to confuse, and only two of them exclude anything.
+The SCE module is not shadowed at all: it is built for the secure and bootloader roles, and the
+non-secure image globs it like any other. Of the three mechanisms that look like exclusions,
+only one excludes anything — omitting a module from `FSP_MODULES_S` / `_BL2`
+([ADDING_FSP_MODULES.md](ADDING_FSP_MODULES.md) §2).
 
 ---
 

@@ -96,8 +96,9 @@ Set `IAR_BIN` to your EWARM `arm\bin` directory before running the scripts
 
 ### `C1083: Cannot open include file: 'stdio.h'` (PSA Arch builds)
 
-Run PSA Arch builds through `scripts\vs_build.bat`, which sets up the Visual Studio environment.
-A `'vswhere.exe' is not recognized` message from it is harmless.
+Set `MSVC_VARS` to your `vcvars64.bat`; the PSA Arch scripts load the Visual Studio environment
+themselves ([GETTING_STARTED.md](GETTING_STARTED.md) §2). A `'vswhere.exe' is not recognized`
+message is harmless. `scripts\vs_build.bat <dir>` rebuilds an existing PSA Arch tree by hand.
 
 ### An option you set appears to have no effect
 

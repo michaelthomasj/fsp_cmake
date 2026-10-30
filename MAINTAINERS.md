@@ -44,6 +44,21 @@ refuses to write a launch that still names a GCC tree or the GCC project, or tha
 reproduces what is on disk, which is how a hand edit gets folded back in rather than lost.
 ---
 
+## Packaging a release archive
+
+`docs/learning/ref/` is generated and not committed, and 71 course links resolve into it, so
+the archive has to carry it. From a clean clone of the tag:
+
+```sh
+python scripts/build_doc_html.py          # writes docs/learning/ref/
+python scripts/check_docs.py --clean-clone
+git archive --prefix=ra_fsp_cmake_tfm/ -o ../release.tar HEAD
+tar -rf ../release.tar --transform 's,^,ra_fsp_cmake_tfm/,' docs/learning/ref
+```
+
+Build `ref/` from a clean clone rather than a working tree, so a withheld document cannot be
+rendered into the archive. `build_doc_html.py --check` fails if any page is stale.
+
 ## Documentation checks — maintainer tooling
 
 ```sh

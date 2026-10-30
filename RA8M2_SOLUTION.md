@@ -116,8 +116,10 @@ the `ra8m2_iar_*` equivalents. The
 | `*_CPU0_secure`, `*_mcuboot` | `BSP_CFG_EARLY_INIT` = 1 (not the NS projects — both have 0 and pass every suite; the port asserts it only for secure and BL2) |
 | all | the partitioning above, with `__BL_*_T` sizes 0 |
 
-After any repartition, read `Debug/bsp_linker_info.h` back and check that `__BL_0_P_H_START`
-equals `__BL_0_S_T_START`; the generator has emitted them out of order before.
+After any repartition, read `FLASH_AREA_0P`'s `.fa_size` out of `Debug/bsp_linker_info.h`: a
+512-byte secure primary slot means the generator emitted the partitions out of order. **Do not
+compare `__BL_0_P_H_START` with `__BL_0_S_T_START`** — they coincide in the broken layout and
+the correct one ([TROUBLESHOOTING.md](TROUBLESHOOTING.md)).
 
 ### MRAM's MRCPFB must stay Secure (`BSP_TZ_CFG_MSAR`)
 
@@ -164,7 +166,7 @@ Supported under both toolchains. [TEST_RESULTS.md](TEST_RESULTS.md) is the singl
 what has run on this part and what has not, including the one PSA Arch crypto failure and the
 skips. Sizes at MinSizeRel (`text` for bl2 and tfm_ns; flash LOAD bytes in the region for tfm_s):
 
-| Image | text | Region | Headroom |
+| Image | Used | Region | Headroom |
 |---|---|---|---|
 | bl2 | 27,100 B | `0x10000` (64 KB) | 58% free |
 | tfm_s | 216,936 B | `0x47A00` (293,376 B) | 76,440 B |

@@ -5,7 +5,7 @@ port itself is in `trusted-firmware-m` under `platform/ext/target/renesas/<part>
 
 | | |
 |---|---|
-| Parts | RA6M5 and RA8M2. RA6E1 is present for reference only and is not maintained against the current build |
+| Parts | RA6M5 and RA8M2 (single-core; RA8M2's CPU1 is unused). RA6E1 is present for reference only and is not maintained against the current build |
 | FSP | 6.7.0-beta0 |
 | Toolchains | Arm GNU 13.2, IAR EWARM 10.10.2 |
 | TF-M base | v2.2.0 |
