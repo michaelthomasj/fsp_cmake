@@ -77,6 +77,22 @@ recorded the token still verifies. Confirm by reading the boot record
 
 ---
 
+### The generated MCUboot tree ships MCUboot's test keys
+
+Each bootloader project carries `ra/mcu-tools/MCUboot/`, which RASC generates, and that tree
+includes MCUboot's own published test keys - `root-ec-p256.pem`, `root-rsa-2048.pem`,
+`enc-*-priv.pem` and the `root-mldsa-*.pem` set, 12 files per project. They are upstream
+MCUboot's, not generated here, and they are byte-identical across the five bootloader
+projects.
+
+**Nothing in this port uses them.** No build file references one, and `rm_mcuboot_port` is not
+built ([DESIGN.md](DESIGN.md) §5). Signing uses `MCUBOOT_KEY_S` and `MCUBOOT_KEY_NS`, and BL2
+verifies against the arrays in `bl2/ext/mcuboot/keys.c` ([DESIGN.md](DESIGN.md) §13.1). A
+secret scanner will flag them because they are private keys in a public repository; they
+disclose nothing, because they are already published upstream.
+
+---
+
 ## 4. Open hazards
 
 ### Never build `bl2_bin` on its own
@@ -108,9 +124,9 @@ after a result line is the capture, not a hang.
 `ra8m2_TFM_app_{gcc,iar}`. Every other launch flashes its own tree under `C:\b`, not your
 build, so running an application build and then one of those flashes different images or
 fails on missing files ([GETTING_STARTED.md](GETTING_STARTED.md) §6). RA6M5 launches take debug symbols from the e2
-project's `Debug/ra6m5_gcc_nonsecure.elf`, not the flashed image. Most launches also record
-paths from the author's machine: 44 of the 47 carry an `ioFilePath` for the I/O-register view
-and 27 a source-lookup directory. Neither affects what is flashed.
+project's `Debug/ra6m5_gcc_nonsecure.elf`, not the flashed image. The launches carry no
+absolute paths of their own: e2 writes the I/O-register file and the source-lookup directory
+on first debug, so a launch works on any machine without editing.
 
 ---
 
