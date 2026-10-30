@@ -8372,3 +8372,71 @@ register-view SVD inside the user's Eclipse plugin directory, and the source-loo
 `directory nest` entry. **e2 studio writes both itself and neither decides what is flashed**,
 and nothing here can produce a portable value for either. They remain in 44 and 19 launches
 respectively; a reader should know that rather than find it.
+
+## D153 — the second review pass: nine wrong statements, a renderer that would have shipped withheld documents, and the limits of the checks
+
+**Date:** 2026-10-29 · **Status:** Accepted · **Builds on:** [D146], [D147], [D151], [D152] · **Evidence:** every item verified against the trees before the edit; the module-list claims read off `ra6m5/CMakeLists.txt`, the `imgtool` option off `imgtool.py getpub --help`
+
+**Context.** A second review re-checked all 287 findings of the first pass and raised 49 more.
+20 of the 26 original blockers are closed. One new blocker is [D152]. The rest of what it found
+divides into things no checker could see and things a checker could have.
+
+**The renderer would have shipped the withheld documents.** `build_doc_html.py` built its source
+list with `os.listdir`, and [D146] left the five withheld documents *on disk* by design — so the
+lister found every one and rendered it into `ref/`. A release archive built from this tree would
+have carried the maintainer material the repository deliberately does not track. It takes the
+list from `git ls-files` now, and regenerating removed those five pages. **The withholding
+mechanism and the packaging step disagreed, and nothing connected them**: `.gitignore` is not a
+list the renderer ever consulted.
+
+**The course's `ref/` links are dead in a fresh clone**, which [D146] accepted and understated:
+163 links, and the course README still said "no build step". It now opens with the one command
+and says a release archive should carry `ref/` built from a clean checkout — clean so that only
+tracked documents are in it.
+
+**Five promises pointed at content that did not exist.** `README` item 6 and `DESIGN` §13.6 both
+said `CONFIGURATION.md` describes a release build; it had no such section. `DESIGN` §13 claimed
+its numbering matched README's eight security items and had seven. `GETTING_STARTED`, the one
+document a customer follows end to end, never mentioned the security status at all. `DESIGN`
+§13.1 said "regenerate `keys.c`" and gave no command.
+
+Each is now written: `CONFIGURATION.md` §9 is the release-build option list, `DESIGN` §13.8 is
+the TF-M base item, `GETTING_STARTED` opens with the hazard, and §13.1 gives
+`imgtool getpub --encoding lang-c` — plus the fact that **`MCUBOOT_GENERATE_SIGNING_KEYPAIR=ON`
+does not do the verification step**: it writes new private keys and leaves the array in `keys.c`
+alone, so a build with that flag set signs with a new key and verifies against the sample one.
+The alternative route, `PLATFORM_DEFAULT_ROTPK=OFF`, keeps the arrays out of common TF-M code
+entirely and is the one to prefer.
+
+**Nine statements were wrong on a path a customer acts on.** Four were mine from this session.
+
+| Document | Said | Is |
+|---|---|---|
+| `ADDING_FSP_MODULES.md` §1 | nothing reaches an image without a module file | true of the secure image and BL2; **the non-secure image globs every e2 module automatically**, and the README routes customers to this page |
+| `E2_PROJECT_REQUIREMENTS.md` §4 | the bootloader takes `bsp` and `flash`; only the TRNG comes from the SCE module | BL2 also takes `sce` whenever `CRYPTO_HW_ACCELERATOR` is on, which is the default, and the cipher, hash and ECC `*_ALT` paths are live with it |
+| four documents | `FSP_MODULES_NEVER_BUILT` excludes modules | **it excludes nothing**; it only quiets the unclaimed-module audit. `FSP_EXCLUDED_MODULES` removes directories from the non-secure glob, and the secure and bootloader images simply do not list what they do not want |
+| `DESIGN.md` §8.4 | the RA6M5 guard limit is `--max-word 0xC`, raise it to `0x10` when needed | the build has passed `0x10` since the script was written |
+| `RA6M5_SOLUTION.md` | a cherry-pick TODO for `39e0597` | already on HEAD, verified with `merge-base --is-ancestor` |
+| both part guides | five RA8M2 launches still carry an armed probe key | [D147] disarmed them; those two guides were not updated with the other two documents |
+| `KNOWN_LIMITATIONS.md` §5 | fifteen RA8M2 launches | seventeen, since [D144] added two |
+| `TROUBLESHOOTING.md` | "lost this way on" | a sentence [D149]'s de-dating pass cut in half |
+| the course | the MPU table was "the level-1 one"; one `MEMORY` region per option *word* | with the macro undefined, `== 1` is false too, so the `#else` arm ran and de-privileged every ARoT partition; and the rule is one region per option *group*, which can be wider than a word |
+
+**Packaging.** 16 `.pyc` files inside the generated FSP MCUboot tree and `.vscode/settings.json`
+were tracked by accident and are now ignored. The three `bl2_BRICKED` images carry the `.UNSAFE`
+suffix `check_ofs.py --quarantine` already uses, so **nothing in the archive is a flashable
+image that destroys a part**.
+
+**What the checks still cannot see**, which is the useful part of this pass. [D147] and [D151]
+added nine checks and they caught none of the above. `.launch` files were unchecked, which is
+[D152]. The nine wrong statements are all semantic: no checker reads a sentence about a CMake
+variable and compares it with the CMake. The §-citation check from [D151] does resolve
+`FILE.md §6`, but four of the five dangling promises were **prose** — "CONFIGURATION describes
+a release build" names no section, so nothing could resolve it. A checker can confirm that a
+reference points somewhere; only a reader can confirm it points at the right thing.
+
+**Three items are the owner's, not this log's.** A `LICENSE` and third-party `NOTICE` for
+`fsp_cmake` — a licensing decision for Renesas, not one to guess at in a customer deliverable;
+a release tag in both repositories, with `GETTING_STARTED.md` §3 then cloning the tag rather than
+the working branch; and discarding the uncommitted e2 project state, which the permission
+boundary here refuses and which is the right boundary for a destructive local action.
