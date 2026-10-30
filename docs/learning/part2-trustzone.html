@@ -186,31 +186,18 @@ Non-secure <em>alias</em>, so it has to enable the SAU itself:</p>
 (<code>bl2_boot_hal.c:40-43</code>). History: <a href="ref/DECISIONS.html#d073">D073</a>–<a href="ref/DECISIONS.html#d076">D076</a>, <a href="ref/DECISIONS.html#d079">D079</a>, <a href="ref/DECISIONS.html#d091">D091</a>.</p>
 
 <div class="note" id="target-cfg-comment">
-<p><strong>A comment that denied the IDAU existed.</strong> Until TF-M commit <code>b1b9078ff</code>,
-<code>sau_and_idau_cfg()</code> in <code>ra6m5/target_cfg.c</code> — and its copies in ra6m4 and ra6e1 — read:</p>
-<pre><code>void sau_and_idau_cfg(void)
-{
-    /* SAU configuration is handled by TF-M's common ARMv8-M isolation framework */
-    /* The framework will configure SAU based on region_defs.h and memory_regions */
-
-    /* RA6M5 doesn't have IDAU - security attribution is done entirely via SAU */
-}</code></pre>
-<p>All three statements were wrong. TF-M's shared isolation HAL does not program the SAU — it calls this function
-(<code>tfm_hal_isolation_v8m.c:275</code>). On RA6M5 it is the <em>SAU</em> that has no regions; attribution is done
-entirely by the IDAU. The <code>mpc_init_cfg()</code>/<code>ppc_init_cfg()</code> comments repeated the error, and
-<code>ra8m2/bl2_boot_hal.c</code> in the same tree already said the opposite. The function stays empty; its
-comment now explains why (<code>ra6m5/target_cfg.c:36-63</code>; <a href="ref/DECISIONS.html#d117">D117</a> §3).</p>
-<p>The first replacement still overstated by one word. It, <a href="ref/DECISIONS.html#d117">D117</a> §3 and
-<code>ra8m2/bl2_boot_hal.c:45</code> said RA6M5 has "no SAU at all". It has an SAU with <em>no regions</em>: FSP writes
-<code>SAU-&gt;CTRL = SAU_CTRL_ALLNS_Msk</code> on this part (<code>bsp_security.c:277</code>), which would be impossible
-without one. And the IDAU decides only <em>because</em> of that write: at reset, ALLNS 0 with the SAU disabled makes
-every address Secure. TF-M <code>c75693277</code> and <code>f1d31a404</code> (<a href="ref/DECISIONS.html#d126">D126</a> §6) corrected
-<code>sau_and_idau_cfg()</code> and the <code>mpc_init_cfg()</code>/<code>ppc_init_cfg()</code> comments on all three RA6
-ports (<code>ra6m5/target_cfg.c:41-55</code>, <code>:67-68</code>, <code>:74-75</code>), and
-<code>ra8m2/bl2_boot_hal.c:45-47</code>.</p>
-<p>Why it survived through a working port: the function is a no-op on these parts whichever way the comment reads. A
-wrong statement about a part's security architecture has no runtime symptom — and is the kind that gets
-believed.</p>
+<p><strong>What attributes memory on an RA6 part, and a comment that said the opposite.</strong>
+<code>sau_and_idau_cfg()</code> in <code>ra6m5/target_cfg.c</code> is empty, and for a while its comment explained
+that by saying the shared TF-M framework programs the SAU and that the part has no IDAU. Both statements are the
+wrong way round: the shared isolation HAL does not program the SAU — it <em>calls</em> this function
+(<code>tfm_hal_isolation_v8m.c:275</code>) — and on this part it is the <em>SAU</em> that has no regions, with
+attribution done entirely by the IDAU.</p>
+<p>The IDAU decides only because of one write. FSP sets <code>SAU-&gt;CTRL = SAU_CTRL_ALLNS_Msk</code>
+(<code>bsp_security.c:277</code>), which is also why "the part has no SAU" is too strong: it has one, with no
+regions. At reset, <code>ALLNS</code> clear with the SAU disabled makes every address Secure.</p>
+<p><strong>Why a wrong comment survived a working port: the function is a no-op on these parts whichever way the
+comment reads.</strong> A false statement about a part's security architecture has no runtime symptom, which makes it
+the kind that gets believed.</p>
 </div>
 
 <h3>The IDAU on RA: boundary registers</h3>

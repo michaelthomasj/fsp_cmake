@@ -99,8 +99,7 @@ draw a wrong conclusion, so every substantive claim carries a tag:</p>
 <tr><td>Board / device</td><td>CK-RA6M5 V2, R7FA6M5BH3CFC</td><td>EK-RA8M2, R7KA8M2JF</td><td><a href="ref/RA6M5_SOLUTION.html">RA6M5_SOLUTION.md</a>, <a href="ref/RA8M2_SOLUTION.html">RA8M2_SOLUTION.md</a></td></tr>
 <tr><td>Code memory</td><td>2 MB flash at <code>0x00000000</code></td><td>1 MB MRAM, secure alias <code>0x02000000</code>, non-secure <code>0x12000000</code></td><td>sizes: the solution docs and <code>BSP_ROM_SIZE_BYTES</code>; aliases: <a href="ref/DESIGN.html#s7">DESIGN.md</a> §7</td></tr>
 <tr><td>SRAM</td><td>512 KB at <code>0x20000000</code></td><td>1,872 KB; secure alias <code>0x22000000</code>, non-secure <code>0x32000000</code>
-  (<code>BSP_RAM_SIZE_BYTES (1916928)</code>, <code>ra8m2_gcc_CPU0_secure/ra_cfg/fsp_cfg/bsp/bsp_mcu_device_pn_cfg.h:9</code>;
-  RA8M2_SOLUTION.md said 1 MB until corrected)</td><td><a href="ref/RA6M5_SOLUTION.html">RA6M5_SOLUTION.md</a>, <a href="ref/RA8M2_SOLUTION.html">RA8M2_SOLUTION.md</a></td></tr>
+  (<code>BSP_RAM_SIZE_BYTES (1916928)</code>, <code>ra8m2_gcc_CPU0_secure/ra_cfg/fsp_cfg/bsp/bsp_mcu_device_pn_cfg.h:9</code>)</td><td><a href="ref/RA6M5_SOLUTION.html">RA6M5_SOLUTION.md</a>, <a href="ref/RA8M2_SOLUTION.html">RA8M2_SOLUTION.md</a></td></tr>
 <tr><td>NVIC priority bits</td><td>4 (16 levels)</td><td>4</td><td><code>__NVIC_PRIO_BITS</code>, device headers line 40</td></tr>
 <tr><td>MPU regions</td><td>8, measured from <code>MPU-&gt;TYPE</code></td><td>8, measured</td><td><a href="ref/DECISIONS.html#d113">D113</a> (RA6M5), <a href="ref/DECISIONS.html#d115">D115</a> (RA8M2)</td></tr>
 <tr><td><code>__SAUREGION_PRESENT</code></td><td>0</td><td>1</td><td><code>R7FA6M5BH.h:47</code>, <code>R7KA8M2JF_core0.h:49</code></td></tr>
@@ -119,13 +118,13 @@ appears where it differs, chiefly in Part 2.</p>
     one, so the log reads as history. For what stands now, use <a href="ref/SETTLED.html">SETTLED.md</a> (generated from
     the log: per thread, the entry that stands) and the hand-written
     <a href="ref/DECISIONS.html#settled-questions">Settled questions</a> table at the top of the log. The
-    <a href="glossary.html#decisions">glossary</a> gives the standing of every entry this course cites.</li>
+    <a href="ref/SETTLED.html">SETTLED.md</a> gives the standing of every entry.</li>
   <li>Every link to a repository document opens an HTML rendering of it under <a href="ref/index.html"><code>ref/</code></a>,
     regenerated from the Markdown on each commit. A decision number such as <a href="ref/DECISIONS.html#d113">D113</a> links straight to its entry; "DESIGN.md
     §8.4" links to that section.</li>
   <li><code>tfm_hal_isolation_v8m.c:410</code> — a file in the TF-M checkout at
-    <code>C:\Users\Michael\Documents\GitHub\trusted-firmware-m</code>, under <code>platform/ext/common/</code>
-    unless a fuller path is given. Line numbers are from TF-M commit <code>8b5596397</code> and fsp_cmake <code>fd97308</code> (2026-10-23).
+    the <code>trusted-firmware-m</code> repository, under <code>platform/ext/common/</code>
+    unless a fuller path is given. Line numbers are those of the commit each page was written against and drift with later edits.
     Citations into upstream files the port does not modify drift only on a TF-M uprev; citations into
     <code>platform/ext/target/renesas/</code> can move with any port commit. An FSP update cannot move any TF-M
     citation.</li>
@@ -135,32 +134,6 @@ appears where it differs, chiefly in Part 2.</p>
     <code>ra6m5_gcc_secure/ra/fsp/src/bsp/mcu/all/bsp_security.c:399</code>.</li>
 </ul>
 
-<div class="note">
-<p>The record corrects itself, and that is part of the material. Several statements in this
-repository were found not to match the source and have since been corrected by later log entries. The course keeps
-them as worked examples, in boxes like this one where they come up:</p>
-<ul>
-  <li><a href="ref/DECISIONS.html#d114">D114</a> said <code>TFM_PXN_ENABLE</code> never becomes a compile definition. It does
-    (<code>platform/CMakeLists.txt:126</code>, since 2021). Corrected by <a href="ref/DECISIONS.html#d115">D115</a> and <a href="ref/DECISIONS.html#d117">D117</a> — <a href="part3-tfm.html#pxn">Part 3</a>.</li>
-  <li>Three RA6 ports' <code>target_cfg.c</code> said the part has no IDAU and attributes via the SAU. The reverse is
-    true. Fixed in TF-M <code>b1b9078ff</code>, <a href="ref/DECISIONS.html#d117">D117</a> — <a href="part2-trustzone.html#target-cfg-comment">Part 2</a>.</li>
-  <li><a href="ref/DECISIONS.html#d113">D113</a> said TF-M runs FLIH handlers in Thread mode. Only for an Application-RoT partition above isolation 1.
-    Corrected by <a href="ref/DECISIONS.html#d117">D117</a> — <a href="part3-tfm.html#flih">Part 3</a>.</li>
-  <li><a href="ref/DECISIONS.html#d116">D116</a> closed the L1+IPC boot-order question "by irrelevance, not by analysis". It had an answer. Corrected by
-    <a href="ref/DECISIONS.html#d117">D117</a> — <a href="part1-privilege-mpu-faults.html#dumps">Part 1</a>.</li>
-  <li><a href="ref/DECISIONS.html#d113">D113</a>–<a href="ref/DECISIONS.html#d117">D117</a>, and the first editions of this course, called the missing <code>TFM_ISOLATION_LEVEL</code> an upstream
-    defect on every platform. It is not: every upstream platform compiles the shared HAL in <code>tfm_spm</code>, which
-    always receives the macro; the RA ports compiled it in <code>platform_s</code>, which does not. Measured on an519;
-    corrected by <a href="ref/DECISIONS.html#d120">D120</a>, which withdraws upstream item 15, and fixed by
-    <a href="ref/DECISIONS.html#d121">D121</a>, which moves the HAL to <code>tfm_spm</code> (ra6m4 untouched) — <a href="part3-tfm.html#d113">Part 3</a>.</li>
-  <li><a href="ref/DECISIONS.html#d121">D121</a> said the moved code left the PSA RoT code region. It did not: both linker sections lie inside
-    it, and the region grew by 32 bytes. Corrected by <a href="ref/DECISIONS.html#d125">D125</a> — <a href="part3-tfm.html#d113">Part 3</a>.</li>
-  <li><a href="ref/DECISIONS.html#d115">D115</a> said only L1+IPC could hit the hook link error, because SFN has no call site. SFN does call it.
-    Corrected by <a href="ref/DECISIONS.html#d126">D126</a> — <a href="part3-tfm.html#d113">Part 3</a>.</li>
-</ul>
-<p><a href="ref/DECISIONS.html#d117">D117</a>'s own summary of the pattern: <em>a true observation written down as a more general statement than the
-evidence supported.</em></p>
-</div>
 
 <div class="pager"><span></span><a href="part0-primer.html">Part 0 · The Cortex-M machine →</a></div>
 </main>

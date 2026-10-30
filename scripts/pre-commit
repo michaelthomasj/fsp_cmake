@@ -10,7 +10,7 @@
 # A code-only commit is not delayed.
 
 changed=$(git diff --cached --name-only --diff-filter=ACMRD)
-echo "$changed" | grep -qE '\.md$|\.cmake$|CMakeLists\.txt$|^docs/learning/|^scripts/build_doc_html\.py$|^scripts/build_settled\.py$|^scripts/build_course_glossary\.py$' || exit 0
+echo "$changed" | grep -qE '\.md$|\.cmake$|CMakeLists\.txt$|^docs/learning/|^scripts/build_doc_html\.py$|^scripts/build_settled\.py$' || exit 0
 
 root=$(git rev-parse --show-toplevel)
 

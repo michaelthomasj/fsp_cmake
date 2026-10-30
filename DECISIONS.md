@@ -20,9 +20,8 @@ came to work that way, including the turns that were later reversed.
    reconstructed from. Their dates are the dates of the decision, not of the write-up.
 7. **The metadata line is an index, not the record.** Rules 1 and 4 govern an entry's *prose*,
    which is never edited. The `**Date:** … **Status:** … **Supersedes / Corrects / Closes /
-   Builds on:** …` line is machine-read by `scripts/build_settled.py` and
-   `scripts/build_course_glossary.py` — rule 2 already mutates it — and **may be corrected in
-   place** when it misdescribes a relation. The entry that finds the error states what it
+   Builds on:** …` line is machine-read by `scripts/build_settled.py` — rule 2 already
+   mutates it — and **may be corrected in place** when it misdescribes a relation. The entry that finds the error states what it
    changed. An index that cannot be corrected is one nobody can rely on; see [D128].
 
 Statuses: `Accepted` · `Superseded by Dxxx` · `Provisional` (taken, not yet validated) ·
@@ -8232,3 +8231,52 @@ all three was framing rather than content. Cutting to the number would have dele
 detail to hit a figure. The framing objections are fixed: the submission worklist is now a
 customer inventory, the RA6E1-specific checklist is part-neutral, and the design document no
 longer narrates its own history.
+
+## D150 — the course keeps the mechanisms and loses the diary; the glossary generator goes with the table it served
+
+**Date:** 2026-10-29 · **Status:** Accepted · **Builds on:** [D146], [D148], [D149] · **Evidence:** every internal course link and anchor resolved by script, before and after; word counts measured per page
+
+**Context.** The course is optional background and the last part of the set still written as a
+record of its own making. It carried two local user paths, a post-mortem box listing seven
+statements the project had corrected, a 1,880-word case study that read as a decision log, a
+generated index of every decision the course cites, and a citation pin naming two commits that
+had both moved on.
+
+**What was cut, and what was deliberately kept.** The rule applied throughout: **keep the
+mechanism, drop the narrative of discovering it.**
+
+| Page | Removed | Kept |
+|---|---|---|
+| `part3-tfm.html` §3.8 | the D-number narrative, the per-entry corrections, the run-status bullets, a line correcting its own earlier date | the defect itself, which is worth teaching: a shared source compiled into a target that does not link `psa_interface`, so `#if TFM_ISOLATION_LEVEL` saw an undefined macro and **the preprocessor evaluated it as 0 with no diagnostic**. The nine-platforms-against-one comparison table, and four transferable rules |
+| `part4-porting.html` §4.6–4.8 | 99 lines restating the hazards, the verification gates and the upstream divergence that three repository documents own | one table pointing at each owner, and the habit behind them: each hazard gets a mechanism, not a comment |
+| `glossary.html` | the generated "Decisions cited" table, an index of the internal record | every term, and the files-cited list |
+| `index.html` | the corrections post-mortem box, and the claim that one document "said 1 MB until corrected" | the four claim tags, the hardware table, the citation conventions |
+| `part1` §1.9 | the status box: which tree passed with which workaround, and a failure whose cause is unexplained | the dump-reading table and the worked `BFAR 0xE000ED04` case, which is the clearest statement of the defect anywhere in the set |
+| `part2` §2.2 | the correction history of a source comment, including a correction of the correction | that on an RA6 part the SAU has no regions and the IDAU attributes, that FSP's `SAU->CTRL = SAU_CTRL_ALLNS_Msk` write is why, and the lesson that a false claim about a security architecture has no runtime symptom |
+
+Both local user paths are gone, every dated narration is gone, and the citation pin no longer
+names two commits that have moved: it says line numbers are those of the commit each page was
+written against.
+
+**Replacing a D-number with a description of the run.** The §1.9 dump table used a decision
+number as the whole content of its source column. Each cell now says where the dump came from —
+"isolation-2 bring-up on RA6M5" — with the number after it as provenance. That is the
+distinction [D148] drew: an ID may follow a self-contained statement and may never be one.
+
+**`scripts/build_course_glossary.py` is deleted.** It existed only to generate the decisions
+table, so it had nothing left to do. Its references went with it: the staleness check inside
+`build_doc_html.py`, the pre-commit filter entry, and the paragraph in `scripts/README.md`.
+Rule 7 at the top of this file named it as a machine reader of the metadata line and now names
+only `build_settled.py` — a repair of governing text to match the tree, recorded here because
+rule 7 authorises correcting an index and not quietly rewriting the rules.
+
+**Three broken anchors were found by checking rather than by reading**, and one of them
+predates this pass: the glossary pointed into a section this change replaced, `index.html`
+pointed at the removed table, and `part4`'s own table of contents had always pointed at a
+heading with no `id`. A script now confirms every internal course link and anchor resolves;
+`check_docs.py` checks Markdown links and never saw any of these.
+
+**Size.** 23,119 words to 19,476, a 16% cut, against a target of about 18,400. Every page is at
+or within a few per cent of its own target except `part1` and `part2`, where the remaining
+excess is fault-decoding and RA-specific TrustZone material that the review itself called the
+most useful content in the set.

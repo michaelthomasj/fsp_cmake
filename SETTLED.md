@@ -6,8 +6,8 @@
 
 | | |
 |---|---|
-| Entries | **149** |
-| Standing | **136** |
+| Entries | **150** |
+| Standing | **137** |
 | Superseded | **13** |
 | Standing but corrected on some point | **37** |
 | Standing, but the question they left open is closed | **3** |
@@ -34,7 +34,7 @@ A later entry **supersedes** an earlier one: same question, newer answer. Citing
 
 ---
 
-## Standing (136)
+## Standing (137)
 
 Nothing supersedes these. The title is the position. Where a later entry corrects one, the correction is named - the entry stands apart from that. **Where the Closed by column is filled, read the status as historical:** the entry describes a problem that a later entry shut, so its own "Open" or "Provisional" is no longer true.
 
@@ -176,6 +176,7 @@ Nothing supersedes these. The title is the position. Where a later entry correct
 | `D147` | 2026-10-29 | the checkers gain customer-readiness checks; the armed TrustZone keys are disarmed rather than disclosed | Accepted | — | — |
 | `D148` | 2026-10-29 | one wording per hazard, links instead of backticked filenames, and RA6E1 described the same way everywhere | Accepted | — | — |
 | `D149` | 2026-10-29 | history leaves the customer documents; three word-count targets are deliberately missed | Accepted | — | — |
+| `D150` | 2026-10-29 | the course keeps the mechanisms and loses the diary; the glossary generator goes with the table it served | Accepted | — | — |
 
 ---
 

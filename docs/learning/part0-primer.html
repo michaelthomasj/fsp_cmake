@@ -386,7 +386,7 @@ all non-secure priorities to <code>0x80–0xFF</code>. See <a href="part2-trustz
 </ul>
 <div class="fwd">"Including SVCall" has consequences. An <code>SVC</code> executed while PRIMASK is set cannot
 be taken, so it escalates to HardFault with <code>HFSR.FORCED</code> and every fault-status bit clear. That
-killed the ITS partition's initialisation on 2026-08-29. See
+killed the ITS partition's initialisation on this port. See
 <a href="part1-privilege-mpu-faults.html#faults">Part 1 §1.8</a>.</div>
 
 <!-- ============================================================ -->

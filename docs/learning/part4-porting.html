@@ -26,10 +26,8 @@
           <li><a href="#rasc">What RASC/FSP contributes</a></li>
           <li><a href="#fsp">Consuming FSP</a></li>
           <li><a href="#mcuboot">Flash layout and MCUboot</a></li>
-          <li><a href="#hazards">Hazards that cost hardware</a></li>
-          <li><a href="#gates">Verification gates</a></li>
-          <li><a href="#upstream">Divergence from upstream</a></li>
-          <li><a href="#check">Check yourself</a></li>
+          <li><a href="#hazards">Where the rest of this lives</a></li>
+                              <li><a href="#check">Check yourself</a></li>
         </ol>
       </li>
       <li><a href="glossary.html">Glossary &amp; sources</a></li>
@@ -181,111 +179,40 @@ explains <em>why</em> stayed right; the two that tabulate <em>what</em> did not.
 <h3>Measured boot is verified from RAM, not from a test suite</h3>
 <p>BL2 writes a boot record into the first <code>0x400</code> bytes of secure RAM (<code>BOOT_TFM_SHARED_DATA_BASE =
 S_DATA_START</code>, <code>ra6m5/region_defs.h:227-228</code>). The attestation suite passes even when that record is
-empty — the token then carries <code>IAT_NO_SW_COMPONENTS</code> — so every attestation pass recorded before 2026-10-02 was
+empty — the token then carries <code>IAT_NO_SW_COMPONENTS</code> — so the earlier attestation passes were
 on a token with no measurements (<a href="ref/DECISIONS.html#d080">D080</a>). Verify by reading the record and matching both measurements to the images' SHA-256
 TLVs (<a href="ref/DECISIONS.html#d081">D081</a>, <a href="ref/DECISIONS.html#d096">D096</a>).</p>
 
 <!-- ============================================================ -->
-<h2 id="hazards">4.6 Hazards that cost hardware</h2>
-<div class="warn">
-<p><strong>Option-setting memory.</strong> The OFS words are sparse. On the RA6M4 — the part that was bricked — they
-are 92 bytes of real data spread over <code>0x0100A100–0x0100A2CC</code>. On RA6M5 they are 13 groups, 112 bytes, over
-<code>0x0100A100–0x0100A2CF</code> (<code>ra6m5/region_defs.h:288-313</code>). On RA8M2 they sit elsewhere entirely, from
-<code>0x02C9F040</code>. If the linker sees the groups as one region it emits one <code>PT_LOAD</code> segment and
-zero-fills the gaps, and a debugger loading the ELF writes those zeros across option and configuration memory. Two
-EK-RA6M4 boards were destroyed this way (<a href="ref/DECISIONS.html#d002">D002</a>). <strong>The fill wrote
-<code>0x00</code> into eight defined option registers</strong> — DUALSEL, OFS1, BANKSEL, BPS, PBPS, BANKSEL_SEC,
-BPS_SEC and PBPS_SEC — and into the reserved bytes between them, measured on the preserved image
-(<a href="ref/DECISIONS.html#d133">D133</a>). Which of the eight killed the boards is not established:
-<a href="ref/DECISIONS.html#d065">D065</a> named PBPS at <code>0x0100A1E0</code>, which the dump confirms was zeroed,
-but seven other registers took the same write. <a href="ref/DECISIONS.html#d094">D094</a> disproved the separate
-"permanence word" diagnosis, because RA6M4 has no FSPR. Rules:</p>
-<ul>
-  <li>One linker <code>MEMORY</code> region per OFS group. <code>check_ofs.py</code> enforces it after every link.</li>
-  <li>The zero fill is invisible in a <code>.srec</code>. <code>readelf -l</code> is the only place it shows.</li>
-  <li><strong>Flash <code>bl2.elf</code> or <code>bl2.hex</code>, never <code>bl2.bin</code>.</strong> A flat binary of an
-    image that spans the option memory is mostly zeros up to it — ~16.8 MB on RA6M5, ~13.2 MB on RA8M2 (<a href="ref/DECISIONS.html#d058">D058</a>, <a href="ref/DECISIONS.html#d065">D065</a>).</li>
-</ul>
-</div>
-<ul>
-  <li><strong>RDPM erases the part.</strong> Reflash all three images after setting boundaries (Part 2 §2.8).</li>
-  <li><strong><code>setTZBoundaries</code> must be <code>false</code></strong> in every launch configuration; on RA8M2 the key
-    appears twice (<a href="ref/GETTING_STARTED.html#s6">GETTING_STARTED.md</a> §6, <a href="ref/DECISIONS.html#d102">D102</a>).</li>
-</ul>
+<h2 id="hazards">4.6 Where the rest of this lives</h2>
+<p>Three subjects a porter needs are owned by the repository documents rather than by this course, and restating
+them here would give you two versions to reconcile. What each one is, and where to read it:</p>
 
-<!-- ============================================================ -->
-<h2 id="gates">4.7 Verification gates</h2>
-<p>Each gate catches a different class of mistake (<a href="ref/PORTING.html#s6">PORTING.md</a> §6). Abridged, with the
-isolation gates added from <a href="ref/DECISIONS.html#d113">D113</a>–<a href="ref/DECISIONS.html#d116">D116</a> at the end:</p>
 <div class="table-wrap"><table>
-<tr><th>Gate</th><th>Proves</th></tr>
-<tr><td>Configure succeeds</td><td><code>cpuarch.cmake</code>, <code>config.cmake</code>, module wiring</td></tr>
-<tr><td>All three images link</td><td>FP/ABI flags, module set, section placement</td></tr>
-<tr><td>No unclaimed-module warnings</td><td>every enabled driver is in an image</td></tr>
-<tr><td>OFS guard passes</td><td>the discrete-region rule — before flashing</td></tr>
-<tr><td>BL2 banner, secure image initialises</td><td>SAU, MSAR, clocks, flash driver</td></tr>
-<tr><td>Full regression suite</td><td>the port</td></tr>
-<tr><td>PSA Arch crypto</td><td>the engine: 63/0/1 on RA6M5, 62/1/1 on RA8M2</td></tr>
-<tr><td>Measured boot read from the record</td><td>not the attestation suite</td></tr>
-<tr><td>Both toolchains</td><td>Four IAR-only failures, all at isolation 1, before any IAR run above it: two IAR's own — DLIB stdout buffering and the <code>__write</code> redirect (<a href="ref/DECISIONS.html#d107">D107</a>, superseded by <a href="ref/DECISIONS.html#d108">D108</a>),
-  two a stale install path in CMake caches (<a href="ref/DECISIONS.html#d083">D083</a>, <a href="ref/DECISIONS.html#d089">D089</a>; <a href="ref/DECISIONS.html#d126">D126</a> §6). None at isolation 2 or 3 (<a href="ref/DECISIONS.html#d124">D124</a>)</td></tr>
-<tr><td>Azone parity</td><td>peripheral-to-zone security matches across projects (<a href="ref/DECISIONS.html#d112">D112</a>)</td></tr>
-<tr><td><strong>Regression at isolation 2 and 3</strong>, FLIH/SLIH included</td><td>MMIO grants, code/data placement for ARoT, FLIH privilege. Invisible at level 1, where the MPU is off (<a href="ref/DECISIONS.html#d113">D113</a>)</td></tr>
-<tr><td><strong>MPU dump read once per part</strong></td><td>actual <code>DREGION</code> and the enabled set — 8 on both RA6M5 and RA8M2 (<a href="ref/DECISIONS.html#d113">D113</a>, <a href="ref/DECISIONS.html#d115">D115</a>). Read it on any new part</td></tr>
-<tr><td><strong>Compile line of the isolation HAL</strong></td><td>that <code>TFM_ISOLATION_LEVEL</code> and <code>CONFIG_TFM_PARTITION_META</code> reach it; consider <code>-Wundef</code>. A macro absent from the line may be unset rather than unplumbed — check the cache value too (<a href="ref/DECISIONS.html#d115">D115</a>)</td></tr>
-<tr><td><strong>Build every configuration you might run</strong>, including L1+IPC</td><td>guard combinations no tree exercises; the post-partition hook was a link error only at L1+IPC (<a href="ref/DECISIONS.html#d115">D115</a>)</td></tr>
+<tr><th>Subject</th><th>Why it matters to a port</th><th>Read</th></tr>
+<tr><td id="gates"><strong>The two hazards that cost hardware</strong></td>
+  <td>Option-setting memory must be linked one word per <code>MEMORY</code> region, and the debugger must never
+    program the TrustZone boundaries. Both failures are silent, and the first one is not recoverable.</td>
+  <td><a href="ref/DESIGN.html#s8-4">DESIGN.md §8.4</a> for the mechanism,
+    <a href="ref/GETTING_STARTED.html">GETTING_STARTED.md §6</a> for the checks to run before flashing</td></tr>
+<tr><td><strong>Verification gates</strong></td>
+  <td>What a new part has to pass before anyone trusts it, in order, so that a failure points at one thing.</td>
+  <td><a href="ref/PORTING.html">PORTING.md</a></td></tr>
+<tr><td id="upstream"><strong>Divergence from upstream TF-M</strong></td>
+  <td>24 files of common code are modified, every one of them a gap or defect any platform with the same property
+    would hit. A port that does not know which they are cannot survive a TF-M uprev.</td>
+  <td><a href="ref/UPSTREAM_CHANGES.html">UPSTREAM_CHANGES.md</a></td></tr>
+<tr><td><strong>What a generated project must supply</strong></td>
+  <td>The contract between RASC and the build: the partition symbols, the modules, the settings that are
+    load-bearing. Most of it is enforced at build time.</td>
+  <td><a href="ref/E2_PROJECT_REQUIREMENTS.html">E2_PROJECT_REQUIREMENTS.md</a></td></tr>
 </table></div>
 
-<!-- ============================================================ -->
-<h2 id="upstream">4.8 Where this port diverges from upstream TF-M, and why</h2>
-<h3>Changes to common TF-M files</h3>
-<p><a href="ref/UPSTREAM_CHANGES.html">UPSTREAM_CHANGES.md</a> lists 16 numbered items against TF-M v2.2.0 (fork point
-<code>dd2b7de19</code>). They are not all defects and not all live. <a href="ref/DECISIONS.html#d117">D117</a> §6 counted
-<strong>10 live upstream defect fixes</strong> (1–6, 9–12); item 16, added since, is an eleventh. Two are withdrawn: 13
-and, since <a href="ref/DECISIONS.html#d120">D120</a>, 15.</p>
-<p>The list is also <strong>not yet complete</strong>, and now says so. Its regenerate command used to name specific
-subdirectories and so missed real edits to common files; widened to exclude only the port directory, it returns 39
-files, of which the items account for 20. The rest — <code>cmake/install.cmake</code>,
-<code>lib/ext/mcuboot/CMakeLists.txt</code>, <code>toolchain_ARMCLANG/CLANG.cmake</code>, the accelerator tree and a
-stray <code>tfm_config.log</code> — are listed under "Not yet accounted for". Before a TF-M uprev, re-run that command:
-anything it shows that the document does not list is an untracked divergence.</p>
-<div class="table-wrap"><table>
-<tr><th>Items</th><th>Kind</th><th>Each teaches</th></tr>
-<tr><td>1–3</td><td>IAR linker-template defects</td><td>A silent failure — boot loop, <code>INVEP</code> on every NS→S call — rather than a build error (1: stack seal on live data, Part 1 §1.6; 2: veneers outside NSC, Part 2 §2.3)</td></tr>
-<tr><td>4, 5</td><td>GNU linker-template gaps</td><td>Orphaned sections get load addresses you did not choose — once inside the NSC window</td></tr>
-<tr><td>6</td><td>MCUboot config range</td><td>RA code flash writes in 128-byte units; TF-M assumed ≤ 32</td></tr>
-<tr><td>7, 8</td><td>additions (SPM trace option, <code>.srec</code> output)</td><td>Bring-up tooling worth having centrally</td></tr>
-<tr><td>9</td><td>build defect</td><td>A CMake <code>DEPENDS</code> on a target is order-only; every incremental build shipped a stale signed image</td></tr>
-<tr><td>10–12</td><td>build fixes</td><td>Small, platform-agnostic</td></tr>
-<tr><td>13</td><td><strong>withdrawn</strong></td><td>Kept to record why the MCUboot backend did not need replacing (<a href="ref/DECISIONS.html#d091">D091</a>)</td></tr>
-<tr><td>14</td><td>IAR toolchain-file defect, report only</td><td><code>--redirect __write=__write_buffered</code> makes a platform's <code>__write()</code> unreachable</td></tr>
-<tr><td>15</td><td><strong>withdrawn</strong> (<a href="ref/DECISIONS.html#d120">D120</a>)</td><td>Not an upstream defect: every upstream platform compiles the shared isolation HAL in <code>tfm_spm</code>, where the macro arrives. The gap came from this port compiling it in <code>platform_s</code> (Part 3 §3.8)</td></tr>
-<tr><td>16</td><td>GNU linker-template fix, opt-in (<code>4025eedff</code>, <a href="ref/DECISIONS.html#d063">D063</a>)</td><td>Pinning <code>.gnu.sgstubs</code> inside FLASH drags ld's allocation pointer past it. <code>TFM_LINKER_VENEERS_OWN_REGION</code> gives the veneers their own region; every RA port sets it, so an uprev that drops it breaks the regression link</td></tr>
-</table></div>
-<p>Item 14 is worked around inside the RA platform directories, so it does not appear in the file diff. One
-open question (<a href="ref/DECISIONS.html#d117">D117</a>): the submission notes group 7, 8 and 9 together, yet 7 and 8 are additions while 9 reads as a
-defect.</p>
-
-<h3>Choices inside the RA platform that differ from other platforms</h3>
-<div class="table-wrap"><table>
-<tr><th>Upstream habit</th><th>This port</th><th>Why</th></tr>
-<tr><td>Make an IRQ secure with <code>NVIC_ClearTargetState()</code> at run time</td><td>Never called</td><td>RA needs ITNS and ICUSARG to agree; attribution is the secure e2 project's (<a href="ref/DECISIONS.html#d061">D061</a>)</td></tr>
-<tr><td>Vendor ISR or vendor vector table</td><td>TF-M's single 112-entry table, slots overridden from generated numbers</td><td>FSP's ISRs bypass the SPM (<a href="ref/DECISIONS.html#d061">D061</a>)</td></tr>
-<tr><td><code>ppc_*()</code> program a PPC</td><td>No-ops, never reached</td><td>RA has PSAR, set by FSP from e2 (Part 2 §2.7)</td></tr>
-<tr><td><code>plat_test.c</code> in <code>platform_s</code></td><td>In <code>tfm_sprt</code>, stateless</td><td>Called by unprivileged ARoT partitions (<a href="ref/DECISIONS.html#d113">D113</a> #1–2). Upstream's placement does not work above isolation 1</td></tr>
-<tr><td>Peripheral open in the test fixture</td><td><code>R_AGT_Open()</code> in the privileged IRQ init hook</td><td><code>_Open()</code> writes the NVIC (Part 3 §3.9)</td></tr>
-<tr><td>Shared isolation HAL compiled in <code>tfm_spm</code>, where <code>psa_interface</code>'s macros arrive</td><td><strong>No longer differs</strong> (<a href="ref/DECISIONS.html#d121">D121</a>). Was <code>platform_s</code> with two macros defined by hand; ra6m4 still is</td><td>Not intentional; the deviation caused the <a href="ref/DECISIONS.html#d113">D113</a> chain (Part 3 §3.8)</td></tr>
-<tr><td>No SAU work in BL2</td><td>RA8M2 BL2 programs one SAU region</td><td>Two MRAM aliases (Part 2 §2.2)</td></tr>
-<tr><td>Veneers placed in the general flash region by the generated linker script</td><td>Veneers in their own
-  <code>MEMORY</code> region (<code>TFM_LINKER_VENEERS_OWN_REGION</code>, <code>ra6m5/region_defs.h:202-203</code>)</td>
-  <td>The NSC window is pinned at provisioning; without it, load images placed after the veneers overflow the slot
-  (<a href="ref/DECISIONS.html#d063">D063</a>, commit <code>4025eedff</code>, UPSTREAM_CHANGES item 16)</td></tr>
-<tr><td>Generated secure linker script with no vendor sections</td><td>Hooks for <code>.ram_noinit</code>, <code>.ram_from_flash</code></td><td>FSP state set before the C runtime; RAM-resident flash code (items 3, 4)</td></tr>
-</table></div>
-
-<!-- ============================================================ -->
-<section class="check" id="check">
-<h2>Check yourself</h2>
+<p><span class="tag port">This port</span> The one habit worth carrying from all four: <strong>each hazard gets a
+mechanism, not a comment.</strong> Every rule above is enforced by something that fails the build or the flash — a
+guard script, an <code>#error</code>, a layout assertion — because a rule that lives only in prose is a rule
+someone will read after the board is dead.</p>
+<h2 id="check">Check yourself</h2>
 <ol>
   <li>You change a partition size in the e2 solution. Which files in the TF-M platform directory do you edit?
     <details><summary>Answer</summary>Ideally none: <code>flash_layout.h</code> and <code>region_defs.h</code> derive from

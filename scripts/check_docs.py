@@ -40,9 +40,9 @@ historically correct - either the entry exists or the citation is wrong.
 
 CUSTOMER READINESS (4) - (7)
 ----------------------------
-The five checkers in this repository all passed on a documentation set that a customer could
-not use: they check citations and generated-file freshness, not whether what they resolve to
-is something a recipient actually receives. These four close that gap.
+Every checker in this repository passed on a documentation set that a customer could not use:
+they check citations and generated-file freshness, not whether what they resolve to is
+something a recipient actually receives. These four close that gap.
 
   4. no shipped document names a local user path. C:\Users\<you> is the documented placeholder
      and is allowed; a real account name is a leak, and it is also an instruction a reader

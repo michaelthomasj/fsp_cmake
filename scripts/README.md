@@ -306,7 +306,3 @@ of `ref/<NAME>.html`, which is worth running after editing the course.
 - `--no-verify` skips the render too. Run the script by hand afterwards, or the next
   documentation commit will pick it up.
 
-The glossary's "Decisions cited" table is generated too, by `scripts/build_course_glossary.py`
-(`--check` to report drift). Its "Standing" column comes from `SETTLED.md`, so it goes stale
-whenever a new entry supersedes or corrects one the course cites; `build_doc_html.py` prints a
-warning when it is.

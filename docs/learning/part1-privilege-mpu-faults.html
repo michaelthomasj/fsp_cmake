@@ -229,7 +229,7 @@ proves "enough", never "how many". <a href="ref/DECISIONS.html#d113">D113</a> ad
   idx 3  0x20000400 - 0x200018A0     App RoT data
   idx 4  0x200018C0 - 0x20011480     PSA RoT data
   idx 5  0x400E8000 - 0x400E80E0     AGT0, from the FLIH service's mmio_region</code></pre>
-<p class="src"><a href="ref/DECISIONS.html">DECISIONS.md D113</a>, RA6M5, isolation 2, GNUARM, 2026-10-21</p>
+<p class="src">RA6M5, isolation 2, GNUARM (<a href="ref/DECISIONS.html#d113">D113</a>)</p>
 
 <figure class="wide">
 <svg viewBox="0 0 760 420" role="img" aria-labelledby="mpu-t mpu-d">
@@ -537,33 +537,33 @@ an <code>SG</code> in a non-secure-callable region. Covered in <a href="part2-tr
 <p>Every row below happened on this port. Read each as: <em>which sub-register, is the address valid, what lives at
 that address, and which privilege was the code running at</em>.</p>
 <div class="table-wrap"><table>
-<tr><th>Status</th><th>Address</th><th>What is at that address</th><th>Diagnosis</th><th>Source</th></tr>
+<tr><th>Status</th><th>Address</th><th>What is at that address</th><th>Diagnosis</th><th>Where the dump came from</th></tr>
 <tr><td><code>MMFSR 0x01</code> IACCVIOL</td><td>PC <code>0x000BA964</code> (MMFAR not valid)</td>
   <td>the platform test timer code in <code>platform_s</code> — <code>PT_PSA_ROT_CODE</code>, the region that is idx 1 in
   the later green-run dump. (The address is from an earlier layout, so it is not inside that dump's measured range.)</td>
   <td>Unprivileged ARoT partition branched into privileged-execute-only code. Fix: compile the callee into
-  <code>tfm_sprt</code>, which lands in idx 0.</td><td><a href="ref/DECISIONS.html#d113">D113</a> #1</td></tr>
+  <code>tfm_sprt</code>, which lands in idx 0.</td><td>isolation-2 bring-up on RA6M5 (<a href="ref/DECISIONS.html#d113">D113</a> #1)</td></tr>
 <tr><td><code>MMFSR 0x82</code> DACCVIOL + MMARVALID</td><td><code>0x20011493</code></td>
   <td>a <code>static bool</code> in a <code>tfm_sprt</code> file — <code>PT_PSA_ROT_DATA</code>, idx 4 in the later
   green-run dump (address from an earlier layout)</td>
-  <td><code>tfm_sprt</code>'s <em>code</em> is unprivileged but its <code>.bss</code> is not. SPRT code must be stateless.</td><td><a href="ref/DECISIONS.html#d113">D113</a> #2</td></tr>
+  <td><code>tfm_sprt</code>'s <em>code</em> is unprivileged but its <code>.bss</code> is not. SPRT code must be stateless.</td><td>the same run (<a href="ref/DECISIONS.html#d113">D113</a> #2)</td></tr>
 <tr><td><code>MMFSR 0x82</code></td><td><code>0x400E8008</code></td>
   <td>AGT0 register, but no region covered it</td>
   <td>Unprivileged access to an address no region covers faults (no background map for unprivileged). Root cause:
-  the MMIO region was never programmed (Part 3 §3.7).</td><td><a href="ref/DECISIONS.html#d113">D113</a> #3</td></tr>
+  the MMIO region was never programmed (Part 3 §3.7).</td><td>the same run (<a href="ref/DECISIONS.html#d113">D113</a> #3)</td></tr>
 <tr><td><code>MMFSR 0x82</code></td><td><code>0x40006300</code></td>
   <td>ICU <code>IELSR[0]</code></td><td>FLIH handler running unprivileged in Thread mode tried to clear the ICU latch.
-  Moved to the privileged vector entry.</td><td><a href="ref/DECISIONS.html#d113">D113</a> #4</td></tr>
+  Moved to the privileged vector entry.</td><td>the same run, FLIH suite (<a href="ref/DECISIONS.html#d113">D113</a> #4)</td></tr>
 <tr><td><code>MMFSR 0x82</code></td><td><code>0x20000400</code></td>
   <td><code>TFM_SP_META_PTR</code></td><td>Isolation 3: the region that should cover the metadata pointer was never
-  compiled in (<code>CONFIG_TFM_PARTITION_META</code> undefined).</td><td><a href="ref/DECISIONS.html#d114">D114</a></td></tr>
+  compiled in (<code>CONFIG_TFM_PARTITION_META</code> undefined).</td><td>an isolation-3 build on RA6M5 (<a href="ref/DECISIONS.html#d114">D114</a>)</td></tr>
 <tr><td><code>BFSR 0x82</code> PRECISERR + BFARVALID</td><td><code>0xE000ED04</code></td>
-  <td><code>ICSR</code>, in the PPB</td><td>A store to the PPB from unprivileged code. See below.</td><td><a href="ref/DECISIONS.html#d113">D113</a> "Carried"</td></tr>
+  <td><code>ICSR</code>, in the PPB</td><td>A store to the PPB from unprivileged code. See below.</td><td>an isolation-1 IPC run, carried into the same write-up (<a href="ref/DECISIONS.html#d113">D113</a>)</td></tr>
 <tr><td><code>BFSR 0x82</code></td><td><code>0x4013C000</code></td>
   <td>RA8M2 MRAM controller <code>R_MRMS</code></td><td>Not a privilege fault: a <em>security</em> attribution fault.
   Its <code>MRCPFB</code> register (offset 0) was attributed Non-secure through <code>MSAR</code>, because Clocks
-  were not set Secure in e2 (Part 2 §2.7).</td><td><a href="ref/DECISIONS.html#d092">D092</a></td></tr>
-<tr><td><code>HFSR.FORCED</code>, all else 0</td><td>—</td><td>—</td><td>Masked SVC (§1.8).</td><td><a href="ref/DECISIONS.html#d064">D064</a></td></tr>
+  were not set Secure in e2 (Part 2 §2.7).</td><td>the first RA8M2 boot (<a href="ref/DECISIONS.html#d092">D092</a>)</td></tr>
+<tr><td><code>HFSR.FORCED</code>, all else 0</td><td>—</td><td>—</td><td>Masked SVC (§1.8).</td><td>a masked-SVC experiment (<a href="ref/DECISIONS.html#d064">D064</a>)</td></tr>
 </table></div>
 <p>The MemManage rows share a pattern: <strong>the same status byte, <code>0x82</code>, for four different
 causes.</strong> The status tells you <em>how</em> the access failed; only the address and the region table tell you
@@ -595,16 +595,11 @@ PendSV write in <code>arch_attempt_schedule</code>" (<a href="ref/DECISIONS.html
 <p>The two halves of the firmware acted on different values of the same macro. That is the sharpest
 statement of the defect in Part 3 §3.8.</p>
 <div class="note">
-<p><strong>Status.</strong> With the macro defined on <code>platform_s</code>, RA8M2 L1+IPC passes the full regression
-suite, FLIH tests included (<a href="ref/DECISIONS.html#d116">D116</a>). That define no longer exists: <a href="ref/DECISIONS.html#d121">D121</a> moved
-the HAL to <code>tfm_spm</code>, where the macro arrives. RA6M5 L1+IPC failed once with the define in place, parked in
-BL2's <code>HardFault_Handler</code> before any TF-M output, and passed its secure suites after the move
-(<a href="ref/DECISIONS.html#d122">D122</a>). The cause is unexplained; a bad flash is the more economical reading.</p>
-<p>The step-by-step mechanism above is a reading of the source (<a href="ref/DECISIONS.html#d117">D117</a>). It fits the
-original <code>BFAR 0xE000ED04</code> fault and the RA8M2 pass, not the later RA6M5 failure. Nobody re-ran the failing
-binary under instrumentation, and that binary no longer exists.</p>
-<p><a href="ref/DECISIONS.html#d116">D116</a> had first closed the boot-order question "by irrelevance, not by analysis"; <a href="ref/DECISIONS.html#d117">D117</a> reopened it and supplied
-steps 3–5. A question that looks closed because the symptom went away is not the same as one that was answered.</p>
+<p><strong>This mechanism is a reading of the source, not an instrumented run.</strong> It fits the original
+<code>BFAR 0xE000ED04</code> fault; nobody re-ran the failing binary under instrumentation, and that binary no longer
+exists. <a href="ref/TEST_RESULTS.html">TEST_RESULTS.md</a> records what has and has not run.</p>
+<p>The boot-order question behind it was first closed "by irrelevance, not by analysis", then reopened and answered.
+<strong>A question that looks closed because the symptom went away is not the same as one that was answered.</strong></p>
 </div>
 
 <!-- ============================================================ -->
