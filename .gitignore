@@ -61,6 +61,7 @@ tz_test/
 # prose-style instruction the documents are edited against. They stay on disk and out of the
 # deliverable, like the review snapshots above.
 PROJECT_PLAN.md
+PROJECT_PLAN.html
 DOCUMENTATION_PLAN.md
 docs/STYLE_EDIT_PROMPT.md
 
