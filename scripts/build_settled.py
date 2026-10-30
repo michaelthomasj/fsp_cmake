@@ -236,9 +236,28 @@ def render(entries):
       " by column is filled, read the status as historical:** the entry describes a problem"
       " that a later entry shut, so its own \"Open\" or \"Provisional\" is no longer true.")
     w("")
+
+    # Only the entries with something to say get a row. A plain "Accepted, nothing
+    # corrected, nothing closed" row repeated the DECISIONS heading verbatim and said
+    # nothing the heading did not, so those are listed as IDs instead - still indexed,
+    # so an ID missing from the list still means "not a decision", not "not shown".
+    def plain(e):
+        return ((e["status"] or "Accepted") == "Accepted"
+                and not corrected.get(e["id"]) and not closed.get(e["id"]))
+
+    noted = [e for e in sorted(live, key=lambda x: x["id"]) if not plain(e)]
+    quiet = [e for e in sorted(live, key=lambda x: x["id"]) if plain(e)]
+
+    w("Accepted as written, with nothing later correcting or closing them - read the entry"
+      " in [DECISIONS.md](DECISIONS.md) for the position:")
+    w("")
+    w(" ".join("`%s`" % e["id"] for e in quiet))
+    w("")
+    w("The rest carry a status, a correction or a closure:")
+    w("")
     w("| # | Date | Position | Status | Corrected by | Closed by |")
     w("|---|---|---|---|---|---|")
-    for e in sorted(live, key=lambda x: x["id"]):
+    for e in noted:
         # A correction made by an entry that has itself been superseded is not a live
         # correction: D132 corrected D065, D094 and D120, and D133 then replaced D132 and
         # returned to D094's position. Printing a bare "corrected by D132" told the reader
