@@ -54,9 +54,7 @@ placeholders.</p>
 
 <!-- ============================================================ -->
 <h2 id="core">0.1 The core and the profile</h2>
-<p>Arm publishes <em>architectures</em> (rules about what instructions and registers exist and how they behave)
-and designs <em>cores</em> that implement them. Silicon vendors such as Renesas license a core and surround it
-with memory and peripherals.</p>
+<p>Arm defines <em>architectures</em> and designs <em>cores</em> that implement them; vendors such as Renesas license a core and add memory and peripherals.</p>
 <ul>
   <li><span class="tag arch">Armv8-M</span> The <strong>M-profile</strong> is Arm's microcontroller architecture.
     Armv8-M comes in a <em>Baseline</em> (small, e.g. Cortex-M23) and a <em>Mainline</em> (full, e.g. Cortex-M33)
@@ -72,10 +70,6 @@ with memory and peripherals.</p>
     <code>__SAUREGION_PRESENT</code>: <code>0</code> on RA6M5, <code>1</code> on RA8M2. That one bit is the
     subject of a whole section of <a href="part2-trustzone.html#sau-idau">Part 2</a>.</li>
 </ul>
-<p>The build expresses the same facts in <code>cpuarch.cmake</code>:</p>
-<pre><code>set(TFM_SYSTEM_PROCESSOR    cortex-m33)        # or cortex-m85
-set(TFM_SYSTEM_ARCHITECTURE armv8-m.main)      # or armv8.1-m.main</code></pre>
-<p class="src"><a href="ref/PORTING.html#s2">PORTING.md</a> §2, <code>cpuarch.cmake</code></p>
 
 <!-- ============================================================ -->
 <h2 id="regs">0.2 The register file</h2>
@@ -141,10 +135,7 @@ Extension is implemented.</figcaption>
   <li><strong>MSPLIM and PSPLIM</strong> are new in Armv8-M. If SP is moved below the limit, the core raises a
     UsageFault (<code>STKOF</code>) instead of silently overwriting whatever lies below the stack.</li>
 </ul>
-<div class="fwd">The secure image sets <code>MSPLIM</code> and <code>PSPLIM</code> among its first acts after
-reset, before any C code or <code>SystemInit()</code> runs (<code>ra6m5/startup_ra6m5.c:172-173</code>, after
-<code>__disable_irq()</code> and <code>__set_PSP()</code> at <code>:167-170</code>), and TF-M's PendSV handler reloads <code>PSPLIM</code> on every
-context switch (<code>tfm_arch_v8m_main.c:145-147</code>). See <a href="part1-privilege-mpu-faults.html#msp-psp">Part 1 §1.3</a>.</div>
+<div class="fwd">The secure image sets both limits first thing in <code>Reset_Handler</code> (§0.5); <a href="part1-privilege-mpu-faults.html#msp-psp">Part 1 §1.3</a> shows TF-M swapping them per thread.</div>
 
 <!-- ============================================================ -->
 <h2 id="stack">0.3 The stack and AAPCS basics</h2>
@@ -162,19 +153,7 @@ and a callee. Compilers obey it; hand-written assembly must.</p>
 </table></div>
 <p><strong>Why it matters here.</strong> The hardware saves the caller-saved set (R0–R3, R12, LR, plus PC
 and xPSR) when an exception is taken. Because the callee-saved set is preserved by any AAPCS-compliant function, an
-ordinary C function can be an interrupt handler with no assembly wrapper. A context switch, however, moves to a
-<em>different</em> function's stack and must save R4–R11 by hand. Real code from TF-M, the IPC backend's entry
-into the SPM:</p>
-<pre><code>__naked
-void tfm_arch_thread_fn_call(uint32_t a0, uint32_t a1, uint32_t a2, uint32_t a3)
-{
-    __asm volatile(
-        "   push    {r4-r6, lr}             \n"
-        "   push    {r0-r4, r12}            \n"
-        "   cpsid   i                       \n"
-        ...</code></pre>
-<p class="src"><code>secure_fw/spm/core/arch/tfm_arch_v8m_main.c:51-58</code>. <code>r4-r6</code> are pushed
-because the function is about to use them; four registers keeps SP 8-byte aligned.</p>
+ordinary C function can be an interrupt handler with no assembly wrapper. A context switch moves to a <em>different</em> stack and must save R4–R11 itself (TF-M's PendSV, Part 1 §1.7).</p>
 
 <!-- ============================================================ -->
 <h2 id="map">0.4 The Armv8-M memory map, with RA addresses</h2>
@@ -244,16 +223,7 @@ apart (<code>BSP_FEATURE_TZ_NS_OFFSET</code>,
 <ul>
   <li><span class="tag arch">Armv8-M</span> The <strong>Peripheral</strong> region is <em>device</em> memory:
     accesses are not merged, reordered or cached, and instruction fetch from it is forbidden.</li>
-  <li><span class="tag ra">RA</span> Option-setting memory (OFS) at <code>0x0100A100</code> (RA6M5; RA8M2's is
-    at <code>0x02C9F040</code>) configures the part at reset, and some bits are one-time. Two EK-RA6M4 boards were
-    destroyed not by a wrong OFS value but by the <em>gaps</em> between the option groups: the linker merged the groups
-    into one load segment and zero-filled the bytes between them, and the debugger wrote those zeros. Which zeroed field
-    killed the boards is unknown (<a href="ref/DECISIONS.html#d094">D094</a>). The rule is one linker region per option
-    group (<a href="ref/DECISIONS.html#d002">D002</a>, <a href="ref/DESIGN.html#s8-4">DESIGN.md §8.4</a>).</li>
-  <li><span class="tag ra">RA</span> On RA8M2 the same physical MRAM appears at two addresses,
-    <code>0x02000000</code> (secure) and <code>0x12000000</code> (non-secure). On RA6M5 there is one alias
-    (<code>BSP_FEATURE_TZ_NS_OFFSET 0x00</code>,
-    <code>ra6m5_gcc_secure/ra/fsp/src/bsp/mcu/ra6m5/bsp_feature.h:602</code>).</li>
+<li><span class="tag ra">RA</span> Option-setting memory (OFS), at <code>0x0100A100</code> on RA6M5 and <code>0x02C9F040</code> on RA8M2, configures the part at reset; some bits are one-time, and a wrong write can brick the part. Linker rule: <a href="ref/DESIGN.html#s8-4">DESIGN.md §8.4</a>; checks before flashing: <a href="ref/GETTING_STARTED.html#s6">GETTING_STARTED.md §6</a>.</li>
 </ul>
 <div class="fwd">Which half of each region is <em>secure</em> is not visible in this map at all. It is decided by
 the SAU and IDAU, and on RA by boundary registers programmed once per board. See
@@ -317,17 +287,9 @@ const VECTOR_TABLE_Type __VECTOR_TABLE[RA6M5_VECTOR_TABLE_ENTRIES] __VECTOR_TABL
 }</code></pre>
 <p class="src"><code>ra6m5/startup_ra6m5.c:164-181</code></p>
 <ul>
-  <li><code>SystemInit()</code> is FSP's: clocks, TrustZone attribution, interrupt routing.
-    <code>__PROGRAM_START()</code> then copies <code>.data</code> and zeroes <code>.bss</code> before
-    <code>main()</code>.</li>
-  <li><span class="tag port">This port</span> There are three images and three resets-worth of vector tables:
-    BL2 boots from <code>0x00000000</code>, then jumps into the secure image, whose <code>SystemInit()</code>
-    rewrites <code>VTOR</code> (<code>system.c:237</code>, cited in <a href="ref/DECISIONS.html#d064">D064</a>).</li>
+<ul><li><code>SystemInit()</code> (FSP) sets clocks, TrustZone attribution and interrupt routing; <code>__PROGRAM_START()</code> then copies <code>.data</code> and zeroes <code>.bss</code>.</li><li><span class="tag port">This port</span> BL2 boots from <code>0x00000000</code> and jumps to the secure image, whose <code>SystemInit()</code> rewrites <code>VTOR</code>.</li></ul>
 </ul>
-<div class="fwd"><code>SystemInit()</code> running <em>before</em> <code>.bss</code> is zeroed is TF-M's ordering,
-not FSP's. Any FSP state computed in <code>SystemInit()</code> and stored in <code>.bss</code> is wiped a few
-instructions later. That is why <code>R_FLASH_HP_Open()</code> once failed with <code>FSP_ERR_FCLK</code>. See
-<a href="part4-porting.html#fsp">Part 4 §4.4</a>.</div>
+<div class="fwd">TF-M's reset runs <code>SystemInit()</code> before <code>.bss</code> is zeroed, so FSP state stored in <code>.bss</code> is lost. The remedy is in <a href="part4-porting.html#fsp">Part 4 §4.4</a>.</div>
 <div class="fwd">Why does the timer's slot point at a TF-M handler and not at FSP's <code>agt_int_isr</code>? Because
 FSP's ISR would call the driver callback directly and bypass the secure partition manager. See
 <a href="part2-trustzone.html#ra-irq">Part 2 §2.6</a>.</div>
@@ -341,7 +303,7 @@ has a number, which is its index into the vector table.</p>
 <tr><th>No.</th><th>CMSIS IRQn</th><th>Exception</th><th>Priority</th><th>Raised by</th></tr>
 <tr><td>1</td><td>—</td><td>Reset</td><td>−4 (fixed)</td><td>power-on, reset pin, software reset</td></tr>
 <tr><td>2</td><td>−14</td><td>NMI</td><td>−2 (fixed)</td><td>non-maskable interrupt</td></tr>
-<tr><td>3</td><td>−13</td><td>HardFault</td><td>−1 (fixed; Secure HardFault is −3 if <code>AIRCR.BFHFNMINS</code> = 1 — FSP's <code>R_BSP_SecurityInit()</code> writes 0 from the e2 configuration, <code>bsp_security.c:363-368</code>; TF-M preserves it)</td><td>escalated faults, or any fault that cannot be handled at its own priority</td></tr>
+<tr><td>3</td><td>−13</td><td>HardFault</td><td>−1 (fixed; Secure HardFault is −3 only if <code>AIRCR.BFHFNMINS</code> = 1, which FSP and TF-M leave at 0)</td><td>escalated faults</td></tr>
 <tr><td>4</td><td>−12</td><td>MemManage</td><td>configurable</td><td>MPU violation (Part 1)</td></tr>
 <tr><td>5</td><td>−11</td><td>BusFault</td><td>configurable</td><td>error response from the bus</td></tr>
 <tr><td>6</td><td>−10</td><td>UsageFault</td><td>configurable</td><td>undefined instruction, stack limit, divide by zero…</td></tr>
@@ -352,9 +314,7 @@ has a number, which is its index into the vector table.</p>
 <tr><td>15</td><td>−1</td><td>SysTick</td><td>configurable</td><td>the SysTick timer</td></tr>
 <tr><td>16+<em>n</em></td><td><em>n</em></td><td>External interrupt <em>n</em></td><td>configurable</td><td>on RA: ICU slot <em>n</em> (§0.8)</td></tr>
 </table></div>
-<p>CMSIS numbers <code>IRQn</code> as exception number − 16, which is why the startup file comments say
-<code>-14 NMI Handler</code>. The AGT0 timer on the RA6M5 is ICU slot 0, i.e. <code>IRQn 0</code>, exception 16,
-vector-table index <code>[16 + 0]</code>.</p>
+<p>CMSIS numbers <code>IRQn</code> as exception number − 16, so AGT0 (ICU slot 0) is <code>IRQn 0</code>, exception 16, vector index <code>[16 + 0]</code>.</p>
 
 <h3>Priority</h3>
 <ul>
@@ -384,10 +344,7 @@ all non-secure priorities to <code>0x80–0xFF</code>. See <a href="part2-trustz
   <li><code>BASEPRI = x</code> masks exceptions whose priority number is ≥ <code>x</code>.</li>
   <li><code>FAULTMASK</code> masks everything except NMI.</li>
 </ul>
-<div class="fwd">"Including SVCall" has consequences. An <code>SVC</code> executed while PRIMASK is set cannot
-be taken, so it escalates to HardFault with <code>HFSR.FORCED</code> and every fault-status bit clear. That
-killed the ITS partition's initialisation on this port. See
-<a href="part1-privilege-mpu-faults.html#faults">Part 1 §1.8</a>.</div>
+<div class="fwd">An <code>SVC</code> issued while PRIMASK is set cannot be taken and escalates to HardFault (<a href="part1-privilege-mpu-faults.html#faults">Part 1 §1.8</a>).</div>
 
 <!-- ============================================================ -->
 <h2 id="latency">0.7 Interrupt latency and tail-chaining</h2>
@@ -404,11 +361,7 @@ value) the hardware unstacks.</p>
     unstack-then-restack and goes straight to the next handler.</li>
   <li><strong>Late arrival.</strong> If a more urgent exception arrives while stacking is still in progress, the
     core redirects to the more urgent handler using the same stack frame.</li>
-  <li><strong>Latency.</strong> Arm's commonly quoted figure for Cortex-M3/M4-class cores is 12 cycles from
-    request to first handler instruction with zero-wait-state memory, and 6 cycles for a tail-chain. At the RA6M5's
-    200 MHz (<code>ra6m5/tfm_hal_platform.c</code>, clock comment in <code>tfm_hal_platform_init</code>) 12 cycles
-    is 60 ns. <strong>This port has not measured latency.</strong> Flash wait states, FPU lazy stacking and the
-    additional TrustZone state described in Part 1 all add to it.</li>
+<li><strong>Latency.</strong> Arm quotes 12 cycles to the first handler instruction, and 6 for a tail-chain, on zero-wait-state Cortex-M3/M4-class cores. Flash wait states, lazy FP stacking and TrustZone state add to it. This port has not measured it.</li>
 </ul>
 <div class="fwd">The hardware pushes more than eight words when a secure context is interrupted by a non-secure
 interrupt. See <a href="part1-privilege-mpu-faults.html#stacking">Part 1 §1.5</a>.</div>
@@ -478,10 +431,7 @@ the offsets within it are architectural.</p>
   <li><span class="tag ra">RA</span> The ICU latch <code>IELSR.IR</code> holds the request until software clears it.
     Without the clear "the interrupt fires exactly once" (<a href="ref/DECISIONS.html#d069">D069</a>).</li>
 </ul>
-<div class="fwd"><a href="ref/DECISIONS.html#d069">D069</a> is a case where this table silently contained all zeros because a weak symbol won at link time, so
-the timer interrupt never reached the NVIC. See <a href="part2-trustzone.html#ra-irq">Part 2 §2.6</a>. Which code
-is allowed to clear each of the three latches is a privilege question; see
-<a href="part3-tfm.html#flih">Part 3 §3.6</a>.</div>
+<div class="fwd">Which code may clear each latch is a privilege question: <a href="part3-tfm.html#flih">Part 3 §3.6</a>.</div>
 
 <!-- ============================================================ -->
 <h2 id="systick">0.9 SysTick</h2>
@@ -496,15 +446,10 @@ an operating-system tick.</p>
 </table></div>
 <ul>
   <li>When the counter reaches zero it reloads from <code>RVR</code> and, if enabled, raises exception 15.</li>
-  <li><span class="tag arch">Armv8-M</span> With the Security Extension, the architecture allows a separate SysTick
-    for each security state, reached by Secure code through the non-secure alias at <code>0xE002E010</code>
-    (<code>SysTick_BASE_NS</code>, <code>core_cm33.h:2075</code>). Whether a given implementation provides one or
-    two is an implementation choice; <strong>this course has not verified the RA6M5's configuration</strong>.</li>
+<li><span class="tag arch">Armv8-M</span> With the Security Extension a second SysTick may exist for the Non-secure state; Secure code reaches it at <code>0xE002E010</code> (<code>SysTick_BASE_NS</code>).</li>
   <li><span class="tag tfm">TF-M</span> The secure image does not run a tick. Its scheduler is event-driven
     (PendSV, Part 1). The non-secure FreeRTOS application is the natural SysTick user.</li>
 </ul>
-<div class="fwd">Banking — one copy of a register per security state — is the general pattern for core registers
-under TrustZone. See <a href="part2-trustzone.html#banked">Part 2 §2.4</a>.</div>
 
 <!-- ============================================================ -->
 <h2 id="ppb">0.10 The Private Peripheral Bus</h2>
@@ -527,21 +472,12 @@ not a setting: the MPU (Part 1) does not apply to PPB addresses, so no MPU regio
 to them. The exceptions are a few registers with their own unprivileged-access controls — <code>STIR</code>
 (<code>0xE000EF00</code>) when <code>CCR.USERSETMPEND</code> = 1, and the ITM stimulus ports under
 <code>ITM_TPR</code>. None of the NVIC or SCB registers this course discusses is among them.</p>
-<div class="fwd">This one rule explains three findings in this repository. (1) An unprivileged partition can never call
-an interrupt-driven FSP <code>R_xxx_Open()</code>, because every one of them writes the NVIC
-(<a href="part3-tfm.html#fsp-drivers">Part 3 §3.9</a>). (2) An unprivileged TF-M FLIH handler cannot clear the NVIC
-pending bit (<a href="part3-tfm.html#flih">Part 3 §3.6</a>). (3) The L1+IPC HardFault in <a href="ref/DECISIONS.html#d113">D113</a> is a precise BusFault
-at <code>BFAR 0xE000ED04</code> — <code>ICSR</code>, inside the PPB (<a href="part1-privilege-mpu-faults.html#dumps">Part 1 §1.9</a>).</div>
+<div class="fwd">This rule is why an unprivileged partition cannot call an interrupt-driven <code>R_xxx_Open()</code> (<a href="part3-tfm.html#fsp-drivers">Part 3 §3.9</a>) or clear an NVIC pending bit (<a href="part3-tfm.html#flih">§3.6</a>), and why the fault in <a href="part1-privilege-mpu-faults.html#dumps">Part 1 §1.9</a> is a BusFault on <code>ICSR</code>.</div>
 
 <!-- ============================================================ -->
 <section class="check" id="check">
 <h2>Check yourself</h2>
 <ol>
-  <li>The RA6M5 vector table has 112 entries. Where does the 96 come from, and which entry index holds the AGT0
-    timer's handler?
-    <details><summary>Answer</summary>16 architectural entries plus 96 ICU slots
-    (<code>BSP_VECTOR_TABLE_MAX_ENTRIES 112</code>). AGT0 is ICU slot 0, so its handler is at index
-    <code>16 + 0</code> = 16.</details></li>
   <li>In <code>startup_ra6m5.c</code>, what happens if the line <code>[16 + 0] = TFM_TIMER0_IRQ_Handler</code>
     is moved above the range initializer <code>[16 ... 111] = Default_Handler</code>?
     <details><summary>Answer</summary>For a repeated index the last initializer wins, so slot 16 would become
@@ -563,9 +499,6 @@ at <code>BFAR 0xE000ED04</code> — <code>ICSR</code>, inside the PPB (<a href="
   <li>On RA, which three places can hold a pending AGT0 interrupt request?
     <details><summary>Answer</summary>The AGT's own status flag (<code>AGTCR.TUNDF</code>), the ICU latch
     <code>IELSR[0].IR</code>, and the NVIC pending bit for IRQ 0.</details></li>
-  <li>Executing <code>SVC</code> with PRIMASK set does not run the SVC handler. What happens instead?
-    <details><summary>Answer</summary>SVCall has a configurable priority and is masked by PRIMASK, so it cannot be
-    taken; it escalates to HardFault (<code>HFSR.FORCED</code>).</details></li>
 </ol>
 </section>
 

@@ -1,16 +1,13 @@
 # Bricking evidence — two un-erasable EK-RA6M4 boards
 
-The exact BL2 image that was flashed to two EK-RA6M4 boards, after which neither would erase.
-Kept as forensic reference and as the regression fixture for the option-setting brick guard.
-**Do not flash these files to any board.**
-
-Each carries the `.UNSAFE` suffix, which is also what `check_ofs.py --quarantine` renames a
-rejected image to. **Strip the suffix only to feed one to a tool that reads it; never to a
-programmer.**
+The BL2 image flashed to two EK-RA6M4 boards that then would not erase, kept as evidence and as
+the regression fixture for the option-memory guard. **Do not flash these files.** The `.UNSAFE`
+suffix is the one `check_ofs.py --quarantine` gives a rejected image; strip it only to feed a
+file to an analysis tool, never to a programmer.
 
 | File | What it is |
 |---|---|
-| `bl2_BRICKED.elf.UNSAFE` | the exact `build_ra6m4_boot/bin/bl2.elf`, built 14:31:26, copied with its original timestamp |
+| `bl2_BRICKED.elf.UNSAFE` | the BL2 ELF exactly as flashed |
 | `bl2_BRICKED.srec.UNSAFE` | the same image as an S-record |
 | `bl2_BRICKED.hex.UNSAFE` | the same image as Intel hex |
 
@@ -35,9 +32,8 @@ S3 09 0100A200 FFFDFFFF 59    OFS1_SEC = 0xFFFFFDFF
 S3 09 0100A280 F8F8FFFF E5    OFS1_SEL = 0xFFFFF8F8
 ```
 
-The field-proven `ra6m4_der_conversion` image carries byte-identical records in this region, by
-S-record diff, on a board that still works and still reprograms. The values are not the
-differentiator; the span between them is.
+A working board carries byte-identical values in these records; the span between them is the
+differentiator.
 
 ## What was read off the dead boards
 
@@ -53,30 +49,21 @@ from Initialize is real but is not explained by anything in this list.
 
 **Do not read `FAWMON` or `FSPR` on an RA6M4.** The part does not implement the Flash Access
 Window (`BSP_FEATURE_FLASH_SUPPORTS_ACCESS_WINDOW = 0`), so those addresses hold no such
-register and whatever they return is meaningless. An earlier diagnosis of a permanent FSPR/FAW
-lock rested on exactly that mistake and has been withdrawn ([D094](../../DECISIONS.md)).
 `FBPROT0` and `FBPROT1` are write-only cancel bits that always read `0`, so they say nothing
 either.
 
-Two variables between the dead boards and the working `der_conversion` board were never
-isolated: the flashing path, Ozone and raw J-Link against e2 studio's RA-aware flow, and the
-relink of BL2 to `0x0` in TF-M commit `be511be17`. On RA6M4, prefer the e2 studio or RFP path,
-and read the state back on hardware after any option or protection programming.
+On RA6M4, prefer the e2 studio or RFP flashing path, and read the state back after any option or
+protection programming.
 
 ## What the port does now
 
-OFS emission was first removed from every TF-M image ([D001](../../DECISIONS.md)) and then
-restored, with one linker `MEMORY` region per option *group* and a `> REGION` assignment on each,
-so the linker cannot produce a spanning segment ([D002](../../DECISIONS.md)). Removing the
-words had meant every board needed them programmed externally for ever; the discrete regions
-are what FSP's own generated linker does.
+The port now gives each option-setting group its own linker `MEMORY` region, so the linker cannot
+emit a spanning segment ([D002](../../DECISIONS.md)), and
+`platform/ext/target/renesas/common/check_ofs.py` enforces this on the linked ELF. Mechanism:
+[DESIGN.md](../../DESIGN.md) §8.4. Flashing rule: [GETTING_STARTED.md](../../GETTING_STARTED.md)
+§6.
 
-`check_ofs.py`, in the TF-M tree at `platform/ext/target/renesas/common/check_ofs.py`,
-enforces that outcome on the linked ELF. The ELF is the only artifact the mistake is visible
-in: it does not show in the srec, and a plausible-looking linker script can still emit a
-spanning segment. [DESIGN.md](../../DESIGN.md) §8.4 has the design and
-[KNOWN_LIMITATIONS.md](../../KNOWN_LIMITATIONS.md) §4 the hazard as it stands.
-
-**`bl2_BRICKED.elf.UNSAFE` is that guard's regression fixture — do not delete it.** The guard rejects
-it with `0x0100A100+388B` (388 = `0x184`, the span itself), which is how the check is verified
-to fire rather than only to pass.
+**`bl2_BRICKED.elf.UNSAFE` is the guard's regression fixture; do not delete it.** Verify the
+guard fires:
+`python <tfm>/platform/ext/target/renesas/common/check_ofs.py --ra6-default --require-segments bringup/bricking_evidence/bl2_BRICKED.elf.UNSAFE`
+must FAIL with `0x0100A100+388B`.

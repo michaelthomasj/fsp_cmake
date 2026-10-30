@@ -95,8 +95,7 @@ privileged code someone else wrote — the basis of every operating system on th
 <p><strong>"Handler mode is privileged" does not mean "interrupt handlers are privileged".</strong> The first is
 architecture. The second depends on software. <span class="tag tfm">TF-M</span>, for an Application-RoT partition at isolation 2 and 3, takes an
 interrupt in Handler mode and then deliberately runs the owning partition's handler <em>in Thread mode, at the
-partition's privilege</em>. On this port that turned an ICU register write into a MemManage fault
-(<a href="ref/DECISIONS.html#d113">D113</a> defect 4). Mechanism in <a href="part3-tfm.html#flih">Part 3 §3.6</a>.</p>
+partition's privilege</em>; on this port that made an ICU register write fault. Mechanism in <a href="part3-tfm.html#flih">Part 3 §3.6</a>.</p>
 </div>
 
 <!-- ============================================================ -->
@@ -118,8 +117,7 @@ isolation 1, where every partition is privileged, it is never called on a switch
     ctrl.b.nPRIV = privileged ? 0 : 1;
     __set_CONTROL(ctrl.w);</code></pre>
 <p class="src"><code>platform/ext/common/tfm_hal_isolation_v8m.c:561-564</code></p>
-<p>It runs from the SPM, which is privileged, so the write is legal. Where <code>privileged</code> comes from is the
-subject of <a href="ref/DECISIONS.html#d113">D113</a> (<a href="part3-tfm.html#hal">Part 3 §3.7</a>).</p>
+<p>It runs from the SPM, which is privileged, so the write is legal; <code>privileged</code> is computed in the isolation HAL (<a href="part3-tfm.html#hal">Part 3 §3.7</a>).</p>
 
 <!-- ============================================================ -->
 <h2 id="msp-psp">1.3 MSP, PSP, and stack limits</h2>
@@ -210,10 +208,7 @@ execute-never, device-memory region for it:</p>
 <tr><td>EN</td><td>1</td><td><code>0x1</code></td></tr>
 <tr><th>RLAR</th><th colspan="2"><code>0x400E80E5</code></th></tr>
 </table></div>
-<p>These two words are computed from the macros, not read back. What <em>was</em> read back is the masked limit:
-the port's dump prints <code>RLAR &amp; MPU_RLAR_LIMIT_Msk</code>, and the measured line is
-<code>idx 5  0x400E8000 - 0x400E80E0</code> (<a href="ref/DECISIONS.html#d113">D113</a>). Add <code>0x1F</code> to compare with a datasheet range
-(<code>ra6m5/tfm_hal_platform.c:154-157</code>).</p>
+<p>These words are computed from the macros. The port's dump prints the masked limit (<code>0x400E80E0</code>); add <code>0x1F</code> to compare with a datasheet range.</p>
 
 <h3 id="mpu-layout">The region budget, measured</h3>
 <p>The number of regions is a property of the silicon. TF-M checks it at run time
@@ -231,56 +226,14 @@ proves "enough", never "how many". <a href="ref/DECISIONS.html#d113">D113</a> ad
   idx 5  0x400E8000 - 0x400E80E0     AGT0, from the FLIH service's mmio_region</code></pre>
 <p class="src">RA6M5, isolation 2, GNUARM (<a href="ref/DECISIONS.html#d113">D113</a>)</p>
 
-<figure class="wide">
-<svg viewBox="0 0 760 420" role="img" aria-labelledby="mpu-t mpu-d">
-  <title id="mpu-t">RA6M5 secure MPU regions at isolation 2</title>
-  <desc id="mpu-d">Six enabled regions over code flash, SRAM and the AGT0 peripheral, with the privileged background map covering everything else and the PPB outside MPU control.</desc>
-  <text x="10" y="20" class="t-lg">Secure MPU, RA6M5, isolation 2 — 8 regions, 6 enabled</text>
-  <!-- legend -->
-  <rect x="470" y="32" width="14" height="14" class="unpriv"/><text x="490" y="44" class="t-sm">unprivileged access allowed</text>
-  <rect x="470" y="52" width="14" height="14" class="priv"/><text x="490" y="64" class="t-sm">privileged only</text>
-  <rect x="470" y="72" width="14" height="14" class="box2"/><text x="490" y="84" class="t-sm">no region: background map (privileged only)</text>
-
-  <text x="10" y="56" class="t-md">Code flash (secure image)</text>
-  <rect x="10" y="64" width="60" height="40" class="box2"/><text x="14" y="88" class="t-sm">hdr+vec</text>
-  <rect x="70" y="64" width="90" height="40" class="unpriv"/><text x="76" y="82" class="t-sm">idx 0</text><text x="76" y="97" class="t-sm">RO, X</text>
-  <rect x="160" y="64" width="190" height="40" class="priv"/><text x="166" y="82" class="t-sm">idx 1  PSA RoT code</text><text x="166" y="97" class="t-sm">RO, X, privileged</text>
-  <rect x="350" y="64" width="100" height="40" class="unpriv"/><text x="356" y="82" class="t-sm">idx 2 RO data</text><text x="356" y="97" class="t-sm">RO, XN</text>
-  <text x="70" y="120" class="t-mono">A0400</text><text x="160" y="120" class="t-mono">A5660</text><text x="350" y="120" class="t-mono">D8300</text><text x="420" y="120" class="t-mono">E5BDF</text>
-  <text x="10" y="138" class="t-sm t-muted">idx 0 = unprivileged code + all ARoT partition code (one region, since PXN needs Armv8.1-M)</text>
-
-  <text x="10" y="172" class="t-md">SRAM</text>
-  <rect x="10" y="180" width="60" height="40" class="box2"/><text x="14" y="198" class="t-sm">boot</text><text x="14" y="212" class="t-sm">record</text>
-  <rect x="70" y="180" width="120" height="40" class="unpriv"/><text x="76" y="198" class="t-sm">idx 3 App RoT data</text><text x="76" y="213" class="t-sm">RW, XN</text>
-  <rect x="190" y="180" width="260" height="40" class="priv"/><text x="196" y="198" class="t-sm">idx 4  PSA RoT data (SPM, PSA RoT,</text><text x="196" y="213" class="t-sm">ra_gen/ control blocks, tfm_sprt .bss)</text>
-  <rect x="450" y="180" width="80" height="40" class="box2"/><text x="455" y="204" class="t-sm">rest</text>
-  <text x="10" y="236" class="t-mono">20000000</text><text x="70" y="236" class="t-mono">20000400</text><text x="190" y="236" class="t-mono">200018C0</text><text x="400" y="236" class="t-mono">2001149F</text>
-
-  <text x="10" y="272" class="t-md">Peripherals</text>
-  <rect x="10" y="280" width="140" height="40" class="box2"/><text x="16" y="298" class="t-sm">ICU 0x40006000</text><text x="16" y="313" class="t-sm">no region</text>
-  <rect x="160" y="280" width="140" height="40" class="unpriv"/><text x="166" y="298" class="t-sm">idx 5 AGT0</text><text x="166" y="313" class="t-sm">RW, XN, device</text>
-  <rect x="310" y="280" width="140" height="40" class="box2"/><text x="316" y="298" class="t-sm">all other</text><text x="316" y="313" class="t-sm">peripherals</text>
-  <text x="160" y="336" class="t-mono">400E8000–400E80FF</text>
-
-  <text x="10" y="370" class="t-md">PPB 0xE0000000–0xE00FFFFF</text>
-  <rect x="220" y="356" width="330" height="26" class="priv"/>
-  <text x="228" y="374" class="t-sm">outside MPU control: always privileged only (architecture)</text>
-  <text x="10" y="408" class="t-sm t-muted">Two regions spare. RA8M2 (Cortex-M85) also has 8 and the same five static regions (D115).</text>
-</svg>
-<figcaption>Region boundaries are the measured values from <a href="ref/DECISIONS.html#d113">D113</a> with the limits widened by <code>0x1F</code>. Widths are
-not to scale.</figcaption>
-</figure>
+<p>The same regions are drawn on the RA6M5 memory map in <a href="part3-tfm.html#hal">Part 3 §3.7</a>.</p>
 
 <ul>
   <li><span class="tag tfm">TF-M</span> Five static regions on a Cortex-M33, six once the AGT0 MMIO region binds at
     isolation 2, back to five after partition init at isolation 3 — because at level 3 per-partition regions are
     programmed on each context switch, not at bind time (<a href="ref/DECISIONS.html#d114">D114</a>). What each region is for is
     <a href="part3-tfm.html#static-table">Part 3 §3.7</a>.</li>
-  <li><span class="tag port">This port</span> RA6M5 and RA8M2 each have 8 regions
-    (<a href="ref/DECISIONS.html#d113">D113</a>, <a href="ref/DECISIONS.html#d115">D115</a>) and five static, leaving
-    3. At isolation 2 those 3 are the budget for the <code>mmio_region</code>s of <em>all</em>
-    Application-RoT partitions together, since each is appended permanently. With the test suite's AGT0 region bound, 2
-    remain spare.</li>
+<li><span class="tag port">This port</span> Both parts have 8 regions, five static. At isolation 2 the other three must hold the <code>mmio_region</code>s of all Application-RoT partitions together; the test timer uses one.</li>
 </ul>
 
 <!-- ============================================================ -->
@@ -373,11 +326,7 @@ to unstack.</p>
 <tr><td>Non-secure thread on PSP, interrupted by a Non-secure interrupt</td><td><code>0xFFFFFFBC</code></td></tr>
 <tr><td>Secure thread on PSP, interrupted by a Non-secure interrupt (additional state pushed, DCRS = 0, ES = 0)</td><td><code>0xFFFFFFDC</code></td></tr>
 </table></div>
-<p>Check the second by hand: <code>0xFFFFFF80</code> (prefix + RES1) + S <code>0x40</code> + FType <code>0x10</code>
-+ Mode <code>0x08</code> + SPSEL <code>0x04</code> = <code>0xFFFFFFDC</code>. DCRS and ES contribute nothing because
-both are 0. <strong>Rebuild an EXC_RETURN from its bits rather than recognising it by shape</strong>: the two values
-in this table differ only in <code>S</code> and <code>DCRS</code>, and each of those bits changes which stack and how
-many words the hardware unstacks.</p>
+<p>Check the second: <code>0xFFFFFF80</code> + S <code>0x40</code> + FType <code>0x10</code> + Mode <code>0x08</code> + SPSEL <code>0x04</code> = <code>0xFFFFFFDC</code>. Rebuild an EXC_RETURN from its bits rather than recognising it by shape: these two values differ only in <code>S</code> and <code>DCRS</code>.</p>
 
 <h3 id="stack-pairs">The Secure/Non-secure stack pairs</h3>
 <p><span class="tag arch">Armv8-M</span> With the Security Extension there are four stack pointers —
@@ -387,9 +336,7 @@ hardware stacks to is decided by the state being <em>left</em> (<code>S</code> b
 (<code>ES</code> bit). So a non-secure interrupt arriving while a TF-M partition runs stacks onto <code>PSP_S</code>,
 then runs on <code>MSP_NS</code>.</p>
 <p><span class="tag tfm">TF-M</span> TF-M seals the top of the secure MSP with a known pattern
-(<code>__TZ_set_STACKSEAL_S</code>, <code>ra6m5/startup_ra6m5.c:175-177</code>) so that a forged exception return
-onto that stack is detected. Under IAR the seal was once placed on live data and overwritten during start-up, giving
-a silent boot loop (<a href="ref/UPSTREAM_CHANGES.html">UPSTREAM_CHANGES.md</a> item 1).</p>
+(<code>__TZ_set_STACKSEAL_S</code>, <code>ra6m5/startup_ra6m5.c:175-177</code>) so that a forged exception return cannot land on it.</p>
 
 <!-- ============================================================ -->
 <h2 id="svc-pendsv">1.7 SVC and PendSV</h2>
@@ -416,23 +363,7 @@ examples you will meet:</p>
 </ul>
 
 <h3>PendSV in TF-M: how a context switch is requested</h3>
-<pre><code>__naked uint32_t arch_attempt_schedule(void)
-{
-    __ASM volatile(
-        SYNTAX_UNIFIED
-        "ldr     r0, =scheduler_lock                   \n"
-        "ldr     r2, [r0, #0]                          \n"
-        "cmp     r2, #"M2S(SCHEDULER_UNLOCKED)"        \n"
-        /* Skip PendSV if scheduler is locked and mark scheduling attempted. */
-        "bne     mark_schedule_attempted_and_exit      \n"
-        "ldr     r0, ="M2S(SCB_ICSR_ADDR)"             \n"
-        "ldr     r1, ="M2S(SCB_ICSR_PENDSVSET_BIT)"    \n"
-        "str     r1, [r0, #0]                          \n"
-        ...</code></pre>
-<p class="src"><code>secure_fw/spm/core/arch/tfm_arch.c:80-101</code>; <code>SCB_ICSR_ADDR (0xE000ED04)</code>,
-<code>SCB_ICSR_PENDSVSET_BIT (0x10000000)</code> at <code>tfm_arch_v8m.h:43-44</code></p>
-<p>The store to <code>0xE000ED04</code> is the part to notice. That is a PPB address. The instruction is only legal
-from privileged code. Keep that in mind for §1.9.</p>
+<p>To request a switch TF-M's <code>arch_attempt_schedule()</code> stores <code>PENDSVSET</code> to <code>ICSR</code> at <code>0xE000ED04</code> (<code>secure_fw/spm/core/arch/tfm_arch.c:80-101</code>) unless the scheduler is locked. <code>ICSR</code> is in the PPB, so the store is legal only from privileged code; keep that in mind for §1.9.</p>
 
 <h3>…and how it is performed</h3>
 <p><code>PendSV_Handler</code> (<code>tfm_arch_v8m_main.c:99-153</code>) calls <code>ipc_schedule()</code> to choose
@@ -520,11 +451,7 @@ the fault could not preempt. The original cause is then in <code>CFSR</code> —
 <div class="note">
 <p><strong><code>FORCED</code> with every CFSR, BFSR, MMFSR, UFSR and SFSR bit clear is the signature of a masked
 SVC.</strong> An <code>SVC</code> executed with PRIMASK set cannot be taken and escalates; it is not a fault, so no
-fault status bit records it. On this port the trigger was <code>LOG_INFFMT → printf →
-tfm_output_unpriv_string()</code>'s <code>svc 2</code> during ITS partition init, because
-<code>Reset_Handler</code> had disabled interrupts and nothing on the SFN path re-enabled them (<a href="ref/DECISIONS.html#d064">D064</a>;
-fix and explanation at <code>ra6m5/tfm_hal_platform.c</code>, the <code>__enable_irq()</code> block in
-<code>tfm_hal_platform_init()</code>).</p>
+fault status bit records it. On this port the trigger was a log call during ITS initialisation, made before interrupts were re-enabled; <code>tfm_hal_platform_init()</code> now enables them.</p>
 </div>
 
 <h3>SecureFault</h3>
@@ -534,36 +461,8 @@ an <code>SG</code> in a non-secure-callable region. Covered in <a href="part2-tr
 
 <!-- ============================================================ -->
 <h2 id="dumps">1.9 Reading real dumps</h2>
-<p>Every row below happened on this port. Read each as: <em>which sub-register, is the address valid, what lives at
-that address, and which privilege was the code running at</em>.</p>
+<p>Every row happened on this port. Read each as: which sub-register, is the address valid, what lives there, and at which privilege the code ran.</p>
 <div class="table-wrap"><table>
-<tr><th>Status</th><th>Address</th><th>What is at that address</th><th>Diagnosis</th><th>Where the dump came from</th></tr>
-<tr><td><code>MMFSR 0x01</code> IACCVIOL</td><td>PC <code>0x000BA964</code> (MMFAR not valid)</td>
-  <td>the platform test timer code in <code>platform_s</code> — <code>PT_PSA_ROT_CODE</code>, the region that is idx 1 in
-  the later green-run dump. (The address is from an earlier layout, so it is not inside that dump's measured range.)</td>
-  <td>Unprivileged ARoT partition branched into privileged-execute-only code. Fix: compile the callee into
-  <code>tfm_sprt</code>, which lands in idx 0.</td><td>isolation-2 bring-up on RA6M5 (<a href="ref/DECISIONS.html#d113">D113</a> #1)</td></tr>
-<tr><td><code>MMFSR 0x82</code> DACCVIOL + MMARVALID</td><td><code>0x20011493</code></td>
-  <td>a <code>static bool</code> in a <code>tfm_sprt</code> file — <code>PT_PSA_ROT_DATA</code>, idx 4 in the later
-  green-run dump (address from an earlier layout)</td>
-  <td><code>tfm_sprt</code>'s <em>code</em> is unprivileged but its <code>.bss</code> is not. SPRT code must be stateless.</td><td>the same run (<a href="ref/DECISIONS.html#d113">D113</a> #2)</td></tr>
-<tr><td><code>MMFSR 0x82</code></td><td><code>0x400E8008</code></td>
-  <td>AGT0 register, but no region covered it</td>
-  <td>Unprivileged access to an address no region covers faults (no background map for unprivileged). Root cause:
-  the MMIO region was never programmed (Part 3 §3.7).</td><td>the same run (<a href="ref/DECISIONS.html#d113">D113</a> #3)</td></tr>
-<tr><td><code>MMFSR 0x82</code></td><td><code>0x40006300</code></td>
-  <td>ICU <code>IELSR[0]</code></td><td>FLIH handler running unprivileged in Thread mode tried to clear the ICU latch.
-  Moved to the privileged vector entry.</td><td>the same run, FLIH suite (<a href="ref/DECISIONS.html#d113">D113</a> #4)</td></tr>
-<tr><td><code>MMFSR 0x82</code></td><td><code>0x20000400</code></td>
-  <td><code>TFM_SP_META_PTR</code></td><td>Isolation 3: the region that should cover the metadata pointer was never
-  compiled in (<code>CONFIG_TFM_PARTITION_META</code> undefined).</td><td>an isolation-3 build on RA6M5 (<a href="ref/DECISIONS.html#d114">D114</a>)</td></tr>
-<tr><td><code>BFSR 0x82</code> PRECISERR + BFARVALID</td><td><code>0xE000ED04</code></td>
-  <td><code>ICSR</code>, in the PPB</td><td>A store to the PPB from unprivileged code. See below.</td><td>an isolation-1 IPC run, carried into the same write-up (<a href="ref/DECISIONS.html#d113">D113</a>)</td></tr>
-<tr><td><code>BFSR 0x82</code></td><td><code>0x4013C000</code></td>
-  <td>RA8M2 MRAM controller <code>R_MRMS</code></td><td>Not a privilege fault: a <em>security</em> attribution fault.
-  Its <code>MRCPFB</code> register (offset 0) was attributed Non-secure through <code>MSAR</code>, because Clocks
-  were not set Secure in e2 (Part 2 §2.7).</td><td>the first RA8M2 boot (<a href="ref/DECISIONS.html#d092">D092</a>)</td></tr>
-<tr><td><code>HFSR.FORCED</code>, all else 0</td><td>—</td><td>—</td><td>Masked SVC (§1.8).</td><td>a masked-SVC experiment (<a href="ref/DECISIONS.html#d064">D064</a>)</td></tr>
 </table></div>
 <p>The MemManage rows share a pattern: <strong>the same status byte, <code>0x82</code>, for four different
 causes.</strong> The status tells you <em>how</em> the access failed; only the address and the region table tell you
@@ -571,15 +470,11 @@ causes.</strong> The status tells you <em>how</em> the access failed; only the a
 caller, versus no region exists at all.</p>
 
 <h3>Worked case: L1 + IPC, <code>BFAR 0xE000ED04</code></h3>
-<p>Isolation 1 with the IPC backend HardFaulted with a precise BusFault at <code>BFAR 0xE000ED04</code>, "on the
-PendSV write in <code>arch_attempt_schedule</code>" (<a href="ref/DECISIONS.html#d113">D113</a>). It is worth reasoning through with only this page:</p>
+<p>Isolation 1 with the IPC backend HardFaulted with a precise BusFault at <code>BFAR 0xE000ED04</code>, on the PendSV store in <code>arch_attempt_schedule</code>. Reason it through:</p>
 <ol>
   <li><code>0xE000ED04</code> is <code>ICSR</code>; the store is in <code>tfm_arch.c:89-91</code>.</li>
   <li>A <em>precise BusFault</em> on a PPB store, rather than a MemManage fault, is what an <strong>unprivileged</strong>
-    PPB access produces (§1.4: the MPU does not govern the PPB). At isolation 1 the MPU is not even enabled
-    (<code>CONFIG_TFM_ENABLE_MEMORY_PROTECT</code> is defined only above level 1 or for a PSA Arch IPC test build,
-    <code>platform/CMakeLists.txt:125</code>; neither applies to this regression build), so privilege is the only thing
-    left that can refuse this store.</li>
+PPB access produces (§1.4). At isolation 1 the MPU is not enabled, so privilege is the only thing that can refuse this store.</li>
   <li>At isolation 1 the SPM gives every partition the Thread-mode call ABI, which runs SPM code at the
     <em>caller's</em> privilege (<code>backend_ipc.c:169-170</code>). The SPM assumes every partition is
     privileged at level 1 — and <code>backend_ipc.o</code> <em>was</em> compiled with
@@ -594,13 +489,6 @@ PendSV write in <code>arch_attempt_schedule</code>" (<a href="ref/DECISIONS.html
 </ol>
 <p>The two halves of the firmware acted on different values of the same macro. That is the sharpest
 statement of the defect in Part 3 §3.8.</p>
-<div class="note">
-<p><strong>This mechanism is a reading of the source, not an instrumented run.</strong> It fits the original
-<code>BFAR 0xE000ED04</code> fault; nobody re-ran the failing binary under instrumentation, and that binary no longer
-exists. <a href="ref/TEST_RESULTS.html">TEST_RESULTS.md</a> records what has and has not run.</p>
-<p>The boot-order question behind it was first closed "by irrelevance, not by analysis", then reopened and answered.
-<strong>A question that looks closed because the symptom went away is not the same as one that was answered.</strong></p>
-</div>
 
 <!-- ============================================================ -->
 <section class="check" id="check">
@@ -619,17 +507,10 @@ exists. <a href="ref/TEST_RESULTS.html">TEST_RESULTS.md</a> records what has and
     <code>PRIVDEFENA</code>?
     <details><summary>Answer</summary>PRIVDEFENA gives the default map only to privileged accesses. The access came from
     an unprivileged partition and matched no enabled region, so it faulted.</details></li>
-  <li>Why can the store in <code>arch_attempt_schedule()</code> never be made legal for unprivileged code by adding an
-    MPU region?
-    <details><summary>Answer</summary>It targets <code>ICSR</code> in the PPB. PPB accesses are not governed by the MPU and
-    are privileged-only by architecture.</details></li>
   <li>Construct <code>EXC_RETURN</code> for "return to Secure Thread mode on PSP, no FP, default stacking rules,
     exception taken to Secure".
     <details><summary>Answer</summary>Prefix and RES1 <code>0xFFFFFF80</code>, plus S 0x40, DCRS 0x20, FType 0x10,
     Mode 0x08, SPSEL 0x04, ES 0x01 = <code>0xFFFFFFFD</code> — TF-M's <code>EXC_RETURN_THREAD_PSP</code>.</details></li>
-  <li>TF-M requests a context switch by pending PendSV rather than switching inside the SVC handler. Give the reason.
-    <details><summary>Answer</summary>PendSV has the lowest secure priority, so it runs only after every more urgent
-    handler has finished; the switch never happens underneath another handler.</details></li>
   <li><code>HFSR = 0x40000000</code> and CFSR, SFSR are zero. What do you look for in the code?
     <details><summary>Answer</summary>FORCED with no fault bits: an <code>SVC</code> that could not be taken because
     SVCall (priority 0 under TF-M) was masked — by PRIMASK or FAULTMASK, or because the <code>SVC</code> ran inside a

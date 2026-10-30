@@ -78,7 +78,7 @@
   <dt>MPC / PPC</dt><dd>Memory / Peripheral Protection Controller, found on Arm reference subsystems; RA has neither. <a href="part2-trustzone.html#ra-periph">2.7</a></dd>
   <dt>MPU</dt><dd>Memory Protection Unit (PMSAv8). Banked per security state. <a href="part1-privilege-mpu-faults.html#mpu">1.4</a></dd>
   <dt>MSAR</dt><dd>RA8 MRAM security attribution register. <a href="part2-trustzone.html#ra-periph">2.7</a></dd>
-  <dt>MRCPFB</dt><dd>RA8M2 MRAM controller register at <code>0x4013C000</code> whose Non-secure attribution caused <a href="ref/DECISIONS.html#d092">D092</a>'s BusFault. <a href="part2-trustzone.html#ra-periph">2.7</a></dd>
+<dt>MRCPFB</dt><dd>RA8M2 MRAM controller register at <code>0x4013C000</code>; Secure code faults on it if the MRAM controller is attributed Non-secure. <a href="part2-trustzone.html#ra-periph">2.7</a></dd><dt>AGT</dt><dd>RA Asynchronous General-purpose Timer; AGT0 is the secure test timer. <a href="part0-primer.html#nvic">0.8</a></dd><dt>NS agent</dt><dd>The TF-M partition that represents the non-secure caller inside the SPE. <a href="part3-tfm.html#psa-call">3.2</a></dd><dt>Boundary handle</dt><dd>Opaque per-partition value from <code>tfm_hal_bind_boundary()</code> encoding privilege and, at level 3, MMIO. <a href="part3-tfm.html#hal">3.7</a></dd><dt>SCE9 / RSIP-E50D</dt><dd>The RA6M5 / RA8M2 crypto engines.</dd>
   <dt>MSP / PSP, MSPLIM / PSPLIM</dt><dd>Main / Process stack pointers and their limits. <a href="part1-privilege-mpu-faults.html#msp-psp">1.3</a></dd>
   <dt>NSC</dt><dd>Non-secure Callable: memory where an <code>SG</code> may be the target of a Non-secure branch. <a href="part2-trustzone.html#nsc">2.3</a></dd>
   <dt>NSACR</dt><dd>Non-secure Access Control Register: which coprocessors (e.g. the FPU) Non-secure code may use. Secure-only. <a href="part2-trustzone.html#banked">2.4</a></dd>
@@ -88,8 +88,7 @@
   different set of words). <a href="part4-porting.html#hazards">4.6</a></dd>
   <dt>PendSV</dt><dd>Pendable service exception, 14; TF-M's context switch. <a href="part1-privilege-mpu-faults.html#svc-pendsv">1.7</a></dd>
   <dt>PPB</dt><dd>Private Peripheral Bus, <code>0xE0000000–0xE00FFFFF</code>; privileged-only. <a href="part0-primer.html#ppb">0.10</a></dd>
-  <dt>PRIMASK / BASEPRI / FAULTMASK</dt><dd>Exception masks: all configurable exceptions; those at or below a priority; everything but NMI. Banked per security state; with <code>AIRCR.BFHFNMINS</code> = 0 the Non-secure copies boost
-priority only to 0 (0x80 with <code>AIRCR.PRIS</code>), so they never mask Secure exceptions (<a href="part2-trustzone.html#nvic">2.5</a>). <a href="part0-primer.html#exceptions">0.6</a></dd>
+<dt>PRIMASK / BASEPRI / FAULTMASK</dt><dd>Exception masks: all configurable; those at or below a priority; all but NMI. Banked; the Non-secure copies never mask Secure exceptions (<a href="part2-trustzone.html#nvic">2.5</a>). <a href="part0-primer.html#exceptions">0.6</a></dd>
   <dt>PRIVDEFENA</dt><dd>MPU_CTRL bit 2: privileged background map. <a href="part1-privilege-mpu-faults.html#mpu">1.4</a></dd>
   <dt>PRIS</dt><dd>AIRCR bit: Secure exceptions prioritised over Non-secure. <a href="part2-trustzone.html#nvic">2.5</a></dd>
   <dt>PSA RoT</dt><dd>PSA Root of Trust: SPM plus core security services; privileged at every isolation level. <a href="part3-tfm.html#ffm">3.1</a></dd>
@@ -110,55 +109,7 @@ priority only to 0 (0x80 with <code>AIRCR.PRIS</code>), so they never mask Secur
   <dt>VTOR</dt><dd>Vector Table Offset Register, <code>0xE000ED08</code>. <a href="part0-primer.html#vectors">0.5</a></dd>
 </dl>
 
-<h2 id="files">Files cited</h2>
-<h3>This repository (<code>ra_fsp_cmake_tfm</code>)</h3>
-<ul>
-  <li><a href="ref/DECISIONS.html">DECISIONS.md</a>, <a href="ref/DESIGN.html">DESIGN.md</a>, <a href="ref/PORTING.html">PORTING.md</a>,
-    <a href="ref/ADDING_FSP_MODULES.html">ADDING_FSP_MODULES.md</a>, <a href="ref/GETTING_STARTED.html">GETTING_STARTED.md</a>,
-    <a href="ref/CONFIGURATION.html">CONFIGURATION.md</a>, <a href="ref/TROUBLESHOOTING.html">TROUBLESHOOTING.md</a>,
-    <a href="ref/UPSTREAM_CHANGES.html">UPSTREAM_CHANGES.md</a>, <a href="ref/RA6M5_SOLUTION.html">RA6M5_SOLUTION.md</a>,
-    <a href="ref/RA8M2_SOLUTION.html">RA8M2_SOLUTION.md</a></li>
-  <li>Generated code in the e2 projects: <code>ra_gen/vector_data.c</code> (event-link table),
-    <code>Debug/bsp_linker_info.h</code>, <code>Debug/memory_regions.ld</code></li>
-  <li>Generated FSP, RA6M5: <code>ra6m5_gcc_secure/ra/fsp/src/bsp/cmsis/Device/RENESAS/Include/R7FA6M5BH.h</code>,
-    <code>…/bsp/mcu/all/bsp_security.c</code>, <code>…/bsp/mcu/all/bsp_irq.c</code>, <code>…/bsp/mcu/ra6m5/bsp_feature.h</code>,
-    <code>ra6m5_gcc_secure/ra/arm/CMSIS_6/CMSIS/Core/Include/core_cm33.h</code>, <code>…/m-profile/armv8m_mpu.h</code></li>
-  <li>Generated FSP, RA8M2: <code>ra8m2_gcc_CPU0_secure/ra/fsp/src/bsp/cmsis/Device/RENESAS/Include/R7KA8M2JF_core0.h</code>,
-    <code>R7KA8M2JF_core1.h</code>, <code>…/bsp/mcu/all/bsp_security.c</code>, <code>…/bsp/mcu/ra8m2/bsp_feature.h</code>,
-    <code>ra8m2_gcc_CPU0_secure/ra_cfg/fsp_cfg/bsp/bsp_mcu_device_pn_cfg.h</code></li>
-  <li>FSP <code>system.c</code> (cited via <a href="ref/DECISIONS.html#d064">D064</a> for <code>VTOR</code>)</li>
-</ul>
-<h3>TF-M (the <code>trusted-firmware-m</code> repository)</h3>
-<ul>
-  <li><code>platform/ext/common/tfm_hal_isolation_v8m.c</code> — the isolation HAL</li>
-  <li><code>secure_fw/spm/core/</code>: <code>main.c</code>, <code>spm_ipc.c</code>, <code>backend_ipc.c</code>,
-    <code>interrupt.c</code>, <code>tfm_svcalls.c</code>, <code>psa_interface_svc.c</code>, <code>arch/tfm_arch.c</code>,
-    <code>arch/tfm_arch_v8m_main.c</code></li>
-  <li><code>platform/include/tfm_hal_isolation.h</code>; <code>platform/ext/common/gcc/tfm_isolation_s.ld.template</code></li>
-  <li><code>secure_fw/spm/include/</code>: <code>tfm_arch.h</code>, <code>tfm_arch_v8m.h</code>, <code>load/partition_defs.h</code></li>
-  <li><code>secure_fw/partitions/ns_agent_tz/</code>: <code>psa_api_veneers_v80m.c</code>, <code>psa_api_veneers.c</code>,
-    <code>CMakeLists.txt</code></li>
-  <li><code>secure_fw/partitions/lib/runtime/CMakeLists.txt</code> (<code>tfm_sprt</code>)</li>
-  <li>Manifests: <code>secure_fw/partitions/crypto/tfm_crypto.yaml</code>,
-    <code>secure_fw/partitions/protected_storage/tfm_protected_storage.yaml</code></li>
-  <li><code>platform/CMakeLists.txt</code>, <code>interface/CMakeLists.txt</code>, <code>config/set_config.cmake</code>, <code>config/check_config.cmake</code>,
-    <code>config/config_base.cmake</code>, <code>config/tfm_ipc_config_default.cmake</code></li>
-  <li>RA6M5 port, <code>platform/ext/target/renesas/ra6m5/</code>: <code>startup_ra6m5.c</code>, <code>target_cfg.c</code>,
-    <code>tfm_hal_platform.c</code>, <code>tfm_peripherals_def.c/.h</code>, <code>tfm_timer0_irq.c</code>, <code>plat_test.c</code>,
-    <code>region_defs.h</code>, <code>flash_layout.h</code>, <code>config.cmake</code>, <code>config_tfm_target.h</code>,
-    <code>cpuarch.cmake</code>, <code>CMakeLists.txt</code>, <code>cmsis_drivers/Driver_Flash.c</code>,
-    <code>bl2_option_setting.c</code></li>
-  <li>RA8M2 port: <code>platform/ext/target/renesas/ra8m2/bl2_boot_hal.c</code>, <code>config.cmake</code>,
-    <code>CMakeLists.txt</code></li>
-  <li>Shared RA: <code>platform/ext/target/renesas/common/check_ofs.py</code></li>
-</ul>
-<h3>tf-m-tests</h3>
-<ul>
-  <li><code>tests_reg/test/secure_fw/suites/spm/irq/service/tfm_flih_test_service/tfm_flih_test_service.yaml</code></li>
-</ul>
-<p>Line numbers are those of the commit each page was written against. Citations into upstream TF-M files move only
-on a TF-M uprev; citations into <code>platform/ext/target/renesas/</code> move with port commits and are the ones to
-recheck. An FSP update moves only the FSP citations.</p>
+<h2 id="files">Files cited</h2><p>Repository documents are linked where they are cited. Source citations are to three trees: the generated e2 projects (<code>ra6m5_gcc_secure/</code>, <code>ra8m2_gcc_CPU0_secure/</code>: device headers, <code>bsp_security.c</code>, <code>bsp_irq.c</code>, <code>ra_gen/</code>, <code>Debug/bsp_linker_info.h</code>); trusted-firmware-m (<code>secure_fw/spm/</code>, <code>platform/ext/common/tfm_hal_isolation_v8m.c</code>, and the port under <code>platform/ext/target/renesas/</code>); and tf-m-tests (the FLIH test manifest). Citation conventions: <a href="index.html">Start here</a>.</p>
 
 <div class="pager"><a href="part4-porting.html">← Part 4 · Porting</a><a href="index.html">Start here</a></div>
 </main>

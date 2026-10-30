@@ -38,26 +38,10 @@
 build on an RA6M5, explain it, and decide what to change. Every claim from Part 1 onward is tied to a
 file, a line, or a measurement in this repository.</p>
 
-<h2>Who this is for</h2>
-<ul>
-  <li>You can read and write C, and have read a microcontroller datasheet.</li>
-  <li>You have not met privilege levels, an MPU, TrustZone, or a secure partition manager.</li>
-  <li>You will be asked to work on, or port, the TF-M port in this repository.</li>
-</ul>
-
-<h2>How to read it</h2>
-<ul>
-  <li><strong>In order.</strong> Each part uses the vocabulary of the previous one. Part 0 is a conventional
-    primer and is safe to skim if you already know Cortex-M exception handling.</li>
-  <li><strong>Follow the "Later:" boxes.</strong> Part 0 points forward to the place where each idea gets
-    tested on real hardware. They are where the textbook version stops being sufficient.</li>
-  <li><strong>Answer the questions at the end of each page</strong> before moving on. Answers are folded
-    under each question; every one is answerable from that page.</li>
-</ul>
+<h2>Who this is for, and how to read it</h2><ul><li>You write C and read datasheets, are integrating or extending TF-M on RA6M5 or RA8M2, and have not yet worked with privilege levels, an MPU, TrustZone or a secure partition manager.</li><li>Read in order; Part 0 can be skimmed. For one task: a fault dump, Part 1 §1.8–1.9; a peripheral in a partition, Part 3 §3.9; choosing an isolation level, Part 3 §3.3–3.5; a new part, Part 4.</li><li>Answers to each page's questions are folded under them.</li></ul>
 
 <h2>Four kinds of claim, and why the tags matter</h2>
-<p>A statement about this system is one of four different things. Mixing them up is the commonest way to
-draw a wrong conclusion, so every substantive claim carries a tag:</p>
+<p>Every substantive claim carries one of four tags, because confusing them is the commonest route to a wrong conclusion:</p>
 <div class="table-wrap"><table>
 <tr><th>Tag</th><th>Means</th><th>Example</th><th>Can it change?</th></tr>
 <tr><td><span class="tag arch">Armv8-M</span></td><td>The Arm architecture requires it. True on every Cortex-M33/M85.</td>
@@ -70,27 +54,7 @@ draw a wrong conclusion, so every substantive claim carries a tag:</p>
   <td>The port marks interrupts Secure only through the secure e2 project, never with <code>NVIC_ClearTargetState()</code>.</td><td>Here.</td></tr>
 </table></div>
 
-<h2>The parts</h2>
-<div class="table-wrap"><table>
-<tr><th>Part</th><th>Covers</th><th>Anchored in</th></tr>
-<tr><td><a href="part0-primer.html">0 · The Cortex-M machine</a></td>
-  <td>Registers, stack, AAPCS, memory map, vector table and reset, exception numbers and priorities, latency,
-  NVIC, SysTick, the PPB.</td><td>RA6M5 / RA8M2 device headers, <code>startup_ra6m5.c</code></td></tr>
-<tr><td><a href="part1-privilege-mpu-faults.html">1 · Privilege, the MPU, and faults</a></td>
-  <td>Thread/Handler, <code>CONTROL.nPRIV</code>, MSP/PSP, PMSAv8 regions, exception stacking and
-  <code>EXC_RETURN</code>, SVC and PendSV, CFSR/HFSR decoding.</td><td><a href="ref/DECISIONS.html#d113">D113</a>/D114 fault chain, measured MPU dump</td></tr>
-<tr><td><a href="part2-trustzone.html">2 · TrustZone for Armv8-M</a></td>
-  <td>Security states, SAU/IDAU, NSC and SG, banked registers, NVIC target state, RA's PSAR/PSCU/ICUSARG.</td>
-  <td>FSP <code>bsp_security.c</code>, <a href="ref/DECISIONS.html#d061">D061</a>, <a href="ref/DECISIONS.html#d069">D069</a>, <a href="ref/DECISIONS.html#d075">D075</a>–<a href="ref/DECISIONS.html#d076">D076</a>, <a href="ref/DECISIONS.html#d092">D092</a></td></tr>
-<tr><td><a href="part3-tfm.html">3 · TF-M</a></td>
-  <td>PSA-FF-M, RoTs, manifests, <code>psa_call</code>, isolation levels 1–3, the SPM, SFN vs IPC, the isolation
-  HAL walked line by line.</td><td><code>tfm_hal_isolation_v8m.c</code>, <code>interrupt.c</code>, <a href="ref/DECISIONS.html#d113">D113</a>/D114</td></tr>
-<tr><td><a href="part4-porting.html">4 · Porting</a></td>
-  <td>What a platform supplies, what RASC/FSP contributes, flash layout and MCUboot, FSP drivers in partitions,
-  verification gates.</td><td>PORTING.md, ADDING_FSP_MODULES.md, UPSTREAM_CHANGES.md</td></tr>
-<tr><td><a href="glossary.html">Glossary &amp; sources</a></td>
-  <td>The acronyms and files the course relies on.</td><td></td></tr>
-</table></div>
+<h2>The parts</h2><table><tr><th>Part</th><th>Covers</th></tr><tr><td>0 · The Cortex-M machine</td><td>Registers, AAPCS, memory map, vector table and reset, exceptions and priorities, NVIC and RA ICU, SysTick, PPB.</td></tr><tr><td>1 · Privilege, MPU, faults</td><td>CONTROL.nPRIV, MSP/PSP, PMSAv8 regions, stacking, EXC_RETURN, SVC/PendSV, fault decoding.</td></tr><tr><td>2 · TrustZone</td><td>Security states, SAU/IDAU, NSC and SG, banking, NVIC target state, RA attribution registers.</td></tr><tr><td>3 · TF-M</td><td>PSA-FF-M, psa_call, isolation levels, SPM backends, FLIH/SLIH, the isolation HAL, FSP drivers in partitions.</td></tr><tr><td>4 · Porting</td><td>The platform contract, RASC/FSP inputs, FSP in the build, layout and MCUboot, links to the owning documents.</td></tr><tr><td>Glossary</td><td>Terms and files cited.</td></tr></table>
 
 <h2>The hardware in this course</h2>
 <div class="table-wrap"><table>
@@ -105,34 +69,9 @@ draw a wrong conclusion, so every substantive claim carries a tag:</p>
 <tr><td><code>__SAUREGION_PRESENT</code></td><td>0</td><td>1</td><td><code>R7FA6M5BH.h:47</code>, <code>R7KA8M2JF_core0.h:49</code></td></tr>
 <tr><td>Crypto engine</td><td>SCE9</td><td>RSIP-E50D</td><td><a href="ref/CONFIGURATION.html#s5">CONFIGURATION.md</a> §5</td></tr>
 </table></div>
-<p>Most worked examples use the RA6M5, because it was the first part measured at isolation 2 and 3
-(<a href="ref/DECISIONS.html#d113">D113</a>, <a href="ref/DECISIONS.html#d114">D114</a>, GNUARM) and the debugging
-story happened there. Both parts have since run at every isolation level on both toolchains
-(<a href="ref/DECISIONS.html#d124">D124</a>); RA6M5's later runs are on the post-<a href="ref/DECISIONS.html#d121">D121</a> build, RA8M2's on the build before it. RA8M2
-appears where it differs, chiefly in Part 2.</p>
+<p>Worked examples use the RA6M5; the RA8M2 appears where it differs, chiefly in Part 2. What has run on each part is in <a href="ref/TEST_RESULTS.html">TEST_RESULTS.md</a>.</p>
 
-<h2>Citation conventions</h2>
-<ul>
-  <li><code>DECISIONS.md D113</code> — an entry in this repository's append-only decision log,
-    <a href="ref/DECISIONS.html">DECISIONS.md</a>. Entries are never edited; a later entry supersedes or corrects an earlier
-    one, so the log reads as history. For what stands now, use <a href="ref/SETTLED.html">SETTLED.md</a> (generated from
-    the log: per thread, the entry that stands) and the hand-written
-    <a href="ref/DECISIONS.html#settled-questions">Settled questions</a> table at the top of the log. The
-    <a href="ref/SETTLED.html">SETTLED.md</a> gives the standing of every entry.</li>
-  <li>Every link to a repository document opens an HTML rendering of it under <a href="ref/index.html"><code>ref/</code></a>,
-    regenerated from the Markdown on each commit. A decision number such as <a href="ref/DECISIONS.html#d113">D113</a> links straight to its entry; "DESIGN.md
-    §8.4" links to that section.</li>
-  <li><code>tfm_hal_isolation_v8m.c:410</code> — a file in the TF-M checkout at
-    the <code>trusted-firmware-m</code> repository, under <code>platform/ext/common/</code>
-    unless a fuller path is given. Line numbers are those of the commit each page was written against and drift with later edits.
-    Citations into upstream files the port does not modify drift only on a TF-M uprev; citations into
-    <code>platform/ext/target/renesas/</code> can move with any port commit. An FSP update cannot move any TF-M
-    citation.</li>
-  <li>Port files are under <code>trusted-firmware-m/platform/ext/target/renesas/&lt;part&gt;/</code> and cited
-    as <code>ra6m5/tfm_timer0_irq.c:86</code>.</li>
-  <li>FSP files are cited from the generated e2 project, e.g.
-    <code>ra6m5_gcc_secure/ra/fsp/src/bsp/mcu/all/bsp_security.c:399</code>.</li>
-</ul>
+<h2>Citation conventions</h2><ul><li><a href="ref/DECISIONS.html#d113">D113</a> links to an entry in DECISIONS.md, the rationale log. Current behaviour is described in DESIGN.md and CONFIGURATION.md.</li><li>Links to repository documents open renderings under ref/, produced by <code>python scripts/build_doc_html.py</code> (see README.md).</li><li><code>tfm_hal_isolation_v8m.c:410</code> is in trusted-firmware-m, under platform/ext/common/ unless a fuller path is given. Port files are cited as <code>ra6m5/tfm_timer0_irq.c:86</code>, FSP files from the generated e2 project. Line numbers can drift with port commits.</li></ul>
 
 
 <div class="pager"><span></span><a href="part0-primer.html">Part 0 · The Cortex-M machine →</a></div>

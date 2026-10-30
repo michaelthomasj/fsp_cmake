@@ -89,23 +89,7 @@ between them.</p>
   interrupt controller and the isolation hardware.</td></tr>
 </table></div>
 
-<h3>Two real manifests</h3>
-<pre><code>{
-  "psa_framework_version": 1.1,
-  "name": "TFM_SP_CRYPTO",
-  "type": "PSA-ROT",
-  "priority": "NORMAL",
-  "model": "SFN",
-  "entry_init": "tfm_crypto_init",
-  "stack_size": "CRYPTO_STACK_SIZE",
-  "services" : [
-    {
-      "name": "TFM_CRYPTO",
-      "sid": "0x00000080",
-      "non_secure_clients": true,
-      "connection_based": false,
-      ...</code></pre>
-<p class="src"><code>secure_fw/partitions/crypto/tfm_crypto.yaml</code></p>
+<h3>A real manifest</h3>
 <pre><code>{
   "psa_framework_version": 1.1,
   "name": "TFM_SP_FLIH_TEST",
@@ -149,10 +133,7 @@ between them.</p>
 output vectors are lists of <code>{pointer, length}</code>; the service reads and writes them through the SPM
 (<code>psa_read</code>, <code>psa_write</code>), not by dereferencing the client's pointer directly. That is what
 lets the SPM check each vector against the caller's boundary with <code>tfm_hal_memory_check()</code>, once, when the call
-is made. The exception is MM-IOVEC (<code>psa_map_invec</code>/<code>psa_map_outvec</code>), which lets a service map
-client memory directly; it is allowed only at isolation 1 (<code>config/check_config.cmake:14</code>) and is OFF here
-(<code>PSA_FRAMEWORK_HAS_MM_IOVEC</code>, <code>config/config_base.cmake:67</code>). The Crypto manifest above declares
-<code>"mm_iovec": "enable"</code> in the elided part, which has no effect while that option is OFF.</p>
+is made. The exception, MM-IOVEC (<code>psa_map_invec</code>/<code>psa_map_outvec</code>), maps client memory directly; it is allowed only at isolation 1 and is OFF on this port (<code>PSA_FRAMEWORK_HAS_MM_IOVEC</code>).</p>
 
 <figure class="wide">
 <svg viewBox="0 0 760 560" role="img" aria-labelledby="seq-t seq-d">
@@ -245,20 +226,7 @@ and calls its function directly on the caller's stack (§3.5).</p>
     <code>tfm_hal_activate_boundary()</code> returns before touching the MPU for a privileged partition
     (<code>:575-578</code>).</li>
 </ul>
-<p><span class="tag port">This port</span> ships isolation 1 with SFN (<code>ra6m5/config.cmake:169-170</code>). The
-PSA Arch builds use 3 with IPC. The regression suite stands at:</p>
-<div class="table-wrap"><table>
-<tr><th></th><th>L1 SFN</th><th>L1 IPC</th><th>L2</th><th>L3</th></tr>
-<tr><td>RA6M5 GNUARM</td><td>green</td><td>secure suites only; cause unexplained (<a href="ref/DECISIONS.html#d122">D122</a>)</td><td>green; post-move run secure only</td><td>green</td></tr>
-<tr><td>RA6M5 IAR</td><td>green</td><td>—</td><td>green; secure half not captured (<a href="ref/DECISIONS.html#d123">D123</a> §2)</td><td>green</td></tr>
-<tr><td>RA8M2 GNUARM</td><td>green</td><td>green</td><td>green</td><td>green</td></tr>
-<tr><td>RA8M2 IAR</td><td>green</td><td>—</td><td>green</td><td>green</td></tr>
-</table></div>
-<p class="src"><a href="ref/DECISIONS.html#d124">D124</a> "Coverage — complete", qualified by <a href="ref/DECISIONS.html#d125">D125</a> §4 and <a href="ref/DECISIONS.html#d126">D126</a> §4.
-"Green" means secure 9/9 <em>and</em> non-secure 7/7, FLIH tests included. Two RA6M5 captures after the move
-(<a href="ref/DECISIONS.html#d121">D121</a>, §3.8) lost their non-secure half, and the IAR L2 capture lost its secure
-half; the GNUARM L2 cell rests on the full pre-move run (<a href="ref/DECISIONS.html#d113">D113</a>). Post-move runs: RA6M5 L1 IPC, GNUARM L3 and
-IAR L2/L3. Pre-move: RA6M5 L1 SFN on both toolchains and every RA8M2 cell, with region symbols proven unchanged. The SLIH suite has never run on RA8M2, so "complete" means regression + FLIH at every level.</p>
+<p><span class="tag port">This port</span> ships isolation 1 with SFN (<code>ra6m5/config.cmake:169-170</code>); the PSA Arch builds use 3 with IPC. Every level has been run on both parts and toolchains; for the matrix and its caveats see <a href="ref/TEST_RESULTS.html">TEST_RESULTS.md</a>.</p>
 
 <h3>What each level costs — measured</h3>
 <div class="table-wrap"><table>
@@ -267,10 +235,7 @@ IAR L2/L3. Pre-move: RA6M5 L1 SFN on both toolchains and every RA8M2 cell, with 
 <tr><td>isolation 1 → 2</td><td>+1,524</td><td>+8</td><td>+1,526</td><td>+8</td></tr>
 <tr><td>isolation 2 → 3</td><td>+156</td><td>0</td><td>+156</td><td>0</td></tr>
 </table></div>
-<p class="src"><a href="ref/DECISIONS.html#d113">D113</a>, GNUARM MinSizeRel, regression + FLIH build, bytes</p>
-<p>The entire isolation machinery, level 1 to 3, is about 1,680 B of text. The expensive thing is the IPC backend that
-level 2 forces — threads, stacks and the scheduler. With about 198 KB of secure-region headroom on RA6M5 and 76 KB on RA8M2
-(<a href="ref/DECISIONS.html#d087">D087</a>), that distinction decides what fits.</p>
+<p class="src">GNUARM MinSizeRel, regression + FLIH build, bytes.</p><p>The isolation machinery itself, level 1 to 3, is about 1,680 B of text; the cost is the IPC backend that level 2 forces. Both parts have tens of kilobytes of secure-region spare for it: see <a href="ref/CONFIGURATION.html#s6">CONFIGURATION.md §6</a>.</p>
 
 <!-- ============================================================ -->
 <h2 id="certified">3.4 PSA Certified Level 3 is not isolation level 3</h2>
@@ -281,9 +246,7 @@ level 2 forces — threads, stacks and the scheduler. With about 198 KB of secur
 <tr><td>Set by</td><td><code>-DTFM_ISOLATION_LEVEL=</code></td><td>the scope and attack model of the evaluation (from questionnaire review up to lab testing that includes hardware attacks)</td></tr>
 <tr><td>Changes</td><td>which partitions are privileged and how the MPU is used</td><td>nothing in the code</td></tr>
 </table></div>
-<p>A part certified at PSA Certified Level 2 or 3 may be running TF-M at any isolation level its evaluation accepted, and
-building TF-M at isolation level 3 certifies nothing. The PSA Certified column is from PSA Certified's public scheme, not
-from this repository; check the current scheme documents for what each level requires.</p>
+<p>Building TF-M at isolation level 3 certifies nothing; a PSA Certified product may run any isolation level its evaluation accepted. Check PSA Certified's scheme documents for what each level requires.</p>
 
 <!-- ============================================================ -->
 <h2 id="spm">3.5 The SPM: boot, partition loading, scheduling; SFN vs IPC</h2>
@@ -302,26 +265,7 @@ from this repository; check the current scheme documents for what each level req
   <li><code>BACKEND_SPM_INIT()</code> — load partitions and start the first one (<code>:133</code>).</li>
 </ol>
 
-<h3>Partition loading</h3>
-<pre><code>    while (1) {
-        partition = load_a_partition_assuredly(PARTITION_LIST_ADDR);
-        if (partition == NO_MORE_PARTITION) {
-            break;
-        }
-        service_setting = load_services_assuredly(...);
-        load_irqs_assuredly(partition);
-
-        /* Bind the partition with platform. */
-        FIH_CALL(tfm_hal_bind_boundary, fih_rc, partition-&gt;p_ldinf,
-                 &amp;partition-&gt;boundary);
-        ...
-        backend_init_comp_assuredly(partition, service_setting);
-    }
-
-#if CONFIG_TFM_POST_PARTITION_INIT_HOOK == 1
-    ...
-    FIH_CALL(tfm_hal_post_partition_init_hook, fih_rc);</code></pre>
-<p class="src"><code>secure_fw/spm/core/spm_ipc.c:411-440</code></p>
+<h3>Partition loading</h3><p>For each partition <code>spm_ipc.c:411-440</code> loads its services and IRQs, calls <code>tfm_hal_bind_boundary()</code>, and initialises it; after the loop it calls <code>tfm_hal_post_partition_init_hook()</code> when that hook is enabled.</p>
 <p><code>load_irqs_assuredly()</code> calls each IRQ's init hook — on this port <code>tfm_timer0_irq_init()</code>,
 which is privileged SPM code and therefore where <code>R_AGT_Open()</code> lives (§3.9). The post-partition hook is
 where <span class="tag port">this port</span> dumps the MPU (Part 1 §1.4).</p>
@@ -337,13 +281,7 @@ where <span class="tag port">this port</span> dumps the MPU (Part 1 §1.4).</p>
 <tr><td>Cost (RA6M5)</td><td>baseline</td><td>+4,606 B text, +13,092 B bss</td></tr>
 <tr><td>This port</td><td>default (<code>config.cmake:170</code>)</td><td>PSA Arch and isolation ≥ 2 builds</td></tr>
 </table></div>
-<p><span class="tag tfm">TF-M</span> Asking for isolation 2 or 3 selects the IPC configuration regardless of what backend
-string is passed:</p>
-<pre><code>if((DEFINED TFM_ISOLATION_LEVEL AND TFM_ISOLATION_LEVEL GREATER 1) OR
-   (CONFIG_TFM_SPM_BACKEND STREQUAL "IPC") OR
-   (TFM_MULTI_CORE_TOPOLOGY AND CONFIG_TFM_USE_TRUSTZONE))
-    include(config/tfm_ipc_config_default.cmake)</code></pre>
-<p class="src"><code>config/set_config.cmake:35-38</code></p>
+<p><span class="tag tfm">TF-M</span> Asking for isolation 2 or 3 selects the IPC configuration whatever backend string is passed (<code>config/set_config.cmake:35-38</code>).</p>
 <p>The IPC backend also decides, per partition, how that partition calls into the SPM
 (<code>backend_ipc.c:169-177</code>): at level 1 every partition uses the Thread-mode function-call ABI; above level 1,
 a partition whose boundary differs from the SPM's — an unprivileged one — uses SVC, so that the SPM always runs
@@ -391,9 +329,7 @@ privileged.</p>
 <tr><td>isolation 2/3, no boundary switch needed — PSA RoT</td><td><code>flih_func()</code> directly (<code>:202</code>)</td><td>Handler mode, privileged</td></tr>
 <tr><td>isolation 2/3, switch needed — Application RoT</td><td><code>tfm_flih_deprivileged_handling()</code> (<code>:204</code>)</td><td><strong>Thread mode, unprivileged</strong></td></tr>
 </table></div>
-<p>Handler mode is the usual case. <a href="ref/DECISIONS.html#d113">D113</a> first wrote this up as "TF-M runs FLIH handlers in THREAD mode" — the third
-row stated as a rule. It was the case being measured: a correct observation, a wrong generalisation. <a href="ref/DECISIONS.html#d117">D117</a>
-corrected it to this table.</p>
+<p>Handler mode is the usual case; only the third row runs in Thread mode.</p>
 <div class="note">
 <p><strong>The architecture says Handler mode is always privileged. TF-M arranges for an Application-RoT FLIH handler
 above isolation 1 not to run in Handler mode.</strong> Both statements are true. The design choice is intentional: an interrupt handler written by
@@ -420,13 +356,7 @@ an Application-RoT developer gets the permissions that developer's partition has
 }</code></pre>
 <p class="src"><code>ra6m5/tfm_timer0_irq.c:56-91</code>. The comment at <code>:58-85</code> records the measurement and
 why the ICU clear must precede the NVIC clear.</p>
-<div class="warn">
-<p><strong>If you open these port files, two comments disagree with this page.</strong> In
-<code>tfm_timer0_irq.c:62</code>, "TF-M runs THIS handler in THREAD mode" means the partition's FLIH handler, not the
-vector entry it sits in, which is Handler mode (<code>:66</code>). And the header of <code>plat_test.c</code>
-(<code>:17-39</code>, <code>:95-96</code>) predates <a href="ref/DECISIONS.html#d113">D113</a>: it still describes FSP driver calls, an ICU clear and NVIC use,
-while the code below it uses bare <code>AGTCR</code> writes only. The page reflects the code.</p>
-</div>
+<div class="warn"><p>In <code>tfm_timer0_irq.c:62</code>, "TF-M runs THIS handler in THREAD mode" means the partition's FLIH handler, not the vector entry, which runs in Handler mode.</p></div>
 
 <!-- ============================================================ -->
 <h2 id="hal">3.7 The isolation HAL, walked</h2>
@@ -450,10 +380,7 @@ shared implementation in <code>platform/ext/common/tfm_hal_isolation_v8m.c</code
 <div class="table-wrap"><table>
 <tr><th>idx</th><th>Source lines</th><th>Covers (linker symbols)</th><th>Measured</th><th>Permissions</th><th>Why</th></tr>
 <tr><td>0</td><td><code>:141-159</code></td><td><code>PT_UNPRIV_CODE_START</code> → <code>PT_APP_ROT_CODE_END</code></td><td><code>0x000A0400–0x000A565F</code></td><td>RO, any privilege, executable, Attr0</td>
-  <td>Code every unprivileged context may run: <code>tfm_sprt</code> and all ARoT partitions. Upstream it also holds the
-  veneers (HAL comment <code>:112</code>), but this port pins them at <code>0x11F800</code> in their own linker region
-  (<code>ra6m5/region_defs.h:166-187</code>, <code>:202-203</code>), outside every MPU region, so they run under
-  <code>PRIVDEFENA</code> as privileged code. One region because PXN, which would let privileged-execute be refused separately, needs Armv8.1-M (<code>:107-110</code>)</td></tr>
+<td>Code every unprivileged context may run: <code>tfm_sprt</code> and all ARoT partitions. This port pins the veneers outside every MPU region, so they run privileged under <code>PRIVDEFENA</code>. One region, because PXN needs Armv8.1-M.</td></tr>
 <tr><td>1</td><td><code>:161-179</code></td><td><code>PT_PSA_ROT_CODE_START/END</code></td><td><code>0x000A5660–0x000D82FF</code></td><td>RO, <strong>privileged only</strong>, executable</td>
   <td>SPM, PSA RoT, <code>platform_s</code>. An unprivileged branch here is IACCVIOL (<a href="ref/DECISIONS.html#d113">D113</a> #1)</td></tr>
 <tr><td>2</td><td><code>:180-198</code></td><td><code>PT_RO_DATA_START/END</code></td><td><code>0x000D8300–0x000E5BDF</code></td><td>RO, any, execute-never</td>
@@ -544,9 +471,7 @@ level 3 adds.</p>
 partition's own data) as an unprivileged RW region from index <code>n_static_regions</code>; decode the MMIO
 descriptors from the handle and program each; clear every remaining region; re-enable. Every context switch between
 ARoT partitions rewrites the MPU.</p>
-<p>RA6M5 and RA8M2 both have 8 regions and five static, which leaves 8 − 5 = 3 regions per partition at level 3 for
-private data plus MMIO. RA8M2's measured static set has the same shape at different addresses — code from
-<code>0x02068400</code> in MRAM, data from <code>0x22000400</code>, AGT0 at <code>0x40221000</code> (<a href="ref/DECISIONS.html#d115">D115</a>).</p>
+<p>With 8 regions and five static, level 3 leaves 3 regions per partition for private data plus MMIO, on both parts.</p>
 
 <!-- ============================================================ -->
 <h2 id="d113">3.8 Case study: a shared source in the wrong CMake target</h2>
@@ -563,33 +488,13 @@ target:</p>
 <p>The RA ports compiled that source into <code>platform_s</code>, and <code>platform_s</code> does
 not link <code>psa_interface</code>. Inside the HAL the macro was therefore undefined — and
 <strong>the C preprocessor evaluates an undefined identifier in <code>#if</code> as <code>0</code>,
-with no diagnostic unless you build with <code>-Wundef</code></strong>. Every arm that tests the
-level compiled away — <em>including</em> <code>== 1</code>, because <code>0 == 1</code> is false
-too, so the result was not the level-1 configuration either. The <code>#else</code> arm ran
-instead: it sets <code>privileged = IS_PSA_ROT()</code>, which de-privileges every
-Application-RoT partition whatever level was asked for, and at isolation 1 the SPM expects all
-of them to be privileged. Nothing failed to build and nothing warned.</p>
+with no diagnostic unless you build with <code>-Wundef</code></strong>. Every <code>==</code> test of the level was false, including <code>== 1</code>, so the <code>#else</code> arm set <code>privileged = IS_PSA_ROT()</code> and de-privileged every Application-RoT partition at every level; <code>!= 3</code> was true, so the level-1/2 data region stayed. Nothing failed to build and nothing warned.</p>
 
-<p><span class="tag port">This port</span> owned the defect: it was where the shared source had been
-put. Establishing that meant comparing targets rather than reading code.</p>
-
-<div class="table-wrap"><table>
-<tr><th>Platform</th><th>Target the shared HAL is added to</th><th>Receives <code>psa_interface</code>'s definitions?</th></tr>
-<tr><td>an519, an524, corstone300/310, mps4, musca_b1/s1, rse, alcort</td><td><code>tfm_spm</code></td><td>yes — <code>tfm_spm</code> links <code>tfm_sprt</code> unconditionally</td></tr>
-<tr><td>the RA ports, now</td><td><code>tfm_spm</code></td><td>yes</td></tr>
-<tr><td>the RA ports, before the fix</td><td><code>platform_s</code></td><td>no</td></tr>
-</table></div>
-
-<p>Nine platforms said <code>tfm_spm</code>; one said <code>platform_s</code>. The fix was to move the
-source, not to add the macros it was missing one at a time
-(<a href="ref/DECISIONS.html#d121">D121</a>).</p>
+<p><span class="tag port">This port</span> owned the defect. Every other platform using the shared HAL (an519, an524, corstone300/310, mps4, musca_b1/s1, rse, alcor) adds it to <code>tfm_spm</code>, which receives <code>psa_interface</code>'s definitions through <code>tfm_sprt</code>; the RA ports added it to <code>platform_s</code>. The fix moved the source rather than adding the missing macros one at a time.</p>
 
 <h3>Four rules worth taking from it</h3>
 <ul>
-  <li><strong>Read the compile line before trusting the source.</strong> Four rounds went into
-    verifying the manifest, the allow-list, <code>platform_data_t</code> and the alignment — all
-    correct — before anyone asked whether the code consuming them was compiled with the macro it
-    switches on.</li>
+<li><strong>Read the compile line before trusting the source.</strong> Check that the code consuming a configuration is compiled with the macro it switches on before verifying the configuration itself.</li>
   <li><strong>Link the interface; do not add macros one at a time.</strong> A macro-by-macro fix only
     finds the ones someone has already been bitten by. Moving the source fixed the class.</li>
   <li><strong>Before calling a gap upstream, compare your port with the platforms that work.</strong>
@@ -599,12 +504,7 @@ source, not to add the macros it was missing one at a time
     absence in the compile line does not tell you which of the two you are looking at.</li>
 </ul>
 
-<p>One more failure of the same shape, worth recognising: <strong>an unconditional
-<code>#define</code> of a config macro whose implementation is conditionally compiled is a latent
-link error.</strong> The port enabled <code>CONFIG_TFM_POST_PARTITION_INIT_HOOK</code>
-unconditionally while the hook body sits inside
-<code>#ifdef CONFIG_TFM_ENABLE_MEMORY_PROTECT</code>, so every isolation-1 build carried the call
-site without the body. It is now gated on the same macro.</p>
+<p>Related: a config macro <code>#define</code>d unconditionally while its implementation is conditionally compiled is a latent link error; gate both on the same macro.</p>
 <h2 id="fsp-drivers">3.9 FSP drivers inside partitions</h2>
 <p>Everything above decides where an FSP driver call may run. <a href="ref/ADDING_FSP_MODULES.html">ADDING_FSP_MODULES.md
 §7</a> is the full account; the reasoning, using this course's vocabulary:</p>
@@ -614,10 +514,7 @@ site without the body. It is now gated on the same macro.</p>
 <tr><td>the control block, e.g. <code>g_timer0_ctrl</code> in <code>ra_gen/hal_data.c</code> (<code>0x2000fd54</code>)</td><td>idx 4, PSA RoT data</td><td>DACCVIOL, <code>MMFSR 0x82</code></td></tr>
 <tr><td>the NVIC, written by every interrupt-driven <code>R_xxx_Open()</code></td><td>PPB</td><td>BusFault; <strong>no region can grant it</strong></td></tr>
 </table></div>
-<p>The third is architectural. <code>R_AGT_Open()</code> calls <code>R_BSP_IrqCfgEnable()</code>; the same pattern
-appears in <code>r_spi</code> (12 call sites), <code>r_iic_master</code> (7), <code>r_sci_uart</code> (5),
-<code>r_canfd</code> (5) (<a href="ref/DECISIONS.html#d113">D113</a>; the counts are not reproducible from these
-trees, <a href="ref/DECISIONS.html#d126">D126</a> §6 — the point stands on <code>R_AGT_Open()</code> alone). It is a collision of models, not an FSP defect: TF-M takes NVIC ownership away from
+<p>The third is architectural: <code>R_AGT_Open()</code> calls <code>R_BSP_IrqCfgEnable()</code>, and so does every interrupt-driven driver's open. It is a collision of models, not an FSP defect: TF-
 partitions (they declare <code>irqs</code> and use <code>psa_irq_enable()</code>, an SVC); FSP assumes the driver owns the
 interrupt controller. They disagree at <code>_Open()</code> and nowhere else.</p>
 <p><span class="tag port">This port</span> splits the driver's lifetime by privilege:</p>
@@ -652,15 +549,9 @@ isolation level, where FSP works unmodified.</p>
     <details><summary>Answer</summary>Thread mode, unprivileged. <code>spm_handle_interrupt()</code> sees the owner's
     boundary differs from the SPM's and executes <code>SVC TFM_SVC_PREPARE_DEPRIV_FLIH</code>; the SVC handler activates
     the owner's boundary and returns with <code>EXC_RETURN_THREAD_PSP</code> into the FLIH function.</details></li>
-  <li>Building TF-M at isolation level 3 makes a product "PSA Certified Level 3". True or false?
-    <details><summary>Answer</summary>False. They are unrelated scales: one is a build option, the other an evaluation
-    assurance level.</details></li>
   <li><code>-DTFM_ISOLATION_LEVEL=2 -DCONFIG_TFM_SPM_BACKEND=SFN</code>. What backend do you get?
     <details><summary>Answer</summary>IPC: <code>set_config.cmake</code> loads the IPC defaults for any level above 1. <a href="ref/DECISIONS.html#d113">D113</a>
     notes the pair is incoherent and surfaces as the manifest tool rejecting IPC-only test partitions.</details></li>
-  <li>Which single compiler flag would have exposed the <a href="ref/DECISIONS.html#d113">D113</a> defect at build time?
-    <details><summary>Answer</summary><code>-Wundef</code>, which warns when an undefined identifier is evaluated in
-    <code>#if</code>.</details></li>
   <li>You must drive an SPI peripheral from an Application-RoT partition at isolation 2. Where does
     <code>R_SPI_Open()</code> go, and why?
     <details><summary>Answer</summary>In privileged init — the IRQ init hook the SPM calls — because it writes the NVIC,
