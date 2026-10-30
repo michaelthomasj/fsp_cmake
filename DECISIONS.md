@@ -1,8 +1,9 @@
 # Decision log — TF-M on Renesas RA
 
-An append-only, chronological record of decisions and **why** they were made. Separate from
-`DESIGN.md` on purpose: DESIGN.md describes how the port works *now*, this file records how it
-came to work that way, including the turns that were later reversed.
+Appendix. The engineering record of why the port is built as it is, including the turns that
+were later reversed. Not required reading: current limitations are in
+[KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md) and test status in
+[TEST_RESULTS.md](TEST_RESULTS.md).
 
 ## Rules
 
@@ -31,20 +32,10 @@ Statuses: `Accepted` · `Superseded by Dxxx` · `Provisional` (taken, not yet va
 
 ## Settled questions
 
-What the record has **concluded**, so a reader does not have to walk a chain to find out. One
-row per QUESTION, which is not the same as one row per thread — `scripts/decision_threads.py`
-finds candidate threads mechanically and they over-merge, so the grouping here is by hand.
-Regenerate the candidates at each milestone:
-
-```
-python scripts/decision_threads.py              # thread worksheet
-python scripts/decision_threads.py --status     # entries needing a Status back-annotation
-```
+What the record has concluded, one row per question.
 
 **This table is a navigation aid, not the record.** Where it and an entry disagree, the entry
-wins. Nothing above supersedes anything; the entries carry their own `Status`.
-
-Rows marked _TBD_ are not yet written.
+wins.
 
 | Question | Settled position | Thread |
 |---|---|---|
@@ -60,16 +51,6 @@ Rows marked _TBD_ are not yet written.
 | How much room is there in the secure image? | **The region is the budget, not the slot: about 198 KB spare on RA6M5 and 76 KB on RA8M2.** The signed image is region-sized because the veneers are pinned at the region top, so its ~1.8 KB / ~0.8 KB of slot spare never limited adding code. | D084→D087→**D154** |
 | Do the RA8M2 IAR and GCC RASC projects emit the same configuration? | **Yes, but a property diff does not prove it.** No real differences in `configuration.xml`, `vector_data.h`, `bsp_cfg.h` or any `BSP_PARTITION_*` except `RAM_BL_CPU0_S_SIZE`, which nothing consumes. But **peripheral-to-zone security lives in `.secure_azone`, which that diff never read** - it hid a missing `ICU.IRQ0` assignment on IAR. Diff the azones too. | D095→D096→D101→**D112** |
 | Which project hosts the IAR debug launches? | **The IAR project**, with `PROJECT_BUILD_CONFIG_AUTO_ATTR=false`. `serverParam` builds the `.jlink` path from `${ProjName}`, so sharing one host makes both toolchains write to the same directory. Diverges from RA6M5 deliberately. | D102→**D103** |
-| _TBD_ — the FLIH/SLIH interrupt fixture | _TBD_ | D062→D067→**D068** |
-| _TBD_ | _TBD_ | D006→**D012** |
-| _TBD_ | _TBD_ | D017→**D018** |
-| _TBD_ | _TBD_ | D029→**D048** |
-| _TBD_ | _TBD_ | D031→**D033** |
-| _TBD_ | _TBD_ | D045→**D046** |
-| _TBD_ | _TBD_ | D052→**D053** |
-| _TBD_ | _TBD_ | D061→**D069** |
-| _TBD_ | _TBD_ | D071→**D072** |
-| _TBD_ | _TBD_ | D073→**D074** |
 
 ---
 

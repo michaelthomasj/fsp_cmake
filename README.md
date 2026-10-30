@@ -1,9 +1,7 @@
 # ra_fsp_cmake_tfm
 
-The RASC/e2 studio project set and build glue for the TF-M port to Renesas RA. The port itself
-lives in the companion repository, `trusted-firmware-m`, under
-`platform/ext/target/renesas/<part>/`. This repository holds the generated FSP projects that
-build consumes, the build scripts, and the design record.
+The e2 studio/RASC projects, build scripts and documents for the TF-M port to Renesas RA. The
+port itself is in `trusted-firmware-m` under `platform/ext/target/renesas/<part>/`.
 
 | | |
 |---|---|
@@ -12,33 +10,26 @@ build consumes, the build scripts, and the design record.
 | Toolchains | Arm GNU 13.2, IAR EWARM 10.10.2 |
 | TF-M base | v2.2.0 |
 
-[TEST_RESULTS.md](TEST_RESULTS.md) is the only record of what has run on hardware and what has
-not. Read it with the security status below before committing to this port.
+Before committing to this port, read the security status below,
+[KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md), and [TEST_RESULTS.md](TEST_RESULTS.md) for what has
+run on hardware.
 
 ---
 
 ## Security status: development configuration, not for production
 
-Do not deploy devices built from this port unchanged. Each item below must be addressed first.
-[DESIGN.md](DESIGN.md) §13 "Production hardening" says how to address each one;
-[KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md) carries the full list of what is and is not covered.
+Do not deploy devices built from this port unchanged. [DESIGN.md](DESIGN.md) §13 gives the remedy
+for each item.
 
-1. **Signing keys and provisioning are development values.** BL2 trusts the public TF-M sample
-   keys compiled into `bl2/ext/mcuboot/keys.c`, because `MCUBOOT_HW_KEY` is `OFF` in every
-   part's `config.cmake`. `TFM_DUMMY_PROVISIONING` is `ON`, which supplies dummy HUK and IAK
-   values; TF-M's own default marks it "NOT to be used in production". **Changing
-   `MCUBOOT_KEY_S` and `MCUBOOT_KEY_NS` alone is not sufficient.** You must also regenerate
-   `keys.c`, or enable `MCUBOOT_HW_KEY` with provisioned ROTPK hashes, and supply a real
-   provisioning flow.
+1. **Signing keys and provisioning are development values.** BL2 trusts the TF-M sample keys in
+   `bl2/ext/mcuboot/keys.c`, and `TFM_DUMMY_PROVISIONING` is `ON`. Changing `MCUBOOT_KEY_S`/`_NS`
+   alone is not enough (§13.1).
 2. **Anti-rollback is inactive.** `MCUBOOT_SECURITY_COUNTER_S` and `_NS` are both left at the
    upstream default of `1`, and the counters live in emulated OTP. Set a counter per release and
    test that a downgrade is rejected.
 3. **Clock, wait-state and low-power registers are writable from the non-secure world.** RASC
-   generates `BSP_CFG_CLOCKS_SECURE (0)`, and setting Clocks to Secure in the Security tab does
-   not change it. Override the individual security attribution registers through
-   `FSP_COMPILE_DEFS` and validate on hardware. Do not instead force
-   `BSP_CFG_CLOCKS_SECURE=1`: the generated BSP still reads `0`, and on RA8 parts the port
-   relies on that value through its `BSP_TZ_CFG_MSAR=0` workaround ([DESIGN.md](DESIGN.md) §1.1).
+   always generates `BSP_CFG_CLOCKS_SECURE (0)`; §13.3 gives the override and why not to force
+   the macro.
 4. **Secure debug and the device lifecycle are not enforced.** The firmware never reads the DLM
    state, and the attested lifecycle comes from emulated OTP. Debug authentication and the DLM
    transition belong to your provisioning flow.
@@ -48,11 +39,9 @@ Do not deploy devices built from this port unchanged. Each item below must be ad
 6. **The scripts build development images.** SPM trace and exception-info dump are on, logging
    is verbose, IAR application builds are `Debug`, and the console is SEGGER RTT.
    [CONFIGURATION.md](CONFIGURATION.md) §9 describes a release build.
-7. **The shipped default configuration has not been re-tested since the isolation-HAL change.**
-   Isolation 1 with the SFN backend is what the scripts build, and its last hardware regression
-   predates that change. Isolation 2 and 3 were re-run after it. Re-run `tf-m-tests` against
-   your own build. Firmware Update is off and untested. [TEST_RESULTS.md](TEST_RESULTS.md) is the single record
-   of what has and has not run.
+7. **The shipped default (isolation 1, SFN) has not been re-run on hardware since the
+   isolation-HAL change.** Re-run `tf-m-tests` on your build. Firmware Update is off and
+   untested.
 8. **TF-M base is v2.2.0.** If you enable Firmware Update, advisory TFMV-9 (CVE-2025-53022)
    applies and you should move to v2.2.2 first.
 
@@ -60,19 +49,8 @@ Do not deploy devices built from this port unchanged. Each item below must be ad
 
 ## Start here
 
-[GETTING_STARTED.md](GETTING_STARTED.md) takes you from `git clone` to a board running the test
-suite: versions, environment variables, the e2 build, TrustZone partitioning, the build and
-flash steps for both parts and both toolchains, the pre-flash brick checks, and a table of
-first-build failures.
-
-Two rules it will repeat, because neither failure is recoverable:
-
-> **Flash `bl2.elf`, `bl2.hex` or `bl2.srec` — never `bl2.bin`.** The option-setting words live in discrete
-> segments that a flat binary cannot express. [D002](DECISIONS.md), [D065](DECISIONS.md).
-
-> **Keep `setTZBoundaries` = `false`** in every launch configuration. The debugger otherwise
-> derives the TrustZone boundaries from the launched project's symbols, and launched against
-> BL2 it gets them wrong. [DESIGN.md](DESIGN.md) §7.2.
+[GETTING_STARTED.md](GETTING_STARTED.md) takes you from clone to a running board, both parts and
+both toolchains. Read its §6 safety rules before the first flash.
 
 ## The two repositories
 
@@ -81,14 +59,9 @@ Two rules it will repeat, because neither failure is recoverable:
 | `ra_fsp_cmake_tfm` (here) | the e2 studio solutions and generated FSP projects, `scripts/`, and the documents below |
 | `trusted-firmware-m` | the TF-M fork carrying the RA platform ports, and a small patch queue against upstream |
 
-RASC is the source of configuration truth: the TF-M build consumes the generated projects and
-does not fork them. [DESIGN.md](DESIGN.md) §1 states the principle and §1.1 lists every
-documented exception. Anything else that diverges is a defect rather than a choice.
-
-`e2_baseline/` holds both GCC solutions as e2 studio first creates them, on the same FSP pack,
-so every RASC choice the port makes is readable as a diff rather than taken on trust.
-[e2_baseline/README.md](e2_baseline/README.md) lists the comparisons worth making and what each
-one shows.
+RASC is the source of configuration truth: the build consumes the generated projects and never
+forks them ([DESIGN.md](DESIGN.md) §1). The TF-M side has one part card per part:
+`trusted-firmware-m/platform/ext/target/renesas/README.md`.
 
 ## The documents
 

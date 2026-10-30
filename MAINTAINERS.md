@@ -47,9 +47,15 @@ reproduces what is on disk, which is how a hand edit gets folded back in rather 
 ## Documentation checks — maintainer tooling
 
 ```sh
-python scripts/check_docs.py     # verify every D-citation and .md reference resolves
-sh scripts/install_hooks.sh      # install it as a pre-commit hook (once per clone)
+python scripts/check_docs.py                 # verify every D-citation and .md reference resolves
+sh scripts/install_hooks.sh                  # install it as a pre-commit hook (once per clone)
+python scripts/decision_threads.py           # candidate threads for the Settled questions table
+python scripts/decision_threads.py --status   # entries needing a Status back-annotation
 ```
+
+`decision_threads.py` finds threads mechanically and over-merges them, so the Settled questions
+table in [DECISIONS.md](DECISIONS.md) is grouped by hand from its output. Regenerate at each
+milestone.
 
 Checks nine things, in two groups. **References:** every `D###` cited anywhere exists in
 `DECISIONS.md`; every relative `.md` link resolves; every `.md` filename named in a `.cmake` or

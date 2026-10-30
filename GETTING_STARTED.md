@@ -197,6 +197,7 @@ Gaps in the table are real coverage gaps ([KNOWN_LIMITATIONS.md](KNOWN_LIMITATIO
 
 > **Keep `setTZBoundaries` false** for every probe key (`...jlink.` and `...e2lite.`). Every
 > shipped launch does; never launch from `e2_baseline/` ([DESIGN.md](DESIGN.md) §7.2).
+> Check an unfamiliar launch with `findstr setTZBoundaries <launch>`.
 
 Also leave erase code flash and erase data flash enabled on connect. **A stale ITS/PS area
 survives a reflash** and makes the storage suites fail in ways that look like code faults.
