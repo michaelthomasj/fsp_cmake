@@ -82,8 +82,9 @@ log, partition log and halt-on-panic — cost ~3,785 B of secure text, so they a
 rather than in the platform `config.cmake`. That is a diagnostics decision, not a space one:
 both parts have tens of kilobytes of secure-region spare
 ([CONFIGURATION.md](../CONFIGURATION.md) §6). MinSizeRel is mandatory on
-RA8M2 under GNUARM (IAR `Debug` fits, [D055]): `Debug` is ~414 KB against a 293 KB slot
-([D057]).
+RA8M2 under GNUARM (IAR `Debug` fits, [D055]): `Debug` is ~414 KB against a secure code region
+of 293,376 B ([CONFIGURATION.md](../CONFIGURATION.md) §6 defines the region and the two larger
+figures that circulate for it).
 
 ## Build trees
 

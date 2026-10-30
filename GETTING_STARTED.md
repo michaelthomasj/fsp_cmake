@@ -179,10 +179,10 @@ by absolute path**, so these defaults have to be paths that exist on any machine
 anything derived from where you cloned. Build directories are disposable; delete one to force
 a clean build.
 
-The build type is per part and not interchangeable. RA6M5 builds `Debug`. RA8M2 GNU must build
-`MinSizeRel`, because GNU `Debug` comes out around 414 KB against a 294,400 B secure region,
-where RA6M5's region is 521,728 B and `Debug` uses 322,960 B of it. RA8M2 IAR builds `Debug`,
-which does fit there.
+The build type is per part and not interchangeable. RA6M5 builds `Debug` and RA8M2 IAR builds
+`Debug`; **RA8M2 under GNU must build `MinSizeRel`**, because GNU `Debug` does not fit its
+secure region. [CONFIGURATION.md](CONFIGURATION.md) §6 has the region and image figures for both
+parts.
 
 **Read the output; do not only check the exit code.** The install step runs the
 option-setting brick guard over `bl2` and `tfm_s`, and it reports by printing.

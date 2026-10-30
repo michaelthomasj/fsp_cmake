@@ -160,8 +160,8 @@ whatever the image costs ([CONFIGURATION.md](CONFIGURATION.md) §6).
 | tfm_s | 323,536 B | 521,728 B | 198,192 B |
 | tfm_ns | 6,208 B | 458,240 B | — |
 
-- The secure image spans `0xA0000` to `0xCBD50`, with the veneers at `0x11F800`: inside the
-  signed payload and clear of the MCUboot trailer.
+- The veneers sit at `0x11F800`, inside the signed payload and clear of the MCUboot trailer.
+  That is also why the flat binary spans the whole region.
 - Signed images pad to exactly 512 KB and 448 KB, the full slots.
 - BL2 emits discrete option-memory load segments at `0x0100A100`, `0x0100A200` and
   `0x0100A280`, so the brick guard in [DESIGN.md](DESIGN.md) §8.4 holds on this device.

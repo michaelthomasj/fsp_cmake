@@ -196,7 +196,7 @@ Read the region figures from the linker's own `Memory region` table in the build
 
 | Option | Default | Cost |
 |---|---|---|
-| `<PART>_STDOUT_RTT` | ON | SEGGER RTT over J-Link, no UART wiring. OFF selects `PLATFORM_DEFAULT_UART_STDOUT` |
+| `<PART>_STDOUT_RTT` | ON | SEGGER RTT over J-Link, no UART wiring. **Leave it ON**: `OFF` selects `PLATFORM_DEFAULT_UART_STDOUT` and does not build as the projects ship — see §9 |
 | `<PART>_RTT_BLOCKING` | OFF | ON blocks rather than dropping output |
 | `TFM_EXCEPTION_INFO_DUMP` | ON | secure text ~3.4 KB. The one worth reconsidering for production |
 | `TFM_SPM_DEBUG_TRACE` | ON | a handful of bytes. ON requires `TFM_SPM_LOG_LEVEL` above `_SILENCE` - `check_config.cmake:119` rejects the pair, and `MinSizeRel`/`Release` set `_SILENCE`. Pass `-DTFM_SPM_LOG_LEVEL=TFM_SPM_LOG_LEVEL_DEBUG` or `-DTFM_SPM_DEBUG_TRACE=OFF`. Nothing to do with isolation or IPC ([D007]) |
@@ -206,9 +206,10 @@ Read the region figures from the linker's own `Memory region` table in the build
 | `MCUBOOT_LOG_LEVEL` | `INFO` upstream; `OFF` only under `MinSizeRel`/`Release` | `INFO` costs BL2 text +5,960 B and bss +4,284 B. BL2 has its own region, so this does not touch the secure slot |
 | `TFM_SPM_LOG_LEVEL`, `TFM_PARTITION_LOG_LEVEL`, `CONFIG_TFM_HALT_ON_CORE_PANIC` | silent / OFF | secure text +3,785 B for the three together, which both parts have region room for. The PSA Arch scripts pass them explicitly so the ordinary builds stay smaller, not because they would fail to link |
 
-The PSA Arch scripts pass the last two groups explicitly, because `profile_large` at isolation 3
-has the room and the ordinary builds do not. That is why they are per-script rather than in
-`config.cmake` ([D084]).
+The PSA Arch scripts pass the last two groups explicitly, which is why they are per-script
+rather than in `config.cmake` ([D084]): a suite run wants the logs and an ordinary build does
+not. **It is not a space constraint** — both parts have region room for all three, as the table
+above says.
 
 ---
 
@@ -282,9 +283,9 @@ the one combination in this list that stops the build instead of producing a lar
 | Bootloader logging | `MCUBOOT_LOG_LEVEL=OFF` | `INFO` costs BL2 text +5,960 B and bss +4,284 B |
 | Halt on panic | `OFF` | a release image should reset rather than spin where a debugger can find it |
 
-**Re-measure, do not assume the image shrank into the slot.** Read the linker's own
-`Memory region` table rather than the size of `tfm_s.bin`, which imgtool pads to the region and
-so reports the same number whatever the image costs. §6 has the measured headroom.
+**Re-measure, do not assume the image shrank.** Read the linker's own `Memory region` table
+rather than the size of `tfm_s.bin`, which is region-sized whatever the image costs — §6 gives
+the reason and the measured figures.
 
 Then re-run the tests against the image you are actually shipping:
 [TEST_RESULTS.md](TEST_RESULTS.md) records what has run here, and the configuration these
@@ -295,6 +296,13 @@ options produce is not one of them.
 > secure image and the bootloader. That file includes `r_sci_uart.h` and calls
 > `R_SCI_UART_Open(&g_uart0_ctrl, &g_uart0_cfg)`, and **no secure or bootloader project
 > contains the SCI UART module or a `g_uart0` instance** — so it fails at the include, before
-> any link. Switching the console to a UART therefore takes a project change first: add the
-> SCI UART module in the secure and bootloader projects in e2, name the instance `g_uart0`,
-> regenerate, and rebuild there. Established by reading the source, not by building it.
+> any link. Switching the console to a UART therefore takes two changes, not one:
+>
+> 1. **In e2**, add the SCI UART module to the secure and bootloader projects, name the instance
+>    `g_uart0`, regenerate and rebuild there.
+> 2. **In the port**, write `cmake/modules/fsp_sci_uart.cmake` and list `sci_uart` in
+>    `FSP_MODULES_S` and `FSP_MODULES_BL2`. Those two images are opt-in per module
+>    ([ADDING_FSP_MODULES.md](ADDING_FSP_MODULES.md) §1–§3), and no such module file exists, so
+>    step 1 alone leaves the driver unbuilt and the link unresolved.
+>
+> Established by reading the source, not by building it.

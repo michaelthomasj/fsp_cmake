@@ -24,10 +24,12 @@ The consequence is intended: adding a driver in RASC does not add it to the secu
 BL2. The build warns when that happens (§5).
 
 **The non-secure image works the other way round, and nothing on this page applies to it.** It
-is a whole FSP application: `fsp_collect_sources()` globs the project's entire `ra/fsp/src/`
-tree, so every module you enable in e2 is compiled into `tfm_ns` automatically, with no module
-file and no list entry. The only thing that reaches it from this page is the exclusion list,
-which removes three directories from that glob (§2).
+is a whole FSP application, built from the installed `platform_ns`, whose glob takes
+`bsp/*.c`, `r_*/*.c`, `rm_*/*.c` and `ra_gen/*.c` from the project and removes **only**
+`ra_gen/main.c`, because the application supplies its own entry point. So every module you
+enable in e2 is compiled into `tfm_ns` automatically, with no module file and no list entry, and
+`--gc-sections` drops whatever is unreferenced. Nothing on this page excludes anything from it —
+see §2 for why `FSP_EXCLUDED_MODULES` looks as though it does and does not.
 
 ---
 

@@ -66,7 +66,7 @@ and read the state back on hardware after any option or protection programming.
 ## What the port does now
 
 OFS emission was first removed from every TF-M image ([D001](../../DECISIONS.md)) and then
-restored, with one linker `MEMORY` region per option word and a `> REGION` assignment on each,
+restored, with one linker `MEMORY` region per option *group* and a `> REGION` assignment on each,
 so the linker cannot produce a spanning segment ([D002](../../DECISIONS.md)). Removing the
 words had meant every board needed them programmed externally for ever; the discrete regions
 are what FSP's own generated linker does.

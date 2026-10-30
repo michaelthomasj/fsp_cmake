@@ -116,7 +116,8 @@ through <code>FSP_BL2_APP_DIR</code>, <code>FSP_S_APP_DIR</code> and <code>FSP_N
 
 <!-- ============================================================ -->
 <h2 id="fsp">4.4 Consuming FSP in the TF-M build</h2>
-<p>FSP drivers are <strong>opt-in, per role</strong>: nothing from <code>ra/fsp/src/</code> reaches an image unless a
+<p>FSP drivers are <strong>opt-in, per role &mdash; for the secure image and BL2</strong>. Nothing from
+<code>ra/fsp/src/</code> reaches either unless a
 <code>cmake/modules/fsp_&lt;name&gt;.cmake</code> declares it and the platform lists it in <code>FSP_MODULES_S</code> or
 <code>FSP_MODULES_BL2</code> (<a href="ref/ADDING_FSP_MODULES.html#s1">ADDING_FSP_MODULES.md</a> §1–3). Each module builds once per
 role (<code>fsp_bsp_s</code>, <code>fsp_bsp_bl2</code>) because the secure image and BL2 come from different e2 projects.</p>
@@ -220,7 +221,7 @@ someone will read after the board is dead.</p>
     <code>BSP_PARTITION_*</code>. You rebuild the e2 project, rebuild TF-M, let <code>&lt;part&gt;_layout_checks.c</code>
     assert, and — if a TrustZone boundary moved — re-run RDPM and reflash everything. PS capacity and the NSC budget do not
     follow automatically.</details></li>
-  <li>Why must BL2 on a TF-M-started image either set <code>BSP_CFG_EARLY_INIT</code> or recompute
+  <li>Why must the secure image and BL2 either set <code>BSP_CFG_EARLY_INIT</code> or recompute
     <code>SystemCoreClock</code>, while the non-secure image need not?
     <details><summary>Answer</summary>TF-M's <code>Reset_Handler</code> runs <code>SystemInit()</code> before
     <code>.bss</code> is zeroed, wiping state FSP computed. The non-secure image uses FSP's own start-up, which runs in the

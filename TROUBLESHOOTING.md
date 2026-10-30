@@ -176,10 +176,14 @@ after them is placed beyond the veneers.
 ### `Image size + trailer exceeds requested size` from imgtool
 
 This is the slot overflowing, after a clean link: the signed image carries a ~275 B imgtool TLV
-block and a 16-byte trailer on top of the raw image, and the slot must hold all of it. True spare
-is about 198 KB on RA6M5 and 76 KB on RA8M2, measured against the linker region rather than
-the slot — see [CONFIGURATION.md](CONFIGURATION.md) §6 for both figures and the secure
-image" for what to turn off, and [D087] for why the older, larger figures were wrong.
+block and a 16-byte trailer on top of the raw image, and the slot must hold all of it.
+
+**Growing the code cannot cause this.** The flat binary already spans the whole secure region,
+so the signed image is region-sized whatever the image costs — adding code fails the *link*
+instead, with a region-overflow message. If imgtool is the thing complaining, the sizes
+themselves disagree: check the slot size, the region size and the header size against each
+other. [CONFIGURATION.md](CONFIGURATION.md) §6 defines all three and says how to measure
+them.
 
 ### ``undefined symbol `Image$ARM_LIB_STACK$ZI$Base` `` — with single `$`
 

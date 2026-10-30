@@ -107,15 +107,14 @@ image.
 - **AGT in the secure project, with a real interrupt priority.** Disabled emits no vector entry
   at all, and the FLIH and SLIH suites then cannot raise an interrupt. Configuring it in the
   secure project is also what makes the interrupt secure.
-- **`rm_psa_crypto` and `rm_mcuboot_port` are deliberately never built from the projects**,
-  because the crypto and flash-map configuration they carry collides with TF-M's. Two different
-  mechanism does that, and it is not `FSP_MODULES_NEVER_BUILT`, **which excludes nothing and
-  only keeps the unclaimed-module audit quiet**: the secure and bootloader images simply do not
-  list them. **The non-secure image does compile them**, because that side globs every module
-  the project enables; nothing there is protected, and `--gc-sections` drops what is
-  unreferenced. Their headers must resolve in every case, because the generated
-  `common_data.h` and `hal_data.h` include them unconditionally even when nothing is
-  instantiated.
+- **`rm_psa_crypto` and `rm_mcuboot_port` never reach the secure image or BL2**, because the
+  crypto and flash-map configuration they carry collides with TF-M's. The mechanism is simply
+  that no module declares them; it is **not** `FSP_MODULES_NEVER_BUILT`, **which excludes
+  nothing and only keeps the unclaimed-module audit quiet**. The non-secure image does compile
+  them, because that side globs every module the project enables and there is nothing to protect
+  on it; `--gc-sections` drops what is unreferenced. Their headers must resolve in every case,
+  because the generated `common_data.h` and `hal_data.h` include them unconditionally even when
+  nothing is instantiated.
 - **Generated file names stay standard.** The build excludes `ra_gen/main.c`,
   `Source/startup.c` and `bsp_linker.c` by name for the secure and bootloader images, because
   TF-M supplies all three. Renaming them makes the FSP versions collide at link.

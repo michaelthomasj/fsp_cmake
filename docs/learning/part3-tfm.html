@@ -269,7 +269,7 @@ IAR L2/L3. Pre-move: RA6M5 L1 SFN on both toolchains and every RA8M2 cell, with 
 </table></div>
 <p class="src"><a href="ref/DECISIONS.html#d113">D113</a>, GNUARM MinSizeRel, regression + FLIH build, bytes</p>
 <p>The entire isolation machinery, level 1 to 3, is about 1,680 B of text. The expensive thing is the IPC backend that
-level 2 forces — threads, stacks and the scheduler. With 1,693 B of secure-slot headroom on RA6M5 and 670 B on RA8M2
+level 2 forces — threads, stacks and the scheduler. With about 198 KB of secure-region headroom on RA6M5 and 76 KB on RA8M2
 (<a href="ref/DECISIONS.html#d087">D087</a>), that distinction decides what fits.</p>
 
 <!-- ============================================================ -->

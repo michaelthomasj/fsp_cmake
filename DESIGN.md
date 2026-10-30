@@ -321,9 +321,10 @@ a driver entry point re-entered per device, not about a one-shot boot hook.
   image and is neither copied nor zeroed), placed outside `ADDR(.bss)..SIZEOF(.bss)` so the
   zero table never covers it. As an orphan section its placement was not guaranteed - it
   survived on ld's default ordering - and it wasted flash.
-- Keep the one-time `SystemCoreClockUpdate()` in `tfm_hal_platform_init()`. Not redundant: the
-  secure image uses TF-M's generated linker, which has no `.ram_noinit` rule, so its
-  `.ram_noinit` is still an orphan whose placement isn't guaranteed across TF-M versions.
+- Keep the one-time `SystemCoreClockUpdate()` in `tfm_hal_platform_init()`. It is belt and
+  braces rather than load-bearing: every part defines `S_DATA_EXTRA_NOINIT_SECTION_NAME` in its
+  `region_defs.h`, so the secure `.ram_noinit` is routed into `.TFM_NOINIT` by the shared GNU
+  template ([UPSTREAM_CHANGES.md](UPSTREAM_CHANGES.md) §4) rather than left as an orphan.
   Rejected: calling it from `ARM_Flash_Initialize` — wrong layer (a driver entry point, re-entered
   per device and on `FSP_ERR_ALREADY_OPEN`) for one-time system state.
 
@@ -500,8 +501,11 @@ indication — over ~1 MB means it spans the option memory.
 ## 9. Console / logging — SEGGER RTT (switchable)
 - `<PART>_STDOUT_RTT` (e.g. `RA6M5_STDOUT_RTT`, `RA8M2_STDOUT_RTT`; default ON): routes TF-M/MCUboot stdout to SEGGER RTT over J-Link (no UART wiring,
   no S/NS peripheral contention). `rtt/rtt_stdout.c` implements TF-M's `stdio_*` backend; the common
-  `uart_stdout.c` is disabled. OFF → FSP SCI UART via the untouched `Driver_USART.c`. Each image (BL2/S/NS)
-  has its own RTT control block.
+  `uart_stdout.c` is disabled. Each image (BL2/S/NS) has its own RTT control block.
+  **`OFF` would route stdout to the FSP SCI UART through `Driver_USART.c`, and does not build
+  as the projects ship** — that driver needs an SCI UART module none of them contains, and a
+  module file the port does not have. [CONFIGURATION.md](CONFIGURATION.md) §9 has what it
+  takes.
 
 ## 10. Non-secure app
 - The live parts build the port's split NSPE (`ns_app`, [D005]) or the `tf-m-tests` suites,
@@ -540,7 +544,7 @@ trusting sample keys.
 |---|---|
 | Key material | Generate your own EC-P256 key pair. `MCUBOOT_SIGNATURE_TYPE` is `EC-P256` in every part's `config.cmake`; keep the curve or the solution's slot sizes stop matching |
 | Signing | Point `MCUBOOT_KEY_S` and `MCUBOOT_KEY_NS` at your private keys. This changes what signs the image, and nothing else |
-| Verification | The step that is easy to miss, because nothing fails when you skip it. BL2 verifies against the public key compiled into `bl2/ext/mcuboot/keys.c` — see below |
+| Verification | The step that is easy to miss, and skipping it makes BL2 reject **your** images rather than accept anything. It verifies against the public key compiled into `bl2/ext/mcuboot/keys.c` — see below |
 | Provisioning | Set `TFM_DUMMY_PROVISIONING=OFF` and supply real HUK and IAK values through a flow of your own. With it `ON`, every device shares one dummy identity |
 
 **`MCUBOOT_GENERATE_SIGNING_KEYPAIR=ON` does not do the verification step.** It runs
@@ -561,7 +565,7 @@ python <build>\lib\ext\mcuboot-src\scripts\imgtool.py getpub ^
 ```
 
 `--encoding lang-c` is the current option; `-l c` still works and is deprecated. Paste the array
-over `ecdsa_pub_key[]` in `bl2/ext/mcuboot/keys.c` and keep `bootutil_key_cnt` in step.
+over `ecdsa_pub_key[]` in `bl2/ext/mcuboot/keys.c`, and do it for **both** images — the secure and non-secure keys are separate arrays — keeping `bootutil_key_cnt` in step.
 **`keys.c` is common TF-M code**, which this port already modifies for a different reason, so
 record the edit in [UPSTREAM_CHANGES.md](UPSTREAM_CHANGES.md) rather than leaving it as a silent
 local change.
@@ -626,8 +630,7 @@ directly. Finishing or aborting each multi-part operation promptly avoids it.
 ### 13.6 Release build settings
 
 The build scripts produce development images. For a release build, turn off what is purely
-diagnostic and re-measure the result against the slot, because the secure slot has little spare
-room on either part. [CONFIGURATION.md](CONFIGURATION.md) §9 is the option list for a release
+diagnostic and re-measure the result. [CONFIGURATION.md](CONFIGURATION.md) §9 is the option list for a release
 build, and [CONFIGURATION.md](CONFIGURATION.md) §6 gives the measured cost of each diagnostic.
 
 ### 13.7 Re-test what you ship

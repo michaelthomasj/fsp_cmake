@@ -6,10 +6,10 @@
 
 | | |
 |---|---|
-| Entries | **155** |
-| Standing | **141** |
+| Entries | **156** |
+| Standing | **142** |
 | Superseded | **14** |
-| Standing but corrected on some point | **40** |
+| Standing but corrected on some point | **41** |
 | Standing, but the question they left open is closed | **3** |
 | Supersede lineages | **11** |
 
@@ -35,7 +35,7 @@ A later entry **supersedes** an earlier one: same question, newer answer. Citing
 
 ---
 
-## Standing (141)
+## Standing (142)
 
 Nothing supersedes these. The title is the position. Where a later entry corrects one, the correction is named - the entry stands apart from that. **Where the Closed by column is filled, read the status as historical:** the entry describes a problem that a later entry shut, so its own "Open" or "Provisional" is no longer true.
 
@@ -180,8 +180,9 @@ Nothing supersedes these. The title is the position. Where a later entry correct
 | `D151` | 2026-10-29 | the checker resolves sections and course anchors, not just filenames | Accepted | — | — |
 | `D152` | 2026-10-29 | every application build tree moves under `C:\b`; [D144] chose the one default a launch cannot have | Accepted | — | — |
 | `D153` | 2026-10-29 | the second review pass: nine wrong statements, a renderer that would have shipped withheld documents, and the limits of the checks | Accepted | `D154` | — |
-| `D154` | 2026-10-29 | the release recipe did not build, and the space budget measured the wrong thing | Accepted | — | — |
+| `D154` | 2026-10-29 | the release recipe did not build, and the space budget measured the wrong thing | Accepted | `D156` | — |
 | `D155` | 2026-10-29 | the repository is `ra_fsp_cmake_tfm`; one reference was load-bearing and [D143] had missed it | Accepted | — | — |
+| `D156` | 2026-10-30 | the 28 accuracy errors from the concision plan; "region" gets one meaning | Accepted | — | — |
 
 ---
 

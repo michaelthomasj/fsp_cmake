@@ -80,9 +80,12 @@ MCUboot trailer occupies the slot tail. Both constrain how much the secure image
 The symptom before [D063] was `region FLASH overflowed` with apparently free space: pinned
 veneers dragged FLASH's allocation pointer to their end, so everything after them started
 beyond the veneers. `TFM_LINKER_VENEERS_OWN_REGION` (`4025eedff`) fixed that and is set on
-every RA port, so a plain overflow now means the code genuinely reached the NSC or trailer.
-The more likely failure today is imgtool refusing with "Image size + trailer exceeds
-requested size", after a clean link.
+every RA port, so a plain overflow now means the code genuinely reached the NSC window.
+**That link failure is the one to expect when the code grows**, and imgtool is not: the flat
+binary already spans the region, so the signed image is region-sized whatever the image costs
+([CONFIGURATION.md](CONFIGURATION.md) §6). imgtool refusing with "Image size + trailer exceeds
+requested size" means the slot, region and header sizes disagree with each other, which is a
+repartitioning mistake rather than a size one.
 
 Related: `ih_img_size` is set by the layout, not by how much code you emitted — the image
 runs to the veneers at their fixed address. Both toolchains report the same value for this

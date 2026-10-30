@@ -50,7 +50,7 @@ These are turned off in the accelerator configuration for both engines
 | Algorithm | Why |
 |---|---|
 | `PSA_WANT_ALG_DETERMINISTIC_ECDSA` | neither engine implements RFC 6979. The attestation key signs with plain `PSA_ALG_ECDSA`. PSA Arch crypto test 252 skips for this reason |
-| `PSA_WANT_ECC_SECP_R1_521` | **the reason differs by part.** SCE9 has no procedure for it, so RA6M5 cannot do it at all. RSIP-E50D can, and RA8M2 has it off only to match the SCE9 configuration and for layout room; the accelerator config marks it to be restored |
+| `PSA_WANT_ECC_SECP_R1_521` | **the reason differs by part.** SCE9 has no procedure for it, so RA6M5 cannot do it at all. RSIP-E50D can, and RA8M2 has it off to match the SCE9 configuration. The accelerator config also gives layout room as a reason and marks it to be restored; the measured region headroom does not obviously support that second reason |
 | `PSA_WANT_ECC_MONTGOMERY_255` | the same split: no SCE9 procedure, and its hardware table references RSIP-only functions, so RA6M5 cannot. RA8M2 has it off by configuration |
 
 **RSA-2048 key generation in plaintext format is unavailable on RA8M2, and there is no switch
@@ -85,8 +85,9 @@ unit test against the function itself, not another PSA-level suite.
 
 ## 3. Boot and upgrade
 
-**The MCUboot upgrade path has been exercised on RA8M2 only.** Both images install from their
-secondary slots and a second reset erases the secondary, under both toolchains. RA6M5 has no
+**The MCUboot upgrade path has been exercised on RA8M2 only, and not equally.** Both images
+install from their secondary slots under both toolchains; **the second reset erasing the
+secondary was observed under GNUARM only** ([TEST_RESULTS.md](TEST_RESULTS.md) §4). RA6M5 has no
 upgrade launch and the path has never run there. RA6E1 sets `MCUBOOT_ALIGN_VAL` to 128 to match
 its code-flash write unit, and that fix has never been exercised, because it only takes effect
 once BL2 writes code flash.

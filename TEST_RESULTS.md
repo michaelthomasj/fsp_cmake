@@ -112,8 +112,8 @@ that do are [D114] and [D123].
 
 | | What it is | Status |
 |---|---|---|
-| crypto 216, RA8M2 only | `psa_generate_key` check 4, RSA-2048, returns `-134` | genuine gap. RSIP-E50D cannot generate RSA-2048 keys on the plaintext path the config selects ([D097], refined by [D098]). Fails identically under both toolchains ([D104]) |
-| crypto 252, both parts | deterministic ECDSA, code `0x2d` | FSP does not support RFC 6979 ([D040]) |
+| crypto 216, RA8M2 only | `psa_generate_key` check 4, RSA-2048, returns `-134` | genuine gap. **There is no config switch for it**: the guard is on the engine, not on a key-format setting ([D111], which supersedes the earlier reading). Fails identically under both toolchains ([D104]) |
+| crypto 252, both parts | deterministic ECDSA, code `0x2d` | FSP does not support RFC 6979, by design ([D038]) |
 | storage 411, 412, 413, 415, 416, 417 | `psa_ps_create` / `psa_ps_set_extended`, code `0x2b` | optional PSA APIs TF-M does not implement. Test 414 passes by confirming they refuse ([D097]) |
 
 The two toolchains agree test for test on both parts — same tally, same failing test, same skip
@@ -157,8 +157,8 @@ observed under IAR; [D100] proved the erase half on GCC through the same `bootut
 ([D106]).
 
 Neither other part has run it. RA6M5 has no `*_TFM_update` launch. RA6E1 set
-`MCUBOOT_ALIGN_VAL` to 128 to match its 128-byte code-flash write unit on 2026-08-29, and
-and that fix has not been exercised on hardware: it only takes effect
+`MCUBOOT_ALIGN_VAL` to 128 to match its 128-byte code-flash write unit, and that fix has not
+been exercised on hardware: it only takes effect
 once BL2 writes code flash, which is an upgrade. **Images signed at one alignment are rejected
 by a BL2 built at another, because the trailer magic differs — reflash every slot and do not
 mix.**
@@ -241,7 +241,7 @@ are gaps in coverage, not known failures.
 
 | Suite | Option | Why it has not run | Worth running? |
 |---|---|---|---|
-| Firmware Update | `TEST_S_FWU`, `TEST_NS_FWU` | `TFM_PARTITION_FIRMWARE_UPDATE` is OFF on both parts | The highest value of these. It exercises the PSA Firmware Update API over the MCUboot slots the port already has, and the bootloader half is proven on RA8M2. The RA8M2 secure slot has little spare room, so the partition may not fit without turning something off |
+| Firmware Update | `TEST_S_FWU`, `TEST_NS_FWU` | `TFM_PARTITION_FIRMWARE_UPDATE` is OFF on both parts | The highest value of these. It exercises the PSA Firmware Update API over the MCUboot slots the port already has, and the bootloader half is proven on RA8M2. Whether the partition fits is a region question, not a slot one ([CONFIGURATION.md](CONFIGURATION.md) §6) |
 | SLIH above isolation 1 | `CONFIG_TFM_SLIH_API` | No SLIH tree or launch exists above isolation 1, and none at all on RA8M2. The SLIH service declares the same MMIO region as FLIH, and that path has never been exercised above isolation 1 | Yes, once the trees and launches are made |
 | PSA Arch Firmware Framework | `TEST_PSA_API=IPC` | Only the crypto, attestation and storage suites have been built | Yes. It is a different test body from the developer-API suites already run |
 | FPU | `TEST_S_FPU`, `TEST_NS_FPU` | `CONFIG_TFM_ENABLE_CP10CP11` is OFF and the port is soft-float throughout | Only if floating point is enabled. RA8M2 is a Cortex-M85 with FP hardware, so this is a real gap for that part |

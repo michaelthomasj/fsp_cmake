@@ -57,7 +57,7 @@ Rows marked _TBD_ are not yet written.
 | What bricked the two EK-RA6M4 boards? | **The coalesced `PT_LOAD` wrote `0x00` into eight defined option registers** - DUALSEL, OFS1, BANKSEL, BPS, PBPS, BANKSEL_SEC, BPS_SEC, PBPS_SEC - as well as the reserved bytes between them. Measured gap fill is `0x00 ×376`, not `0xFF`. **Which of the eight killed the boards is not established**; PBPS is a candidate, not a finding. | D093→D094→D132→**D133** |
 | Why is DF_EMULATION 64 KB on RA8M2? | **FSP's MRAM sector size forces it.** On a 1 MB device with a 64 KB BL2 it is the only value that leaves a workable split. ITS, PS and the NV counters share it; the part has no data flash. | D041→D043→D044→D051→**D054** |
 | Is deterministic ECDSA available? | **No — FSP does not support it, by design.** PSA Arch test 252 skips with code `0x2d` on every part and both toolchains. | D036→D037→**D038** |
-| How much secure-slot headroom is there? | **1,693 B on RA6M5, 670 B on RA8M2.** Earlier figures of 1,984 / 960 omitted ~275 B of imgtool TLVs. Measured from the `0xFF` gap below the trailer. | D084→**D087** |
+| How much room is there in the secure image? | **The region is the budget, not the slot: about 198 KB spare on RA6M5 and 76 KB on RA8M2.** The signed image is region-sized because the veneers are pinned at the region top, so its ~1.8 KB / ~0.8 KB of slot spare never limited adding code. | D084→D087→**D154** |
 | Do the RA8M2 IAR and GCC RASC projects emit the same configuration? | **Yes, but a property diff does not prove it.** No real differences in `configuration.xml`, `vector_data.h`, `bsp_cfg.h` or any `BSP_PARTITION_*` except `RAM_BL_CPU0_S_SIZE`, which nothing consumes. But **peripheral-to-zone security lives in `.secure_azone`, which that diff never read** - it hid a missing `ICU.IRQ0` assignment on IAR. Diff the azones too. | D095→D096→D101→**D112** |
 | Which project hosts the IAR debug launches? | **The IAR project**, with `PROJECT_BUILD_CONFIG_AUTO_ATTR=false`. `serverParam` builds the `.jlink` path from `${ProjName}`, so sharing one host makes both toolchains write to the same directory. Diverges from RA6M5 deliberately. | D102→**D103** |
 | _TBD_ — the FLIH/SLIH interrupt fixture | _TBD_ | D062→D067→**D068** |
@@ -1937,8 +1937,7 @@ and `.gnu.sgstubs`.
 
 **Date:** 2026-09-25 · **Status:** Accepted
 
-Traced RA6M5 reset&rarr;runtime to build an execution map
-(<https://claude.ai/artifact/6x3gWcieKoCZj3SbfGHrvh>). Everything below is verified against the
+Traced RA6M5 reset&rarr;runtime to build an execution map. Everything below is verified against the
 built image or the link map, not read off source. No change made to the RA6M5 port — these are
 findings, recorded so they are not rediscovered.
 
@@ -8556,3 +8555,67 @@ Three categories were deliberately left alone:
 `.bat` scripts locate themselves ([D143]), the hook no longer names anything, and `TFM_SRC`
 derives from the script's own path. A clone made from the new URL lands in
 `ra_fsp_cmake_tfm/` and works identically, which is what `GETTING_STARTED.md` §3 now says.
+
+## D156 — the 28 accuracy errors from the concision plan; "region" gets one meaning
+
+**Date:** 2026-10-30 · **Status:** Accepted · **Corrects:** [D154] · **Builds on:** [D150], [D155] · **Evidence:** the six reviewer-reported items checked in source before editing; all four checkers after each file
+
+**Context.** A fourth pass proposed 461 edits and listed 28 accuracy errors, most of them
+fallout from [D154]'s space-budget re-measure: that commit fixed `CONFIGURATION.md` §6 and left
+twelve figures and six contradicting statements behind it elsewhere. This entry records the 28
+and the one definition they all turned on. The 433 concision edits are not done.
+
+**"Region" now means one thing.** Three figures circulated for RA8M2 and all three were right
+about something:
+
+| Figure | What it is |
+|---|---|
+| 293,376 B (`0x47A00`) | the secure **code** region, the one the linker fills and reports |
+| 294,400 B (`0x47E00`) | that plus the 1,024 B non-secure-callable window, which is what `config.cmake` works in |
+| 294,912 B | the slot, which is 294,400 B plus its 512 B MCUboot header |
+
+§6 defines the first as the meaning for the whole document and reconciles the other two, and §1
+and §9 now follow it. Nothing was wrong except that three numbers shared a word.
+
+**Six of the 28 rested on a reviewer's reading, and all six held.** Checking them in source
+rather than taking them was worth it twice over, because two were sharper than reported:
+
+- **The upgrade path is not symmetric.** Both toolchains install from the secondary slots;
+  `TEST_RESULTS.md` §4 already said the second reset erasing the secondary was never observed
+  under IAR, while `KNOWN_LIMITATIONS.md` claimed the whole path "under both toolchains".
+- **The secure `.ram_noinit` is not an orphan.** All three parts define
+  `S_DATA_EXTRA_NOINIT_SECTION_NAME` in `region_defs.h` and both GNU templates honour it, so
+  `DESIGN.md`'s claim that its placement "isn't guaranteed across TF-M versions" was stale. The
+  `SystemCoreClockUpdate()` call it justified is belt and braces, not load-bearing.
+- **The crypto 216 row cited superseded reasoning.** It read "the plaintext path the config
+  selects", which [D111] withdrew: there is no config switch, the guard is on the engine. The
+  252 row cited [D040], a run, where [D038] owns the reason.
+- **The P-521 reason does not fully hold.** The accelerator config gives "layout room" for
+  disabling it on RA8M2, which the measured 76 KB of region headroom does not obviously
+  support. The row now gives matching the SCE9 configuration as the reason and says the second
+  one is doubtful rather than repeating it.
+
+**Two errors were a fix that only went half way.** [D154] established that
+`<PART>_STDOUT_RTT=OFF` cannot build, and `DESIGN.md` §9 and both part cards still offered it
+as a working UART option. And the UART procedure [D154] wrote omitted the step that actually
+matters: the secure image and BL2 are opt-in per module, so **adding the SCI UART in e2 is not
+enough** — the port also needs `cmake/modules/fsp_sci_uart.cmake` and the module listed in
+`FSP_MODULES_S` and `FSP_MODULES_BL2`, neither of which exists. Step 1 alone leaves the driver
+unbuilt.
+
+**One error was the shape of the whole class.** `TROUBLESHOOTING.md`'s entry for imgtool
+refusing an oversized image offered the region spare as the remedy and ended mid-sentence.
+Region spare is exactly the wrong number there: **growing the code cannot cause that message**,
+because the flat binary already spans the region, so code growth fails the link instead. If
+imgtool is complaining, the slot, region and header sizes disagree with each other.
+
+**The three owner sections the plan required first.** `TROUBLESHOOTING.md` received the RTT
+truncation tell moved out of `TEST_RESULTS.md`, `DESIGN.md` §13.5 now names
+`PSA_ERROR_HARDWARE_FAILURE` as the symptom, and a new `MAINTAINERS.md` took 1,032 words of
+launch-generator, checker, hook and renderer internals out of `scripts/README.md`, which falls
+from 2,403 to 1,551 words. **It ships as an appendix**, against the plan's suggestion of
+withholding it: the scripts it documents ship, so whoever maintains them needs it.
+
+**A `claude.ai` link in [D060] is removed.** The append-only rule protects a recorded belief;
+a URL in a shipped appendix is neither a belief nor a finding, and the sentence it sat in says
+the same thing without it.
