@@ -8110,3 +8110,44 @@ status, the two hazards, and the tiered map.
 process documents are live maintainer material and the owner still edits them; leaving them on
 disk costs the deliverable nothing and keeps the style instruction that the prose is edited
 against at the path the rest of the tooling expects.
+
+## D147 — the checkers gain customer-readiness checks; the armed TrustZone keys are disarmed rather than disclosed
+
+**Date:** 2026-10-29 · **Status:** Accepted · **Builds on:** [D146], [D102] · **Evidence:** each new check injected into a tracked file, observed to fail, and reverted; the launch audit run over all 46 committed launches
+
+**Context.** All five checkers in this repository passed on a documentation set that a customer
+could not use. They check citations and generated-file freshness, which is to say they check
+that a reference resolves — not that what it resolves to is something a recipient receives.
+[D146] withheld six documents, which made the gap concrete: those files stay on disk, so
+`os.path.isfile` still finds them and a link to one still "resolves".
+
+**Four checks added to `check_docs.py`**, on by default, with `--no-customer` for a commit that
+breaks one deliberately:
+
+| Check | Catches |
+|---|---|
+| no local user path in a shipped document | both a leak and an instruction a reader cannot follow. `C:\Users\<you>` is the documented placeholder and passes |
+| every link target is tracked in git, not merely present on disk | a file never committed, which is how `README.md` linked `TEST_RESULTS.md` while it was untracked, and a file withheld on purpose |
+| decision-ID density under 15 per 1000 words | an ID used as the explanation rather than after a self-contained sentence |
+| no shipped launch sets `setTZBoundaries` true for any probe | the inert-but-armed case below |
+
+A document the repository does not track is skipped by all four, because it is not shipped. The
+density check exempts the three documents whose stated job is to index the log: `DECISIONS.md`,
+the generated `SETTLED.md`, and `TEST_RESULTS.md`, whose opening paragraph says it adds no
+result of its own. The threshold is not decorative — `TROUBLESHOOTING.md` and `PORTING.md` sit
+at 14.5.
+
+**The armed keys are now disarmed.** `setTZBoundaries` is per debug probe and only the selected
+probe's key acts, so five RA8M2 GCC launches carried `e2lite` = `true` behind a `jlink` key of
+`false`: inert, and live the moment someone switched probe. Two documents disclosed this. **A
+disclosed hazard is still a hazard**, and the fix was one substitution per file, so all five are
+now `false` for every probe and the two documents say so instead. The only remaining `true` is
+in the two `e2_baseline/` launches, which exist to show the unmodified e2 output and whose
+README says not to launch from them; the check exempts that directory by name.
+
+**A check verified only to pass is not verified.** Each of the four was injected into a tracked
+file, observed to fail with the message it should give, and reverted. That is how the path check
+was found to be broken: written as `[\/]` inside a character class, which Python's `re` reduces
+to `/` alone, so it matched `C:/Users/someone` and missed `C:\Users\someone` — the form every
+Windows document actually uses. It now carries `[\/]` and matches both. The check had reported
+a clean tree twice before that test.

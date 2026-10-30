@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Verify that documentation cross-references still resolve.
+r"""Verify that documentation cross-references still resolve.
 
     python scripts/check_docs.py            # check, exit 1 on any failure
     python scripts/check_docs.py --quiet    # only print failures
@@ -35,11 +35,39 @@ cited six times there and was deleted on 2026-10-09. Link-checking it would make
 permanently noisy, and a noisy checker gets ignored, which is worse than not having one.
 
 D-number citations (1) ARE checked inside DECISIONS.md, because a D number cannot become
+D-number citations (1) ARE checked inside DECISIONS.md, because a D number cannot become
 historically correct - either the entry exists or the citation is wrong.
+
+CUSTOMER READINESS (4) - (7)
+----------------------------
+The five checkers in this repository all passed on a documentation set that a customer could
+not use: they check citations and generated-file freshness, not whether what they resolve to
+is something a recipient actually receives. These four close that gap.
+
+  4. no shipped document names a local user path. C:\Users\<you> is the documented placeholder
+     and is allowed; a real account name is a leak, and it is also an instruction a reader
+     cannot follow.
+  5. every link target is TRACKED IN GIT. A link that resolves on the author's disk and not in
+     a clone is the failure this catches twice over: a file never committed (TEST_RESULTS.md
+     was linked from README.md while untracked) and a file deliberately withheld - D146
+     gitignored six maintainer documents, which stay on disk, so os.path.isfile still finds
+     them.
+  6. decision-ID density stays under DENSITY_LIMIT per 1000 words. A decision ID may follow a
+     self-contained sentence; it is never the explanation. Three documents are exempt because
+     being an index into the log is their stated job: DECISIONS.md itself, the SETTLED.md index
+     generated from it, and TEST_RESULTS.md, whose first paragraph says it adds no result of
+     its own and cites the entry that recorded each run.
+  7. no shipped launch configuration sets setTZBoundaries true, for ANY probe. The key is per
+     probe, only the selected one acts, and an inert true arms itself the moment someone
+     switches probe. e2_baseline/ is exempt: it shows the unmodified e2 output on purpose and
+     its README says not to launch from it.
+
+Pass --no-customer to run only (1) - (3), for a commit that breaks one of these on purpose.
 """
 import argparse
 import os
 import re
+import subprocess
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -56,6 +84,19 @@ LINK_EXEMPT = {DECISIONS}
 # someone wrote the entry a review merely proposed.
 PATH_EXEMPT = ("docs/artifacts",          # docs/artifacts/, docs/artifacts_v2/, ...
                "docs/General_tech_review")  # the 2026-10 port and upstream-comparison reviews
+
+# Customer-readiness configuration. See (4) - (7) in the module docstring.
+#
+# DENSITY_LIMIT is one decision ID every ~67 words. The documents that sat just under it when
+# this was written were TROUBLESHOOTING.md and PORTING.md at 14.5, so the limit is live rather
+# than decorative; the three index documents below are the only ones above it.
+DENSITY_LIMIT = 15.0
+DENSITY_EXEMPT = {DECISIONS, "SETTLED.md", "TEST_RESULTS.md"}
+LAUNCH_EXEMPT = ("e2_baseline/",)
+# C:\Users\<you> is the placeholder GETTING_STARTED.md uses. Anything else after C:\Users\ is
+# somebody's account name.
+RE_USERPATH = re.compile(r"[Cc]:[\\/]Users[\\/](?!<)([A-Za-z0-9._-]+)")
+RE_TZ_TRUE = re.compile(r'setTZBoundaries" value="true"')
 
 RE_ENTRY = re.compile(r"^## (D\d+) — ", re.M)
 RE_CITE = re.compile(r"\bD(\d{3})\b")
@@ -76,10 +117,81 @@ def read(path):
         return fh.read()
 
 
+def tracked_files():
+    """Paths git tracks, repo-relative with forward slashes. Empty set if git is unavailable."""
+    try:
+        out = subprocess.check_output(["git", "-C", ROOT, "ls-files"],
+                                      stderr=subprocess.DEVNULL).decode("utf-8", "replace")
+    except (OSError, subprocess.CalledProcessError):
+        return None
+    return {line.strip() for line in out.splitlines() if line.strip()}
+
+
+def customer_checks(docs, tracked):
+    """(4) - (7) in the module docstring. Returns a list of (where, what)."""
+    fails = []
+
+    for path in docs:
+        rel = os.path.relpath(path, ROOT).replace("\\", "/")
+        if rel.startswith(PATH_EXEMPT) or os.path.basename(path) == DECISIONS:
+            continue
+        # A document the repository does not track is not shipped, so it is not held to any
+        # of this. The six documents D146 withheld are still on disk and would otherwise be
+        # checked - and fail, because they link each other.
+        if tracked is not None and rel not in tracked:
+            continue
+        text = read(path)
+
+        # (4) local user paths
+        for who in sorted(set(RE_USERPATH.findall(text))):
+            fails.append((rel, "names the local user path C:/Users/%s - a reader cannot "
+                               "follow it, and it is a leak" % who))
+
+        # (6) decision-ID density
+        if os.path.basename(path) not in DENSITY_EXEMPT:
+            words = len(text.split())
+            cites = len(RE_CITE.findall(text))
+            if words:
+                density = cites * 1000.0 / words
+                if density > DENSITY_LIMIT:
+                    fails.append((rel, "cites %d decision IDs in %d words, %.1f per 1000 "
+                                       "against a limit of %.0f - an ID may follow a "
+                                       "self-contained sentence but is never the explanation"
+                                  % (cites, words, density, DENSITY_LIMIT)))
+
+        # (5) link targets must be tracked, not merely present on disk
+        if tracked is None or os.path.basename(path) in LINK_EXEMPT:
+            continue
+        for link in sorted(set(RE_MDLINK.findall(text))):
+            if link.startswith(("http://", "https://")):
+                continue
+            target = os.path.normpath(os.path.join(os.path.dirname(rel), link))
+            target = target.replace("\\", "/")
+            if target.startswith("../"):
+                continue          # the other repository; (3) covers what it can
+            if target not in tracked:
+                fails.append((rel, "links %s, which is not tracked in git - it resolves on "
+                                   "this disk and not in a clone" % link))
+
+    # (7) setTZBoundaries
+    for path in sorted(walk(ROOT, {".launch"})):
+        rel = os.path.relpath(path, ROOT).replace("\\", "/")
+        if rel.startswith(LAUNCH_EXEMPT):
+            continue
+        n = len(RE_TZ_TRUE.findall(read(path)))
+        if n:
+            fails.append((rel, "sets setTZBoundaries true for %d probe(s). Only the selected "
+                               "probe acts, so an inert true arms itself when the probe is "
+                               "switched" % n))
+    return fails
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--quiet", action="store_true")
     ap.add_argument("--list", action="store_true")
+    ap.add_argument("--no-customer", action="store_true",
+                    help="skip the customer-readiness checks (4)-(7)")
     a = ap.parse_args()
 
     dec_path = os.path.join(ROOT, DECISIONS)
@@ -127,6 +239,13 @@ def main():
                 continue
             fails.append((f"[tfm] {rel}", f"names {name}, which does not exist"))
 
+    tracked = None
+    if not a.no_customer:
+        tracked = tracked_files()
+        if tracked is None and not a.quiet:
+            print("check_docs: git unavailable - link targets checked on disk only")
+        fails += customer_checks(docs, tracked)
+
     if fails:
         print(f"check_docs: {len(fails)} broken reference(s)\n")
         for where, what in fails:
@@ -136,9 +255,10 @@ def main():
     if not a.quiet:
         n_exempt = sum(1 for p in docs
                        if os.path.relpath(p, ROOT).replace("\\", "/").startswith(PATH_EXEMPT))
+        extra = "" if a.no_customer else ", customer-readiness checks pass"
         print(f"check_docs: ok — {len(entries)} entries, {len(docs) - n_exempt} docs checked "
               f"({n_exempt} review snapshots exempt), {len(builds)} build files, "
-              f"all references resolve")
+              f"all references resolve{extra}")
     return 0
 
 

@@ -243,8 +243,8 @@ never run above isolation 1 or on RA8M2 at all, and RA6M5 has no upgrade launch
 > gets them wrong. On RA8M2 the key appears twice — `...arm.jlink.` and `...arm.e2lite.` —
 > and e2 defaults the second to `true`. Set both.
 >
-> **`e2lite` is still `true` in five RA8M2 GCC launches** — `flih_gcc`, `update_gcc` and the
-> three `test_*_gcc` — inert while J-Link is selected, live the moment the probe is switched.
+> Every shipped launch sets it to `false` for **both** keys, so switching probe cannot arm it.
+> The two `Debug_SSD` launches under `e2_baseline/` are the exception and are not for launching.
 > [DESIGN.md](DESIGN.md) §7.2, [D102](DECISIONS.md).
 
 Also leave erase code flash and erase data flash enabled on connect. **A stale ITS/PS area

@@ -106,7 +106,7 @@
     <stringAttribute key="com.renesas.hardwaredebug.arm.e2lite.serial_number" value=""/>
     <stringAttribute key="com.renesas.hardwaredebug.arm.e2lite.setTZAuthKey" value=""/>
     <stringAttribute key="com.renesas.hardwaredebug.arm.e2lite.setTZAuthLevel" value="0"/>
-    <booleanAttribute key="com.renesas.hardwaredebug.arm.e2lite.setTZBoundaries" value="true"/>
+    <booleanAttribute key="com.renesas.hardwaredebug.arm.e2lite.setTZBoundaries" value="false"/>
     <stringAttribute key="com.renesas.hardwaredebug.arm.e2lite.setTZComport" value=""/>
     <stringAttribute key="com.renesas.hardwaredebug.arm.e2lite.supply.voltage" value="3.3"/>
     <intAttribute key="com.renesas.hardwaredebug.arm.e2lite.supply_voltage_asp" value="0"/>

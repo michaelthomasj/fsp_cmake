@@ -132,10 +132,10 @@ Every launch configuration must keep
 `com.renesas.hardwaredebug.arm.jlink.setTZBoundaries` = `false`. Launched against BL2, the
 debugger derives the boundaries from the wrong symbols.
 
-Five RA8M2 GCC launches carry the equivalent `e2lite` key as `true`. Their `jlink` key is
-`false`, so the setting is inert while J-Link is the selected probe. **Switching probe arms
-it.** The two `Debug_SSD` launches under `e2_baseline/` keep the `jlink` key as `true`
-deliberately, because that directory shows e2's unmodified output; do not launch from it.
+Every shipped launch now carries `false` for every probe it names, not only for the selected
+one, so switching probe cannot arm the setting. The two `Debug_SSD` launches under
+`e2_baseline/` keep `true` deliberately, because that directory shows the unmodified e2 output.
+**Do not launch from `e2_baseline/`.**
 
 ### Re-partitioning erases the part
 
