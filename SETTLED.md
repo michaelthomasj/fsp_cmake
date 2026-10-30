@@ -6,10 +6,10 @@
 
 | | |
 |---|---|
-| Entries | **151** |
-| Standing | **138** |
+| Entries | **152** |
+| Standing | **139** |
 | Superseded | **13** |
-| Standing but corrected on some point | **37** |
+| Standing but corrected on some point | **38** |
 | Standing, but the question they left open is closed | **3** |
 | Supersede lineages | **10** |
 
@@ -34,7 +34,7 @@ A later entry **supersedes** an earlier one: same question, newer answer. Citing
 
 ---
 
-## Standing (138)
+## Standing (139)
 
 Nothing supersedes these. The title is the position. Where a later entry corrects one, the correction is named - the entry stands apart from that. **Where the Closed by column is filled, read the status as historical:** the entry describes a problem that a later entry shut, so its own "Open" or "Provisional" is no longer true.
 
@@ -170,7 +170,7 @@ Nothing supersedes these. The title is the position. Where a later entry correct
 | `D141` | 2026-10-27 | the test record becomes a document; four claims are weaker than their wording, and one result has no entry behind it | Accepted | — | — |
 | `D142` | 2026-10-29 | the PSA Arch tree ships as a fork with the patches committed, which closes D014's reproduction gap | Accepted | — | — |
 | `D143` | 2026-10-29 | the deliverable repository moves into the Renesas organisation; the scripts stop depending on its directory name; the rename waits on admin | Accepted | — | — |
-| `D144` | 2026-10-29 | the application chain gets its fourth script and its first RA8M2 launches; the pre-flash check becomes per part and works under IAR | Accepted | — | — |
+| `D144` | 2026-10-29 | the application chain gets its fourth script and its first RA8M2 launches; the pre-flash check becomes per part and works under IAR | Accepted | `D152` | — |
 | `D145` | 2026-10-29 | `.secure_azone` is generated from the solution, not read as input; [D140]'s mechanism claim was wrong | Accepted | — | — |
 | `D146` | 2026-10-29 | the documents become a three-tier set; six maintainer documents and the rendered mirror leave the repository | Accepted | — | — |
 | `D147` | 2026-10-29 | the checkers gain customer-readiness checks; the armed TrustZone keys are disarmed rather than disclosed | Accepted | — | — |
@@ -178,6 +178,7 @@ Nothing supersedes these. The title is the position. Where a later entry correct
 | `D149` | 2026-10-29 | history leaves the customer documents; three word-count targets are deliberately missed | Accepted | — | — |
 | `D150` | 2026-10-29 | the course keeps the mechanisms and loses the diary; the glossary generator goes with the table it served | Accepted | — | — |
 | `D151` | 2026-10-29 | the checker resolves sections and course anchors, not just filenames | Accepted | — | — |
+| `D152` | 2026-10-29 | every application build tree moves under `C:\b`; [D144] chose the one default a launch cannot have | Accepted | — | — |
 
 ---
 

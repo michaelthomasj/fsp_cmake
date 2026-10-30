@@ -102,15 +102,16 @@ that pair:
 
 | | Secure | Non-secure |
 |---|---|---|
-| RA6M5 GCC | `trusted-firmware-m\build_ra6m5_sce9` | `trusted-firmware-m\build_ra6m5_sce9_ns` |
-| RA6M5 IAR | `trusted-firmware-m\build_ra6m5_iar` | `trusted-firmware-m\build_ra6m5_iar_ns` |
+| RA6M5 GCC | `m5g` | `m5gns` |
+| RA6M5 IAR | `m5i` | `m5ins` |
 | RA8M2 GCC | `m2g` | `m2gns` |
 | RA8M2 IAR | `m2app` | `m2appns` |
 
-The suite trees above and the RA8M2 application trees are all under `C:\b\`. Short paths on
-purpose: a deep one overruns Windows' path limit partway through the Mbed TLS overlay clone,
-and reports `Filename too long` on `3rdparty/everest/...` rather than anything about length.
-The RA6M5 application pairs sit inside the TF-M clone, whose path is short enough to build in.
+Every tree above is under `C:\b\`. Short paths on purpose: a deep one overruns Windows'
+path limit partway through the Mbed TLS overlay clone, and reports `Filename too long` on
+`3rdparty/everest/...` rather than anything about length. **A launch names every image by
+absolute path**, so a default derived from the clone location would only ever match the
+machine it was written on.
 
 ## Building
 

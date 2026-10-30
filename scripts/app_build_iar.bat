@@ -2,7 +2,7 @@
 rem  RA6M5 application chain (BL2 + secure + the port's NS app), IAR.
 rem
 rem    app_build_iar.bat [spe-build-dir] [ns-build-dir]
-rem    app_build_iar.bat C:\b\m5iapp C:\b\m5iappns
+rem    app_build_iar.bat C:\b\alt C:\b\altns
 rem
 rem  This is the GCC recipe in build_ra6m5_sce9 / build_ra6m5_sce9_ns - Debug, SFN backend,
 rem  isolation 1, SPM trace on - with the IAR toolchain and projects. The PSA Arch builds are
@@ -23,8 +23,8 @@ if "%FSP_CMAKE%"=="" set FSP_CMAKE=%REPO_ROOT:\=/%
 
 set SPE=%1
 set NS=%2
-if "%SPE%"=="" set SPE=%TFM_SRC%\build_ra6m5_iar
-if "%NS%"==""  set NS=%TFM_SRC%\build_ra6m5_iar_ns
+if "%SPE%"=="" set SPE=C:\b\m5i
+if "%NS%"==""  set NS=C:\b\m5ins
 
 set PATH=%IAR_BIN%;%PATH%
 set TFM_SRC_FWD=%TFM_SRC:\=/%

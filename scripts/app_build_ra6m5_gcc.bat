@@ -2,16 +2,16 @@
 rem  RA6M5 application chain (BL2 + secure + the port's NS app), GNUARM.
 rem
 rem    app_build_ra6m5_gcc.bat [spe-build-dir] [ns-build-dir]
-rem    app_build_ra6m5_gcc.bat C:\b\m5g C:\b\m5gns
+rem    app_build_ra6m5_gcc.bat C:\b\alt C:\b\altns
 rem
 rem  Debug / isolation 1 / SFN backend / SPM trace on - the application configuration. The
 rem  PSA Arch builds are a different one (profile_large, isolation 3, IPC); see psa_arch_spe.bat.
 rem
-rem  THE DEFAULTS ARE build_ra6m5_sce9 AND build_ra6m5_sce9_ns IN THE TF-M TREE, because that is
-rem  the pair the committed ra6m5_TFM_sce9_gcc launch flashes. A launch names every image by
-rem  absolute path, so a script that defaulted elsewhere would leave the launch pointing at
-rem  nothing. Build elsewhere by passing both arguments, then clone the launch onto the new tree
-rem  with mk_level_launch.py.
+rem  THE DEFAULTS ARE C:\b\m5g AND C:\b\m5gns, which is the pair the committed
+rem  ra6m5_TFM_sce9_gcc launch flashes. A launch names every image by ABSOLUTE path, so the
+rem  default has to be a path that exists on any machine: an in-tree default put the author
+rem  home directory inside three shipped launches. Build elsewhere by passing both arguments,
+rem  then clone the launch onto the new tree with mk_level_launch.py.
 rem
 rem  CMAKE_BUILD_TYPE=Debug, where app_build_ra8m2_gcc.bat has to use MinSizeRel. The secure
 rem  regions differ by more than 200 KB: RA8M2's is 294,400 B and GNUARM Debug comes out around
@@ -40,8 +40,8 @@ if "%FSP_CMAKE%"=="" set FSP_CMAKE=%REPO_ROOT:\=/%
 
 set SPE=%1
 set NS=%2
-if "%SPE%"=="" set SPE=%TFM_SRC%\build_ra6m5_sce9
-if "%NS%"==""  set NS=%TFM_SRC%\build_ra6m5_sce9_ns
+if "%SPE%"=="" set SPE=C:\b\m5g
+if "%NS%"==""  set NS=C:\b\m5gns
 
 set PATH=%GCC_BIN%;%PATH%
 set TFM_SRC_FWD=%TFM_SRC:\=/%

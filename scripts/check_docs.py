@@ -206,6 +206,28 @@ def customer_checks(docs, tracked):
                 fails.append((rel, "links %s, which is not tracked in git - it resolves on "
                                    "this disk and not in a clone" % link))
 
+    # (4) again, over the launches. A launch names every image it flashes by ABSOLUTE path, so
+    # a user path here is not cosmetic: it is a launch that works on one machine. Three RA6M5
+    # launches and nine RA6E1 ones shipped that way.
+    #
+    # Two attributes are exempt because e2 studio writes and rewrites them itself and neither
+    # decides what is flashed: ioFilePath, the register-view SVD inside the user's Eclipse
+    # plugin directory, and the source-lookup "directory nest" entry. Both are reported by
+    # --list rather than failed, because nothing here can produce a portable value for them.
+    for path in sorted(walk(ROOT, {".launch"})):
+        rel = os.path.relpath(path, ROOT).replace("\\", "/")
+        if rel.startswith(LAUNCH_EXEMPT):
+            continue
+        text = read(path)
+        for m in RE_USERPATH.finditer(text):
+            before = text[max(0, m.start() - 220):m.start()]
+            if "ioFilePath" in before[-200:] or "directory nest" in before[-200:]:
+                continue
+            fails.append((rel, "flashes from the local user path C:/Users/%s - a launch names "
+                               "every image by absolute path, so this one works on one machine"
+                          % m.group(1)))
+            break
+
     # (7) setTZBoundaries
     for path in sorted(walk(ROOT, {".launch"})):
         rel = os.path.relpath(path, ROOT).replace("\\", "/")

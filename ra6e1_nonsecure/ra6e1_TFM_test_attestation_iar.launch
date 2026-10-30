@@ -31,13 +31,13 @@
     <booleanAttribute key="com.renesas.cdt.launch.dsf.USE_DEFAULT_IO_MAP" value="true"/>
     <listAttribute key="com.renesas.cdt.launch.dsf.downloadImages">
         <listEntry value="|false|false|true|0|false|No core|INTERNAL_MEMORY||false"/>
-        <listEntry value="C:\Users\Michael\Documents\GitHub\trusted-firmware-m\build_ra6e1_iar\bin\bl2.elf|true|true|true|0|true|No core|INTERNAL_MEMORY||false"/>
-        <listEntry value="C:\Users\Michael\Documents\GitHub\tf-m-tests\tests_psa_arch\build_spe_ra6e1_iar_att\build-spe\bin\tfm_s_signed.bin|true|false|false|58000|true|No core|INTERNAL_MEMORY||true"/>
-        <listEntry value="C:\Users\Michael\Documents\GitHub\tf-m-tests\tests_psa_arch\build_ns_ra6e1_iar_att\bin\tfm_ns_signed.bin|true|false|false|98000|true|No core|INTERNAL_MEMORY||true"/>
-        <listEntry value="C:\Users\Michael\Documents\GitHub\tf-m-tests\tests_psa_arch\build_ns_ra6e1_iar_att\bin\tfm_ns.axf|true|false|true|0|true|No core|INTERNAL_MEMORY||false"/>
-        <listEntry value="C:\Users\Michael\Documents\GitHub\tf-m-tests\tests_psa_arch\build_spe_ra6e1_iar_att\build-spe\bin\tfm_s.axf|true|false|true|0|true|No core|INTERNAL_MEMORY||false"/>
-        <listEntry value="C:\Users\Michael\Renesas_work\repos\trusted-firmware-m\build_ra6e1\bin\tfm_s_signed_secondary.bin|false|false|false|18000|true|No core|INTERNAL_MEMORY||true"/>
-        <listEntry value="C:\Users\Michael\Renesas_work\repos\trusted-firmware-m\build_ra6e1_ns\bin\tfm_ns_signed_secondary.bin|false|false|false|c8000|true|No core|INTERNAL_MEMORY||true"/>
+        <listEntry value="C:\b\e1i\bin\bl2.elf|true|true|true|0|true|No core|INTERNAL_MEMORY||false"/>
+        <listEntry value="C:\b\e1iatt\bin\tfm_s_signed.bin|true|false|false|58000|true|No core|INTERNAL_MEMORY||true"/>
+        <listEntry value="C:\b\e1iattns\bin\tfm_ns_signed.bin|true|false|false|98000|true|No core|INTERNAL_MEMORY||true"/>
+        <listEntry value="C:\b\e1iattns\bin\tfm_ns.axf|true|false|true|0|true|No core|INTERNAL_MEMORY||false"/>
+        <listEntry value="C:\b\e1iatt\bin\tfm_s.axf|true|false|true|0|true|No core|INTERNAL_MEMORY||false"/>
+        <listEntry value="C:\b\e1\bin\tfm_s_signed_secondary.bin|false|false|false|18000|true|No core|INTERNAL_MEMORY||true"/>
+        <listEntry value="C:\b\e1ns\bin\tfm_ns_signed_secondary.bin|false|false|false|c8000|true|No core|INTERNAL_MEMORY||true"/>
     </listAttribute>
     <booleanAttribute key="com.renesas.cdt.launch.dsf.downloadImagesUpgradedV30" value="true"/>
     <listAttribute key="com.renesas.cdt.launch.dsf.externalFlashDestinationAddresses"/>
@@ -128,7 +128,7 @@
     <intAttribute key="org.eclipse.cdt.debug.gdbjtag.core.delay" value="3"/>
     <booleanAttribute key="org.eclipse.cdt.debug.gdbjtag.core.doHalt" value="false"/>
     <booleanAttribute key="org.eclipse.cdt.debug.gdbjtag.core.doReset" value="false"/>
-    <stringAttribute key="org.eclipse.cdt.debug.gdbjtag.core.imageFileName" value="C:\Users\Michael\Documents\GitHub\trusted-firmware-m\build_ra6e1_iar\bin\bl2.elf"/>
+    <stringAttribute key="org.eclipse.cdt.debug.gdbjtag.core.imageFileName" value="C:\b\e1i\bin\bl2.elf"/>
     <stringAttribute key="org.eclipse.cdt.debug.gdbjtag.core.imageOffset" value="0"/>
     <stringAttribute key="org.eclipse.cdt.debug.gdbjtag.core.initCommands" value=""/>
     <booleanAttribute key="org.eclipse.cdt.debug.gdbjtag.core.loadImage" value="true"/>
@@ -139,7 +139,7 @@
     <booleanAttribute key="org.eclipse.cdt.debug.gdbjtag.core.setResume" value="false"/>
     <booleanAttribute key="org.eclipse.cdt.debug.gdbjtag.core.setStopAt" value="true"/>
     <stringAttribute key="org.eclipse.cdt.debug.gdbjtag.core.stopAt" value="main"/>
-    <stringAttribute key="org.eclipse.cdt.debug.gdbjtag.core.symbolsFileName" value="C:\Users\Michael\Documents\GitHub\trusted-firmware-m\build_ra6e1_iar\bin\bl2.elf"/>
+    <stringAttribute key="org.eclipse.cdt.debug.gdbjtag.core.symbolsFileName" value="C:\b\e1i\bin\bl2.elf"/>
     <stringAttribute key="org.eclipse.cdt.debug.gdbjtag.core.symbolsOffset" value="0"/>
     <booleanAttribute key="org.eclipse.cdt.debug.gdbjtag.core.useFileForImage" value="true"/>
     <booleanAttribute key="org.eclipse.cdt.debug.gdbjtag.core.useFileForSymbols" value="true"/>

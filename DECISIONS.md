@@ -8328,3 +8328,47 @@ sides are now compared on one line.
 **Still not covered**, stated so it is not mistaken for coverage: a `§N` citation that names no
 file, a section reference inside `DECISIONS.md` (append-only, exempt from link checks), and a
 heading reference in prose that does not use the `§` marker at all.
+
+## D152 — every application build tree moves under `C:\b`; [D144] chose the one default a launch cannot have
+
+**Date:** 2026-10-29 · **Status:** Accepted · **Corrects:** [D144] · **Evidence:** all 47 tracked launches audited for a user path, before and after; the new check injected, observed to fail, reverted
+
+**What [D144] got wrong.** It gave `app_build_ra6m5_gcc.bat` the defaults
+`build_ra6m5_sce9` and `build_ra6m5_sce9_ns` *inside the TF-M tree*, reasoning that a launch
+names its images by absolute path so the script must default to the pair the committed launch
+already flashed. The premise is right and the conclusion is backwards. `TFM_SRC` resolves from
+the script's own location, so an in-tree default expands to whatever the author's clone path
+happens to be — and that path is then written into three shipped launches, which therefore
+work on exactly one machine. **A second review found it by trying to flash RA6M5 from a fresh
+clone.** [D144]'s own verification missed it: it confirmed every image path existed, which on
+the author's machine it did.
+
+**The defaults are now `C:\b\m5g` and `C:\b\m5gns` for GNUARM, `C:\b\m5i` and `C:\b\m5ins` for
+IAR**, matching what RA8M2 already did. The rule the two scripts now state: a default has to be
+a path that exists on any machine, never one derived from where the repository was cloned.
+
+**Nine more launches had the same defect, and the review had not found them.** Auditing the
+whole set rather than the three named:
+
+| Launches | Loaded from | Now |
+|---|---|---|
+| 3 RA6M5 application | the author's `trusted-firmware-m` clone | `C:\b\m5g`, `C:\b\m5i`, `C:\b\m5sw` and their non-secure pairs |
+| 7 RA6E1 application and PSA Arch | `C:\Users\…\Renesas_work\repos\`, a clone location that **no longer exists**, and in-tree `tests_psa_arch` build directories | `C:\b\e1`, `e1i`, `e1cry`, `e1att`, `e1sto` and the IAR equivalents, following the naming in `scripts/README.md` |
+| 1 stock RA6E1 `Debug_SSD` | an absolute path into an old clone of *this* repository | the project-relative `Debug/ra6e1_solution_nonsecure.elf`, as all nineteen RA6M5 launches already use |
+
+The RA6E1 launches are **not** claimed to run: that part is reference only and has never been
+built against the current tree. They are consistent with the convention and no longer carry a
+path from a clone that is gone.
+
+**It was not deleted, and the reason matters.** The stock `Debug_SSD` launch above looks like
+the four `80a8a35` deleted, but those went because they carried `setTZBoundaries` true. This one
+carries false, so the stated reason for deleting them does not reach it, and it was repaired
+rather than removed.
+
+**The check now reads `.launch` files.** [D147]'s user-path check covered Markdown and HTML,
+which is exactly why this class got through: the leak was in XML nobody was checking. Two
+attributes are exempt and the exemption is in the code with its reason — `ioFilePath`, the
+register-view SVD inside the user's Eclipse plugin directory, and the source-lookup
+`directory nest` entry. **e2 studio writes both itself and neither decides what is flashed**,
+and nothing here can produce a portable value for either. They remain in 44 and 19 launches
+respectively; a reader should know that rather than find it.

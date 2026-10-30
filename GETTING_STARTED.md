@@ -154,14 +154,15 @@ launch in §6 flashes, so passing your own paths means cloning the launch as wel
 
 | Part | Toolchain | Secure build | Non-secure build |
 |---|---|---|---|
-| RA6M5 | GNU | `trusted-firmware-m\build_ra6m5_sce9` | `trusted-firmware-m\build_ra6m5_sce9_ns` |
-| RA6M5 | IAR | `trusted-firmware-m\build_ra6m5_iar` | `trusted-firmware-m\build_ra6m5_iar_ns` |
+| RA6M5 | GNU | `C:\b\m5g` | `C:\b\m5gns` |
+| RA6M5 | IAR | `C:\b\m5i` | `C:\b\m5ins` |
 | RA8M2 | GNU | `C:\b\m2g` | `C:\b\m2gns` |
 | RA8M2 | IAR | `C:\b\m2app` | `C:\b\m2appns` |
 
-The RA8M2 trees are under `C:\b\` for the path-length reason in §3; the RA6M5 trees sit inside
-the TF-M clone, whose path is short enough to build in. Build directories are disposable;
-delete one to force a clean build.
+Every tree is under `C:\b\`, for the path-length reason in §3. **A launch names every image
+by absolute path**, so these defaults have to be paths that exist on any machine rather than
+anything derived from where you cloned. Build directories are disposable; delete one to force
+a clean build.
 
 The build type is per part and not interchangeable. RA6M5 builds `Debug`. RA8M2 GNU must build
 `MinSizeRel`, because GNU `Debug` comes out around 414 KB against a 294,400 B secure region,
@@ -266,7 +267,7 @@ set GUARD=..\trusted-firmware-m\platform\ext\target\renesas\common\check_ofs.py
 
 rem  RA6M5
 python %GUARD% --ra6-default --max-word 0x10 --require-segments ^
-  ..\trusted-firmware-m\build_ra6m5_sce9\bin\bl2.axf
+  C:\b\m5g\bin\bl2.axf
 
 rem  RA8M2
 python %GUARD% --max-word 4 --require-segments ^
