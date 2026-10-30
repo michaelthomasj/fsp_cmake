@@ -6,7 +6,7 @@
         <memory parent="RAM" name="RAM_CM33_C" size="0x400" offset="0x3FC00" security="c" Pname="CM33"/>
         <memory parent="RAM" name="RAM_CM33_N" size="0x40000" offset="0x40000" security="n" Pname="CM33"/>
         <memory parent="FLASH" name="FLASH_CM33_B" size="0x18000" offset="0x0" security="s" Pname="CM33"/>
-        <memory parent="FLASH" name="UNUSED_SCRATCH" size="0x8000" offset="0x18000" security="s" Pname="CM33" info="@user"/>
+        <memory parent="FLASH" name="UNUSED_SCRAtTCH" size="0x8000" offset="0x18000" security="s" Pname="CM33" info="@user"/>
         <memory parent="FLASH" name="__BL_0_S_H" size="0x200" offset="0x20000" security="s" Pname="CM33" info="@user"/>
         <memory parent="FLASH" name="__BL_0_S_I" size="0x7FE00" offset="0x20200" security="s" Pname="CM33" info="@user"/>
         <memory parent="FLASH" name="__BL_0_S_T" size="0x0" offset="0xA0000" security="s" Pname="CM33" info="@user"/>
@@ -181,7 +181,7 @@
             <assign memory="RAM_CM33_S"/>
             <assign memory="RAM_CM33_C"/>
             <assign memory="FLASH_CM33_B"/>
-            <assign memory="UNUSED_SCRATCH"/>
+            <assign memory="UNUSED_SCRAtTCH"/>
             <assign memory="__BL_0_S_H"/>
             <assign memory="__BL_0_S_I"/>
             <assign memory="__BL_0_S_T"/>
