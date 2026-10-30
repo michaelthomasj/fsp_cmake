@@ -65,9 +65,11 @@ These decide which FSP sources are compiled into which image. They live in
 
 **`FSP_MODULES_NEVER_BUILT` excludes nothing.** It names the directories that the
 unclaimed-module audit should stay quiet about, for modules whose sources the port supplies or
-compiles by another route. What actually removes a directory from the non-secure glob is
-`FSP_EXCLUDED_MODULES`, and what keeps one out of the secure and bootloader images is simply
-not listing it in `FSP_MODULES_S` or `FSP_MODULES_BL2`.
+compiles by another route. What keeps a module out of the secure and bootloader images is
+simply not listing it in `FSP_MODULES_S` or `FSP_MODULES_BL2`. **Nothing keeps one out of the
+non-secure image**: that side globs every module the project enables, minus `ra_gen/main.c`.
+`FSP_EXCLUDED_MODULES` looks like the exception and is not — its only caller is guarded on
+`<PART>_NS_IN_SPE_BUILD`, which is off by default.
 [ADDING_FSP_MODULES.md](ADDING_FSP_MODULES.md) §2 sets the three mechanisms side by side.
 
 **Adding an FSP module you enabled in e2.** e2 does not emit CMake modules, so a new module
@@ -155,18 +157,35 @@ ALTs ([D043]).
 
 ## 6. Diagnostics — and what they cost
 
-The secure slot is nearly full on both parts, so these are a space decision, not a free choice:
+Two different limits get confused here, and only one of them constrains adding code.
 
 ```
-            raw tfm_s.bin   signed payload ends   slot        true spare
-RA6M5           521,792             522,579    524,288         1,693 B
-RA8M2           293,440             294,226    294,912           670 B
+                         secure region   code used   spare for code
+RA6M5, Debug, GNUARM          521,728     323,536         198,192
+RA8M2, MinSizeRel, GNUARM     293,376     216,936          76,440
+
+                         slot        signed image   spare in the slot
+RA6M5                      524,288        522,427            1,861
+RA8M2                      294,912        294,075              837
 ```
 
-Measured by locating the 0xFF gap between the signed payload and the 16-byte
-trailer at the top of the slot. Earlier figures here said 1,984 B and 960 B. Those were
-`raw image + header` against the slot and omitted the ~275 B of imgtool TLVs (signature and
-hashes) and the trailer, which overstated RA8M2's headroom by 30%.
+**The signed image is region-sized, which is why the slot looks full.** The non-secure-callable
+veneers are pinned at the top of the secure region, so `objcopy -O binary` spans the whole
+region and `tfm_s.bin` comes out at 521,792 B on RA6M5 whatever the image costs. imgtool signs
+*that*, so the signed artefact nearly fills the slot while the code occupies 62% of the region.
+
+The consequence matters: **the ~1.8 KB and ~0.8 KB of slot spare do not limit how much code you
+can add.** Adding code does not grow the signed image, because it is already region-sized. What
+limits code is the region — about 198 KB spare on RA6M5 and 76 KB on RA8M2 — and exceeding it
+fails the link, loudly, rather than failing to sign.
+
+So the diagnostics below are affordable on both parts. An earlier revision of this section said
+the opposite, having read the slot figure as the code budget; the three logging options cost
+3,785 B against tens of kilobytes of region spare.
+
+Read the region figures from the linker's own `Memory region` table in the build output, or from
+`readelf -lW` summed over the LOAD segments inside the secure region. **Do not read
+`tfm_s.bin`'s size as the image size**, for the reason above.
 
 | Option | Default | Cost |
 |---|---|---|
@@ -241,7 +260,6 @@ them:
 -DTFM_PARTITION_LOG_LEVEL=TFM_PARTITION_LOG_LEVEL_SILENCE
 -DCONFIG_TFM_HALT_ON_CORE_PANIC=OFF
 -DMCUBOOT_LOG_LEVEL=OFF
--D<PART>_STDOUT_RTT=OFF
 ```
 
 **`TFM_SPM_DEBUG_TRACE` must go `OFF` in the same step as the log level.** It requires a level
@@ -252,8 +270,8 @@ the one combination in this list that stops the build instead of producing a lar
 |---|---|---|
 | Build type | `MinSizeRel` | mandatory for GNUARM on RA8M2, where Debug comes out around 414 KB against a 294,400 B region. RA6M5 Debug does fit, and a release image should not spend the room anyway |
 | Build type, IAR | `MinSizeRel` as well | IAR Debug fits on both parts, so this is a size choice rather than a constraint |
-| Console | `<PART>_STDOUT_RTT=OFF` | selects `PLATFORM_DEFAULT_UART_STDOUT`. A release image with RTT on carries a debug transport |
-| Logging | silent | the three log options together cost 3,785 B of secure text, against 1,693 B spare on RA6M5 and 670 B on RA8M2 |
+| Console | **leave `<PART>_STDOUT_RTT` ON for now** | see the warning below. A release image with RTT on does carry a debug transport, but turning it off does not currently build |
+| Logging | silent | the three log options together cost 3,785 B of secure text, which both parts have room for; turn them off for a release image because they are diagnostics, not because of space |
 | Bootloader logging | `MCUBOOT_LOG_LEVEL=OFF` | `INFO` costs BL2 text +5,960 B and bss +4,284 B |
 | Halt on panic | `OFF` | a release image should reset rather than spin where a debugger can find it |
 
@@ -264,3 +282,12 @@ so reports the same number whatever the image costs. §6 has the measured headro
 Then re-run the tests against the image you are actually shipping:
 [TEST_RESULTS.md](TEST_RESULTS.md) records what has run here, and the configuration these
 options produce is not one of them.
+
+> **`<PART>_STDOUT_RTT=OFF` does not build as the projects ship.** It selects
+> `PLATFORM_DEFAULT_UART_STDOUT`, which compiles `cmsis_drivers/Driver_USART.c` into both the
+> secure image and the bootloader. That file includes `r_sci_uart.h` and calls
+> `R_SCI_UART_Open(&g_uart0_ctrl, &g_uart0_cfg)`, and **no secure or bootloader project
+> contains the SCI UART module or a `g_uart0` instance** — so it fails at the include, before
+> any link. Switching the console to a UART therefore takes a project change first: add the
+> SCI UART module in the secure and bootloader projects in e2, name the instance `g_uart0`,
+> regenerate, and rebuild there. Established by reading the source, not by building it.

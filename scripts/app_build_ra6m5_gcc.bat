@@ -15,10 +15,10 @@ rem  then clone the launch onto the new tree with mk_level_launch.py.
 rem
 rem  CMAKE_BUILD_TYPE=Debug, where app_build_ra8m2_gcc.bat has to use MinSizeRel. The secure
 rem  regions differ by more than 200 KB: RA8M2's is 294,400 B and GNUARM Debug comes out around
-rem  414 KB there, while RA6M5's is 521,728 B and Debug uses 322,960 B of it - 61.9%, measured
-rem  on a clean tree 2026-10-29. Do not read tfm_s.bin's size as the figure; imgtool pads it to
-rem  the region, so it reports 521,792 B whatever the image costs. Read the linker's own
-rem  "Memory region" table instead.
+rem  414 KB there, while RA6M5's is 521,728 B and Debug uses about 323,000 B of it - 62%. Do
+rem  not read tfm_s.bin's size as the figure: the veneers are pinned at the top of the region,
+rem  so objcopy spans the whole region and the file reads 521,792 B whatever the image costs.
+rem  Read the linker's own "Memory region" table instead.
 rem
 rem  TFM_SPM_LOG_LEVEL is passed because ra6m5/config.cmake sets TFM_SPM_DEBUG_TRACE=ON and
 rem  check_config.cmake rejects that against a SILENCE log level. Debug does not default to

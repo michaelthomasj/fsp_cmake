@@ -61,12 +61,19 @@ Three separate mechanisms are easy to confuse here:
 |---|---|---|
 | `FSP_MODULES_S` / `_BL2` | `ra6m5/CMakeLists.txt:234`, `:238` | the only thing that builds FSP sources for the secure and BL2 images |
 | `FSP_MODULES_NEVER_BUILT` | `:266` | suppresses the §5 unclaimed-directory warning; excludes no source |
-| `FSP_EXCLUDED_MODULES` | `:112`, used by `fsp_collect_sources()` at `:1023` | filters sources out of the non-secure glob only |
+| `FSP_EXCLUDED_MODULES` | `:112`, used by `fsp_collect_sources()` at `:1023` | **reaches nothing in a normal build.** Its only caller is guarded on `<PART>_NS_IN_SPE_BUILD`, which is `OFF` by default |
 
 So `r_sce` appears in `FSP_MODULES_NEVER_BUILT` yet is built by the `sce` module for the secure
 and BL2 roles ([D129]). It is listed there for the BL2-without-accelerator role, which declares
-no `sce` module and would otherwise trip the audit. `FSP_EXCLUDED_MODULES` removes it from the
-non-secure image, which is a different build.
+no `sce` module and would otherwise trip the audit.
+
+**None of the three affects the non-secure image in a normal build.** That image takes its FSP
+sources from `platform_ns`, which the secure build installs, and the glob there is deliberately
+wide: `bsp/*.c`, `r_*/*.c`, `rm_*/*.c` and `ra_gen/*.c`, with **only `ra_gen/main.c` removed**
+because the application supplies its own entry point. A module you enable in e2 is therefore
+compiled into `tfm_ns` with no edit anywhere, `--gc-sections` drops whatever is unreferenced,
+and there is no opt-in registry on that side because nothing reaches a signed secure image
+through it.
 
 `rm_mcuboot_port` does stay out of the link: TF-M supplies its own MCUboot flash backend
 ([D091]). `rm_psa_crypto` is narrower — the port excludes FSP's PSA core module and its mbedTLS

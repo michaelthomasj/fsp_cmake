@@ -177,7 +177,8 @@ after them is placed beyond the veneers.
 
 This is the slot overflowing, after a clean link: the signed image carries a ~275 B imgtool TLV
 block and a 16-byte trailer on top of the raw image, and the slot must hold all of it. True spare
-is 1,693 B on RA6M5 and 670 B on RA8M2 — see [CONFIGURATION.md](CONFIGURATION.md) §6 for the secure
+is about 198 KB on RA6M5 and 76 KB on RA8M2, measured against the linker region rather than
+the slot — see [CONFIGURATION.md](CONFIGURATION.md) §6 for both figures and the secure
 image" for what to turn off, and [D087] for why the older, larger figures were wrong.
 
 ### ``undefined symbol `Image$ARM_LIB_STACK$ZI$Base` `` — with single `$`

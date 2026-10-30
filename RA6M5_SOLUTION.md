@@ -149,15 +149,16 @@ Both are now build-time errors rather than board failures, and
 
 ### Measured on the built images
 
-Sizes are `text` only, from `arm-none-eabi-size`, at Debug and isolation 1. Do not read them
-from `ld --print-memory-usage`, which reports the secure region as full because the veneers are
-pinned at its top.
+Measured at Debug and isolation 1, as flash LOAD bytes inside each region — the same thing the
+linker's `Memory region` table reports. **Do not read a `.bin` size as the image size**: the
+veneers are pinned at the top of the secure region, so the flat binary spans the whole region
+whatever the image costs ([CONFIGURATION.md](CONFIGURATION.md) §6).
 
-| Image | Used | Slot code region | Headroom |
+| Image | Used | Region | Spare |
 |---|---|---|---|
-| bl2 | 54.2 KB | `0x18000` (96 KB) | 43% free |
-| tfm_s | 174.8 KB | `0x7F600` (509.5 KB) | 334.7 KB free |
-| tfm_ns | 6.1 KB | `0x6FE00` (447.5 KB) | — |
+| bl2 | 57,960 B | `0x18000` (98,304 B) | 40,344 B |
+| tfm_s | 323,536 B | 521,728 B | 198,192 B |
+| tfm_ns | 6,208 B | 458,240 B | — |
 
 - The secure image spans `0xA0000` to `0xCBD50`, with the veneers at `0x11F800`: inside the
   signed payload and clear of the MCUboot trailer.

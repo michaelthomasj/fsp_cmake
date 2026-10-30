@@ -109,11 +109,13 @@ image.
   secure project is also what makes the interrupt secure.
 - **`rm_psa_crypto` and `rm_mcuboot_port` are deliberately never built from the projects**,
   because the crypto and flash-map configuration they carry collides with TF-M's. Two different
-  mechanisms do that, and neither is `FSP_MODULES_NEVER_BUILT`, **which excludes nothing and
+  mechanism does that, and it is not `FSP_MODULES_NEVER_BUILT`, **which excludes nothing and
   only keeps the unclaimed-module audit quiet**: the secure and bootloader images simply do not
-  list them, and `FSP_EXCLUDED_MODULES` removes their directories from the non-secure glob.
-  Their headers must still resolve, because the generated `common_data.h` and `hal_data.h`
-  include them unconditionally even when nothing is instantiated.
+  list them. **The non-secure image does compile them**, because that side globs every module
+  the project enables; nothing there is protected, and `--gc-sections` drops what is
+  unreferenced. Their headers must resolve in every case, because the generated
+  `common_data.h` and `hal_data.h` include them unconditionally even when nothing is
+  instantiated.
 - **Generated file names stay standard.** The build excludes `ra_gen/main.c`,
   `Source/startup.c` and `bsp_linker.c` by name for the secure and bootloader images, because
   TF-M supplies all three. Renaming them makes the FSP versions collide at link.

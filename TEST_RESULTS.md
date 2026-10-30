@@ -264,11 +264,9 @@ Platform, the SFN backend, FLIH interrupt handling on both parts and both toolch
 PSA Arch crypto, attestation and storage suites. **SLIH is covered on RA6M5 at isolation 1
 only**, which is why it appears in the table above as well.
 
-One further gap is not a suite that could be run at all: §8 describes a defect that no
-PSA-level suite can reach.
-
-**One gap is not a suite at all: the shipped default configuration.** Isolation 1 with the SFN
+Two further gaps are not suites. §8 describes a defect that no PSA-level suite can reach. And
+**the shipped default configuration itself has not been re-run**: isolation 1 with the SFN
 backend is what the build scripts produce, and every hardware run of it predates the move of the
 isolation HAL from `platform_s` to `tfm_spm`. Isolation 2 and 3 were re-run after that move;
 isolation 1 was not. **Re-run `tf-m-tests` against your own build before shipping**, which
-[DESIGN.md](DESIGN.md) §13.7 also says for the same reason.
+[DESIGN.md](DESIGN.md) §13.7 says for the same reason.

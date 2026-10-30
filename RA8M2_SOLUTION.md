@@ -258,12 +258,12 @@ skips. Sizes are `text` only, from `arm-none-eabi-size`, at MinSizeRel:
 | Image | text | Region | Headroom |
 |---|---|---|---|
 | bl2 | 27,100 B | `0x10000` (64 KB) | 58% free |
-| tfm_s | 278,594 B | `0x47A00` (293,376 B) | the signed payload ends at 294,226 of a 294,912 slot, so 670 B |
+| tfm_s | 216,936 B of flash LOAD | `0x47A00` (293,376 B) | 76,440 B of region spare. The signed image separately fills the slot to within 837 B, for the reason in [CONFIGURATION.md](CONFIGURATION.md) §6 |
 | tfm_ns | 105,944 B | `0x27E00` (163,328 B) | 35% free |
 
-**The secure slot is nearly full.** [CONFIGURATION.md](CONFIGURATION.md) §6 gives the cost of
-each diagnostic; at 670 B of headroom the PSA Arch logging options cannot be enabled globally
-on this part.
+**The signed image fills the slot to within 837 B, and that is not the code budget.**
+[CONFIGURATION.md](CONFIGURATION.md) §6 explains why the two differ and gives the cost of each
+diagnostic; this part has about 76 KB of region spare, so the PSA Arch logging options do fit.
 
 The two toolchains agree test for test — the same tally, the same failing test, the same skip —
 which is the pattern RA6M5 shows as well. The one test the two parts differ on is the plaintext

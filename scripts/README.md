@@ -78,9 +78,10 @@ constraint has nothing to do with isolation 3 or the IPC backend — the comment
 `psa_arch_spe*.bat` that say otherwise are wrong on the reason, right on the action.
 
 Secure-side logging is the one setting that cannot be shared. The three options together — SPM
-log, partition log and halt-on-panic — cost ~3,785 B against 670 B spare on RA8M2 ([D087];
-the 960 B this line used to quote was the retracted figure), so they are set per script rather
-than in the platform `config.cmake`. MinSizeRel is mandatory on
+log, partition log and halt-on-panic — cost ~3,785 B of secure text, so they are set per script
+rather than in the platform `config.cmake`. That is a diagnostics decision, not a space one:
+both parts have tens of kilobytes of secure-region spare
+([CONFIGURATION.md](../CONFIGURATION.md) §6). MinSizeRel is mandatory on
 RA8M2 under GNUARM (IAR `Debug` fits, [D055]): `Debug` is ~414 KB against a 293 KB slot
 ([D057]).
 

@@ -436,7 +436,8 @@ The back-port of the per-part guards to RA6M5 and RA6E1 is still open ([D077]).
 
 | | Windows | Limit | Where |
 |---|---|---|---|
-| RA6M5, RA6E1, RA6M4 | one: `0x0100A100`–`0x0100A2CF` | `--max-word 0x10` | `ra6m5_add_ofs_check()`, passing `--ra6-default` |
+| RA6M5 | one: `0x0100A100`–`0x0100A2CF` | `--max-word 0x10`, its widest group | `ra6m5_add_ofs_check()`, passing `--ra6-default` |
+| RA6E1 | the same window | `--max-word 0xC`, its widest group | `ra6e1_add_ofs_check()` |
 | RA8M2 | five: `0x02C9F040`–`0x02C9F280`, `0x12C9F4C0`–`0x12C9F680`, `0x02E07600`–`0x02E07698`, `0x02E17700`–`0x02E17924`, `0x12E17780`–`0x12E17800` | `--max-word 4` | `ra8m2_add_ofs_check()`, passing five `--region` windows |
 
 Both are functions in the part's `CMakeLists.txt`, cited by name because a comment edit above
@@ -447,10 +448,10 @@ deliberately tighter than the `0x80` a BPS word would need, to be raised only if
 are ever placed.
 BL2 also passes `--require-segments`, so an empty result fails rather than passing.
 
-> RA6M5's widest defined groups are `0x10` — `BPS`, `PBPS` and their mirrors, the
-> `OPTION_SETTING_*` block in `region_defs.h` — and the guard limit is `0x10` to match. The
-> limit was `0xC` for a while, inherited from RA6E1 and RA6M4 where those groups are that wide;
-> it never fired, because RA6M5's `bl2_option_setting.c` places none of them.
+> The limit is the part's widest defined group, and the two RA6 parts differ: `0x10` on RA6M5
+> for `BPS`, `PBPS` and their mirrors, `0xC` on RA6E1 for the same groups. **Too small is not
+> safe either** — a legitimately placed group then reads as spanning and fails a correct
+> image.
 
 The guard is verified against the real artifact rather than assumed to work:
 `bringup/bricking_evidence/bl2_BRICKED.elf.UNSAFE` is the image that destroyed the boards, and the guard
@@ -571,8 +572,10 @@ instead, which leaves `bl2/ext/mcuboot/` untouched and survives a TF-M uprev wit
 `MCUBOOT_HW_KEY=ON` with provisioned ROTPK hashes is the same idea taken further: the hash comes
 from the device rather than from the image.
 
-Verify the result rather than assuming it: sign an image with a *different* key and confirm BL2
-rejects it. A build that still trusts `keys.c` accepts both.
+**Verify it the other way round.** Sign an image with the **TF-M sample key** and confirm BL2
+rejects it. Signing with a different key and watching BL2 refuse proves nothing: an unmodified
+build refuses that too, because a stale `keys.c` rejects *your* images rather than accepting
+everything. The sample-key test is the one that fails if the verification step was skipped.
 
 ### 13.2 Anti-rollback
 

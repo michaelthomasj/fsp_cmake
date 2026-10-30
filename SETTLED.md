@@ -6,10 +6,10 @@
 
 | | |
 |---|---|
-| Entries | **153** |
-| Standing | **140** |
+| Entries | **154** |
+| Standing | **141** |
 | Superseded | **13** |
-| Standing but corrected on some point | **38** |
+| Standing but corrected on some point | **40** |
 | Standing, but the question they left open is closed | **3** |
 | Supersede lineages | **10** |
 
@@ -34,7 +34,7 @@ A later entry **supersedes** an earlier one: same question, newer answer. Citing
 
 ---
 
-## Standing (140)
+## Standing (141)
 
 Nothing supersedes these. The title is the position. Where a later entry corrects one, the correction is named - the entry stands apart from that. **Where the Closed by column is filled, read the status as historical:** the entry describes a problem that a later entry shut, so its own "Open" or "Provisional" is no longer true.
 
@@ -118,7 +118,7 @@ Nothing supersedes these. The title is the position. Where a later entry correct
 | `D083` | 2026-10-02 | the PSA-arch builds needed two unrelated fixes, neither of them the MSVC install | Accepted | `D084` | — |
 | `D084` | 2026-10-02 | the shared PSA-arch SPE is NOT a defect; the debug settings in it were cache residue | Accepted | `D087` | — |
 | `D086` | 2026-10-04 | documentation reorganised around the live parts; DESIGN.md had drifted furthest | Accepted | — | — |
-| `D087` | 2026-10-04 | the secure-slot headroom figures were overstated; CONFIGURATION.md written | Accepted | — | — |
+| `D087` | 2026-10-04 | the secure-slot headroom figures were overstated; CONFIGURATION.md written | Accepted | `D154` | — |
 | `D088` | 2026-10-04 | TROUBLESHOOTING.md written; three of its own cross-references were wrong first | Accepted | — | — |
 | `D089` | 2026-10-04 | BRIDGING_FILES.md written; [D083]'s IAR path fix had only covered RA6M5 | Accepted | — | — |
 | `D091` | 2026-10-05 | Option 3 adopted: both parts take TF-M's MCUboot backend, FSP's HAL behind fa_driver | Accepted | `D092` | — |
@@ -179,7 +179,8 @@ Nothing supersedes these. The title is the position. Where a later entry correct
 | `D150` | 2026-10-29 | the course keeps the mechanisms and loses the diary; the glossary generator goes with the table it served | Accepted | — | — |
 | `D151` | 2026-10-29 | the checker resolves sections and course anchors, not just filenames | Accepted | — | — |
 | `D152` | 2026-10-29 | every application build tree moves under `C:\b`; [D144] chose the one default a launch cannot have | Accepted | — | — |
-| `D153` | 2026-10-29 | the second review pass: nine wrong statements, a renderer that would have shipped withheld documents, and the limits of the checks | Accepted | — | — |
+| `D153` | 2026-10-29 | the second review pass: nine wrong statements, a renderer that would have shipped withheld documents, and the limits of the checks | Accepted | `D154` | — |
+| `D154` | 2026-10-29 | the release recipe did not build, and the space budget measured the wrong thing | Accepted | — | — |
 
 ---
 

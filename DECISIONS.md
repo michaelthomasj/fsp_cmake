@@ -8440,3 +8440,75 @@ reference points somewhere; only a reader can confirm it points at the right thi
 a release tag in both repositories, with `GETTING_STARTED.md` §3 then cloning the tag rather than
 the working branch; and discarding the uncommitted e2 project state, which the permission
 boundary here refuses and which is the right boundary for a destructive local action.
+
+## D154 — the release recipe did not build, and the space budget measured the wrong thing
+
+**Date:** 2026-10-29 · **Status:** Accepted · **Corrects:** [D153], [D087] · **Evidence:** `ra6m5/CMakeLists.txt:682,755` and the absence of `r_sci_uart`/`g_uart0` in all five projects; MCUboot headers parsed out of both signed images; `readelf -lW` summed over the secure region on both parts
+
+**Context.** A third review pass found no blockers left in the documentation and four wrong
+statements introduced by the previous pass. All four were mine.
+
+**`CONFIGURATION.md` §9 told a customer to build something that cannot compile.** The recipe
+included `-D<PART>_STDOUT_RTT=OFF`, which selects `PLATFORM_DEFAULT_UART_STDOUT` and compiles
+`cmsis_drivers/Driver_USART.c` into the secure image and the bootloader. That file includes
+`r_sci_uart.h` and opens `g_uart0`, and **no secure or bootloader project contains the SCI UART
+module or any `g_uart0` instance** — so it fails at the include. The option is out of the recipe,
+and §9 now says what switching the console to a UART actually takes: add the module in e2 in
+both projects, name the instance `g_uart0`, regenerate.
+
+**The space budget measured the signed artefact and called it the code budget.** This is the
+substantive correction, and it goes back further than [D153].
+
+```
+                         secure region   code used   spare for code
+RA6M5, Debug, GNUARM          521,728     323,536         198,192
+RA8M2, MinSizeRel, GNUARM     293,376     216,936          76,440
+
+                         slot        signed image   spare in the slot
+RA6M5                      524,288        522,427            1,861
+RA8M2                      294,912        294,075              837
+```
+
+Both measurements are correct and they answer different questions. **The non-secure-callable
+veneers are pinned at the top of the secure region**, so `objcopy -O binary` spans the whole
+region and `tfm_s.bin` is region-sized whatever the image costs; imgtool signs *that*, so the
+signed image nearly fills the slot while the code occupies 62% and 74% of the region.
+
+So "the secure slot is nearly full, enabling a diagnostic that costs a few kilobytes will fail
+to link" — carried in five documents — **was wrong about the mechanism and about the
+consequence.** Adding code does not grow an image that is already region-sized. The limit is the
+region, which has 198 KB and 76 KB spare, and exceeding it fails the link loudly. The three
+logging options cost 3,785 B and fit on both parts; turning them off for a release image is a
+diagnostics decision, not a space one.
+
+[D087]'s 670 B is still the right number for the question *can I sign a bigger image*. It was
+never the right number for *can I add code*, and every document that cited it drew the second
+conclusion.
+
+**Two further statements were wrong, both about mechanisms a customer acts on.**
+
+- **`FSP_EXCLUDED_MODULES` reaches nothing in a normal build.** Its only caller,
+  `fsp_collect_sources()`, sits inside `if(FSP_NS_APP_DIR AND <PART>_NS_IN_SPE_BUILD)`, and that
+  switch is `OFF` by default. The non-secure image takes its FSP sources from the installed
+  `platform_ns`, whose glob is deliberately wide — `bsp/*.c`, `r_*/*.c`, `rm_*/*.c`,
+  `ra_gen/*.c` — with **only `ra_gen/main.c` removed**. Three documents said the exclusion list
+  filters that build.
+- **The key-replacement check was backwards.** §13.1 said to sign with a different key and
+  confirm BL2 rejects it. An unmodified build rejects that too, because **a stale `keys.c`
+  rejects your images rather than accepting everything**, so the test passed without testing
+  anything. The useful test is the reverse: sign with the TF-M sample key and confirm rejection.
+
+**Three smaller errors, two of them introduced by the previous pass.** `DESIGN.md` §8.4 gave one
+guard limit for three parts after I corrected RA6M5's; the limits differ and are now per part,
+`0x10` on RA6M5 and `0xC` on RA6E1, verified at `ra6m5/CMakeLists.txt:919` and
+`ra6e1/CMakeLists.txt:760`. `TEST_RESULTS.md` §9 ended in two near-duplicate paragraphs, folded
+into one. And `KNOWN_LIMITATIONS.md` gave one reason for P-521 and Curve25519 across both parts
+when **the reason differs**: SCE9 has no procedure for either, so RA6M5 cannot do them at all,
+while RSIP-E50D can and RA8M2 has them off only to match the SCE9 configuration — the
+accelerator config marks both to be restored. Its Mbed TLS version was 3.6.3; the FSP tree is
+3.6.6.
+
+**The pattern worth naming.** Every one of these passed every checker, and three of the four
+came from *correcting* something: the previous pass fixed a figure, a limit and a procedure, and
+each fix carried a new wrong statement. A checker can confirm a reference resolves and a number
+is present. It cannot confirm the number answers the question the sentence asks.
