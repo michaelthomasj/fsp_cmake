@@ -194,7 +194,7 @@ In e2: `Run → Debug Configurations…`, pick a launch, `Debug`. RA6M5 launches
 | PSA Arch crypto, attestation, storage | `ra6m5_TFM_test_{crypto,attestation,storage}_{gcc,iar}` | `ra8m2_TFM_test_{crypto,attestation,storage}_{gcc,iar}` |
 | the MCUboot secondary-slot upgrade | — | `ra8m2_TFM_update_{gcc,iar}` |
 
-Gaps in the table are real coverage gaps ([KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md) §3).
+Gaps in the table are real coverage gaps ([TEST_RESULTS.md](TEST_RESULTS.md) §9).
 
 > **Only the first row flashes what §5 builds.** Every other launch expects its own tree; build
 > it with the script in §7 (for the FLIH row:
@@ -342,7 +342,7 @@ on a first build:
 | `C1083: stdio.h` in a PSA Arch build | Visual Studio environment not found: set `MSVC_VARS` (§2) |
 | `INVALID CONFIG: TFM_SPM_DEBUG_TRACE AND ... _SILENCE` | non-Debug build with SPM trace on: pass `-DTFM_SPM_LOG_LEVEL=TFM_SPM_LOG_LEVEL_DEBUG` or `-DTFM_SPM_DEBUG_TRACE=OFF` ([CONFIGURATION.md](CONFIGURATION.md)) |
 | Nothing on RTT | wrong control-block address (it moves every build), or BL2 — see §6 |
-| `region CODE_RAM overflowed` | see [CONFIGURATION.md](CONFIGURATION.md) |
+| `region CODE_RAM overflowed` | RA6M5 only: raise `S_RAM_CODE_SIZE` ([CONFIGURATION.md](CONFIGURATION.md) §7) |
 
 ---
 

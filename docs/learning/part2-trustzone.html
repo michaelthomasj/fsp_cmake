@@ -404,7 +404,7 @@ missing an <code>ICU.IRQ0</code> security assignment. Peripheral-to-zone assignm
 way, diff the azone too (<a href="ref/PORTING.html#s6">PORTING.md</a> §6).</p>
 
 <h3>Other RA security-attribution registers</h3>
-<p><code>R_BSP_SecurityInit()</code> also writes <code>LPMSAR</code>, <code>SRAMSAR</code> and, on MRAM parts, <code>MSAR</code>. A Non-secure MRAM controller gives a precise BusFault at <code>0x4013C000</code> from Secure code: a security-attribution fault, not a privilege fault. Cause and workaround: <a href="ref/RA8M2_SOLUTION.html">RA8M2_SOLUTION.md</a>; clock security: <a href="ref/DESIGN.html#s13-3">DESIGN.md §13.3</a>.</p>
+<p><code>R_BSP_SecurityInit()</code> also writes <code>LPMSAR</code>, <code>SRAMSAR</code> and, on MRAM parts, <code>MSAR</code>. A Non-secure MRAM controller gives a precise BusFault at <code>0x4013C000</code> from Secure code: a security-attribution fault, not a privilege fault. Cause and workaround: <a href="ref/RA8M2_SOLUTION.html#mrams-mrcpfb-must-stay-secure-bsp_tz_cfg_msar">RA8M2_SOLUTION.md</a>; clock security: <a href="ref/DESIGN.html#s13-3">DESIGN.md §13.3</a>.</p>
 
 <!-- ============================================================ -->
 <h2 id="provision">2.8 Provisioning: the part of TrustZone no firmware sets</h2>

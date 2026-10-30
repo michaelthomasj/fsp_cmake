@@ -159,6 +159,8 @@ privilege, so it may touch only its own `mmio_region`. Clear the ICU `IELSR.IR` 
 NVIC pending bit in the platform's vector entry before `spm_handle_interrupt()`, and the
 peripheral's own flag in the partition handler, in that order.
 
+---
+
 ## 8. Traps
 
 | Trap | Symptom |

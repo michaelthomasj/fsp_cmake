@@ -21,7 +21,8 @@ One edit propagates through four stages, and you touch none of them:
   <project>/Debug/bsp_linker_info.h          #define BSP_PARTITION_<NAME>_{START,SIZE}
         │  platform CMakeLists: file(STRINGS …) greps the BSP_PARTITION_* lines
         ▼
-  <build>/generated/bsp_partitions.h         macros only — see §2
+  <build>/generated/bsp_partitions.h         macros only — see [FSP_UPREV_CHECKLIST.md](FSP_UPREV_CHECKLIST.md)
+§"What the port does with each FSP linker input"
         │  #include
         ▼
   flash_layout.h          FLASH_AREA_*_OFFSET/SIZE, ITS/PS areas, FLASH_DEVICE_ID
@@ -118,7 +119,7 @@ assertions do not cover, add one.
 | Configure stops: no `BSP_PARTITION_*` defines | step 2 — the e2 project was not built |
 | New values ignored | step 3 — stale build directory |
 | `region CODE_RAM overflowed` | `S_RAM_CODE_SIZE` — see [CONFIGURATION.md](CONFIGURATION.md) |
-| `region FLASH overflowed` with space apparently free | §2.3 — the NSC window / trailer |
+| `region FLASH overflowed` with space apparently free | [TROUBLESHOOTING.md](TROUBLESHOOTING.md) §"region FLASH overflowed" |
 | A `_Static_assert` fires | §3 — read the message, it names the fix |
 | Secure image never starts, nothing on console | §2.1 — RDPM boundaries |
 | Storage suite fails oddly after a change | §2.2 — erase data flash; check `PS_NUM_ASSETS` |

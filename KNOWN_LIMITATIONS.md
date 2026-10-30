@@ -108,9 +108,9 @@ after a result line is the capture, not a hang.
 `ra8m2_TFM_app_{gcc,iar}`. Every other launch flashes its own tree under `C:\b`, not your
 build, so running an application build and then one of those flashes different images or
 fails on missing files ([GETTING_STARTED.md](GETTING_STARTED.md) §6). RA6M5 launches take debug symbols from the e2
-project's `Debug/ra6m5_gcc_nonsecure.elf`, not the flashed image. Each launch also records a
-local SVD path and source-lookup entry from the author's machine; neither affects what is
-flashed.
+project's `Debug/ra6m5_gcc_nonsecure.elf`, not the flashed image. Most launches also record
+paths from the author's machine: 44 of the 47 carry an `ioFilePath` for the I/O-register view
+and 27 a source-lookup directory. Neither affects what is flashed.
 
 ---
 

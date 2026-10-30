@@ -41,7 +41,8 @@ The three toolchain variables must be set on every machine
 | Build type | MinSizeRel | MinSizeRel, both toolchains | MinSizeRel (GCC) / Debug (IAR) |
 
 Why the scripts pass `TFM_SPM_LOG_LEVEL`, why RA8M2 GNU must build `MinSizeRel`, and what the
-logging options cost: [CONFIGURATION.md](../CONFIGURATION.md) §6 and §9.
+logging options cost: [CONFIGURATION.md](../CONFIGURATION.md) §1 (build type), §6 (cost)
+and §9 (release build).
 
 ## Build trees
 

@@ -159,8 +159,11 @@ the module libraries are not a flat set:
 - Every non-`bsp` module PUBLIC-links `fsp_bsp_<role>`.
 - `rm_psa_crypto` and `ra/arm/mbedtls` are excluded as FSP modules; the `*_ALT` sources come from
   `platform/ext/accelerator/renesas/{sce9,rsip_e50d}` and the library from the
-  `cmake/fsp_mbedtls.cmake` overlay, which `FORCE`-sets `MBEDCRYPTO_PATH`. `rm_mcuboot_port`
-  conflicts with TF-M's dual-image flash map ([DESIGN.md](DESIGN.md) §4).
+  `cmake/fsp_mbedtls.cmake` overlay, which `FORCE`-sets `MBEDCRYPTO_PATH`. What is excluded is
+  FSP's PSA/ITS configuration, which wires PSA ITS to littlefs and conflicts with
+  `TFM_PARTITION_INTERNAL_TRUSTED_STORAGE`. `rm_mcuboot_port` is excluded because its own
+  `FLASH_AREA_*_ID` values and single-image assumptions conflict with TF-M's dual-image flash
+  map ([DESIGN.md](DESIGN.md) §4).
 
 ## 5. After the link
 

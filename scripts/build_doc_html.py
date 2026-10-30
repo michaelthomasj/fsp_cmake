@@ -4,6 +4,7 @@
     python scripts/build_doc_html.py            # regenerate docs/learning/ref/ from the working tree
     python scripts/build_doc_html.py --staged   # regenerate from the git index (what the hook uses)
     python scripts/build_doc_html.py --check    # exit 1 if anything in ref/ is stale or orphaned
+                                                # a never-built ref/ reports "not built", exit 0
 
 Exit codes:  0 up to date / written   1 --check found stale output   2 bad usage
 
@@ -557,15 +558,18 @@ def main():
     os.makedirs(OUT_DIR, exist_ok=True)
     existing = {f for f in os.listdir(OUT_DIR) if f.endswith(".html")}
 
-    stale = []
+    stale, missing = [], []
     for name, text in outputs.items():
         path = os.path.join(OUT_DIR, name)
-        cur = open(path, encoding="utf-8").read() if os.path.exists(path) else None
-        if cur != text:
-            stale.append(name)
-            if not args.check:
-                with open(path, "w", encoding="utf-8", newline="\n") as f:
-                    f.write(text)
+        if not os.path.exists(path):
+            missing.append(name)
+        else:
+            cur = open(path, encoding="utf-8").read()
+            if cur != text:
+                stale.append(name)
+        if not args.check and (name in missing or name in stale):
+            with open(path, "w", encoding="utf-8", newline="\n") as f:
+                f.write(text)
     orphans = sorted(existing - set(outputs))
     if not args.check:
         for name in orphans:
@@ -576,18 +580,30 @@ def main():
         print("  warning: " + w)
     bad_links = course_md_links()
     if args.check:
+        # Never built is not stale. ref/ is gitignored (D146), so a clean clone has none of
+        # it, and reporting that as a failure made --check unrunnable where rule 4 wants it.
+        if missing and len(missing) == len(outputs):
+            print("not built: docs/learning/ref/ (%d pages)" % len(missing))
+            print("run: python %s" % GENERATOR)
+            if bad_links:
+                for b in bad_links:
+                    print("raw .md link in course: " + b)
+                return 1
+            return 0
+        for n in missing:
+            print("missing: docs/learning/ref/" + n)
         for n in stale:
             print("stale:   docs/learning/ref/" + n)
         for n in orphans:
             print("orphan:  docs/learning/ref/" + n)
         for b in bad_links:
             print("raw .md link in course: " + b)
-        if stale or orphans or bad_links:
+        if missing or stale or orphans or bad_links:
             print("run: python %s" % GENERATOR)
             return 1
         return 0
 
-    for n in stale:
+    for n in missing + stale:
         print("  wrote   docs/learning/ref/" + n)
     for n in orphans:
         print("  removed docs/learning/ref/" + n)

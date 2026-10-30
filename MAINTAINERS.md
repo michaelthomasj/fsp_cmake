@@ -26,19 +26,16 @@ The host project in `PROJECT_ATTR` differs between the two parts, on purpose:
 ```
 
 so hosting both toolchains in one project makes them share a directory for those sidecars. Giving
-each toolchain its own host keeps them apart. Nothing is built either way —
-`ATTR_BUILD_BEFORE_LAUNCH_ATTR` is `2`, which in Eclipse CDT is `USE_WORKSPACE_SETTING`, not
-`DISABLED` (`0`) - so whether the host project is built depends on the workspace preference — so
-the host project supplies only that name and the debug context. Keep `MAPPED_RESOURCE_PATHS` in
-step with `PROJECT_ATTR`.
+each toolchain its own host keeps them apart. `ATTR_BUILD_BEFORE_LAUNCH_ATTR` is `2`,
+`USE_WORKSPACE_SETTING` in Eclipse CDT rather than `DISABLED` (`0`), so whether the host project
+is built follows the workspace preference. Keep `MAPPED_RESOURCE_PATHS` in step with
+`PROJECT_ATTR`.
 
-`PROJECT_BUILD_CONFIG_AUTO_ATTR` is `false` in every IAR launch, which is what all six
-working RA6M5 IAR launches use. Only the RA8M2 GCC launches have `true`; every RA6M5 GCC
-launch has `false`, so it cannot be inherited either way.
+`PROJECT_BUILD_CONFIG_AUTO_ATTR` is `false` in every IAR launch. Only the RA8M2 GCC launches
+have `true`; every RA6M5 GCC launch has `false`, so it cannot be inherited either way.
 
 `mk_iar_launches.py` derives each IAR launch from its GCC twin by swapping build-tree names and
-the three project attributes above, and rewriting `e2lite.setTZBoundaries` from `true` to
-`false` - so that key differs too. It
+the three project attributes above. It
 refuses to write a launch that still names a GCC tree or the GCC project, or that has
 `setTZBoundaries` true anywhere. Run `--check` first: it reports `same` when the generator
 reproduces what is on disk, which is how a hand edit gets folded back in rather than lost.
@@ -84,7 +81,7 @@ density under 15 per 1000 words; no launch setting `setTZBoundaries` true for an
 
 `DECISIONS.md` is exempt from the link checks because it is append-only - a reference there to
 a since-retired file is a historical fact, not a defect.
-Review snapshots under `docs/artifacts*/` are exempt from all three checks: they cite entries a
+Review snapshots under `docs/artifacts*/` are exempt from every check: they cite entries a
 review proposes before anyone has written them.
 
 Bypass with `git commit --no-verify` when a commit breaks a reference on purpose, such as the

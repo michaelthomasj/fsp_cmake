@@ -121,26 +121,21 @@ C runtime zeroes <code>.bss</code> (Part 0 §0.5), so FSP state computed there, 
 <h2 id="mcuboot">4.5 Flash layout and MCUboot</h2>
 <p>Three images, three linker scripts, one part. BL2 (MCUboot) lives at the base of flash, verifies the two signed images,
 and jumps to the secure one, which later jumps to the non-secure one.</p>
-<div class="table-wrap"><table>
-<tr><th>RA6M5 area</th><th>Offset</th><th>Size</th><th>Security</th></tr>
-<tr><td>BL2</td><td><code>0x000000</code></td><td>96 KB</td><td>S</td></tr>
-<tr><td>scratch (reserved, unused)</td><td><code>0x018000</code></td><td>32 KB</td><td>S</td></tr>
-<tr><td>image 0 (secure) <strong>secondary</strong></td><td><code>0x020000</code></td><td>512 KB</td><td>S</td></tr>
-<tr><td>image 0 (secure) <strong>primary</strong>, incl. NSC veneers at <code>0x11F800</code></td><td><code>0x0A0000</code></td><td>512 KB</td><td>S / NSC</td></tr>
-<tr><td>image 1 (non-secure) primary</td><td><code>0x120000</code></td><td>448 KB</td><td>NS</td></tr>
-<tr><td>image 1 (non-secure) secondary</td><td><code>0x190000</code></td><td>448 KB</td><td>NS</td></tr>
-<tr><td>data flash: ITS, PS, NV counters</td><td><code>0x08000000</code></td><td>8 KB</td><td>S</td></tr>
-</table></div>
-<p class="src"><a href="ref/RA6M5_SOLUTION.html">RA6M5_SOLUTION.md</a> §Layout. Every boundary is a multiple of the 32 KB erase block.</p>
+<p>The order is the part of this a porter has to absorb, and two things in it are not what you would
+assume. Reading up from the base of flash: BL2, the reserved scratch block, the secure
+<em>secondary</em> slot, the secure <em>primary</em> slot with the non-secure-callable veneers pinned at its
+top, then the two non-secure slots, with ITS, PS and the NV counters in data flash. Every address and
+size is in <a href="ref/RA6M5_SOLUTION.html">RA6M5_SOLUTION.md</a>, which owns the layout.</p>
+<p>Every boundary is a multiple of the 32 KB erase block.</p>
 <ul>
   <li><strong>Slot order is not what you would assume.</strong> The secure secondary slot is <em>below</em> the primary on
     RA6M5, and on RA8M2 (<a href="ref/PORTING.html#s2">PORTING.md</a> §2, <a href="ref/DECISIONS.html#d100">D100</a>). Read the generated symbols.</li>
   <li><strong>Overwrite-only upgrade.</strong> The scratch block is reserved so a later move to swap mode needs no
     re-provisioning, and is Secure because during a swap it would hold secure-image fragments.</li>
 <li><strong><code>MCUBOOT_ALIGN_VAL</code> differs per part</strong>, so signed images are not interchangeable between parts (<a href="ref/CONFIGURATION.html#s3">CONFIGURATION.md §3</a>).</li>
-  <li><strong><code>FLASH_AREA_IMAGE_SECTOR_SIZE</code> restates an FSP value</strong> and nothing checks it: at
-    <code>0x1000</code> against FSP's <code>0x8000</code>, slots were 9.875 sectors long, every build step accepted it, and
-    it failed on hardware as <code>BOOT_EFLASH</code> (<a href="ref/DECISIONS.html#d054">D054</a>).</li>
+  <li><strong><code>FLASH_AREA_IMAGE_SECTOR_SIZE</code> restates an FSP value</strong> and nothing checks it, so a
+    mismatch passes every build step and fails only on hardware
+    (<a href="ref/DESIGN.html#s4">DESIGN.md</a> &sect;4).</li>
 <li><strong>MCUboot flash backend:</strong> TF-M's map and backend, with FSP's driver wrapped as a CMSIS <code>ARM_DRIVER_FLASH</code> behind <code>fa_driver</code> (<a href="ref/DESIGN.html#s4">DESIGN.md §4</a>).</li>
 </ul>
 <h3>Measured boot is verified from RAM, not from a test suite</h3>

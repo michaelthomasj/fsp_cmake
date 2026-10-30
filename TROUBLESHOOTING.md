@@ -16,8 +16,8 @@ build's `check_ofs.py` guard prevents this; the pre-flash check is
 
 ### The part is provisioned with the wrong TrustZone boundaries
 
-Reprogram with RDPM, which erases the part, then reflash all three images. Values: the SOLUTION
-documents. Rules, including `setTZBoundaries`: [GETTING_STARTED.md](GETTING_STARTED.md) §6.
+Reprogram with RDPM, which erases the part, then reflash all three images. Values: [RA6M5_SOLUTION.md](RA6M5_SOLUTION.md) and
+[RA8M2_SOLUTION.md](RA8M2_SOLUTION.md). Rules, including `setTZBoundaries`: [GETTING_STARTED.md](GETTING_STARTED.md) §6.
 
 ---
 
@@ -36,7 +36,8 @@ Work through these in order. The first three are the common causes:
 
 1. **Signed at a different `MCUBOOT_ALIGN_VAL`** ([CONFIGURATION.md](CONFIGURATION.md) §3).
    Reflash every slot.
-2. **Flashed to the wrong address.** The addresses are per-part; see the per-part solution doc.
+2. **Flashed to the wrong address.** The addresses are per-part: [RA6M5_SOLUTION.md](RA6M5_SOLUTION.md),
+   [RA8M2_SOLUTION.md](RA8M2_SOLUTION.md).
 3. **A stale image in the other slot.** Erase code and data flash on connect.
 4. **`FLASH_AREA_IMAGE_SECTOR_SIZE` disagreeing with the device.** At `0x1000` against a real
    `0x8000`, slots come out 9.875 sectors long; every build step accepts it and it fails here.

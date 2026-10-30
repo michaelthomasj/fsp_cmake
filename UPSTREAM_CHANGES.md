@@ -52,7 +52,14 @@ files above, v2.2.2 touches these six:
 | `toolchain_GNUARM.cmake` |
 
 Re-run the regenerate command against the new base afterwards; a conflict that resolves quietly
-in a linker template is the failure mode to watch for.
+in a linker template is the failure mode to watch for. Then re-check four things that a bump can
+break without a diagnostic:
+
+- the bootutil build glue still matches (§8 and the `MCUBOOT_VERSION` pin),
+- the generated secure linker still honours the veneer macros (§2, §16),
+- `<part>_bl2.ld` is still in step with the new `tfm_common_bl2.ld`
+  ([DESIGN.md](DESIGN.md) §8.2),
+- the option-memory guard still passes on both parts ([DESIGN.md](DESIGN.md) §8.4).
 
 ---
 
@@ -194,7 +201,7 @@ does not collide.
 
 **Withdrawn. Do not submit.** The port takes TF-M's backend and puts FSP's HAL behind
 `fa_driver`, as ST does for STM32Cube, so `bl2/CMakeLists.txt` is byte-identical to v2.2.0 again
-([DESIGN.md](DESIGN.md) §5).
+([DESIGN.md](DESIGN.md) §4).
 
 ### 14. IAR: `--redirect __write=__write_buffered` makes a platform `__write()` unreachable
 

@@ -25,7 +25,7 @@ offset.
    before BL2 touches it.
 
 BL2 does this in `bl2_sau_init()` (`bl2_boot_hal.c`), guarded on `__SAUREGION_PRESENT == 1`, with
-the bounds from FSP's `flash_map.c`. Flash backend: [DESIGN.md](DESIGN.md) §5.
+the bounds from FSP's `flash_map.c`. Flash backend: [DESIGN.md](DESIGN.md) §4.
 
 ---
 
