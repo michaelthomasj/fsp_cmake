@@ -8280,3 +8280,51 @@ heading with no `id`. A script now confirms every internal course link and ancho
 or within a few per cent of its own target except `part1` and `part2`, where the remaining
 excess is fault-decoding and RA-specific TrustZone material that the review itself called the
 most useful content in the set.
+
+## D151 — the checker resolves sections and course anchors, not just filenames
+
+**Date:** 2026-10-29 · **Status:** Accepted · **Builds on:** [D147], [D150] · **Evidence:** six probes injected and observed to fail with the intended message, then reverted; the computed anchors reconciled against the rendered pages in both directions
+
+**Context.** `check_docs.py` resolved a link to a *file* and stopped there. That is how three
+documents went on citing `README.md` §"Freeing space in the secure image" after [D146] removed
+that section, and how three broken anchors survived in the course until [D150] checked them with
+a throwaway script. Both classes are invisible to every checker this repository had.
+
+**Two checks added**, and unlike [D147]'s four these always run, because they are reference
+resolution rather than customer readiness:
+
+| Check | What it resolves |
+|---|---|
+| a cited section exists | `FILE.md §6` and `FILE.md §"Some heading"`, where the citation names a Markdown file. 61 numbered and 4 quoted-title citations |
+| the course's links resolve | 126 links into the generated `ref/` pages and 211 within `docs/learning/` |
+
+**`[D128] §4` is not a document citation**, and the pattern says so: it requires a `.md` before
+the section marker. Of 288 section markers in the set, 65 name a file and are checked; the rest
+cite the containing document or a section of a decision entry, neither of which this can
+attribute reliably.
+
+**The `ref/` anchors are computed, not read back.** Those pages are generated and not committed
+([D146]), so reading them would make the check vanish in a clone that has never run the
+renderer. `md_sections()` therefore reproduces `build_doc_html.py`'s rule — `D002` becomes
+`d002`, `8.4 OFS …` becomes `s8-4`, anything else gets a slug — and the two were reconciled
+against the rendered pages **in both directions**, which is what found the two defects below.
+The renderer stays the authority; this is a reader of the same rule, and the pair has to be kept
+in step.
+
+**Two defects in the new check, both found by reconciling rather than by it passing.**
+
+- It stripped `_` as an emphasis marker, so `` `tfm_sprt` must be stateless`` slugged to
+  `tfmsprt-…` where the renderer produces `tfm_sprt-…`. **An underscore is part of every
+  identifier these headings name**; 32 of 623 anchors disagreed. Agreement went to 99.7%.
+- The renderer disambiguates a repeated heading with `_2`, `_3` and so on, which a stateless
+  reader cannot reproduce. `DECISIONS.md` alone renders 48 such ids, every one a "Carried"
+  heading. **Each would have been a false failure the moment the course linked it**, so a
+  fragment now also resolves against its base. Nothing rendered is now unresolvable.
+
+A third defect was found by the check itself on its first run: it read a citation that wrapped
+across two source lines as `§"Security\nstatus"` and reported a real heading as missing. Both
+sides are now compared on one line.
+
+**Still not covered**, stated so it is not mistaken for coverage: a `§N` citation that names no
+file, a section reference inside `DECISIONS.md` (append-only, exempt from link checks), and a
+heading reference in prose that does not use the `§` marker at all.

@@ -62,7 +62,17 @@ something a recipient actually receives. These four close that gap.
      switches probe. e2_baseline/ is exempt: it shows the unmodified e2 output on purpose and
      its README says not to launch from it.
 
-Pass --no-customer to run only (1) - (3), for a commit that breaks one of these on purpose.
+  8. a cited SECTION exists in the document the citation names. `FILE.md §6` and
+     `FILE.md §"Some heading"` are checked; a link resolves to a file and nothing used to look
+     inside it, which is how three documents went on citing a README section months after it
+     was removed. `[D128] §4` is not a document citation and is not checked.
+  9. the course's links resolve, both within docs/learning/ and into the rendered documents
+     under docs/learning/ref/. Those pages are generated and not committed (D146), so their
+     anchors are computed from the Markdown the same way build_doc_html.py computes them -
+     which also means this check works in a clone where ref/ has never been built.
+
+Pass --no-customer to skip (4) - (7), for a commit that breaks one of them on purpose. The
+reference checks (1) - (3) and (8) - (9) always run.
 """
 import argparse
 import os
@@ -99,6 +109,29 @@ RE_USERPATH = re.compile(r"[Cc]:[\\/]Users[\\/](?!<)([A-Za-z0-9._-]+)")
 RE_TZ_TRUE = re.compile(r'setTZBoundaries" value="true"')
 
 RE_ENTRY = re.compile(r"^## (D\d+) — ", re.M)
+
+# Section and anchor resolution. See (8) and (9) in the module docstring.
+#
+# A heading's anchor is computed the way scripts/build_doc_html.py computes it, because the
+# course links into the rendered pages: "D002 — ..." becomes d002, "8.4 OFS ..." becomes s8-4,
+# and anything else gets a GitHub-style slug. Keep these two in step; the renderer is the
+# authority and this is the reader.
+RE_HEADING = re.compile(r"^(#{1,6})\s+(.*?)\s*#*$", re.M)
+RE_SEC_NUM = re.compile(r"^§?(\d+(?:\.\d+)*)\.?\s")
+RE_DNUM = re.compile(r"^(D\d{3})\b")
+# A Markdown file named as a link, in backticks, or bare - immediately followed by a section
+# citation. "[D128] §4" is NOT one of these: it cites a section of a decision entry, and the
+# pattern requires a .md before the marker.
+RE_SEC_CITE = re.compile(
+    r'(?:\]\((?P<link>[A-Za-z0-9_./-]+\.md)\)'
+    r'|`(?P<tick>[A-Za-z0-9_./-]+\.md)`'
+    r'|(?<![`/\w])(?P<bare>[A-Za-z0-9_./-]+\.md))'
+    r'\s*§\s?(?:(?P<num>\d+(?:\.\d+)*)|"(?P<title>[^"]+)")')
+# The course links the rendered documents, never the raw Markdown.
+RE_REF_LINK = re.compile(r'href="ref/([A-Za-z0-9_]+)\.html#([^"]+)"')
+RE_HTML_ID = re.compile(r'\bid="([^"]+)"')
+RE_HTML_HREF = re.compile(r'href="([^"]+)"')
+COURSE = os.path.join("docs", "learning")
 RE_CITE = re.compile(r"\bD(\d{3})\b")
 RE_MDLINK = re.compile(r"\]\(([^)#][^)]*\.md)\)")
 RE_MDNAME = re.compile(r"\b([A-Za-z0-9_./-]+\.md)\b")
@@ -186,6 +219,121 @@ def customer_checks(docs, tracked):
     return fails
 
 
+def md_sections(path):
+    """(section numbers, heading titles, anchor ids) for one Markdown file."""
+    nums, titles, ids = set(), set(), set()
+    for _level, text in RE_HEADING.findall(read(path)):
+        # Strip inline code and emphasis markers, but NEVER the underscore: it is part of
+        # every identifier these headings name, and removing it made tfm_sprt slug to
+        # "tfmsprt" where the renderer produces "tfm_sprt".
+        t = re.sub(r"[*`]", "", text).strip()
+        if not t:
+            continue
+        titles.add(t)
+        m = RE_SEC_NUM.match(t)
+        if m:
+            nums.add(m.group(1))
+            ids.add("s" + m.group(1).replace(".", "-"))
+            continue
+        m = RE_DNUM.match(t)
+        if m:
+            ids.add(m.group(1).lower())
+            continue
+        ids.add(re.sub(r"[^\w\- ]", "", t.lower()).replace(" ", "-") or "section")
+    return nums, titles, ids
+
+
+def section_checks(docs, tracked):
+    """(8): a cited section must exist in the document the citation names.
+
+    This is the check that was missing when three documents went on pointing at
+    README.md §"Freeing space in the secure image" after that section was removed: a link
+    resolves to a FILE, and nothing looked inside it.
+    """
+    fails, cache = [], {}
+
+    def sections(path):
+        if path not in cache:
+            cache[path] = md_sections(path)
+        return cache[path]
+
+    for doc in docs:
+        rel = os.path.relpath(doc, ROOT).replace("\\", "/")
+        if rel.startswith(PATH_EXEMPT) or os.path.basename(doc) in LINK_EXEMPT:
+            continue
+        if tracked is not None and rel not in tracked:
+            continue
+        for m in RE_SEC_CITE.finditer(read(doc)):
+            name = m.group("link") or m.group("tick") or m.group("bare")
+            target = os.path.normpath(os.path.join(os.path.dirname(doc), name))
+            if not os.path.isfile(target):
+                continue          # (2) and (3) report a missing file; one message is enough
+            nums, titles, _ids = sections(target)
+            num, title = m.group("num"), m.group("title")
+            if title:
+                # A citation may wrap across lines, and so may a heading; compare on one line.
+                title = " ".join(title.split())
+                titles = {" ".join(h.split()) for h in titles}
+            if num and num not in nums:
+                fails.append((rel, "cites %s §%s, which is not a section of it" % (name, num)))
+            elif title and not any(title in h for h in titles):
+                fails.append((rel, 'cites %s §"%s", which is not a heading in it' % (name, title)))
+    return fails
+
+
+def course_checks():
+    """(9): the course's own links, and its links into the rendered documents.
+
+    The rendered pages under docs/learning/ref/ are generated and not committed, so their
+    anchors are computed from the Markdown rather than read back - which also means this check
+    works in a clone where ref/ has never been built.
+    """
+    course = os.path.join(ROOT, COURSE)
+    if not os.path.isdir(course):
+        return []
+    pages = sorted(f for f in os.listdir(course) if f.endswith(".html"))
+    if not pages:
+        return []
+    fails = []
+    ids = {}
+    for f in pages:
+        ids[f] = set(RE_HTML_ID.findall(read(os.path.join(course, f))))
+
+    for f in pages:
+        text = read(os.path.join(course, f))
+
+        # into the rendered documents: ref/<NAME>.html#anchor
+        for name, frag in RE_REF_LINK.findall(text):
+            src = ("scripts/README.md" if name == "scripts_README" else name + ".md")
+            path = os.path.join(ROOT, src)
+            if not os.path.isfile(path):
+                fails.append(("%s/%s" % (COURSE.replace("\\", "/"), f),
+                              "links ref/%s.html, which no Markdown file renders to" % name))
+                continue
+            # The renderer disambiguates a repeated heading by suffixing "_2", "_3" and so
+            # on. md_sections() does not carry that state, so accept the base as well:
+            # DECISIONS.md alone renders 48 such ids, every one of them a "Carried" heading.
+            base = re.sub(r"_\d+$", "", frag)
+            anchors = md_sections(path)[2]
+            if frag not in anchors and base not in anchors:
+                fails.append(("%s/%s" % (COURSE.replace("\\", "/"), f),
+                              "links ref/%s.html#%s; %s has no heading with that anchor"
+                              % (name, frag, src)))
+
+        # within the course
+        for href in RE_HTML_HREF.findall(text):
+            if href.startswith(("http://", "https://", "mailto:", "ref/")):
+                continue
+            page, _, frag = href.partition("#")
+            here = "%s/%s" % (COURSE.replace("\\", "/"), f)
+            if page and not os.path.isfile(os.path.join(course, page)):
+                fails.append((here, "links %s, which does not exist" % href))
+                continue
+            if frag and frag not in ids.get(page or f, set()):
+                fails.append((here, "links %s; there is no element with that id" % href))
+    return fails
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--quiet", action="store_true")
@@ -245,6 +393,8 @@ def main():
         if tracked is None and not a.quiet:
             print("check_docs: git unavailable - link targets checked on disk only")
         fails += customer_checks(docs, tracked)
+    fails += section_checks(docs, tracked)
+    fails += course_checks()
 
     if fails:
         print(f"check_docs: {len(fails)} broken reference(s)\n")

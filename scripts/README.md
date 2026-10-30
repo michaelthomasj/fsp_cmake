@@ -243,10 +243,17 @@ python scripts/check_docs.py     # verify every D-citation and .md reference res
 sh scripts/install_hooks.sh      # install it as a pre-commit hook (once per clone)
 ```
 
-Checks three things: every `D###` cited anywhere exists in `DECISIONS.md`; every relative
-`.md` link resolves; every `.md` filename named in a `.cmake` or `CMakeLists.txt` comment
-resolves. `DECISIONS.md` is exempt from the link checks because it is append-only - a reference
-there to a since-retired file is a historical fact, not a defect.
+Checks nine things, in two groups. **References:** every `D###` cited anywhere exists in
+`DECISIONS.md`; every relative `.md` link resolves; every `.md` filename named in a `.cmake` or
+`CMakeLists.txt` comment resolves; a cited *section* exists in the document the citation names
+(`FILE.md §6`, `FILE.md §"Some heading"`); and the course's links resolve, both within
+`docs/learning/` and into the generated pages under `ref/`. **Customer readiness:** no local
+user path; every link target tracked in git rather than merely present on disk; decision-ID
+density under 15 per 1000 words; no launch setting `setTZBoundaries` true for any probe. Pass
+`--no-customer` to skip the second group.
+
+`DECISIONS.md` is exempt from the link checks because it is append-only - a reference there to
+a since-retired file is a historical fact, not a defect.
 Review snapshots under `docs/artifacts*/` are exempt from all three checks: they cite entries a
 review proposes before anyone has written them.
 
@@ -299,8 +306,9 @@ of `ref/<NAME>.html`, which is worth running after editing the course.
   escaped, not passed through.
 - `[D113]` becomes a link to `DECISIONS.html#d113`; a numbered heading (`### 8.4 ...`) gets the
   id `s8-4`, so the course can link `DESIGN.html#s8-4` for "DESIGN.md §8.4". Renumbering a
-  section therefore breaks inbound course links - `--check` does not catch that; a link checker
-  over `docs/learning/` does.
+  section therefore breaks inbound course links. `--check` here does not catch that;
+  `check_docs.py` does, by computing the same anchors from the Markdown and resolving every
+  course link against them.
 - Output is deterministic, so `--check` is a byte comparison and diffs show only real changes.
 - Adding or removing a document rewrites every page, because each sidebar lists them all.
 - `--no-verify` skips the render too. Run the script by hand afterwards, or the next
